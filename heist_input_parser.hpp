@@ -1,18 +1,10 @@
-// Author: Jordan Randleman -- scm_eval_input_parsing.hpp
-// => Parses user's input into an AST for the C++ Scheme Interpreter
+// Author: Jordan Randleman -- jrandleman@scu.edu -- heist_input_parser.hpp
+// => Parses user's input into an AST for the C++ Heist Scheme Interpreter
 
-#ifndef SCM_EVAL_INPUT_PARSING_HPP_
-#define SCM_EVAL_INPUT_PARSING_HPP_
+#ifndef HEIST_INPUT_PARSER_HPP_
+#define HEIST_INPUT_PARSER_HPP_
 
-#include "scm_eval_types.hpp"
-
-/******************************************************************************
-* READER ERROR CODE ENUMERATION
-******************************************************************************/
-
-enum class READER_ERROR {early_end_paren,       incomplete_string, 
-                         incomplete_expression, quoted_end_of_buffer,
-                         quoted_space,          quoted_end_of_expression};
+#include "heist_types.hpp"
 
 /******************************************************************************
 * READER HELPER FUNCTIONS
@@ -25,24 +17,28 @@ constexpr bool IS_END_OF_WORD(const char& c, const char& c2) {
 }
 
 // Check whether data is at the long-hand name of a character
-std::pair<char,scm_string> data_is_named_char(const size_type& i, const scm_string& input){
+std::pair<chr_type,scm_string> data_is_named_char(const size_type& i, 
+                                                  const scm_string& input){
   // char long-hand names & their respective 'char' representations
-  constexpr const char * const char_names[] = {
-    "nul",    "space", "newline", "tab",       "vtab",  "page", 
-    "return", "esc",   "alarm",   "backspace", "delete"
+  static constexpr const char * const char_names[] = {
+    "nul",    "space", "newline", "tab",       "vtab",   "page", 
+    "return", "esc",   "alarm",   "backspace", "delete",
   };
-  constexpr const char* const char_syms = "\0 \n\t\v\f\r\x1b\a\b\x7f";
+  static constexpr const chr_type char_syms[] = {
+    '\0', ' ', '\n', '\t', '\v', '\f', '\r', '\x1b', '\a', '\b', '\x7f',
+  };
+  static constexpr const size_type n = sizeof(char_names) / sizeof(char*);
   // current name candidate
   const scm_string name = input.substr(i,9); // "backspace".size() (largest name)
   // seek a long-hand char name instance
-  for(size_type j = 0; j < 11; ++j)
+  for(size_type j = 0; j < n; ++j)
     if(name.find(char_names[j]) == 0)
       return std::make_pair(char_syms[j], char_names[j]);
   // seek a hexadecimal char name instance
   if(name[0] == 'x' && isxdigit(name[1])) {
     if(isxdigit(name[2]))
-      return std::make_pair(char(std::stoi(name.substr(1,2),nullptr,16)), name.substr(0,2));
-    return std::make_pair(char(std::stoi(name.substr(1,1),nullptr,16)), name.substr(0,1));
+      return std::make_pair(std::stoi(name.substr(1,2),nullptr,16), name.substr(0,2));
+    return std::make_pair(std::stoi(name.substr(1,1),nullptr,16), name.substr(0,1));
   }
   // didn't find a long-hand instance
   return std::make_pair('\0', "");
@@ -202,6 +198,8 @@ void expand_quoted_data(scm_string& input) {
           ++j;
         }
       // insert closing ')' after the quoted atom
+      } else if(is_non_escaped_double_quote(j,input)) { // quote string literal
+        skip_string_literal(j,input), ++j;
       } else {
         // if quoting a char, past the 1st 3 symbols to avoid triggering 'IS_END_OF_WORD' prematurely.
         if(input[j] == '#' && input[j+1] == '\\') j += 3; 
@@ -309,16 +307,16 @@ bool data_is_number(size_type& i, const scm_string& input, num_type& exp) {
   }
   
   // check for radices -- may contain both an exactness radix & #-base radix
-  char radix1 = is_valid_number_radix(input[i],input[i+1]);
-  char radix2 = radix1 ? is_valid_number_radix(input[i+2],input[i+3]) : 0;
+  const char radix1 = is_valid_number_radix(input[i],input[i+1]);
+  const char radix2 = radix1 ? is_valid_number_radix(input[i+2],input[i+3]) : 0;
   if(invalid_radix_pair(radix1, radix2)) return false;
   
   // determine the numeric base & exactness to parse for
-  int  base = radix_numerical_base(radix1,radix2);
-  char prec = radix_numerical_prec(radix1,radix2);
+  const int  base = radix_numerical_base(radix1,radix2);
+  const char prec = radix_numerical_prec(radix1,radix2);
   
   // parse the number after the radix
-  auto num_start = i + ((radix1 && radix2) ? 4 : radix1 ? 2 : 0); // mv past radices
+  const auto num_start = i + ((radix1 && radix2) ? 4 : radix1 ? 2 : 0); // mv past radices
   if(is_valid_number_start(input[num_start],input[num_start+1],base)){
     // account for sign
     scm_string num = (input[num_start]=='-') ? "-" : "";
@@ -338,11 +336,10 @@ bool data_is_number(size_type& i, const scm_string& input, num_type& exp) {
         if(input[j+1] == '+' || input[j+1] == '-') num += input[j++];
         if(!is_base_digit(input[j+1],base) || div_freq) return false;
       }
-      num += input[j];
-      ++j;
+      num += input[j++];
     }
     
-    // NaN if ambiguous precision specification
+    // invalid number if ambiguous precision specification
     if(period_freq == 2 || div_freq == 2 || expt_freq == 2) 
       return false;
     
@@ -381,7 +378,7 @@ bool data_is_char(size_type& i, const scm_string& input, chr_type& exp) {
   if(input[i] == '#' && input[i+1] == '\\') {
     i += 2;
     if(auto [ch, name] = data_is_named_char(i,input); !name.empty()) 
-      exp = ch, i += name.size();
+      exp = ch, i += (name.size()>2) ? name.size()-1 : name.size();
     else exp = input[i];
     return true;
   }
@@ -411,7 +408,8 @@ constexpr bool data_is_expression_end(const char& c) {return c == ')';}
 ******************************************************************************/
 
 // Parses the scheme expression buffer into a scm_list
-void construct_abstract_syntax_tree(size_type& i, const scm_string& input, scm_list& tree) {
+void construct_abstract_syntax_tree(size_type& i, const scm_string& input, 
+                                                        scm_list& tree) {
   const size_type n = input.size();
   scm_string tmp_str = "", tmp_sym = "";
   chr_type tmp_chr = 0;
@@ -436,7 +434,7 @@ void construct_abstract_syntax_tree(size_type& i, const scm_string& input, scm_l
       tree.push_back(data(tmp_sym));         // found symbol atom
     else throw i;                            // unkown type detected, throw index
   }
-}
+} 
 
 // Expands scheme input quote-shorthands & returns derived Abstract Syntax Tree
 // => GIVEN THE RAW USER INPUT
@@ -444,11 +442,8 @@ void parse_input_exp(scm_string&& input, scm_list& abstract_syntax_tree) {
   if(input.empty() || !confirm_valid_scm_expression(input)) return;
   size_type start_index = 0;
   rm_optional_spaces_btwn_open_parens_and_proc_names(input);
-  // '#(<exp>) => '(vector-literal <exp>)
-  expand_vector_literals(input);
-  // '<exp> => (quote <exp>)   && `<exp> => (quasiquote <exp>)
-  // ,<exp> => (unquote <exp>) && ,@<exp> => (unquote-splicing <exp>)
-  expand_quoted_data(input);
+  expand_vector_literals(input); // '#(<exp>) => '(vector-literal <exp>)
+  expand_quoted_data(input);     // '<exp>    => (quote <exp>)
   construct_abstract_syntax_tree(start_index,input,abstract_syntax_tree);
 }
 #endif
