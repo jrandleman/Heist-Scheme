@@ -1,20 +1,18 @@
-// Author: Jordan Randleman -- scm_eval_types.hpp
-// => Contains type aliases for the C++ Scheme Interpreter
+// Author: Jordan Randleman -- jrandleman@scu.edu -- heist_types.hpp
+// => Contains type aliases & structures for the C++ Heist Scheme Interpreter
 
-#ifndef SCM_EVAL_TYPES_HPP_
-#define SCM_EVAL_TYPES_HPP_
+#ifndef HEIST_TYPES_HPP_
+#define HEIST_TYPES_HPP_
 
 #include <functional>
+#include <cstdio>
 #include <memory>
 #include <tuple>
-#include "scm_eval_numerics.hpp"
+#include "heist_numerics.hpp"
 
-#define ERR_HEADER "\n\x1b[1m" + std::string(__FILE__) + ":" +\
-                                 std::string(__func__) + ":" +\
-                                 std::to_string(__LINE__) +\
-                                 ":\x1b[31m ERROR: \n\x1b[0m\x1b[1m  => "
-#define PRINT_ERR(...) std::cerr << ERR_HEADER << __VA_ARGS__ << "\x1b[0m\n"
-#define FATAL_ERR(...) ({PRINT_ERR(__VA_ARGS__); throw EXIT_FAILURE;})
+/******************************************************************************
+* ABSTRACT SYNTAX TREE & INTERNAL TYPE ALIASES
+******************************************************************************/
 
 using scm_list   = std::vector<struct data>;          // scheme expression list
 using scm_node   = scm_list::iterator;                // scheme expression node
@@ -27,7 +25,35 @@ using signed_num = long long;                         // negative numerics
 * MAX NUMBER OF RECURSIVE CALLS
 ******************************************************************************/
 
-size_type MAX_RECURSIVE_DEPTH = 1000; // see set-max-recursion-depth! primitive
+size_type MAX_RECURSION_DEPTH = 1000; // see set-max-recursion-depth! primitive
+
+/******************************************************************************
+* WHETHER TO USE ANSI ESCAPE SEQUENCES TO FORMAT OUTPUT
+******************************************************************************/
+
+bool USING_ANSI_ESCAPE_SEQUENCES = true;
+
+/******************************************************************************
+* REPL FORMATTING TRACKER VARIABLES
+******************************************************************************/
+
+bool LAST_PRINTED_NEWLINE_TO_STDOUT = false;
+bool LAST_PRINTED_TO_STDOUT         = false;
+
+/******************************************************************************
+* CURRENT DEFAULT INPUT & OUTPUT PORTS + THE GLOBAL PORT REGISTRY
+******************************************************************************/
+
+FILE* CURRENT_INPUT_PORT  = stdin;
+FILE* CURRENT_OUTPUT_PORT = stdout;
+
+std::vector<FILE*> PORT_REGISTRY({stdin,stdout});
+
+/******************************************************************************
+* THE GLOBAL MACRO LABEL REGISTRY
+******************************************************************************/
+
+std::vector<scm_string> MACRO_LABEL_REGISTRY; // optimizes procedure analysis
 
 /******************************************************************************
 * MAX VALUE FOR SIZE_TYPE
@@ -36,15 +62,16 @@ size_type MAX_RECURSIVE_DEPTH = 1000; // see set-max-recursion-depth! primitive
 constexpr const auto MAX_SIZE_TYPE = std::numeric_limits<size_type>::max();
 
 /******************************************************************************
-* RESERVED VOID ARG NAME, EMPTY-LIST VALUE, & DO-ITERATION KEYWORDS
+* RESERVED VOID ARG NAME, EMPTY-LIST VALUE, PROCEDURE TAGS, MANGLED NAME PREFIX
 ******************************************************************************/
 
 // NOTE: THE FOLLOWING SYMBOLS ARE RESERVED!
 
-constexpr const char * const SENTINEL_ARG            = "SCM_EVAL-NIL-ARG"; 
-constexpr const char * const DO_LETREC_INSTANCE_NAME = "SCM_EVAL-DO-LETREC";
-constexpr const char * const PROCEDURE_TAG           = "SCM_EVAL-PROCEDURE";
-constexpr const char * const PRIMITIVE_TAG           = "SCM_EVAL-PRIMITIVE";
+constexpr const char * const SENTINEL_ARG            = "HEIST-NIL-ARG"; 
+constexpr const char * const DO_LETREC_INSTANCE_NAME = "HEIST-DO-LETREC";
+constexpr const char * const PROCEDURE_TAG           = "HEIST-PROCEDURE";
+constexpr const char * const PRIMITIVE_TAG           = "HEIST-PRIMITIVE";
+constexpr const char * const MANGLED_LAMBDA_PREFIX   = "''lambda-";
 constexpr const char * const THE_EMPTY_LIST          = "";
 
 /******************************************************************************
@@ -68,14 +95,14 @@ using environment = std::vector<frame_ptr>;
 auto make_frame = std::make_shared<frame_t,frame_t>;
 
 /******************************************************************************
-* DATA TYPE ALIASES, CONSTRUCTORS, & STRUCTS
+* DATA TYPE ALIASES & CONSTRUCTORS
 ******************************************************************************/
 
 using exp_type = scm_list;                           // expression
 using par_type = std::shared_ptr<scm_pair>;          // pair
 using num_type = Scm_numeric;                        // number (float/int/frac)
 using str_type = std::shared_ptr<scm_string>;        // string
-using chr_type = char;                               // character
+using chr_type = int;                                // character
 using sym_type = scm_string;                         // symbol
 using vec_type = std::shared_ptr<scm_list>;          // vector
 using bol_type = struct boolean;                     // boolean
@@ -83,7 +110,9 @@ using env_type = std::shared_ptr<environment>;       // evironment
 using del_type = std::shared_ptr<struct delay_data>; // delay
 using prm_type = struct data(*)(scm_list&);          // primitive procedure ptr
 using exe_type = std::function<scm_list(env_type&)>; // fcn execution procedure
-using cal_type = std::shared_ptr<size_type>;         // recursive depth counter
+using cal_type = std::shared_ptr<size_type>;         // recursive call counter
+using fip_type = struct iport;                       // file input port
+using fop_type = struct oport;                       // file output port
 
 auto make_par = std::make_shared<scm_pair>;
 auto make_str = std::make_shared<scm_string,const scm_string&>;
@@ -92,24 +121,62 @@ auto make_env = std::make_shared<environment>;
 auto make_del = std::make_shared<struct delay_data,const scm_list&,const env_type&>;
 auto make_cal = std::make_shared<size_type,size_type>;
 
-// helper functions to recursively print scheme pairs & vectors
-void print_list(std::ostream& outs, const par_type& pair_object);
-void print_vect(std::ostream& outs, const vec_type& vector_object);
+/******************************************************************************
+* GLOBAL ENVIRONMENT POINTER
+******************************************************************************/
 
-// enum of "struct data.value" types
-// => expression, pair, number, string, character, symbol, vector, boolean, environment, 
-//    delay, primitive fcn ptr, execution procedure, recursive depth counter, undefined value
-enum class types {exp, par, num, str, chr, sym, vec, bol, env, del, prm, exe, cal, undefined};
+env_type GLOBAL_ENVIRONMENT_POINTER = nullptr;
+
+/******************************************************************************
+* DATA PRINTING HELPER FUNCTION PROTOTYPES
+******************************************************************************/
+
+scm_string cio_list_str(const data& pair_object);       // to print lists
+scm_string cio_vect_str(const vec_type& vector_object); // to print vectors
+scm_string cio_expr_str(const scm_list& exp_object);    // to print expressions
+
+/******************************************************************************
+* DATA TYPE STRUCTS
+******************************************************************************/
+
+// enum of "struct data" types
+// => expression, pair, number, string, character, symbol, vector, boolean, environment, delay, primitive fcn ptr, 
+//    execution procedure, recursive call counter, input port, output port, does-not-exist, undefined value
+enum class types {exp, par, num, str, chr, sym, vec, bol, env, del, prm, exe, cal, fip, fop, dne, undefined};
 
 // boolean struct (differentiates from 'number')
 struct boolean {
   bool val; 
   boolean(bool b=false) : val(b) {}
-  void operator=(const bool b){val=b;}
+  void operator=(const bool& b){val=b;}
   boolean& operator=(const boolean& b) = default;
   boolean& operator=(boolean&& b)      = default;
   boolean(const boolean& b)            = default;
   boolean(boolean&& b)                 = default;
+};
+
+// input port struct (differentiates from 'oport')
+struct iport {
+  size_type port_idx;
+  iport(const size_type& idx = 0) : port_idx(idx) {}
+  iport(const iport& ip)            = default;
+  iport(iport&& ip)                 = default;
+  iport& operator=(const iport& ip) = default;
+  iport& operator=(iport&& ip)      = default;
+  bool is_open()  const {return PORT_REGISTRY[port_idx] != nullptr;}
+  FILE*& port()   const {return PORT_REGISTRY[port_idx];}
+};
+
+// output port struct (differentiates from 'iport')
+struct oport {
+  size_type port_idx;
+  oport(const size_type& idx = 1) : port_idx(idx) {}
+  oport(const oport& ip)            = default;
+  oport(oport&& ip)                 = default;
+  oport& operator=(const oport& ip) = default;
+  oport& operator=(oport&& ip)      = default;
+  bool is_open()  const {return PORT_REGISTRY[port_idx] != nullptr;}
+  FILE*& port()   const {return PORT_REGISTRY[port_idx];}
 };
 
 // struct holds possible "struct data" internal values
@@ -127,6 +194,8 @@ struct data_value_field {
   prm_type prm; // primitive function pointer
   exe_type exe; // function body execution procedure
   cal_type cal; // recursive call counter
+  fip_type fip; // file input port
+  fop_type fop; // file output port
   data_value_field() : exp(exp_type{}), par(nullptr), num(num_type()), 
                        str(nullptr), sym(""), vec(nullptr), bol(false), 
                        env(nullptr), del(nullptr), prm(nullptr), cal(nullptr){}
@@ -147,7 +216,7 @@ struct data {
   data_value_field value;
 
   // check whether data is of a type
-  constexpr bool is_type(const types t) const {return type == t;}
+  constexpr bool is_type(const types& t) const {return type == t;}
 
   // set data's value
   void set_value(num_type& new_value)   {value.num=new_value,type=types::num;}
@@ -155,6 +224,7 @@ struct data {
   void set_value(par_type& new_value)   {value.par=new_value,type=types::par;}
   void set_value(str_type& new_value)   {value.str=new_value,type=types::str;}
   void set_value(chr_type& new_value)   {value.chr=new_value,type=types::chr;}
+  void set_value(const char& new_value) {value.chr=new_value,type=types::chr;}
   void set_value(sym_type& new_value)   {value.sym=new_value,type=types::sym;}
   void set_value(const char* new_value) {value.sym=new_value,type=types::sym;}
   void set_value(vec_type& new_value)   {value.vec=new_value,type=types::vec;}
@@ -164,17 +234,19 @@ struct data {
   void set_value(prm_type& new_value)   {value.prm=new_value,type=types::prm;}
   void set_value(exe_type& new_value)   {value.exe=new_value,type=types::exe;}
   void set_value(cal_type& new_value)   {value.cal=new_value,type=types::cal;}
+  void set_value(fip_type& new_value)   {value.fip=new_value,type=types::fip;}
+  void set_value(fop_type& new_value)   {value.fop=new_value,type=types::fop;}
 
   // assignment operator
   void operator=(const data& d) {
     type = d.type;
     switch(type) {
+      case types::sym: value.sym = d.value.sym; return;
       case types::exp: value.exp = d.value.exp; return;
       case types::par: value.par = d.value.par; return;
       case types::num: value.num = d.value.num; return;
       case types::str: value.str = d.value.str; return;
       case types::chr: value.chr = d.value.chr; return;
-      case types::sym: value.sym = d.value.sym; return;
       case types::vec: value.vec = d.value.vec; return;
       case types::bol: value.bol = d.value.bol; return;
       case types::env: value.env = d.value.env; return;
@@ -182,19 +254,21 @@ struct data {
       case types::prm: value.prm = d.value.prm; return;
       case types::exe: value.exe = d.value.exe; return;
       case types::cal: value.cal = d.value.cal; return;
-      case types::undefined: return;
+      case types::fip: value.fip = d.value.fip; return;
+      case types::fop: value.fop = d.value.fop; return;
+      default:                                  return;
     }
   }
 
   void operator=(data&& d) {
     type = d.type;
     switch(type) {
+      case types::sym: value.sym = d.value.sym; return;
       case types::exp: value.exp = d.value.exp; return;
       case types::par: value.par = d.value.par; return;
       case types::num: value.num = d.value.num; return;
       case types::str: value.str = d.value.str; return;
       case types::chr: value.chr = d.value.chr; return;
-      case types::sym: value.sym = d.value.sym; return;
       case types::vec: value.vec = d.value.vec; return;
       case types::bol: value.bol = d.value.bol; return;
       case types::env: value.env = d.value.env; return;
@@ -202,48 +276,62 @@ struct data {
       case types::prm: value.prm = d.value.prm; return;
       case types::exe: value.exe = d.value.exe; return;
       case types::cal: value.cal = d.value.cal; return;
-      case types::undefined: return;
+      case types::fip: value.fip = d.value.fip; return;
+      case types::fop: value.fop = d.value.fop; return;
+      default:                                  return;
+    }
+  }
+
+  // get current value as a string (for c-style I/O)
+  scm_string cio_str() const {
+    switch(type) {
+      case types::sym: 
+        if(value.sym==THE_EMPTY_LIST)                return "()";
+        if(value.sym.find(MANGLED_LAMBDA_PREFIX)==0) return "lambda";
+        return value.sym;
+      case types::chr: 
+        switch(value.chr) {
+          case ' ':    return "#\\space";
+          case '\t':   return "#\\tab";
+          case '\n':   return "#\\newline";
+          case '\v':   return "#\\vtab";
+          case '\f':   return "#\\page";
+          case '\r':   return "#\\return";
+          case '\a':   return "#\\alarm";
+          case '\b':   return "#\\backspace";
+          case '\0':   return "#\\nul";
+          case '\x1b': return "#\\esc";
+          case '\x7f': return "#\\delete";
+          case EOF:    return "#!eof";
+          default: 
+            if(isprint(value.chr)) return scm_string("#\\") + char(value.chr);
+            else {
+              std::ostringstream char_str;
+              char_str << "#\\x" << std::hex << value.chr << std::dec;
+              return char_str.str();
+            }
+        }
+      case types::par:       return cio_list_str(*this);
+      case types::vec:       return cio_vect_str(value.vec);
+      case types::exp:       return cio_expr_str(value.exp);
+      case types::num:       return value.num.cio_str();
+      case types::str:       return '"' + *value.str + '"';
+      case types::bol:       return (value.bol.val?"#t":"#f");
+      case types::env:       return "#<environment>";
+      case types::del:       return "#<delay>";
+      case types::prm:       return "#<primitive>";
+      case types::exe:       return "#<procedure-body>";
+      case types::cal:       return "#<recursion-count>";
+      case types::fip:       return "#<input-port>";
+      case types::fop:       return "#<output-port>";
+      case types::dne:       return "";
+      case types::undefined: return "#<undefined>";
     }
   }
 
   // friend output function
   friend std::ostream& operator<<(std::ostream& outs, const data& d) {
-    switch(d.type) {
-      case types::sym: 
-        outs << (d.value.sym==THE_EMPTY_LIST ? "()" : d.value.sym);
-        return outs;
-      case types::chr: 
-        outs << "#\\";
-        switch(d.value.chr) {
-          case ' ':    outs << "space";     break;
-          case '\t':   outs << "tab";       break;
-          case '\n':   outs << "newline";   break;
-          case '\v':   outs << "vtab";      break;
-          case '\f':   outs << "page";      break;
-          case '\r':   outs << "return";    break;
-          case '\a':   outs << "alarm";     break;
-          case '\b':   outs << "backspace"; break;
-          case '\0':   outs << "nul";       break;
-          case '\x1b': outs << "esc";       break;
-          case '\x7f': outs << "delete";    break;
-          default: 
-            if(isprint(d.value.chr)) outs << d.value.chr;
-            else outs << std::hex << 'x' << int((unsigned char)d.value.chr) << std::dec;
-        }
-        return outs;
-      case types::par:       print_list(outs,d.value.par);        return outs;
-      case types::vec:       print_vect(outs,d.value.vec);        return outs;
-      case types::num:       outs << d.value.num;                 return outs;
-      case types::str:       outs << '"'<<*d.value.str<<'"';       return outs;
-      case types::bol:       outs << (d.value.bol.val?"#t":"#f"); return outs;
-      case types::exp:       outs << "#<scm-expression>";         return outs;
-      case types::env:       outs << "#<environment>";            return outs;
-      case types::del:       outs << "#<delay>";                  return outs;
-      case types::prm:       outs << "#<primitive>";              return outs;
-      case types::exe:       outs << "#<procedure-body>";         return outs;
-      case types::cal:       outs << "#<recursion-count>";        return outs;
-      case types::undefined: outs << "#<undefined>";              return outs;
-    }
+    outs << d.cio_str();
     return outs;
   }
 
@@ -252,7 +340,7 @@ struct data {
     constexpr const char* const type_names[] = {
       "expression", "pair", "number", "string", "character", "symbol", "vector",
       "boolean", "environment", "delay", "primitive", "execution-procedure", 
-      "recursive-call-count", "undefined"
+      "recursive-call-count", "input-port", "output-port", "void", "undefined"
     };
     return type_names[int(type)];
   }
@@ -262,6 +350,7 @@ struct data {
   data(const data& d) = default;
   data(data&& d)      = default;
   template<typename T> data(T new_value) {set_value(new_value);}
+  data(const types &t)                   {type = t;} // to set 'dne
 }; // End struct data
 
 // delay structure
@@ -296,86 +385,44 @@ struct scm_macro {
 ******************************************************************************/
 
 namespace symconst {
-  const scm_string emptylist = THE_EMPTY_LIST;
-  const scm_string sentinel  = SENTINEL_ARG;
-  const scm_string do_label  = DO_LETREC_INSTANCE_NAME;
-  const scm_string primitive = PRIMITIVE_TAG;
-  const scm_string procedure = PROCEDURE_TAG;
-  const scm_string null_env  = "null-environment";
-  const scm_string lambda    = "lambda";
-  const scm_string list      = "list";
-  const scm_string vector    = "vector";
-  const scm_string cons      = "cons";
-  const scm_string append    = "append";
-  const scm_string delay     = "delay";
-  const scm_string quote     = "quote";
-  const scm_string let       = "let";
-  const scm_string letrec    = "letrec";
-  const scm_string set       = "set!";
-  const scm_string defn_syn  = "define-syntax";
-  const scm_string define    = "define";
-  const scm_string begin     = "begin";
-  const scm_string equalp    = "equal?";
-  const scm_string if_t      = "if";
-  const scm_string else_t    = "else";
-  const scm_string cond      = "cond";
-  const scm_string and_t     = "and";
-  const scm_string or_t      = "or";
-  const scm_string false_t   = "#f";
-  const scm_string ok        = "ok";
-  const scm_string memv      = "memv";
-  const scm_string ellipsis  = "...";
-  const scm_string period    = ".";
+  const sym_type emptylist     = THE_EMPTY_LIST;
+  const sym_type sentinel      = SENTINEL_ARG;
+  const sym_type do_label      = DO_LETREC_INSTANCE_NAME;
+  const sym_type primitive     = PRIMITIVE_TAG;
+  const sym_type procedure     = PROCEDURE_TAG;
+  const sym_type mangle_prefix = MANGLED_LAMBDA_PREFIX;
+  const sym_type null_env      = "null-environment";
+  const sym_type locl_env      = "local-environment";
+  const sym_type lambda        = "lambda";
+  const sym_type list          = "list";
+  const sym_type stream        = "stream";
+  const sym_type vector        = "vector";
+  const sym_type cons          = "cons";
+  const sym_type append        = "append";
+  const sym_type delay         = "delay";
+  const sym_type quote         = "quote";
+  const sym_type let           = "let";
+  const sym_type letrec        = "letrec";
+  const sym_type set           = "set!";
+  const sym_type defn_syn      = "define-syntax";
+  const sym_type define        = "define";
+  const sym_type begin         = "begin";
+  const sym_type equalp        = "equal?";
+  const sym_type if_t          = "if";
+  const sym_type else_t        = "else";
+  const sym_type cond          = "cond";
+  const sym_type and_t         = "and";
+  const sym_type or_t          = "or";
+  const sym_type memv          = "memv";
+  const sym_type ellipsis      = "...";
+  const sym_type period        = ".";
 } // End namespace symconst
 
 /******************************************************************************
-* LIST PRINTING HELPER FUNCTIONS
+* PRINTING HELPER FUNCTIONS
 ******************************************************************************/
 
-// Print list recursively
-bool is_not_THE_EMPTY_LIST(const data& pair_data) {
-  return (!pair_data.is_type(types::sym) || pair_data.value.sym != THE_EMPTY_LIST);
-}
+// Link toolkit here to inherit all of the above type defns
+#include "heist_types_toolkit.hpp"
 
-void print_list_recur(std::ostream& outs, const par_type& pair_object) {
-  // print car
-  if(pair_object->first.is_type(types::par)) {
-    outs << '(';
-    print_list_recur(outs, pair_object->first.value.par);
-    outs << ')';
-  } else {
-    outs << pair_object->first;
-  }
-  // print space if not last item in list
-  if(is_not_THE_EMPTY_LIST(pair_object->second)) outs << ' ';
-  // print cdr
-  if(pair_object->second.is_type(types::par)) {
-    print_list_recur(outs, pair_object->second.value.par);
-  } else if(is_not_THE_EMPTY_LIST(pair_object->second)) { // don't print terminating '()
-    // print ' . ' since not a null-terminated list
-    outs << ". " << pair_object->second;
-  }
-}
-
-void print_list(std::ostream& outs, const par_type& pair_object) {
-  outs << '(';
-  print_list_recur(outs, pair_object);
-  outs << ')';
-}
-
-/******************************************************************************
-* VECTOR PRINTING HELPER FUNCTIONS
-******************************************************************************/
-
-void print_vect(std::ostream& outs, const vec_type& vector_object) {
-  outs << "#(";
-  for(size_type i = 0, n = vector_object->size(); i < n; ++i) {
-    if(vector_object->operator[](i).is_type(types::vec))
-      print_vect(outs, vector_object->operator[](i).value.vec);
-    else
-      outs << vector_object->operator[](i);
-    if(i < n-1) outs << ' ';
-  }
-  outs << ')';
-}
 #endif
