@@ -1,8 +1,8 @@
-// Author: Jordan Randleman -- scm_eval_numerics.hpp
-// => Defines Numeric class for Scheme-esqe Numbers (BigInt, etc.)
+// Author: Jordan Randleman -- jrandleman@scu.edu -- heist_numerics.hpp
+// => Defines Numeric class for Heist Scheme Numbers (BigInt, etc.)
 
-#ifndef SCM_EVAL_NUMERICS_HPP_
-#define SCM_EVAL_NUMERICS_HPP_
+#ifndef HEIST_NUMERICS_HPP_
+#define HEIST_NUMERICS_HPP_
 
 #include <algorithm>
 #include <cctype>
@@ -12,6 +12,7 @@
 #include <limits>
 #include <random>
 #include <stdexcept>
+#include <sstream>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -125,7 +126,6 @@ public:
 
   inexact_t extract_inexact()              const;
   exact_t   extract_exact()                const;
-  exact_t   extract_exact(const int& base) const;
 
 
   // ************************ MISCELLANEOUS PREDICATES ************************
@@ -172,6 +172,12 @@ public:
 
   // ostream put operator
   friend std::ostream& operator<<(std::ostream& outs, const Scm_numeric& s);
+
+  // get current value as a string (for c-style I/O)
+  std::string cio_str() const;
+
+  // get current value as a string in 'base' radix form
+  std::string cio_str(const int& base) const;
 
 
   // ********************** ARITHMETIC OPERATOR OVERLOADS *********************
@@ -227,7 +233,7 @@ public:
   Scm_numeric exp() const {return UNDERLYING_CPP_GENERIC_FCN(12);}
 
   // sqrt function
-  Scm_numeric sqrt() const {return *this ^ 0.5;}
+  Scm_numeric sqrt() const {return *this ^ 0.5L;}
 
   // NATURAL logarithm
   Scm_numeric log() const;
@@ -306,9 +312,9 @@ private:
   signs sign  = signs::zero;
   status stat = status::success;
 
-  exact_t numerator   = "0"; // exact numer
-  exact_t denominator = "1"; // exact denom
-  inexact_t float_num = 0L;  // inexact floating point
+  exact_t numerator   = "0";  // exact numer
+  exact_t denominator = "1";  // exact denom
+  inexact_t float_num = 0.0L; // inexact floating point
   bool is_float       = false;
 
   // Special State Setters
@@ -316,8 +322,12 @@ private:
   constexpr void set_pinf();
   constexpr void set_ninf();
 
-  // Convert a inexact_t to a string
-  exact_t inexact_to_str(inexact_t num) const;
+  // Perform fixed floating point conversion to a string
+  template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
+  std::string convert_numeric_to_str(const NumericData& n) const {return std::to_string(n);};
+  std::string convert_numeric_to_str(const inexact_t& n) const;
+  // Convert a inexact_t integer to a string
+  exact_t inexact_integer_to_str(inexact_t num) const;
   // Simplify the current number (simplifies exact number/converts to float as needed)
   constexpr void simplify_numerics();
   // Adjust the current number's float invariants
@@ -331,18 +341,6 @@ private:
   // Confirm given string is a viable candidate to be a number
   precisions confirm_valid_string(const exact_t& num_str);
 
-  // Determine whether numeric is a float
-  bool given_data_is_float(exact_t data) const;
-  bool given_data_is_float(Scm_numeric data) const {return data.is_float;}
-
-  // Determine whether numeric is exact
-  bool given_data_is_exact(exact_t data) const;
-  bool given_data_is_exact(Scm_numeric data) const {return data.is_float;}
-
-  // Determine whether numeric is negative
-  bool given_data_is_negative(exact_t data) const;
-  bool given_data_is_negative(Scm_numeric data) const {return data.is_neg();}
-
   // Parse the _confirmed_ valid number
   void parse_integer(exact_t::iterator ch);
 
@@ -351,7 +349,7 @@ private:
 
   // Construct number from the given data
   template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
-  void construct_number(NumericData num_str) {construct_number(std::to_string(num_str));}
+  void construct_number(NumericData num_str) {construct_number(convert_numeric_to_str(num_str));}
   void construct_number(Scm_numeric num_str) {*this = num_str;}
   void construct_number(exact_t num_str);
 
@@ -443,7 +441,6 @@ Scm_numeric Scm_numeric::random(Scm_numeric seed) {
     rand_vals += std::to_string(rand_gen());
   if(rand_vals.size() > rand_val_total_digits)
     rand_vals.erase(rand_val_total_digits);
-
   return Scm_numeric(rand_vals);
 }
 
@@ -458,7 +455,7 @@ bool Scm_numeric::is_integer() const {
   if(is_float) { // test if float has a fractional
     inexact_t integral;
     inexact_t fractional = std::modf(float_num, &integral);
-    return fractional == 0.0;
+    return fractional == 0;
   }
   return false;
 }
@@ -480,9 +477,11 @@ Scm_numeric Scm_numeric::to_inexact() const {
 Scm_numeric Scm_numeric::to_exact() const {
   if(stat != status::success || !is_float) return *this;
   Scm_numeric tmp;
+  // If zero, return immediately
+  if(float_num == 0) return tmp;
   // If integer, convert directly as is
   if(is_integer()) {
-    tmp.numerator = inexact_to_str(float_num);
+    tmp.numerator = inexact_integer_to_str(float_num);
     tmp.sign = sign;
     return tmp;
   }
@@ -493,9 +492,9 @@ Scm_numeric Scm_numeric::to_exact() const {
   exact_t unsigned_integral = std::to_string(size_type(integral));
   size_type fractional_prec = (unsigned_integral.size() >= INEXACT_PRECISION) 
                               ? 0 : INEXACT_PRECISION-unsigned_integral.size();
-  fractional                = std::round(fractional * std::pow(10L, fractional_prec));
+  fractional                = std::round(fractional * std::pow(10.0L, fractional_prec));
   exact_t unsigned_numer    = std::to_string(size_type(fractional));
-  exact_t unsigned_denom    = std::to_string(size_type(std::pow(10L, fractional_prec)));
+  exact_t unsigned_denom    = std::to_string(size_type(std::pow(10.0L, fractional_prec)));
 
   auto exact_num = Scm_numeric(unsigned_integral) + Scm_numeric(unsigned_numer + "/" + unsigned_denom);
   if(is_neg()) exact_num.sign = signs::neg;
@@ -551,11 +550,6 @@ Scm_numeric::exact_t Scm_numeric::extract_exact() const {
   return number;
 }
 
-
-Scm_numeric::exact_t Scm_numeric::extract_exact(const int& base) const {
-  return convert_dec_to_base_N(base, *this);
-}
-
 /******************************************************************************
 * NUMBER SETTERS TO ZERO, PINF, NINF
 ******************************************************************************/
@@ -579,8 +573,23 @@ constexpr void Scm_numeric::set_ninf() {
 * NUMBER SIMPLIFICATION & TO-STRING HELPER FUNCTIONS
 ******************************************************************************/
 
-// Convert a inexact_t to a string
-Scm_numeric::exact_t Scm_numeric::inexact_to_str(inexact_t num) const {
+// Perform fixed floating point conversion to a string
+// NOTE: std::to_string only has a default precision of 6, so we use streams
+// NOTE: the result is _NOT_ an exact_t integer, but a string of the float
+std::string Scm_numeric::convert_numeric_to_str(const inexact_t& n) const {
+  std::ostringstream outs;
+  outs.precision(INEXACT_PRECISION);
+  outs << std::fixed << n;
+  auto num_str = outs.str();
+  // rm redundant 0s to the right of the decimal
+  if(num_str.find_first_of('.') != std::string::npos && *num_str.rbegin() == '0')
+    for(size_type i = num_str.size()-1; i>1 && num_str[i-1]!='.' && num_str[i]=='0'; --i)
+      num_str.erase(i,1);
+  return num_str;
+}
+
+// Convert a inexact_t integer to a string
+Scm_numeric::exact_t Scm_numeric::inexact_integer_to_str(inexact_t num) const {
   auto str = std::to_string(num);
   auto iter = str.end()-1;
   while(*iter == '0') --iter; // move past 0's to the right of the decimal
@@ -596,8 +605,8 @@ constexpr void Scm_numeric::simplify_numerics() {
   else if(numerator.size() <= INEXACT_PRECISION && denominator.size() <= INEXACT_PRECISION) {
     inexact_t N = std::stold(numerator), D = std::stold(denominator);
     inexact_t greatest_common_divisor = inexact_t_GCD(N>D?N:D,N>D?D:N);
-    numerator   = inexact_to_str(N/greatest_common_divisor);
-    denominator = inexact_to_str(D/greatest_common_divisor);
+    numerator   = inexact_integer_to_str(N/greatest_common_divisor);
+    denominator = inexact_integer_to_str(D/greatest_common_divisor);
   } else {
     coerce_fraction_to_float(float_num,numerator,denominator,is_neg());
     is_float = true;
@@ -839,12 +848,14 @@ Scm_numeric Scm_numeric::operator%(const Scm_numeric& s) const {
 
   inexact_t integral;
   inexact_t fractional = std::modf(div_res,&integral);
-  auto mod_result = s * fractional;
+  auto mod_result = (s * fractional);
+  mod_result.adjust_float_invariants();
 
   // int % int : int
   if(is_integer() && s.is_integer()) 
     mod_result = mod_result.round().to_exact();
-  mod_result.sign = sign;
+  if(!mod_result.is_zero())
+    mod_result.sign = sign;
   return mod_result;
 }
 
@@ -1149,32 +1160,42 @@ bool Scm_numeric::is_rational() const {
 }
 
 /******************************************************************************
-* OUTPUT OPERATOR
+* OUTPUT OPERATOR & CIO STRING
 ******************************************************************************/
 
 // ostream put operator
 std::ostream& operator<<(std::ostream& outs, const Scm_numeric& s) {
-  // Output NAN/INF as needed
-  if(s.stat != Scm_numeric::status::success) {
-    outs << (s.is_nan() ? "+nan.0" : s.is_neg_inf() ? "-inf.0" : "+inf.0");
-    return outs;
-  }
-
-  // Output Negative Sign as Needed
-  if(s.is_neg()) outs << "-";
-
-  // Output Numeric Value
-  if(s.is_float) {
-    auto old_precision = outs.precision(Scm_numeric::INEXACT_PRECISION);
-    outs << s.float_num;
-    if(s.float_num<Scm_numeric::RATIONALITY_LIMIT && s.is_integer()) outs<<".0";
-    outs.precision(old_precision);
-  } else {
-    outs << s.numerator;
-    if(s.denominator.size() != 1 || s.denominator [0] != '1')
-      outs << '/' << s.denominator;
-  }
+  outs << s.cio_str();
   return outs;
+}
+
+// get current value as a string (for c-style I/O)
+std::string Scm_numeric::cio_str() const {
+  // Return NaN/Inf as needed
+  if(stat != Scm_numeric::status::success)
+    return (is_nan() ? "+nan.0" : is_neg_inf() ? "-inf.0" : "+inf.0");
+
+  // Append Negative Sign as Needed
+  std::ostringstream ostr;
+  if(is_neg()) ostr << "-";
+
+  // Append Numeric Value
+  if(is_float) {
+    auto old_precision = ostr.precision(Scm_numeric::INEXACT_PRECISION);
+    ostr << float_num;
+    if(float_num<Scm_numeric::RATIONALITY_LIMIT && is_integer()) ostr<<".0";
+    ostr.precision(old_precision);
+  } else {
+    ostr << numerator;
+    if(denominator.size() != 1 || denominator [0] != '1')
+      ostr << '/' << denominator;
+  }
+  return ostr.str();
+}
+
+// get current value as a string in 'base' radix form
+std::string Scm_numeric::cio_str(const int& base) const {
+  return convert_dec_to_base_N(base, *this);
 }
 
 /******************************************************************************
@@ -1197,7 +1218,9 @@ Scm_numeric::decompose_int_into_SIZE_TYPE_MAX() const {
   if(div_res.is_float)
     div_flt = div_res.float_num;
   else {
-    auto div_coercion = coerce_fraction_to_float(div_flt, div_res.numerator, div_res.denominator, div_res.is_neg());
+    auto div_coercion = coerce_fraction_to_float(div_flt, div_res.numerator, 
+                                                          div_res.denominator, 
+                                                          div_res.is_neg());
     if(div_coercion != status::success)
       return std::make_pair(std::make_pair(0,0), div_coercion);
   }
@@ -1482,30 +1505,6 @@ void Scm_numeric::trim_data_string(exact_t& num_str) {
 }
 
 
-// Determine whether numeric is a float
-bool Scm_numeric::given_data_is_float(exact_t data) const {
-  auto position = data.find_first_of('.');
-  return (position != exact_t::npos) && 
-         (data.find_first_of('.',position+1) == exact_t::npos);
-}
-
-
-// Determine whether numeric is exact
-bool Scm_numeric::given_data_is_exact(exact_t data) const {
-  auto position = data.find_first_of('/');
-  return (position != exact_t::npos) && 
-         (data.find_first_of('/',position+1) == exact_t::npos);
-}
-
-
-// Determine whether numeric is negative
-bool Scm_numeric::given_data_is_negative(exact_t data) const {
-  auto ch = data.begin();
-  while(ch != data.end() && isspace(*ch)) ++ch;
-  return ch != data.end() && *ch == '-';
-}
-
-
 // Confirm given string is a viable candidate to be a number
 Scm_numeric::precisions Scm_numeric::confirm_valid_string(const exact_t& num_str) {
   exact_t str(num_str);
@@ -1570,11 +1569,13 @@ Scm_numeric::precisions Scm_numeric::confirm_valid_string(const exact_t& num_str
 
 // Parse the _confirmed_ valid number
 void Scm_numeric::parse_integer(exact_t::iterator ch) {
-  numerator = "";             // empty dflt value for numerator
+  numerator = "";                                      // empty dflt value for numerator
+  while(*ch == '0' && *(ch+1) && *(ch+1) != '/') ++ch; // rm padding lhs 0s
   while(*ch && *ch != '/')  {numerator += *ch; ++ch;}
   if(*ch == '/') {
-    ++ch;                     // mv past '/'
-    if(*ch) denominator = ""; // empty dflt value for denominator
+    ++ch;                                              // mv past '/'
+    if(*ch) denominator = "";                          // empty dflt value for denominator
+    while(*ch == '0' && *(ch+1)) ++ch;                 // rm padding rhs 0s
     while(*ch) {denominator += *ch; ++ch;}
   }
   else denominator = '1';
@@ -1679,7 +1680,7 @@ Scm_numeric::exact_t Scm_numeric::form_base_N_fraction(const int& base,const Scm
 
 // Evaluates the integral & fractional of a decimal # & combines their results
 Scm_numeric::exact_t Scm_numeric::form_base_N_floating_pt(const int& base, const Scm_numeric& dnum) const {
-  exact_t dnum_str = std::to_string(dnum.float_num);
+  exact_t dnum_str = convert_numeric_to_str(dnum.float_num);
   size_type decimal_idx = dnum_str.find_first_of('.');
   if(decimal_idx == 1 && dnum_str[0] == '0') // only a fractional, no integral
     return (dnum.is_neg() ? "-0." : "0.") + 
@@ -1836,11 +1837,15 @@ Scm_numeric::exact_t Scm_numeric::convert_base_N_decimal_to_dec(const int& base,
   // only get precision up to INEXACT_PRECISION decimal points
   if(bnum.size() > INEXACT_PRECISION) bnum.erase(INEXACT_PRECISION);
   // perform the above algorithm
-  auto decimal_fractional = std::to_string((
+  auto decimal_fractional = convert_numeric_to_str((
                                 convert_base_N_to_dec(base,bnum) / (base^Scm_numeric(bnum.size()))
                               ).extract_inexact());
-  // erase up to (& including) the LHS decimal from "std::to_string"
-  decimal_fractional.erase(0,decimal_fractional.find_first_of('.')+1);
+  // if fraction rounded to 1.0, revert it back to 0.999999 ... 
+  // else, erase up to (& including) the LHS decimal from "convert_numeric_to_str"
+  if(decimal_fractional[0] != '0') 
+    decimal_fractional = exact_t(INEXACT_PRECISION,'9');
+  else
+    decimal_fractional.erase(0,decimal_fractional.find_first_of('.')+1);
   // erase redundant RHS padding 0s
   reduce_redundant_RHS_0s(decimal_fractional);
   return decimal_fractional;
