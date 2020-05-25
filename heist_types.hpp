@@ -19,7 +19,6 @@ using scm_node   = scm_list::iterator;                // scheme expression node
 using scm_pair   = std::pair<struct data,struct data>;// scheme pair
 using scm_string = std::string;                       // string type
 using size_type  = std::size_t;                       // numeric type, idxs etc
-using signed_num = long long;                         // negative numerics
 
 /******************************************************************************
 * MAX NUMBER OF RECURSIVE CALLS
@@ -31,7 +30,20 @@ size_type MAX_RECURSION_DEPTH = 1000; // see set-max-recursion-depth! primitive
 * WHETHER TO USE ANSI ESCAPE SEQUENCES TO FORMAT OUTPUT
 ******************************************************************************/
 
-bool USING_ANSI_ESCAPE_SEQUENCES = true;
+bool USING_ANSI_ESCAPE_SEQUENCES = true; // see set-nansi! primitive
+
+/******************************************************************************
+* WHETHER SYMBOLS ARE CASE-SENSITIVE
+******************************************************************************/
+
+bool USING_CASE_SENSITIVE_SYMBOLS = true; // see set-ci! primitive
+
+/******************************************************************************
+* REPL PROMPT VARIABLES
+******************************************************************************/
+
+scm_string REPL_PROMPT = "> "; // see set-repl-prompt! primitive
+scm_string REPL_TAB    = "  ";
 
 /******************************************************************************
 * REPL FORMATTING TRACKER VARIABLES
@@ -113,6 +125,7 @@ using exe_type = std::function<scm_list(env_type&)>; // fcn execution procedure
 using cal_type = std::shared_ptr<size_type>;         // recursive call counter
 using fip_type = struct iport;                       // file input port
 using fop_type = struct oport;                       // file output port
+using syn_type = struct scm_macro;                   // syntax-rules object
 
 auto make_par = std::make_shared<scm_pair>;
 auto make_str = std::make_shared<scm_string,const scm_string&>;
@@ -131,9 +144,9 @@ env_type GLOBAL_ENVIRONMENT_POINTER = nullptr;
 * DATA PRINTING HELPER FUNCTION PROTOTYPES
 ******************************************************************************/
 
-scm_string cio_list_str(const data& pair_object);       // to print lists
-scm_string cio_vect_str(const vec_type& vector_object); // to print vectors
-scm_string cio_expr_str(const scm_list& exp_object);    // to print expressions
+scm_string cio_list_str(const data& pair_object)       noexcept; // to print lists
+scm_string cio_vect_str(const vec_type& vector_object) noexcept; // to print vectors
+scm_string cio_expr_str(const scm_list& exp_object)    noexcept; // to print expressions
 
 /******************************************************************************
 * DATA TYPE STRUCTS
@@ -141,52 +154,65 @@ scm_string cio_expr_str(const scm_list& exp_object);    // to print expressions
 
 // enum of "struct data" types
 // => expression, pair, number, string, character, symbol, vector, boolean, environment, delay, primitive fcn ptr, 
-//    execution procedure, recursive call counter, input port, output port, does-not-exist, undefined value
-enum class types {exp, par, num, str, chr, sym, vec, bol, env, del, prm, exe, cal, fip, fop, dne, undefined};
+//    execution procedure, recursive call counter, input port, output port, does-not-exist, syntax-rules, undefined value
+enum class types {exp=1, par, num, str, chr, sym, vec, bol, env, del, prm, exe, cal, fip, fop, dne, syn, undefined};
 
 // boolean struct (differentiates from 'number')
 struct boolean {
   bool val; 
-  boolean(bool b=false) : val(b) {}
-  void operator=(const bool& b){val=b;}
-  boolean& operator=(const boolean& b) = default;
-  boolean& operator=(boolean&& b)      = default;
-  boolean(const boolean& b)            = default;
-  boolean(boolean&& b)                 = default;
+  boolean(const bool& b=false)  noexcept : val(b) {}
+  void operator=(const bool& b) noexcept {val=b;}
+  boolean& operator=(const boolean& b) noexcept = default;
+  boolean& operator=(boolean&& b)      noexcept = default;
+  boolean(const boolean& b)            noexcept = default;
+  boolean(boolean&& b)                 noexcept = default;
 };
 
 // input port struct (differentiates from 'oport')
 struct iport {
   size_type port_idx;
-  iport(const size_type& idx = 0) : port_idx(idx) {}
-  iport(const iport& ip)            = default;
-  iport(iport&& ip)                 = default;
-  iport& operator=(const iport& ip) = default;
-  iport& operator=(iport&& ip)      = default;
-  bool is_open()  const {return PORT_REGISTRY[port_idx] != nullptr;}
-  FILE*& port()   const {return PORT_REGISTRY[port_idx];}
+  iport(const size_type& idx = 0)   noexcept : port_idx(idx) {}
+  iport(const iport& ip)            noexcept = default;
+  iport(iport&& ip)                 noexcept = default;
+  iport& operator=(const iport& ip) noexcept = default;
+  iport& operator=(iport&& ip)      noexcept = default;
+  bool is_open()  const noexcept {return PORT_REGISTRY[port_idx] != nullptr;}
+  FILE*& port()   const noexcept {return PORT_REGISTRY[port_idx];}
 };
 
 // output port struct (differentiates from 'iport')
 struct oport {
   size_type port_idx;
-  oport(const size_type& idx = 1) : port_idx(idx) {}
-  oport(const oport& ip)            = default;
-  oport(oport&& ip)                 = default;
-  oport& operator=(const oport& ip) = default;
-  oport& operator=(oport&& ip)      = default;
-  bool is_open()  const {return PORT_REGISTRY[port_idx] != nullptr;}
-  FILE*& port()   const {return PORT_REGISTRY[port_idx];}
+  oport(const size_type& idx = 1)   noexcept : port_idx(idx) {}
+  oport(const oport& ip)            noexcept = default;
+  oport(oport&& ip)                 noexcept = default;
+  oport& operator=(const oport& ip) noexcept = default;
+  oport& operator=(oport&& ip)      noexcept = default;
+  bool is_open()  const noexcept {return PORT_REGISTRY[port_idx] != nullptr;}
+  FILE*& port()   const noexcept {return PORT_REGISTRY[port_idx];}
+};
+
+// macro data structure
+struct scm_macro {
+  frame_var label;
+  frame_vars keywords;
+  std::vector<scm_list> patterns;
+  std::vector<scm_list> templates;
+  scm_macro(frame_var u_label = "") noexcept : label(u_label) {}
+  scm_macro& operator=(const scm_macro& m) noexcept = default;
+  scm_macro& operator=(scm_macro&& m)      noexcept = default;
+  scm_macro(const scm_macro& m)            noexcept = default;
+  scm_macro(scm_macro&& m)                 noexcept = default;
 };
 
 // struct holds possible "struct data" internal values
 struct data_value_field {
+  sym_type sym; // symbolic data
   exp_type exp; // expression data
-  par_type par; // pair smrt ptr
   num_type num; // numeric data
+  par_type par; // pair smrt ptr
   str_type str; // string data
   chr_type chr; // char data
-  sym_type sym; // symbolic data
   vec_type vec; // vector smrt ptr
   bol_type bol; // boolean data
   env_type env; // environment smrt ptr
@@ -196,13 +222,13 @@ struct data_value_field {
   cal_type cal; // recursive call counter
   fip_type fip; // file input port
   fop_type fop; // file output port
-  data_value_field() : exp(exp_type{}), par(nullptr), num(num_type()), 
-                       str(nullptr), sym(""), vec(nullptr), bol(false), 
-                       env(nullptr), del(nullptr), prm(nullptr), cal(nullptr){}
-  data_value_field& operator=(const data_value_field& d) = default;
-  data_value_field& operator=(data_value_field&& d)      = default;
-  data_value_field(const data_value_field& d)            = default;
-  data_value_field(data_value_field&& d)                 = default;
+  syn_type syn; // syntax-rules object
+  data_value_field() noexcept : par(nullptr), str(nullptr), vec(nullptr), bol(false), 
+                                env(nullptr), del(nullptr), prm(nullptr), cal(nullptr){}
+  data_value_field& operator=(const data_value_field& d) noexcept = default;
+  data_value_field& operator=(data_value_field&& d)      noexcept = default;
+  data_value_field(const data_value_field& d)            noexcept = default;
+  data_value_field(data_value_field&& d)                 noexcept = default;
 };
 
 // data_obj.type           => current type enum
@@ -216,29 +242,30 @@ struct data {
   data_value_field value;
 
   // check whether data is of a type
-  constexpr bool is_type(const types& t) const {return type == t;}
+  constexpr bool is_type(const types& t) const noexcept {return type == t;}
 
   // set data's value
-  void set_value(num_type& new_value)   {value.num=new_value,type=types::num;}
-  void set_value(exp_type& new_value)   {value.exp=new_value,type=types::exp;}
-  void set_value(par_type& new_value)   {value.par=new_value,type=types::par;}
-  void set_value(str_type& new_value)   {value.str=new_value,type=types::str;}
-  void set_value(chr_type& new_value)   {value.chr=new_value,type=types::chr;}
-  void set_value(const char& new_value) {value.chr=new_value,type=types::chr;}
-  void set_value(sym_type& new_value)   {value.sym=new_value,type=types::sym;}
-  void set_value(const char* new_value) {value.sym=new_value,type=types::sym;}
-  void set_value(vec_type& new_value)   {value.vec=new_value,type=types::vec;}
-  void set_value(bol_type& new_value)   {value.bol=new_value,type=types::bol;}
-  void set_value(env_type& new_value)   {value.env=new_value,type=types::env;}
-  void set_value(del_type& new_value)   {value.del=new_value,type=types::del;}
-  void set_value(prm_type& new_value)   {value.prm=new_value,type=types::prm;}
-  void set_value(exe_type& new_value)   {value.exe=new_value,type=types::exe;}
-  void set_value(cal_type& new_value)   {value.cal=new_value,type=types::cal;}
-  void set_value(fip_type& new_value)   {value.fip=new_value,type=types::fip;}
-  void set_value(fop_type& new_value)   {value.fop=new_value,type=types::fop;}
+  void set_value(num_type& new_value)   noexcept {value.num=new_value,type=types::num;}
+  void set_value(exp_type& new_value)   noexcept {value.exp=new_value,type=types::exp;}
+  void set_value(par_type& new_value)   noexcept {value.par=new_value,type=types::par;}
+  void set_value(str_type& new_value)   noexcept {value.str=new_value,type=types::str;}
+  void set_value(chr_type& new_value)   noexcept {value.chr=new_value,type=types::chr;}
+  void set_value(const char& new_value) noexcept {value.chr=new_value,type=types::chr;}
+  void set_value(sym_type& new_value)   noexcept {value.sym=new_value,type=types::sym;}
+  void set_value(const char* new_value) noexcept {value.sym=new_value,type=types::sym;}
+  void set_value(vec_type& new_value)   noexcept {value.vec=new_value,type=types::vec;}
+  void set_value(bol_type& new_value)   noexcept {value.bol=new_value,type=types::bol;}
+  void set_value(env_type& new_value)   noexcept {value.env=new_value,type=types::env;}
+  void set_value(del_type& new_value)   noexcept {value.del=new_value,type=types::del;}
+  void set_value(prm_type& new_value)   noexcept {value.prm=new_value,type=types::prm;}
+  void set_value(exe_type& new_value)   noexcept {value.exe=new_value,type=types::exe;}
+  void set_value(cal_type& new_value)   noexcept {value.cal=new_value,type=types::cal;}
+  void set_value(fip_type& new_value)   noexcept {value.fip=new_value,type=types::fip;}
+  void set_value(fop_type& new_value)   noexcept {value.fop=new_value,type=types::fop;}
+  void set_value(syn_type& new_value)   noexcept {value.syn=new_value,type=types::syn;}
 
   // assignment operator
-  void operator=(const data& d) {
+  void operator=(const data& d) noexcept {
     type = d.type;
     switch(type) {
       case types::sym: value.sym = d.value.sym; return;
@@ -256,11 +283,12 @@ struct data {
       case types::cal: value.cal = d.value.cal; return;
       case types::fip: value.fip = d.value.fip; return;
       case types::fop: value.fop = d.value.fop; return;
+      case types::syn: value.syn = d.value.syn; return;
       default:                                  return;
     }
   }
 
-  void operator=(data&& d) {
+  void operator=(data&& d) noexcept {
     type = d.type;
     switch(type) {
       case types::sym: value.sym = d.value.sym; return;
@@ -278,12 +306,13 @@ struct data {
       case types::cal: value.cal = d.value.cal; return;
       case types::fip: value.fip = d.value.fip; return;
       case types::fop: value.fop = d.value.fop; return;
+      case types::syn: value.syn = d.value.syn; return;
       default:                                  return;
     }
   }
 
   // get current value as a string (for c-style I/O)
-  scm_string cio_str() const {
+  scm_string cio_str() const noexcept {
     switch(type) {
       case types::sym: 
         if(value.sym==THE_EMPTY_LIST)                return "()";
@@ -325,32 +354,34 @@ struct data {
       case types::fip:       return "#<input-port>";
       case types::fop:       return "#<output-port>";
       case types::dne:       return "";
-      case types::undefined: return "#<undefined>";
+      case types::syn:       return "#<syntax-rules-object>";
+      default:               return "#<undefined>"; // types::undefined
     }
   }
 
   // friend output function
-  friend std::ostream& operator<<(std::ostream& outs, const data& d) {
+  friend std::ostream& operator<<(std::ostream& outs, const data& d) noexcept {
     outs << d.cio_str();
     return outs;
   }
 
   // get type's name string
-  constexpr const char* type_name() const {
+  constexpr const char* type_name() const noexcept {
     constexpr const char* const type_names[] = {
-      "expression", "pair", "number", "string", "character", "symbol", "vector",
+      "null", "expression", "pair", "number", "string", "character", "symbol", "vector",
       "boolean", "environment", "delay", "primitive", "execution-procedure", 
-      "recursive-call-count", "input-port", "output-port", "void", "undefined"
+      "recursive-call-count", "input-port", "output-port", "void", "syntax-rules", 
+      "undefined"
     };
-    return type_names[int(type)];
+    return type_names[int(type) * int(type!=types::sym || value.sym[0])]; // idx 0 for '() typename
   }
 
   // constructors
-  data()              = default;
-  data(const data& d) = default;
-  data(data&& d)      = default;
-  template<typename T> data(T new_value) {set_value(new_value);}
-  data(const types &t)                   {type = t;} // to set 'dne
+  data()              noexcept = default;
+  data(const data& d) noexcept = default;
+  data(data&& d)      noexcept = default;
+  template<typename T> data(T new_value) noexcept {set_value(new_value);}
+  data(const types &t)                   noexcept {type = t;} // to set 'dne
 }; // End struct data
 
 // delay structure
@@ -359,25 +390,12 @@ struct delay_data {
   env_type env;
   bool already_forced;
   data result;
-  delay_data(scm_list delayed_exp = scm_list{}, env_type delay_env = nullptr) 
+  delay_data(scm_list delayed_exp = scm_list{}, env_type delay_env = nullptr) noexcept
     : exp(delayed_exp), env(delay_env), already_forced(false), result(boolean(false)) {}
-  delay_data& operator=(const delay_data& d) = default;
-  delay_data& operator=(delay_data&& d)      = default;
-  delay_data(const delay_data& d)            = default;
-  delay_data(delay_data&& d)                 = default;
-};
-
-// macro data structure
-struct scm_macro {
-  frame_var label;
-  frame_vars keywords;
-  std::vector<scm_list> patterns;
-  std::vector<scm_list> templates;
-  scm_macro(frame_var u_label = "") : label(u_label) {}
-  scm_macro& operator=(const scm_macro& m) = default;
-  scm_macro& operator=(scm_macro&& m)      = default;
-  scm_macro(const scm_macro& m)            = default;
-  scm_macro(scm_macro&& m)                 = default;
+  delay_data& operator=(const delay_data& d) noexcept = default;
+  delay_data& operator=(delay_data&& d)      noexcept = default;
+  delay_data(const delay_data& d)            noexcept = default;
+  delay_data(delay_data&& d)                 noexcept = default;
 };
 
 /******************************************************************************
@@ -395,6 +413,7 @@ namespace symconst {
   const sym_type locl_env      = "local-environment";
   const sym_type lambda        = "lambda";
   const sym_type list          = "list";
+  const sym_type list_star     = "list*";
   const sym_type stream        = "stream";
   const sym_type vector        = "vector";
   const sym_type cons          = "cons";
@@ -409,6 +428,8 @@ namespace symconst {
   const sym_type begin         = "begin";
   const sym_type equalp        = "equal?";
   const sym_type if_t          = "if";
+  const sym_type true_t        = "#t";
+  const sym_type false_t       = "#f";
   const sym_type else_t        = "else";
   const sym_type cond          = "cond";
   const sym_type and_t         = "and";
