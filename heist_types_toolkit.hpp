@@ -9,13 +9,13 @@
 * PRINTING HELPER FUNCTION PROTOTYPES
 ******************************************************************************/
 
-sym_type  procedure_call_signature(const sym_type& name,const frame_vals& vals);
-frame_var procedure_name          (const scm_list& p);
-bool      is_primitive_procedure  (const scm_list& p);
-bool      is_compound_procedure   (const scm_list& p);
-bool      is_delay                (const scm_list& exp);
-bool      no_args_given           (const scm_list& args);
-bool      data_is_stream_pair     (const data& d);
+sym_type  procedure_call_signature(const sym_type& name,const frame_vals& vals)noexcept;
+frame_var procedure_name          (const scm_list& p)noexcept;
+bool      is_primitive_procedure  (const scm_list& p)noexcept;
+bool      is_compound_procedure   (const scm_list& p)noexcept;
+bool      is_delay                (const scm_list& exp)noexcept;
+bool      no_args_given           (const scm_list& args)noexcept;
+bool      data_is_stream_pair     (const data& d)noexcept;
 
 /******************************************************************************
 * ANSI ESCAPE SEQUENCE FORMATS & MACRO
@@ -53,7 +53,6 @@ enum class SCM_EXCEPT {EXIT, EVAL, READ};
                    " ERROR: \n" << afmt(AFMT_01) << "  => "
 
 #define BAD_SYNTAX '\n'<<afmt(AFMT_35)<<"  >> Invalid Syntax:"<<afmt(AFMT_01)<<' '
-#define DEF_SYNTAX '\n'<<afmt(AFMT_35)<<"  >> Defined Syntax:"<<afmt(AFMT_01)<<' '
 
 #define EXP_ERR(errExp)     BAD_SYNTAX << errExp
 #define FCN_ERR(fName,fVal) BAD_SYNTAX << procedure_call_signature(fName,fVal)
@@ -68,7 +67,7 @@ enum class SCM_EXCEPT {EXIT, EVAL, READ};
 ******************************************************************************/
 
 // Performs Floyd's Loop Detection algorithm to prevent infinite list printing
-par_type FLD(const data& curr_pair) {
+par_type FLD(const data& curr_pair)noexcept{
   data slow = curr_pair, fast = curr_pair;
   while(fast.is_type(types::par) && fast.value.par->second.is_type(types::par)){
     slow = slow.value.par->second;                   // move 1 node/iteration
@@ -88,14 +87,14 @@ par_type FLD(const data& curr_pair) {
 
 
 // Confirm data is not the empty list
-bool is_not_THE_EMPTY_LIST(const data& pair_data) {
+bool is_not_THE_EMPTY_LIST(const data& pair_data)noexcept{
   return (!pair_data.is_type(types::sym) || pair_data.value.sym!=THE_EMPTY_LIST);
 }
 
 
 // Stringify list recursive helper
 void cio_list_str_recur(scm_string& list_str, const par_type& pair_object, 
-                                              const par_type& cycle_start){
+                                              const par_type& cycle_start)noexcept{
   // store car
   if(pair_object->first.is_type(types::par)) {
     if(data_is_stream_pair(pair_object->first)) {
@@ -108,13 +107,16 @@ void cio_list_str_recur(scm_string& list_str, const par_type& pair_object,
   } else {
     list_str += pair_object->first.cio_str();
   }
-  // check for whether at a cycle
-  if(pair_object == cycle_start) { list_str += " <...cycle>"; return; }
   // store space if not last item in list
   if(is_not_THE_EMPTY_LIST(pair_object->second)) list_str += ' ';
   // store cdr
   if(pair_object->second.is_type(types::par)) {
-    cio_list_str_recur(list_str, pair_object->second.value.par, cycle_start);
+    // check for whether at a cycle
+    if(pair_object->second.value.par == cycle_start) {
+      list_str += "<...cycle>";
+    } else {
+      cio_list_str_recur(list_str, pair_object->second.value.par, cycle_start);
+    }
   } else if(is_not_THE_EMPTY_LIST(pair_object->second)){// don't store last '()
     // store ' . ' since not a null-terminated list
     list_str += ". " + pair_object->second.cio_str();
@@ -123,7 +125,7 @@ void cio_list_str_recur(scm_string& list_str, const par_type& pair_object,
 
 
 // Stringify list
-scm_string cio_list_str(const data& pair_object) {
+scm_string cio_list_str(const data& pair_object)noexcept{
   if(data_is_stream_pair(pair_object)) return "#<stream>";
   scm_string list_str;
   cio_list_str_recur(list_str, pair_object.value.par, FLD(pair_object));
@@ -135,7 +137,7 @@ scm_string cio_list_str(const data& pair_object) {
 ******************************************************************************/
 
 // Stringify vector
-scm_string cio_vect_str(const vec_type& vector_object) {
+scm_string cio_vect_str(const vec_type& vector_object)noexcept{
   scm_string vect_str("#(");
   for(size_type i = 0, n = vector_object->size(); i < n; ++i) {
     if(vector_object->operator[](i).is_type(types::vec))
@@ -153,10 +155,10 @@ scm_string cio_vect_str(const vec_type& vector_object) {
 
 // Confirm whether 'd' is the AST's sentinel-value representation
 //   => NOTE: "sentinel-value" = quoted sentinel-arg
-bool data_is_the_SENTINEL_VAL(const data& d){
+bool data_is_the_SENTINEL_VAL(const data& d)noexcept{
   return d.is_type(types::exp) && d.value.exp.size() == 2 && 
          d.value.exp[0].is_type(types::sym) && 
-         d.value.exp[0].value.sym == "quote" && 
+         d.value.exp[0].value.sym == symconst::quote && 
          d.value.exp[1].is_type(types::sym) && 
          d.value.exp[1].value.sym == SENTINEL_ARG;
 }
@@ -164,7 +166,7 @@ bool data_is_the_SENTINEL_VAL(const data& d){
 
 // Confirm expression contains more data after 'd'
 template <typename const_scm_node>
-bool is_not_end_of_expression(const const_scm_node& d,const const_scm_node& end){
+bool is_not_end_of_expression(const const_scm_node& d,const const_scm_node& end)noexcept{
   return d+1 != end && !data_is_the_SENTINEL_VAL(*(d+1));
 }
 
@@ -172,7 +174,7 @@ bool is_not_end_of_expression(const const_scm_node& d,const const_scm_node& end)
 // Handle appending delay & procedural expressions
 template <typename const_scm_node>
 bool exp_is_delay_or_procedure(const const_scm_node& d, const scm_list& exp_object,
-                                                              scm_string& exp_str){
+                                                              scm_string& exp_str)noexcept{
   // Ignore sentinel-arg expressions
   if(data_is_the_SENTINEL_VAL(*d)) {
     if(is_not_end_of_expression(d, exp_object.end())) exp_str += ' ';
@@ -196,7 +198,7 @@ bool exp_is_delay_or_procedure(const const_scm_node& d, const scm_list& exp_obje
 
 
 // Stringify expression recursive helper
-void cio_expr_str_rec(const scm_list& exp_object, scm_string& exp_str) {
+void cio_expr_str_rec(const scm_list& exp_object, scm_string& exp_str)noexcept{
   if(no_args_given(exp_object)) return; // empty expression
   for(auto d = exp_object.begin(); d != exp_object.end(); ++d) {
     // Append delay & procedure expressions w/ a special format
@@ -219,7 +221,7 @@ void cio_expr_str_rec(const scm_list& exp_object, scm_string& exp_str) {
 
 
 // Stringify expression
-scm_string cio_expr_str(const scm_list& exp_object) {
+scm_string cio_expr_str(const scm_list& exp_object)noexcept{
   // Sentinel Values are exclusively used internally, hence are never printed
   if(no_args_given(exp_object)||data_is_the_SENTINEL_VAL(data(exp_object)))
     return "";
