@@ -65,7 +65,7 @@ data primitive_ABS(scm_list& args) {
 data primitive_EXPT(scm_list& args) {
   confirm_no_numeric_primitive_errors(args, "expt", "(expt <num1> <num2>)");
   confirm_n_args(2, args, "expt", "(expt <num1> <num2>)");
-  return data((args[0].value.num ^ args[1].value.num));
+  return data((args[0].value.num.expt(args[1].value.num)));
 }
 
 // primitive "max" procedure
@@ -149,6 +149,23 @@ data primitive_LCM(scm_list& args) {
   for(size_type i = 1, n = args.size(); i < n; ++i)
     lcm_val = lcm_val.lcm(args[i].value.num);
   return lcm_val;
+}
+
+// primtive "modf" procedure
+// (define (modf num) (cons (truncate num) (remainder num (truncate num))))
+data primitive_MODF(scm_list& args) {
+  confirm_unary_numeric(args, "modf", "(modf <num>)");
+  data num_pair = data(make_par());
+  if(args[0].value.num.is_integer()) {
+    num_pair.value.par->first  = args[0];
+    num_pair.value.par->second = num_type();
+    return num_pair;
+  }
+  num_type::inexact_t integral;
+  num_type::inexact_t fractional = std::modf(args[0].value.num.extract_inexact(), &integral);
+  num_pair.value.par->first      = num_type(integral);
+  num_pair.value.par->second     = num_type(fractional);
+  return num_pair;
 }
 
 /******************************************************************************
@@ -278,6 +295,27 @@ data primitive_DENOMINATOR(scm_list& args) {
   return data(args[0].value.num.extract_denominator());
 }
 
+// primtive "make-log-base" procedure
+// (define (make-log-base n) (lambda (num) (/ (log num) (log n))))
+data primitive_MAKE_LOG_BASE(scm_list& args) {
+  auto env = args.rbegin()->value.env;
+  args.pop_back();
+  confirm_unary_numeric(args, "make-log-base", "(make-log-base <num>)");
+  scm_list log_base_N_top(2), log_base_N_bot(2), division(3), log_arg(1), new_log(3);
+  log_base_N_top[0] = "log";
+  log_base_N_bot[0] = "log";
+  log_base_N_top[1] = "num";
+  log_arg[0]        = "num";
+  log_base_N_bot[1] = args[0];
+  division[0] = "/";
+  division[1] = std::move(log_base_N_top);
+  division[2] = std::move(log_base_N_bot);
+  new_log[0]  = symconst::lambda;
+  new_log[1]  = std::move(log_arg);
+  new_log[2]  = std::move(division);
+  return data_cast(scm_eval(std::move(new_log),env));
+}
+
 /******************************************************************************
 * NUMERIC TRIGONOMETRIC PRIMITIVES -- IN RADIANS
 ******************************************************************************/
@@ -355,16 +393,96 @@ data primitive_ATANH(scm_list& args) {
 }
 
 /******************************************************************************
+* NUMERIC BITWISE OPERATION PRIMITIVES 
+******************************************************************************/
+
+// primitive "logand" procedure
+data primitive_LOGAND(scm_list& args) {
+  confirm_no_numeric_primitive_errors(args, "logand", "(logand <num1> <num2>)");
+  confirm_n_args(2, args, "logand", "(logand <num1> <num2>)");
+  return data(args[0].value.num & args[1].value.num);
+}
+
+// primitive "logor" procedure
+data primitive_LOGOR(scm_list& args) {
+  confirm_no_numeric_primitive_errors(args, "logor", "(logor <num1> <num2>)");
+  confirm_n_args(2, args, "logor", "(logor <num1> <num2>)");
+  return data(args[0].value.num | args[1].value.num);
+}
+
+// primitive "logxor" procedure
+data primitive_LOGXOR(scm_list& args) {
+  confirm_no_numeric_primitive_errors(args, "logxor", "(logxor <num1> <num2>)");
+  confirm_n_args(2, args, "logxor", "(logxor <num1> <num2>)");
+  return data(args[0].value.num ^ args[1].value.num);
+}
+
+// primitive "lognot" procedure
+data primitive_LOGNOT(scm_list& args) {
+  confirm_unary_numeric(args, "lognot", "(lognot <num>)");
+  return data(~args[0].value.num);
+}
+
+// primitive "loglsl" procedure
+data primitive_LOGLSL(scm_list& args) {
+  confirm_no_numeric_primitive_errors(args, "loglsl", "(loglsl <num> <shift-amount>)");
+  confirm_n_args(2, args, "loglsl", "(loglsl <num> <shift-amount>)");
+  return data(args[0].value.num << args[1].value.num);
+}
+
+// primitive "loglsr" procedure
+data primitive_LOGLSR(scm_list& args) {
+  confirm_no_numeric_primitive_errors(args, "loglsr", "(loglsr <num> <shift-amount>)");
+  confirm_n_args(2, args, "loglsr", "(loglsr <num> <shift-amount>)");
+  return data(args[0].value.num >> args[1].value.num);
+}
+
+// primitive "logasr" procedure
+data primitive_LOGASR(scm_list& args) {
+  confirm_no_numeric_primitive_errors(args, "logasr", "(logasr <num> <shift-amount>)");
+  confirm_n_args(2, args, "logasr", "(logasr <num> <shift-amount>)");
+  return data(args[0].value.num.asr(args[1].value.num));
+}
+
+// primitive "logbit?" procedure
+data primitive_LOGBITP(scm_list& args) {
+  confirm_no_numeric_primitive_errors(args, "logbit?", "(logbit? <num> <bit-No>)");
+  confirm_n_args(2, args, "logbit?", "(logbit? <num> <bit-No>)");
+  return data((args[0].value.num >> args[1].value.num) & 1);
+}
+
+// primitive "logbit1" procedure
+data primitive_LOGBIT1(scm_list& args) {
+  confirm_no_numeric_primitive_errors(args, "logbit1", "(logbit1 <num> <bit-No>)");
+  confirm_n_args(2, args, "logbit1", "(logbit1 <num> <bit-No>)");
+  return data(args[0].value.num | (1 << args[1].value.num));
+}
+
+// primitive "logbit0" procedure
+data primitive_LOGBIT0(scm_list& args) {
+  confirm_no_numeric_primitive_errors(args, "logbit0", "(logbit0 <num> <bit-No>)");
+  confirm_n_args(2, args, "logbit0", "(logbit0 <num> <bit-No>)");
+  return data(args[0].value.num & ~(1 << args[1].value.num));
+}
+
+// primitive "logbit~" procedure
+data primitive_LOGBIT_CMPL(scm_list& args) {
+  confirm_no_numeric_primitive_errors(args, "logbit~", "(logbit~ <num> <bit-No>)");
+  confirm_n_args(2, args, "logbit~", "(logbit~ <num> <bit-No>)");
+  return data(args[0].value.num ^ (1 << args[1].value.num));
+}
+
+/******************************************************************************
 * NUMERIC RANDOM NUMBER GENERATOR PRIMITIVES 
 ******************************************************************************/
 
 // primitive "random" procedure -- SEED DEFAULTS TO CURRENT TIME SINCE EPOCH
 data primitive_RANDOM(scm_list& args) {
   if(args.size() > 1)
-    THROW_ERR("'random recieved more than 1 arg:" 
+    THROW_ERR("'random received more than 1 arg:" 
       "\n     (random <optional-numeric-seed>)" << FCN_ERR("random",args));
   if(!no_args_given(args) && args.size()==1 && !args[0].is_type(types::num))
-    THROW_ERR("'random recieved non-numeric arg " << PROFILE(args[0])
+    THROW_ERR("'random received non-numeric arg " << PROFILE(args[0])
       << ":\n     (random <optional-numeric-seed>)" << FCN_ERR("random",args));
   if(no_args_given(args))
     return data(num_type::random());
@@ -427,7 +545,7 @@ data primitive_LTE(scm_list& args) {
 // primitive "eq?" procedure:
 data primitive_EQP(scm_list& args) {
   if(no_args_given(args))
-    THROW_ERR("'eq? recieved no arguments: (eq? <obj1> <obj2> ...)" << FCN_ERR("eq?", args));
+    THROW_ERR("'eq? received no arguments: (eq? <obj1> <obj2> ...)" << FCN_ERR("eq?", args));
   // compare types & values
   for(size_type i = 0, n = args.size(); i+1 < n; ++i) {
     if(args[i].type != args[i+1].type) 
@@ -445,7 +563,7 @@ data primitive_EQP(scm_list& args) {
 // primitive "eqv?" procedure:
 data primitive_EQVP(scm_list& args) {
   if(no_args_given(args))
-    THROW_ERR("'eqv? recieved no arguments: (eqv? <obj1> <obj2> ...)" << FCN_ERR("eqv?", args));
+    THROW_ERR("'eqv? received no arguments: (eqv? <obj1> <obj2> ...)" << FCN_ERR("eqv?", args));
   // compare types & values
   for(size_type i = 0, n = args.size(); i+1 < n; ++i)
     if(args[i].type != args[i+1].type || !prm_compare_atomic_values(args[i].value,args[i+1].value,args[i].type))
@@ -456,12 +574,12 @@ data primitive_EQVP(scm_list& args) {
 // primitive "equal?" procedure:
 data primitive_EQUALP(scm_list& args) {
   if(no_args_given(args))
-    THROW_ERR("'equal? recieved no arguments: (equal? <obj1> <obj2> ...)" << FCN_ERR("equal?", args));
+    THROW_ERR("'equal? received no arguments: (equal? <obj1> <obj2> ...)" << FCN_ERR("equal?", args));
   for(size_type i = 0, n = args.size(); i+1 < n; ++i) {
     if(args[i].type != args[i+1].type) // compare types
       return FALSE_DATA_BOOLEAN;
     if(args[i].is_type(types::exp)) {  // compare sub-lists
-      if(!prm_compare_SCM_LISTs(args[i].value.exp,args[i+1].value.exp))
+      if(!prm_compare_EXPRs(args[i].value.exp,args[i+1].value.exp))
         return FALSE_DATA_BOOLEAN;
     } else if(args[i].is_type(types::par)) {
       if(!prm_compare_PAIRs(args[i].value.par,args[i+1].value.par))
@@ -477,10 +595,8 @@ data primitive_EQUALP(scm_list& args) {
 
 // primitive "not" procedure:
 data primitive_NOT(scm_list& args) {
-  if(args.size() != 1 || no_args_given(args))
-    THROW_ERR("'not recieved incorrect # of arguments: (not <obj>)");
-  bool data_is_false = args[0].is_type(types::bol) && !args[0].value.bol.val;
-  return data(boolean(data_is_false));
+  confirm_given_one_arg(args,"not");
+  return data(boolean(args[0].is_type(types::bol) && !args[0].value.bol.val));
 }
 
 /******************************************************************************
@@ -493,7 +609,7 @@ data primitive_NOT(scm_list& args) {
 
 // primitive "char=?" procedure:
 data primitive_CHAR_EQ(scm_list& args) {
-  confirm_given_char_string_args(args, "char=?", "char");
+  confirm_given_char_string_args(args, "char=?", types::chr);
   for(size_type i = 0, n = args.size(); i < n-1; ++i)
     if(args[i].value.chr != args[i+1].value.chr)
       return FALSE_DATA_BOOLEAN;
@@ -502,7 +618,7 @@ data primitive_CHAR_EQ(scm_list& args) {
 
 // primitive "char<?" procedure:
 data primitive_CHAR_LT(scm_list& args) {
-  confirm_given_char_string_args(args, "char<?", "char");
+  confirm_given_char_string_args(args, "char<?", types::chr);
   for(size_type i = 0, n = args.size(); i < n-1; ++i)
     if(args[i].value.chr >= args[i+1].value.chr)
       return FALSE_DATA_BOOLEAN;
@@ -511,7 +627,7 @@ data primitive_CHAR_LT(scm_list& args) {
 
 // primitive "char>?" procedure:
 data primitive_CHAR_GT(scm_list& args) {
-  confirm_given_char_string_args(args, "char>?", "char");
+  confirm_given_char_string_args(args, "char>?", types::chr);
   for(size_type i = 0, n = args.size(); i < n-1; ++i)
     if(args[i].value.chr <= args[i+1].value.chr)
       return FALSE_DATA_BOOLEAN;
@@ -520,7 +636,7 @@ data primitive_CHAR_GT(scm_list& args) {
 
 // primitive "char<=?" procedure:
 data primitive_CHAR_LTE(scm_list& args) {
-  confirm_given_char_string_args(args, "char<=?", "char");
+  confirm_given_char_string_args(args, "char<=?", types::chr);
   for(size_type i = 0, n = args.size(); i < n-1; ++i)
     if(args[i].value.chr > args[i+1].value.chr)
       return FALSE_DATA_BOOLEAN;
@@ -529,7 +645,7 @@ data primitive_CHAR_LTE(scm_list& args) {
 
 // primitive "char>=?" procedure:
 data primitive_CHAR_GTE(scm_list& args) {
-  confirm_given_char_string_args(args, "char>=?", "char");
+  confirm_given_char_string_args(args, "char>=?", types::chr);
   for(size_type i = 0, n = args.size(); i < n-1; ++i)
     if(args[i].value.chr < args[i+1].value.chr)
       return FALSE_DATA_BOOLEAN;
@@ -538,7 +654,7 @@ data primitive_CHAR_GTE(scm_list& args) {
 
 // primitive "char-ci=?" procedure:
 data primitive_CHAR_CI_EQ(scm_list& args) {
-  confirm_given_char_string_args(args, "char-ci=?", "char");
+  confirm_given_char_string_args(args, "char-ci=?", types::chr);
   for(size_type i = 0, n = args.size(); i < n-1; ++i)
     if(mklower(args[i].value.chr) != mklower(args[i+1].value.chr))
       return FALSE_DATA_BOOLEAN;
@@ -547,7 +663,7 @@ data primitive_CHAR_CI_EQ(scm_list& args) {
 
 // primitive "char-ci<?" procedure:
 data primitive_CHAR_CI_LT(scm_list& args) {
-  confirm_given_char_string_args(args, "char-ci<?", "char");
+  confirm_given_char_string_args(args, "char-ci<?", types::chr);
   for(size_type i = 0, n = args.size(); i < n-1; ++i)
     if(mklower(args[i].value.chr) >= mklower(args[i+1].value.chr))
       return FALSE_DATA_BOOLEAN;
@@ -556,7 +672,7 @@ data primitive_CHAR_CI_LT(scm_list& args) {
 
 // primitive "char-ci>?" procedure:
 data primitive_CHAR_CI_GT(scm_list& args) {
-  confirm_given_char_string_args(args, "char-ci>?", "char");
+  confirm_given_char_string_args(args, "char-ci>?", types::chr);
   for(size_type i = 0, n = args.size(); i < n-1; ++i)
     if(mklower(args[i].value.chr) <= mklower(args[i+1].value.chr))
       return FALSE_DATA_BOOLEAN;
@@ -565,7 +681,7 @@ data primitive_CHAR_CI_GT(scm_list& args) {
 
 // primitive "char-ci<=?" procedure:
 data primitive_CHAR_CI_LTE(scm_list& args) {
-  confirm_given_char_string_args(args, "char-ci<=?", "char");
+  confirm_given_char_string_args(args, "char-ci<=?", types::chr);
   for(size_type i = 0, n = args.size(); i < n-1; ++i)
     if(mklower(args[i].value.chr) > mklower(args[i+1].value.chr))
       return FALSE_DATA_BOOLEAN;
@@ -574,7 +690,7 @@ data primitive_CHAR_CI_LTE(scm_list& args) {
 
 // primitive "char-ci>=?" procedure:
 data primitive_CHAR_CI_GTE(scm_list& args) {
-  confirm_given_char_string_args(args, "char-ci>=?", "char");
+  confirm_given_char_string_args(args, "char-ci>=?", types::chr);
   for(size_type i = 0, n = args.size(); i < n-1; ++i)
     if(mklower(args[i].value.chr) < mklower(args[i+1].value.chr))
       return FALSE_DATA_BOOLEAN;
@@ -639,12 +755,12 @@ data primitive_CHAR_DOWNCASE(scm_list& args) {
 data primitive_MAKE_STRING(scm_list& args) {
   // confirm valid length given
   if(no_args_given(args) || args.size() > 2 || !primitive_is_valid_size(args[0]))
-    THROW_ERR("'make-string didn't recieve a proper positive integer size!"
+    THROW_ERR("'make-string didn't receive a proper positive integer size!"
       "\n     (make-string <size> <optional-fill-char>)"
       "\n     <size> range: (0," << MAX_SIZE_TYPE << ']'
       << FCN_ERR("make-string", args));
   if(args.size()==2 && !args[1].is_type(types::chr))
-    THROW_ERR("'make-string recieved a non-character fill value:"
+    THROW_ERR("'make-string received a non-character fill value:"
       "\n     Received fill value "<<PROFILE(args[1])<<'!'
       << "\n     (make-string <size> <optional-fill-char>)"
       << FCN_ERR("make-string", args));
@@ -656,7 +772,7 @@ data primitive_MAKE_STRING(scm_list& args) {
 // primitive "string" procedure:
 data primitive_STRING(scm_list& args) {
   if(no_args_given(args)) return make_str("");
-  if(auto i = confirm_only_args_of_type(args, types::chr); i != -1)
+  if(auto i = confirm_only_args_of_type(args, types::chr); i != MAX_SIZE_TYPE)
     THROW_ERR("'string arg #" << i+1 << ", " << PROFILE(args[i]) 
       << ",\n     isn't a character: (string <char1> <char2> ...)"
       << FCN_ERR("string", args));
@@ -665,78 +781,217 @@ data primitive_STRING(scm_list& args) {
   return make_str(str_val);
 }
 
-// primitive "string-length" procedure:
-data primitive_STRING_LENGTH(scm_list& args) {
-  primitive_confirm_valid_string_arg(args, 1, "string-length", "(string-length <string>)");
-  return num_type(args[0].value.str->size());
-}
-
-// primitive "string-ref" procedure:
-data primitive_STRING_REF(scm_list& args) {
-  primitive_confirm_valid_string_arg(args, 2, "string-ref", "(string-ref <string> <index>)");
-  auto i = primitive_confirm_valid_string_idx(args, "string-ref", "(string-ref <string> <index>)");
-  return args[0].value.str->operator[](i);
-}
-
-// primitive "string-set!" procedure:
-data primitive_STRING_SET(scm_list& args) {
-  primitive_confirm_valid_string_arg(args, 3, "string-set!", "(string-set! <string> <index> <char>)");
-  auto i = primitive_confirm_valid_string_idx(args, "string-set!", "(string-set! <string> <index> <char>)");
-  if(!args[2].is_type(types::chr))
-    THROW_ERR("'string-set! recieved non-character set-value \n     " 
-      << PROFILE(args[2]) << "!\n     (string-set! <string> <index> <char>)"
-      << FCN_ERR("string-set!", args));
-  args[0].value.str->operator[](i) = args[2].value.chr;
-  return data(types::dne);
-}
-
-// primitive "substring" procedure:
-data primitive_SUBSTRING(scm_list& args) {
-  primitive_confirm_valid_string_arg(args, 3, "substring", "(substring <string> <start> <end>)");
-  auto start = primitive_confirm_valid_string_idx(args, "string-ref", "(string-ref <string> <end>)");
-  // confirm given an in-'size_type'-range non-negative end index
-  if(!primitive_is_valid_index(args[2]))
-    THROW_ERR("'substring arg "<<PROFILE(args[2])<<" isn't a proper non-negative integer <end> index!"
-      "\n     (substring <string> <start> <end>)"
-      "\n     <start> & <end> range: [0," << MAX_SIZE_TYPE << ']'
-      << FCN_ERR("substring", args));
-  // confirm index falls w/in range of the container
-  const size_type end = (size_type)args[2].value.num.extract_inexact();
-  if(end > args[0].value.str->size())
-    THROW_ERR("'substring recieved out of range <end> index " << end 
-      <<"\n     for string "<<args[0]<<" of size "<< args[0].value.str->size()<<'!'
-      << FCN_ERR("substring", args));
-  return make_str(args[0].value.str->substr(start,end));
-}
-
-// primitive "string-append" procedure:
-data primitive_STRING_APPEND(scm_list& args) {
-  if(no_args_given(args)) return make_str("");
-  if(auto i = confirm_only_args_of_type(args, types::str); i != -1)
-    THROW_ERR("'string-append arg #" << i+1 << ", " << PROFILE(args[i]) 
-      << ",\n     isn't a string: (string-append <string1> <string2> ...)"
-      << FCN_ERR("string-append", args));
+// primitive "string-unfold" procedure:
+data primitive_STRING_UNFOLD(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (string-unfold <break-condition> <map-procdure> <successor-procedure> <seed>)";
+  scm_list unfolded;
+  primitive_UNFOLD_template(args,unfolded,"string-unfold",format);
+  if(unfolded.empty()) return make_str("");
   scm_string str_val;
-  for(const auto& str : args) str_val += *str.value.str;
+  for(size_type i = 0, n = unfolded.size(); i < n; ++i) {
+    if(!unfolded[i].is_type(types::chr)) 
+      THROW_ERR("'string-unfold generated value #" << i+1 << ", " << PROFILE(unfolded[i]) 
+        << ",\n     isn't a character: " << format << FCN_ERR("string-unfold", args));
+    str_val += unfolded[i].value.chr;
+  }
   return make_str(str_val);
 }
 
-// primitive "string-copy" procedure:
-data primitive_STRING_COPY(scm_list& args) {
-  primitive_confirm_valid_string_arg(args, 1, "string-copy", "(string-copy <string>)");
-  return make_str(*args[0].value.str);
+// primitive "string-pad" procedure:
+data primitive_STRING_PAD(scm_list& args) {
+  char padding_character = confirm_valid_string_pad_args(args, "string-pad",
+    "\n     (string-pad <string> <length> <optional-character>)");
+  const size_type length = (size_type)args[1].value.num.extract_inexact();
+  const size_type n = args[0].value.str->size();
+  if(length > n)
+    return make_str(scm_string(length-n, padding_character) + *args[0].value.str);
+  return make_str(args[0].value.str->substr(n-length));
 }
 
-// primitive "string-fill!" procedure:
-data primitive_STRING_FILL(scm_list& args) {
-  primitive_confirm_valid_string_arg(args, 2, "string-fill!", "(string-fill! <string> <char>)");
+// primitive "string-pad-right" procedure:
+data primitive_STRING_PAD_RIGHT(scm_list& args) {
+  char padding_character = confirm_valid_string_pad_args(args, "string-pad-right",
+    "\n     (string-pad-right <string> <length> <optional-character>)");
+  const size_type length = (size_type)args[1].value.num.extract_inexact();
+  const size_type n = args[0].value.str->size();
+  if(length > n)
+    return make_str(*args[0].value.str + scm_string(length-n, padding_character));
+  return make_str(args[0].value.str->substr(0, length));
+}
+
+// primitive "string-trim" procedure:
+data primitive_STRING_TRIM(scm_list& args) {
+  // extract the environment
+  auto env = args.rbegin()->value.env;
+  args.pop_back();
+  confirm_valid_string_trim_args(args, "string-trim",
+    "\n     (string-trim <string> <optional-predicate>)");
+  return prm_trim_left_of_string(args,env);
+}
+
+// primitive "string-trim-right" procedure:
+data primitive_STRING_TRIM_RIGHT(scm_list& args) {
+  // extract the environment
+  auto env = args.rbegin()->value.env;
+  args.pop_back();
+  confirm_valid_string_trim_args(args, "string-trim-right",
+    "\n     (string-trim-right <string> <optional-predicate>)");
+  return prm_trim_right_of_string(args,env);
+}
+
+// primitive "string-trim-both" procedure:
+data primitive_STRING_TRIM_BOTH(scm_list& args) {
+  // extract the environment
+  auto env = args.rbegin()->value.env;
+  args.pop_back();
+  confirm_valid_string_trim_args(args, "string-trim-both",
+    "\n     (string-trim-both <string> <optional-predicate>)");
+  scm_list right_trim_args;
+  right_trim_args.push_back(make_str(*prm_trim_left_of_string(args,env).value.str));
+  if(args.size() == 2)
+    right_trim_args.push_back(args[1]);
+  return prm_trim_right_of_string(right_trim_args,env);
+}
+
+// primitive "string-replace" procedure:
+data primitive_STRING_REPLACE(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (string-replace <string1> <string2> <start1> <end1>)";
+  if(args.size() != 4)
+    THROW_ERR("'string-replace recieved incorrect # of args (given " 
+      << count_args(args) << "):" << format 
+      << FCN_ERR("string-replace", args));
+  if(!args[0].is_type(types::str))
+    THROW_ERR("'string-replace 1st arg "<<PROFILE(args[0])<<" isn't a string:" 
+      << format << FCN_ERR("string-replace", args));
+  if(!args[1].is_type(types::str))
+    THROW_ERR("'string-replace 2nd arg "<<PROFILE(args[1])<<" isn't a string:" 
+      << format << FCN_ERR("string-replace", args));
+  const auto start = primitive_get_if_valid_str_or_vec_idx(args,"string-replace",
+                                                           format,"string",2,0,&data_value_field::str);
+  const auto end   = primitive_get_if_valid_str_or_vec_idx(args,"string-replace",
+                                                           format,"string",3,0,&data_value_field::str);
+  if(end < start)
+    THROW_ERR("'string-replace <end> index " << end << " must be greater than <start> index " << start
+      <<"\n     for string "<<args[0]<<" of size "<<args[0].value.str->size()<<'!'
+      << FCN_ERR("string-replace", args));
+  return make_str(args[0].value.str->substr(0,start) +  
+                  *args[1].value.str + 
+                  args[0].value.str->substr(end+1));
+}
+
+// primitive "string-contains" procedure:
+data primitive_STRING_CONTAINS(scm_list& args) {
+  return prm_string_contains_template(args, "string-contains", 
+    "\n     (string-contains <string> <sub-string>)", true);
+}
+
+// primitive "string-contains-right" procedure:
+data primitive_STRING_CONTAINS_RIGHT(scm_list& args) {
+  return prm_string_contains_template(args, "string-contains-right", 
+    "\n     (string-contains-right <string> <sub-string>)", false);
+}
+
+// primitive "string-join" procedure:
+data primitive_STRING_JOIN(scm_list& args) {
+  STRING_GRAMMARS grammar = STRING_GRAMMARS::INFIX;
+  scm_string delimiter(""), joined_string("");
+  scm_list strings_list;
+  confirm_proper_string_join_args(args, grammar, delimiter, strings_list);
+  if(!strings_list.empty()) {
+    if(grammar == STRING_GRAMMARS::INFIX) {
+      joined_string += *strings_list[0].value.str;
+      for(size_type i = 1, n = strings_list.size(); i < n; ++i)
+        joined_string += delimiter + *strings_list[i].value.str;
+    } else if(grammar == STRING_GRAMMARS::SUFFIX) {
+      for(const auto& data_str : strings_list)
+        joined_string += *data_str.value.str + delimiter;
+    } else if(grammar == STRING_GRAMMARS::PREFIX) {
+      for(const auto& data_str : strings_list)
+        joined_string += delimiter + *data_str.value.str;
+    }
+  }
+  return make_str(joined_string);
+}
+
+// primitive "string-split" procedure:
+data primitive_STRING_SPLIT(scm_list& args) {
+  scm_string delimiter("");
+  scm_list strings_list;
+  confirm_proper_string_split_args(args,delimiter);
+  // split the string into a list of strings
+  const scm_string str(*args[0].value.str);
+  const size_type delim_size = delimiter.size();
+  if(!delim_size) {
+    for(const auto& letter : str)
+      strings_list.push_back(make_str(scm_string(1,letter)));
+  } else {
+    size_type substr_start = 0;
+    for(size_type i = 0, n = str.size(); i < n; ++i) {
+      size_type j = 0;
+      for(; j < delim_size && i+j < n; ++j)
+        if(str[i+j] != delimiter[j]) break;
+      if(j == delim_size) { // at a split instance
+        strings_list.push_back(make_str(str.substr(substr_start,i-substr_start)));
+        i += delim_size-1;
+        substr_start = i+1;
+      }
+    }
+    strings_list.push_back(make_str(str.substr(substr_start)));
+  }
+  return primitive_LIST_to_CONS_constructor(strings_list.begin(),strings_list.end());
+}
+
+// primitive "string-swap!" procedure:
+data primitive_STRING_SWAP_BANG(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (string-swap! <string> <string>)";
+  if(args.size() != 2)
+    THROW_ERR("'string-swap! recieved incorrect # of args (given " 
+      << count_args(args) << "):" << format 
+      << FCN_ERR("string-swap!", args));
+  if(!args[0].is_type(types::str))
+    THROW_ERR("'string-swap! 1st arg "<<PROFILE(args[0])<<" isn't a string:" 
+      << format << FCN_ERR("string-swap!", args));
+  if(!args[1].is_type(types::str))
+    THROW_ERR("'string-swap! 2nd arg "<<PROFILE(args[1])<<" isn't a string:" 
+      << format << FCN_ERR("string-swap!", args));
+  scm_string tmp(*args[0].value.str);
+  *args[0].value.str = *args[1].value.str;
+  *args[1].value.str = tmp;
+  return VOID_DATA_OBJECT;
+}
+
+// primitive "string-push!" procedure:
+data primitive_STRING_PUSH_BANG(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (string-push! <string> <char>)";
+  if(args.size() != 2)
+    THROW_ERR("'string-push! recieved incorrect # of args (given " 
+      << count_args(args) << "):" << format 
+      << FCN_ERR("string-push!", args));
+  if(!args[0].is_type(types::str))
+    THROW_ERR("'string-push! 1st arg "<<PROFILE(args[0])<<" isn't a string:" 
+      << format << FCN_ERR("string-push!", args));
   if(!args[1].is_type(types::chr))
-    THROW_ERR("'string-fill! recieved non-character fill-value\n     " 
-      << PROFILE(args[1]) << "!\n     (string-fill! <string> <char>)"
-      << FCN_ERR("string-fill!", args));
-  for(size_type i = 0, n = args[0].value.str->size(); i < n; ++i)
-    args[0].value.str->operator[](i) = args[1].value.chr;
-  return data(types::dne);
+    THROW_ERR("'string-push! 2nd arg "<<PROFILE(args[1])<<" isn't a character:" 
+      << format << FCN_ERR("string-push!", args));
+  args[0].value.str->push_back(char(args[1].value.chr));
+  return VOID_DATA_OBJECT;
+}
+
+// primitive "string-empty?" procedure:
+data primitive_STRING_EMPTYP(scm_list& args) {
+  primitive_confirm_valid_string_arg(args, 1, "string-empty?", "\n     (string-empty? <string>)");
+  return data(boolean(args[0].value.str->empty()));
+}
+
+// primitive "string-copy!" procedure:
+data primitive_STRING_COPY_BANG(scm_list& args) {
+  return primitive_STATIC_SEQUENCE_COPY_BANG_template(args, "string-copy!", 
+    "\n     (string-copy! <target-string> <target-start-idx> <source-string>)",
+    types::str, "string", &data_value_field::str);
 }
 
 // -------------------
@@ -744,8 +999,8 @@ data primitive_STRING_FILL(scm_list& args) {
 // -------------------
 
 // primitive "string=?" procedure:
-data primitive_STRING_EQ(scm_list& args) {
-  confirm_given_char_string_args(args, "string=?", "string");
+data primitive_STRING_EQP(scm_list& args) {
+  confirm_given_char_string_args(args, "string=?", types::str);
   for(size_type i = 0, n = args.size(); i < n-1; ++i)
     if(*args[i].value.str != *args[i+1].value.str)
       return FALSE_DATA_BOOLEAN;
@@ -754,7 +1009,7 @@ data primitive_STRING_EQ(scm_list& args) {
 
 // primitive "string<?" procedure:
 data primitive_STRING_LT(scm_list& args) {
-  confirm_given_char_string_args(args, "string<?", "string");
+  confirm_given_char_string_args(args, "string<?", types::str);
   for(size_type i = 0, n = args.size(); i < n-1; ++i)
     if(*args[i].value.str >= *args[i+1].value.str)
       return FALSE_DATA_BOOLEAN;
@@ -763,7 +1018,7 @@ data primitive_STRING_LT(scm_list& args) {
 
 // primitive "string>?" procedure:
 data primitive_STRING_GT(scm_list& args) {
-  confirm_given_char_string_args(args, "string>?", "string");
+  confirm_given_char_string_args(args, "string>?", types::str);
   for(size_type i = 0, n = args.size(); i < n-1; ++i)
     if(*args[i].value.str <= *args[i+1].value.str)
       return FALSE_DATA_BOOLEAN;
@@ -772,7 +1027,7 @@ data primitive_STRING_GT(scm_list& args) {
 
 // primitive "string<=?" procedure:
 data primitive_STRING_LTE(scm_list& args) {
-  confirm_given_char_string_args(args, "string<=?", "string");
+  confirm_given_char_string_args(args, "string<=?", types::str);
   for(size_type i = 0, n = args.size(); i < n-1; ++i)
     if(*args[i].value.str > *args[i+1].value.str)
       return FALSE_DATA_BOOLEAN;
@@ -781,7 +1036,7 @@ data primitive_STRING_LTE(scm_list& args) {
 
 // primitive "string>=?" procedure:
 data primitive_STRING_GTE(scm_list& args) {
-  confirm_given_char_string_args(args, "string>=?", "string");
+  confirm_given_char_string_args(args, "string>=?", types::str);
   for(size_type i = 0, n = args.size(); i < n-1; ++i)
     if(*args[i].value.str < *args[i+1].value.str)
       return FALSE_DATA_BOOLEAN;
@@ -790,7 +1045,7 @@ data primitive_STRING_GTE(scm_list& args) {
 
 // primitive "string-ci=?" procedure:
 data primitive_STRING_CI_EQ(scm_list& args) {
-  confirm_given_char_string_args(args, "string-ci=?", "string");
+  confirm_given_char_string_args(args, "string-ci=?", types::str);
   for(size_type i = 0, n = args.size(); i < n-1; ++i)
     if(lowercase_str(*args[i].value.str) != lowercase_str(*args[i+1].value.str))
       return FALSE_DATA_BOOLEAN;
@@ -799,7 +1054,7 @@ data primitive_STRING_CI_EQ(scm_list& args) {
 
 // primitive "string-ci<?" procedure:
 data primitive_STRING_CI_LT(scm_list& args) {
-  confirm_given_char_string_args(args, "string-ci<?", "string");
+  confirm_given_char_string_args(args, "string-ci<?", types::str);
   for(size_type i = 0, n = args.size(); i < n-1; ++i)
     if(lowercase_str(*args[i].value.str) >= lowercase_str(*args[i+1].value.str))
       return FALSE_DATA_BOOLEAN;
@@ -808,7 +1063,7 @@ data primitive_STRING_CI_LT(scm_list& args) {
 
 // primitive "string-ci>?" procedure:
 data primitive_STRING_CI_GT(scm_list& args) {
-  confirm_given_char_string_args(args, "string-ci>?", "string");
+  confirm_given_char_string_args(args, "string-ci>?", types::str);
   for(size_type i = 0, n = args.size(); i < n-1; ++i)
     if(lowercase_str(*args[i].value.str) <= lowercase_str(*args[i+1].value.str))
       return FALSE_DATA_BOOLEAN;
@@ -817,7 +1072,7 @@ data primitive_STRING_CI_GT(scm_list& args) {
 
 // primitive "string-ci<=?" procedure:
 data primitive_STRING_CI_LTE(scm_list& args) {
-  confirm_given_char_string_args(args, "string-ci<=?", "string");
+  confirm_given_char_string_args(args, "string-ci<=?", types::str);
   for(size_type i = 0, n = args.size(); i < n-1; ++i)
     if(lowercase_str(*args[i].value.str) > lowercase_str(*args[i+1].value.str))
       return FALSE_DATA_BOOLEAN;
@@ -826,7 +1081,7 @@ data primitive_STRING_CI_LTE(scm_list& args) {
 
 // primitive "string-ci>=?" procedure:
 data primitive_STRING_CI_GTE(scm_list& args) {
-  confirm_given_char_string_args(args, "string-ci>=?", "string");
+  confirm_given_char_string_args(args, "string-ci>=?", types::str);
   for(size_type i = 0, n = args.size(); i < n-1; ++i)
     if(lowercase_str(*args[i].value.str) < lowercase_str(*args[i+1].value.str))
       return FALSE_DATA_BOOLEAN;
@@ -844,7 +1099,7 @@ data primitive_STRING_CI_GTE(scm_list& args) {
 // primitive "cons" procedure:
 data primitive_CONS(scm_list& args) {
   if(args.size() != 2)
-    THROW_ERR("'cons didn't recieved 2 arguments: (cons <car-obj> <cdr-obj>)"
+    THROW_ERR("'cons didn't received 2 arguments: (cons <car-obj> <cdr-obj>)"
       << FCN_ERR("cons", args));
   data new_pair = data(make_par());
   new_pair.value.par->first = args[0];
@@ -854,46 +1109,44 @@ data primitive_CONS(scm_list& args) {
 
 // primitive "car" procedure:
 data primitive_CAR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "car", "\n     (car <pair>)");
+  confirm_given_a_pair_arg(args, "car");
   return args[0].value.par->first;
 }
 
 // primitive "cdr" procedure:
 data primitive_CDR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "cdr", "\n     (cdr <pair>)");
+  confirm_given_a_pair_arg(args, "cdr");
   return args[0].value.par->second;
 }
 
 // primitive "null?" procedure:
 data primitive_NULLP(scm_list& args) {
-  if(args.size() != 1 || no_args_given(args))
-    THROW_ERR("'null? recieved incorrect # of arguments: (null? <obj>)"
-      << FCN_ERR("null?", args));
+  confirm_given_one_arg(args,"null?");
   return data(boolean(data_is_the_empty_expression(args[0])));
 }
 
 // primitive "set-car!" procedure:
 data primitive_SETCAR(scm_list& args) {
   if(args.size() != 2)
-    THROW_ERR("'set-car! recieved incorrect # of arguments:"
+    THROW_ERR("'set-car! received incorrect # of arguments:"
       "\n     (set-car! <pair> <obj>)" << FCN_ERR("set-car!", args));
   if(!args[0].is_type(types::par))
     THROW_ERR("'set-car!'s 1st arg "<<PROFILE(args[0])<<" isn't a pair:"
       "\n     (set-car! <pair> <obj>)" << FCN_ERR("set-car!", args));
   args[0].value.par->first = args[1];
-  return data(types::dne); // return is implementation dependant, We've chosen 'ok symbol
+  return VOID_DATA_OBJECT; // return is implementation dependant, We've chosen 'ok symbol
 }
 
 // primitive "set-cdr!" procedure:
 data primitive_SETCDR(scm_list& args) {
   if(args.size() != 2)
-    THROW_ERR("'set-cdr! recieved incorrect # of arguments:"
+    THROW_ERR("'set-cdr! received incorrect # of arguments:"
       "\n     (set-cdr! <pair> <obj>)" << FCN_ERR("set-cdr!", args));
   if(!args[0].is_type(types::par))
     THROW_ERR("'set-cdr!'s 1st arg "<<PROFILE(args[0])<<" isn't a pair:"
       "\n     (set-cdr! <pair> <obj>)" << FCN_ERR("set-cdr!", args));
   args[0].value.par->second = args[1];
-  return data(types::dne); // return is implementation dependant, We've chosen 'ok symbol
+  return VOID_DATA_OBJECT; // return is implementation dependant, We've chosen 'ok symbol
 }
 
 // ---------------------
@@ -902,28 +1155,28 @@ data primitive_SETCDR(scm_list& args) {
 
 // primitive "caar" procedure:
 data primitive_CAAR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "caar", "\n     (caar <pair>)");
+  confirm_given_a_pair_arg(args, "caar");
   confirm_nth_car_is_pair(args[0], "caar", "1st", args);
   return args[0].value.par->first.value.par->first;
 }
 
 // primitive "cadr" procedure:
 data primitive_CADR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "cadr", "\n     (cadr <pair>)");
+  confirm_given_a_pair_arg(args, "cadr");
   confirm_nth_cdr_is_pair(args[0], "cadr", "1st", args);
   return args[0].value.par->second.value.par->first;
 }
 
 // primitive "cdar" procedure:
 data primitive_CDAR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "cdar", "\n     (cdar <pair>)");
+  confirm_given_a_pair_arg(args, "cdar");
   confirm_nth_car_is_pair(args[0], "cdar", "1st", args);
   return args[0].value.par->first.value.par->second;
 }
 
 // primitive "cddr" procedure:
 data primitive_CDDR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "cddr", "\n     (cddr <pair>)");
+  confirm_given_a_pair_arg(args, "cddr");
   confirm_nth_cdr_is_pair(args[0], "cddr", "1st", args);
   return args[0].value.par->second.value.par->second;
 }
@@ -932,7 +1185,7 @@ data primitive_CDDR(scm_list& args) {
 
 // primitive "caaar" procedure:
 data primitive_CAAAR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "caaar", "\n     (caaar <pair>)");
+  confirm_given_a_pair_arg(args, "caaar");
   confirm_nth_car_is_pair(args[0], "caaar", "1st", args);
   confirm_nth_car_is_pair(args[0].value.par->first, "caaar", "2nd", args);
   return args[0].value.par->first.value.par->first.value.par->first;
@@ -940,7 +1193,7 @@ data primitive_CAAAR(scm_list& args) {
 
 // primitive "caadr" procedure:
 data primitive_CAADR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "caadr", "\n     (caadr <pair>)");
+  confirm_given_a_pair_arg(args, "caadr");
   confirm_nth_cdr_is_pair(args[0], "caadr", "1st", args);
   confirm_nth_car_is_pair(args[0].value.par->second, "caadr", "1st", args);
   return args[0].value.par->second.value.par->first.value.par->first;
@@ -948,7 +1201,7 @@ data primitive_CAADR(scm_list& args) {
 
 // primitive "cadar" procedure:
 data primitive_CADAR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "cadar", "\n     (cadar <pair>)");
+  confirm_given_a_pair_arg(args, "cadar");
   confirm_nth_car_is_pair(args[0], "cadar", "1st", args);
   confirm_nth_cdr_is_pair(args[0].value.par->first, "cadar", "1st", args);
   return args[0].value.par->first.value.par->second.value.par->first;
@@ -956,7 +1209,7 @@ data primitive_CADAR(scm_list& args) {
 
 // primitive "caddr" procedure:
 data primitive_CADDR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "caddr", "\n     (caddr <pair>)");
+  confirm_given_a_pair_arg(args, "caddr");
   confirm_nth_cdr_is_pair(args[0], "caddr", "1st", args);
   confirm_nth_cdr_is_pair(args[0].value.par->second, "caddr", "2nd", args);
   return args[0].value.par->second.value.par->second.value.par->first;
@@ -964,7 +1217,7 @@ data primitive_CADDR(scm_list& args) {
 
 // primitive "cdaar" procedure:
 data primitive_CDAAR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "cdaar", "\n     (cdaar <pair>)");
+  confirm_given_a_pair_arg(args, "cdaar");
   confirm_nth_car_is_pair(args[0], "cdaar", "1st", args);
   confirm_nth_car_is_pair(args[0].value.par->first, "cdaar", "2nd", args);
   return args[0].value.par->first.value.par->first.value.par->second;
@@ -972,7 +1225,7 @@ data primitive_CDAAR(scm_list& args) {
 
 // primitive "cdadr" procedure:
 data primitive_CDADR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "cdadr", "\n     (cdadr <pair>)");
+  confirm_given_a_pair_arg(args, "cdadr");
   confirm_nth_cdr_is_pair(args[0], "cdadr", "1st", args);
   confirm_nth_car_is_pair(args[0].value.par->second, "cdadr", "1st", args);
   return args[0].value.par->second.value.par->first.value.par->second;
@@ -980,7 +1233,7 @@ data primitive_CDADR(scm_list& args) {
 
 // primitive "cddar" procedure:
 data primitive_CDDAR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "cddar", "\n     (cddar <pair>)");
+  confirm_given_a_pair_arg(args, "cddar");
   confirm_nth_car_is_pair(args[0], "cddar", "1st", args);
   confirm_nth_cdr_is_pair(args[0].value.par->first, "cddar", "1st", args);
   return args[0].value.par->first.value.par->second.value.par->second;
@@ -988,7 +1241,7 @@ data primitive_CDDAR(scm_list& args) {
 
 // primitive "cdddr" procedure:
 data primitive_CDDDR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "cdddr", "\n     (cdddr <pair>)");
+  confirm_given_a_pair_arg(args, "cdddr");
   confirm_nth_cdr_is_pair(args[0], "cdddr", "1st", args);
   confirm_nth_cdr_is_pair(args[0].value.par->second, "cdddr", "2nd", args);
   return args[0].value.par->second.value.par->second.value.par->second;
@@ -998,7 +1251,7 @@ data primitive_CDDDR(scm_list& args) {
 
 // primitive "caaaar" procedure:
 data primitive_CAAAAR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "caaaar", "\n     (caaaar <pair>)");
+  confirm_given_a_pair_arg(args, "caaaar");
   confirm_nth_car_is_pair(args[0], "caaaar", "1st", args);
   confirm_nth_car_is_pair(args[0].value.par->first, "caaaar", "2nd", args);
   confirm_nth_car_is_pair(args[0].value.par->first.value.par->first, "caaaar", "3rd", args);
@@ -1007,7 +1260,7 @@ data primitive_CAAAAR(scm_list& args) {
 
 // primitive "caaadr" procedure:
 data primitive_CAAADR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "caaadr", "\n     (caaadr <pair>)");
+  confirm_given_a_pair_arg(args, "caaadr");
   confirm_nth_cdr_is_pair(args[0], "caaadr", "1st", args);
   confirm_nth_car_is_pair(args[0].value.par->second, "caaadr", "1st", args);
   confirm_nth_car_is_pair(args[0].value.par->second.value.par->first, "caaadr", "2nd", args);
@@ -1016,7 +1269,7 @@ data primitive_CAAADR(scm_list& args) {
 
 // primitive "caadar" procedure:
 data primitive_CAADAR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "caadar", "\n     (caadar <pair>)");
+  confirm_given_a_pair_arg(args, "caadar");
   confirm_nth_car_is_pair(args[0], "caadar", "1st", args);
   confirm_nth_cdr_is_pair(args[0].value.par->first, "caadar", "1st", args);
   confirm_nth_car_is_pair(args[0].value.par->first.value.par->second, "caadar", "2nd", args);
@@ -1025,7 +1278,7 @@ data primitive_CAADAR(scm_list& args) {
 
 // primitive "caaddr" procedure:
 data primitive_CAADDR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "caaddr", "\n     (caaddr <pair>)");
+  confirm_given_a_pair_arg(args, "caaddr");
   confirm_nth_cdr_is_pair(args[0], "caaddr", "1st", args);
   confirm_nth_cdr_is_pair(args[0].value.par->second, "caaddr", "2nd", args);
   confirm_nth_car_is_pair(args[0].value.par->second.value.par->second, "caaddr", "1st", args);
@@ -1034,7 +1287,7 @@ data primitive_CAADDR(scm_list& args) {
 
 // primitive "cadaar" procedure:
 data primitive_CADAAR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "cadaar", "\n     (cadaar <pair>)");
+  confirm_given_a_pair_arg(args, "cadaar");
   confirm_nth_car_is_pair(args[0], "cadaar", "1st", args);
   confirm_nth_car_is_pair(args[0].value.par->first, "cadaar", "2nd", args);
   confirm_nth_cdr_is_pair(args[0].value.par->first.value.par->first, "cadaar", "1st", args);
@@ -1043,7 +1296,7 @@ data primitive_CADAAR(scm_list& args) {
 
 // primitive "cadadr" procedure:
 data primitive_CADADR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "cadadr", "\n     (cadadr <pair>)");
+  confirm_given_a_pair_arg(args, "cadadr");
   confirm_nth_cdr_is_pair(args[0], "cadadr", "1st", args);
   confirm_nth_car_is_pair(args[0].value.par->second, "cadadr", "1st", args);
   confirm_nth_cdr_is_pair(args[0].value.par->second.value.par->first, "cadadr", "2nd", args);
@@ -1052,7 +1305,7 @@ data primitive_CADADR(scm_list& args) {
 
 // primitive "caddar" procedure:
 data primitive_CADDAR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "caddar", "\n     (caddar <pair>)");
+  confirm_given_a_pair_arg(args, "caddar");
   confirm_nth_car_is_pair(args[0], "caddar", "1st", args);
   confirm_nth_cdr_is_pair(args[0].value.par->first, "caddar", "1st", args);
   confirm_nth_cdr_is_pair(args[0].value.par->first.value.par->second, "caddar", "2nd", args);
@@ -1061,7 +1314,7 @@ data primitive_CADDAR(scm_list& args) {
 
 // primitive "cadddr" procedure:
 data primitive_CADDDR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "cadddr", "\n     (cadddr <pair>)");
+  confirm_given_a_pair_arg(args, "cadddr");
   confirm_nth_cdr_is_pair(args[0], "cadddr", "1st", args);
   confirm_nth_cdr_is_pair(args[0].value.par->second, "cadddr", "2nd", args);
   confirm_nth_cdr_is_pair(args[0].value.par->second.value.par->second, "cadddr", "3rd", args);
@@ -1071,7 +1324,7 @@ data primitive_CADDDR(scm_list& args) {
 
 // primitive "cdaaar" procedure:
 data primitive_CDAAAR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "cdaaar", "\n     (cdaaar <pair>)");
+  confirm_given_a_pair_arg(args, "cdaaar");
   confirm_nth_car_is_pair(args[0], "cdaaar", "1st", args);
   confirm_nth_car_is_pair(args[0].value.par->first, "cdaaar", "2nd", args);
   confirm_nth_car_is_pair(args[0].value.par->first.value.par->first, "cdaaar", "3rd", args);
@@ -1080,7 +1333,7 @@ data primitive_CDAAAR(scm_list& args) {
 
 // primitive "cdaadr" procedure:
 data primitive_CDAADR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "cdaadr", "\n     (cdaadr <pair>)");
+  confirm_given_a_pair_arg(args, "cdaadr");
   confirm_nth_cdr_is_pair(args[0], "cdaadr", "1st", args);
   confirm_nth_car_is_pair(args[0].value.par->second, "cdaadr", "1st", args);
   confirm_nth_car_is_pair(args[0].value.par->second.value.par->first, "cdaadr", "2nd", args);
@@ -1089,7 +1342,7 @@ data primitive_CDAADR(scm_list& args) {
 
 // primitive "cdadar" procedure:
 data primitive_CDADAR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "cdadar", "\n     (cdadar <pair>)");
+  confirm_given_a_pair_arg(args, "cdadar");
   confirm_nth_car_is_pair(args[0], "cdadar", "1st", args);
   confirm_nth_cdr_is_pair(args[0].value.par->first, "cdadar", "1st", args);
   confirm_nth_car_is_pair(args[0].value.par->first.value.par->second, "cdadar", "2nd", args);
@@ -1098,7 +1351,7 @@ data primitive_CDADAR(scm_list& args) {
 
 // primitive "cdaddr" procedure:
 data primitive_CDADDR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "cdaddr", "\n     (cdaddr <pair>)");
+  confirm_given_a_pair_arg(args, "cdaddr");
   confirm_nth_cdr_is_pair(args[0], "cdaddr", "1st", args);
   confirm_nth_cdr_is_pair(args[0].value.par->second, "cdaddr", "2nd", args);
   confirm_nth_car_is_pair(args[0].value.par->second.value.par->second, "cdaddr", "1st", args);
@@ -1107,7 +1360,7 @@ data primitive_CDADDR(scm_list& args) {
 
 // primitive "cddaar" procedure:
 data primitive_CDDAAR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "cddaar", "\n     (cddaar <pair>)");
+  confirm_given_a_pair_arg(args, "cddaar");
   confirm_nth_car_is_pair(args[0], "cddaar", "1st", args);
   confirm_nth_car_is_pair(args[0].value.par->first, "cddaar", "2nd", args);
   confirm_nth_cdr_is_pair(args[0].value.par->first.value.par->first, "cddaar", "1st", args);
@@ -1116,7 +1369,7 @@ data primitive_CDDAAR(scm_list& args) {
 
 // primitive "cddadr" procedure:
 data primitive_CDDADR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "cddadr", "\n     (cddadr <pair>)");
+  confirm_given_a_pair_arg(args, "cddadr");
   confirm_nth_cdr_is_pair(args[0], "cddadr", "1st", args);
   confirm_nth_car_is_pair(args[0].value.par->second, "cddadr", "1st", args);
   confirm_nth_cdr_is_pair(args[0].value.par->second.value.par->first, "cddadr", "2nd", args);
@@ -1125,7 +1378,7 @@ data primitive_CDDADR(scm_list& args) {
 
 // primitive "cdddar" procedure:
 data primitive_CDDDAR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "cdddar", "\n     (cdddar <pair>)");
+  confirm_given_a_pair_arg(args, "cdddar");
   confirm_nth_car_is_pair(args[0], "cdddar", "1st", args);
   confirm_nth_cdr_is_pair(args[0].value.par->first, "cdddar", "1st", args);
   confirm_nth_cdr_is_pair(args[0].value.par->first.value.par->second, "cdddar", "2nd", args);
@@ -1134,7 +1387,7 @@ data primitive_CDDDAR(scm_list& args) {
 
 // primitive "cddddr" procedure:
 data primitive_CDDDDR(scm_list& args) {
-  confirm_given_a_pair_arg(args, "cddddr", "\n     (cddddr <pair>)");
+  confirm_given_a_pair_arg(args, "cddddr");
   confirm_nth_cdr_is_pair(args[0], "cddddr", "1st", args);
   confirm_nth_cdr_is_pair(args[0].value.par->second, "cddddr", "2nd", args);
   confirm_nth_cdr_is_pair(args[0].value.par->second.value.par->second, "cddddr", "3rd", args);
@@ -1147,25 +1400,51 @@ data primitive_CDDDDR(scm_list& args) {
 
 // primitive "list" procedure:
 data primitive_LIST(scm_list& args) {
-  if(no_args_given(args)) return data(symconst::emptylist); // "(list)" = "'()"
+  if(no_args_given(args)) return data(symconst::emptylist); // (list) = '()
   return primitive_LIST_to_CONS_constructor(args.begin(), args.end());
 }
 
-// primitive "length" procedure:
-data primitive_LENGTH(scm_list& args) {
-  if(primitive_validate_list_and_return_if_empty(args,"length")) 
-    return num_type();
-  num_type count;
-  primitive_LENGTH_computation(args[0].value.par->second,count);
-  return count;
+// primitive "list*" procedure:
+data primitive_LIST_STAR(scm_list& args) {
+  if(no_args_given(args)) return data(symconst::emptylist); // (list*) = '()
+  return primitive_LIST_STAR_to_CONS_constructor(args.begin(), args.end());
+}
+
+// primitive "make-list" procedure:
+data primitive_MAKE_LIST(scm_list& args) {
+  if(no_args_given(args) || args.size() != 2)
+    THROW_ERR("'make-list received incorrect # of args (only "
+      << count_args(args) << "):\n     (make-list <size> <fill-value>)"
+      << FCN_ERR("make-list", args));
+  if(!primitive_is_valid_size(args[0]))
+    THROW_ERR("'make-list didn't receive a proper positive integer size!"
+      "\n     (make-list <size> <fill-value>)"
+      "\n     <size> range: (0," << MAX_SIZE_TYPE << ']' << FCN_ERR("make-list", args));
+  // mk a list w/ n copies of the given <fill-value>
+  size_type n = (size_type)args[0].value.num.extract_inexact();
+  if(!n) return data(symconst::emptylist);
+  scm_list mk_list_args(n, args[1]);
+  return primitive_LIST_to_CONS_constructor(mk_list_args.begin(), 
+                                            mk_list_args.end());
+}
+
+// primitive "iota" procedure:
+data primitive_IOTA(scm_list& args) {
+  return primitive_IOTA_generic<true>(args,"iota",
+    "\n     (iota <count> <optional-start-number> <optional-step-number>)",
+    primitive_LIST_to_CONS_constructor);
+}
+
+// primitive "circular-list" procedure:
+data primitive_CIRCULAR_LIST(scm_list& args) {
+  if(no_args_given(args))
+    return data(symconst::emptylist);
+  return primitive_CIRCULAR_LIST_to_CONS_constructor(args.begin(), args.end());
 }
 
 // primitive "circular-list?" procedure:
 data primitive_CIRCULAR_LISTP(scm_list& args) {
-  // list? requires 1 arg
-  if(args.size() != 1 || no_args_given(args))
-    THROW_ERR("'circular-list? recieved incorrect # of arguments:"
-      "\n     (circular-list? <obj>)" << FCN_ERR("circular-list?", args));
+  confirm_given_one_arg(args,"circular-list?");
   // if not pair, GUARENTEED not a circular list
   if(!args[0].is_type(types::par))
     return FALSE_DATA_BOOLEAN;
@@ -1176,10 +1455,7 @@ data primitive_CIRCULAR_LISTP(scm_list& args) {
 
 // primitive "dotted-list?" procedure:
 data primitive_DOTTED_LISTP(scm_list& args) {
-  // list? requires 1 arg
-  if(args.size() != 1 || no_args_given(args))
-    THROW_ERR("'dotted-list? recieved incorrect # of arguments:"
-      "\n     (dotted-list? <obj>)" << FCN_ERR("dotted-list?", args));
+  confirm_given_one_arg(args, "dotted-list?");
   // if not pair, GUARENTEED not a dotted list
   if(!args[0].is_type(types::par))
     return FALSE_DATA_BOOLEAN;
@@ -1191,28 +1467,15 @@ data primitive_DOTTED_LISTP(scm_list& args) {
 // primitive "list?" procedure:
 //   => where 'list' := finite & null-terminated pair sequence
 data primitive_LISTP(scm_list& args) {
-  // list? requires 1 arg
-  if(args.size() != 1 || no_args_given(args))
-    THROW_ERR("'list? recieved incorrect # of arguments: (list? <obj>)"
-      << FCN_ERR("list?", args));
-  // the empty list is a list
-  if(data_is_the_empty_expression(args[0]))
-    return TRUE_DATA_BOOLEAN;
-  // if non-empty list & not pair, GUARENTEED not a list
-  if(!args[0].is_type(types::par))
-    return FALSE_DATA_BOOLEAN;
-  // valid lists are finite & terminate with '()
-  if(primitive_list_is_acyclic_and_null_terminated(args[0]) == list_status::ok)
+  confirm_given_one_arg(args,"list?");
+  if(data_is_proper_list(args[0]))
     return TRUE_DATA_BOOLEAN;
   return FALSE_DATA_BOOLEAN;
 }
 
 // primitive "alist?" procedure:
 data primitive_ALISTP(scm_list& args) {
-  // alist? requires 1 arg
-  if(args.size() != 1 || no_args_given(args))
-    THROW_ERR("'alist? recieved incorrect # of arguments: (alist? <obj>)"
-      << FCN_ERR("alist?", args));
+  confirm_given_one_arg(args, "alist?");
   // if not pair, GUARENTEED not an association list
   if(!args[0].is_type(types::par))
     return FALSE_DATA_BOOLEAN;
@@ -1222,155 +1485,21 @@ data primitive_ALISTP(scm_list& args) {
            primitive_list_only_contains_pairs(args[0]));
 }
 
-// primitive "append" procedure:
-// PRECONDITIONS: 1) THE FIRST n-1 ARGS MUST HAVE "list?" = TRUE
-//                2) THE LAST ARG MUST NOT BE A CYCLIC LIST
-data primitive_APPEND(scm_list& args) {
-  // (append) = '()
-  if(no_args_given(args)) return data(symconst::emptylist);
-  // (append <obj>) = <obj>
-  const size_type n = args.size();
-  if(n == 1)              return args[0];
-  // (append '() <obj>) = <obj>
-  if(data_is_the_empty_expression(args[0])) return args[1];
-  // Confirm Precondition 2 
-  if(args[n-1].is_type(types::par) && 
-    primitive_list_is_acyclic_and_null_terminated(args[n-1]) == list_status::cyclic)
-    THROW_ERR("'append - last argument "<<PROFILE(args[n-1])<<" isn't an acyclic list:"
-      "\n     (append <list> <obj>)" << FCN_ERR("append", args));
-  // Confirm Precondition 1
-  for(size_type i = 0; i < n-1; ++i) {
-    if(!args[i].is_type(types::par))
-      THROW_ERR("'append argument #" << i+1 << ' ' << PROFILE(args[i]) << " isn't a pair:"
-        "\n     (append <list> <obj>)" << FCN_ERR("append", args));
-    else if(auto stat = primitive_list_is_acyclic_and_null_terminated(args[i]); 
-      stat == list_status::cyclic) {
-      THROW_ERR("'append argument #" << i+1 << ' ' << PROFILE(args[i]) 
-        << " isn't an acyclic list:\n     (append <list> <obj>)" << FCN_ERR("append", args));
-    } else if(stat == list_status::no_null)
-      THROW_ERR("'append argument #" << i+1 << ' ' << PROFILE(args[i]) << " isn't a '() terminated list:"
-        "\n     (append <list> <obj>)" << FCN_ERR("append", args));
-  }
-  // Link the lists to one another
-  for(size_type i = 0; i < n-1; ++i)
-    primitive_APPEND_list_linker(args[i],args[i+1]);
-  return args[0];
-}
-
-// primitive "reverse" procedure:
-data primitive_REVERSE(scm_list& args) {
-  if(primitive_validate_list_and_return_if_empty(args,"reverse")) return args[0];
-  scm_list par_as_exp;
-  shallow_unpack_list_into_exp(args[0], par_as_exp);
-  std::reverse(par_as_exp.begin(),par_as_exp.end());
-  return primitive_LIST(par_as_exp);
-}
-
-// primitive "sublist" procedure:
-data primitive_SUBLIST(scm_list& args) {
-  scm_string format = "\n     (sublist <list> <start-index> <end-index>)"
-                      "\n     <index> range: [0," +
-                      std::to_string(MAX_SIZE_TYPE) + ']';
-  return primitive_list_sublist_extraction(args, "sublist", format.c_str(), false);
-}
-
-// primitive "list-tail" procedure:
-data primitive_LIST_TAIL(scm_list& args) {
-  scm_string format = "\n     (list-tail <list> <index>)"
-                      "\n     <index> range: [0," +
-                      std::to_string(MAX_SIZE_TYPE) + ']';
-  return primitive_list_sublist_extraction(args, "list-tail", format.c_str(), true);
-}
-
-// primitive "list-head" procedure:
-data primitive_LIST_HEAD(scm_list& args) {
-  scm_string format = "\n     (list-head <list> <index>)"
-                      "\n     <index> range: [0," +
-                      std::to_string(MAX_SIZE_TYPE) + ']';
-  if(!args.empty()) args.insert(args.begin()+1, num_type(0)); // insert 0 as <start>
-  return primitive_list_sublist_extraction(args, "list-head", format.c_str(), false);
-}
-
-// primitive "list-ref" procedure:
-data primitive_LIST_REF(scm_list& args) {
-  scm_string format = "\n     (list-ref <list> <index>)"
-                      "\n     <index> range: [0," +
-                      std::to_string(MAX_SIZE_TYPE) + ']';
-  return primitive_list_sublist_extraction(args,"list-ref",format.c_str(),true).value.par->first;
-}
-
-// ----------------------
-// List Control Features:
-// ----------------------
-
-// primitive "for-each" procedure:
-data primitive_FOR_EACH(scm_list& args) {
-  // extract the environment
-  auto env = args.rbegin()->value.env;
-  args.pop_back();
-  // Get the head of each list
-  scm_list list_heads = (args.size() > 1) ? scm_list(args.begin()+1, args.end()) : scm_list{};
-  primitive_FOREACH_MAP_get_list_heads(args, list_heads, 
-    "for-each", "\n     (for-each <procedure> <list1> <list2> ...)");
-  // Apply the procedure on each elt of each list
-  primitive_FOR_EACH_applicator(list_heads, args[0].value.exp, env);
-  return data(types::dne);
-}
-
-// primitive "map" procedure:
-data primitive_MAP(scm_list& args) {
-  // extract the environment
-  auto env = args.rbegin()->value.env;
-  args.pop_back();
-  // Get the head of each list
-  scm_list list_heads = (args.size() > 1) ? scm_list(args.begin()+1, args.end()) : scm_list{};
-  primitive_FOREACH_MAP_get_list_heads(args, list_heads, 
-    "map", "\n     (map <procedure> <list1> <list2> ...)");
-  // Apply the procedure on each elt of each list & store the result
-  scm_list mapped_list;
-  primitive_MAP_list_constructor(list_heads, args[0].value.exp, mapped_list, env);
-  return primitive_LIST(mapped_list); // return a list of the results
-}
-
-// primitive "filter" procedure:
-data primitive_FILTER(scm_list& args) {
-  // extract the environment
-  auto env = args.rbegin()->value.env;
-  args.pop_back();
-  // Confirm given correct # of args needed
-  static constexpr const char * const format = "\n     (filter <procedure> <list>)";
-  if(args.size() != 2) 
-    THROW_ERR("'filter recieved incorrect # of args (given " 
-      << count_args(args) << "):" << format << FCN_ERR("filter", args));
-  // Confirm given a procedure
-  primitive_confirm_data_is_a_procedure(args[0], "filter", format, args);
-  // Confirm only given proper lists of the same length
-  scm_list list_head({args[1]});
-  primitive_confirm_proper_same_sized_lists(list_head,"filter",format,1,args);
-  // Apply the procedure on each elt of each list, & store args that eval'd to 'true'
-  scm_list filtered_list;
-  primitive_FILTER_list_constructor(list_head[0], args[0].value.exp, filtered_list, env);
-  return primitive_LIST(filtered_list); // return a list of the valid values
-}
-
-// primitive "fold-left" procedure:
-data primitive_FOLD_LEFT(scm_list& args) {
-  return primitive_FOLD_template(args, "fold-left", 
-    "\n     (fold-left <procedure> <init> <list1> <list2> ...)",true);
-}
-
-// primitive "fold-right" procedure:
-data primitive_FOLD_RIGHT(scm_list& args) {
-  return primitive_FOLD_template(args, "fold-right", 
-    "\n     (fold-right <procedure> <init> <list1> <list2> ...)",false);
+// primitive "last-pair" procedure:
+data primitive_LAST_PAIR(scm_list& args) {
+  if(primitive_validate_list_and_return_if_empty(args,"last-pair"))
+    THROW_ERR("'last-pair 1st arg " << PROFILE(args[0]) 
+      << " isn't a proper null-terminated list:\n     (last-pair <non-empty-list>)"
+      <<FCN_ERR("last-pair",args));
+  return primitive_LAST_iteration(args[0],true);
 }
 
 // primitive "unfold" procedure:
 data primitive_UNFOLD(scm_list& args) {
   scm_list unfolded;
   primitive_UNFOLD_template(args,unfolded,"unfold",
-    "\n     (unfold <break-condition> <map-procdure> <increment-procedure> <seed>)");
-  return primitive_LIST(unfolded);
+    "\n     (unfold <break-condition> <map-procdure> <successor-procedure> <seed>)");
+  return primitive_LIST_to_CONS_constructor(unfolded.begin(),unfolded.end());
 }
 
 // -----------------------
@@ -1421,7 +1550,7 @@ data primitive_VECTOR(scm_list& args) {
 data primitive_MAKE_VECTOR(scm_list& args) {
   // confirm valid length given
   if(no_args_given(args) || args.size() > 2 || !primitive_is_valid_size(args[0]))
-    THROW_ERR("'make-vector didn't recieve a proper positive integer size!"
+    THROW_ERR("'make-vector didn't receive a proper positive integer size!"
       "\n     (make-vector <size> <optional-fill-value>)"
       "\n     <size> range: (0," << MAX_SIZE_TYPE << ']' << FCN_ERR("make-vector", args));
   // mk a vector w/ the the given reserve size
@@ -1434,40 +1563,31 @@ data primitive_MAKE_VECTOR(scm_list& args) {
   return vect;
 }
 
-// primitive "vector-length" procedure:
-data primitive_VECTOR_LENGTH(scm_list& args) {
-  primitive_confirm_valid_vector_arg(args, 1, "vector-length", "(vector-length <vector>)");
-  return num_type(args[0].value.vec->size());
+// primitive "vector-push!" procedure:
+data primitive_VECTOR_PUSH_BANG(scm_list& args) {
+  primitive_confirm_valid_vector_arg(args, 2, "vector-push!", "\n     (vector-push! <vector> <obj>)");
+  args[0].value.vec->push_back(args[1]);
+  return VOID_DATA_OBJECT;
 }
 
-// primitive "vector-ref" procedure:
-data primitive_VECTOR_REF(scm_list& args) {
-  primitive_confirm_valid_vector_arg(args, 2, "vector-ref", "(vector-ref <vector> <index>)");
-  auto i = primitive_confirm_valid_vector_idx(args, "vector-ref", "(vector-ref <vector> <index>)");
-  return args[0].value.vec->operator[](i);
+// primitive "vector-iota" procedure:
+data primitive_VECTOR_IOTA(scm_list& args) {
+  return primitive_IOTA_generic<false>(args,"vector-iota",
+    "\n     (vector-iota <count> <optional-start-number> <optional-step-number>)",
+    make_vec);
 }
 
-// primitive "vector-set!" procedure:
-data primitive_VECTOR_SET(scm_list& args) {
-  primitive_confirm_valid_vector_arg(args, 3, "vector-set!", "(vector-set! <vector> <index> <obj>)");
-  auto i = primitive_confirm_valid_vector_idx(args, "vector-set!", "(vector-set! <vector> <index> <obj>)");
-  args[0].value.vec->operator[](i) = args[2];
-  return data(types::dne);
-}
-
-// primitive "vector-fill!" procedure:
-data primitive_VECTOR_FILL(scm_list& args) {
-  primitive_confirm_valid_vector_arg(args, 2, "vector-fill!", "(vector-fill! <vector> <obj>)");
-  for(size_type i = 0, n = args[0].value.vec->size(); i < n; ++i)
-    args[0].value.vec->operator[](i) = args[1];
-  return data(types::dne);
+// primitive "vector-empty?" procedure:
+data primitive_VECTOR_EMPTYP(scm_list& args) {
+  primitive_confirm_valid_vector_arg(args, 1, "vector-empty?", "\n     (vector-empty? <vector>)");
+  return data(boolean(args[0].value.vec->empty()));
 }
 
 // primitive "vector-grow" procedure:
 data primitive_VECTOR_GROW(scm_list& args) {
-  primitive_confirm_valid_vector_arg(args, 2, "vector-grow", "(vector-grow <vector> <size>)");
+  primitive_confirm_valid_vector_arg(args, 2, "vector-grow", "\n     (vector-grow <vector> <size>)");
   if(!primitive_is_valid_size(args[1]))
-    THROW_ERR("'vector-grow didn't recieve a proper positive integer size!"
+    THROW_ERR("'vector-grow didn't receive a proper positive integer size!"
       "\n     (vector-grow <vector> <size>)"
       "\n     <size> range: (0," << MAX_SIZE_TYPE << ']' << FCN_ERR("vector-grow", args));
   if(args[1].value.num < args[0].value.vec->size())
@@ -1482,95 +1602,849 @@ data primitive_VECTOR_GROW(scm_list& args) {
   return make_vec(expanded_vec);
 }
 
-// primitive "subvector" procedure:
-data primitive_SUBVECTOR(scm_list& args) {
-  scm_string format = "\n     (subvector <vector> <start-index> <end-index>)"
-                      "\n     <index> range: [0," +
-                      std::to_string(MAX_SIZE_TYPE) + ']';
-  return primitive_subvector_extraction(args, "subvector", format.c_str(), false);
-}
-
-// primitive "vector-tail" procedure:
-data primitive_VECTOR_TAIL(scm_list& args) {
-  scm_string format = "\n     (vector-tail <vector> <index>)"
-                      "\n     <index> range: [0," +
-                      std::to_string(MAX_SIZE_TYPE) + ']';
-  return primitive_subvector_extraction(args, "vector-tail", format.c_str(), true);
-}
-
-// primitive "vector-head" procedure:
-data primitive_VECTOR_HEAD(scm_list& args) {
-  scm_string format = "\n     (vector-head <vector> <index>)"
-                      "\n     <index> range: [0," +
-                      std::to_string(MAX_SIZE_TYPE) + ']';
-  if(!args.empty()) args.insert(args.begin()+1, num_type(0)); // insert 0 as <start>
-  return primitive_subvector_extraction(args, "vector-head", format.c_str(), false);
-}
-
-// primitive "vector-map" procedure:
-data primitive_VECTOR_MAP(scm_list& args) {
-  // extract the environment
-  auto env = args.rbegin()->value.env;
-  args.pop_back();
-  // Confirm given minimum # of args needed
-  static constexpr const char * const format = 
-    "\n     (vector-map <procedure> <vector1> <vector2> ...)";
-  if(args.size() < 2) 
-    THROW_ERR("'vector-map recieved insufficient args (only " 
-      << count_args(args) << "):" << format << FCN_ERR("vector-map", args));
-  // Confirm given a procedure
-  primitive_confirm_data_is_a_procedure(args[0], "vector-map", format, args);
-  // Confirm only given vectors of the same length
-  scm_list vectors(args.begin()+1, args.end());
-  primitive_confirm_same_sized_vector(vectors,format,args);
-  // Apply the procedure on each elt of each vector & store the result
-  scm_list mapped_vector;
-  primitive_MAP_vector_constructor(vectors, args[0].value.exp, mapped_vector, env);
-  return make_vec(mapped_vector); // return a vector of the results
-}
-
 // primitive "vector-unfold" procedure:
 data primitive_VECTOR_UNFOLD(scm_list& args) {
   scm_list unfolded;
   primitive_UNFOLD_template(args,unfolded,"vector-unfold",
-    "\n     (vector-unfold <break-condition> <map-procdure> <increment-procedure> <seed>)");
+    "\n     (vector-unfold <break-condition> <map-procdure> <successor-procedure> <seed>)");
   return make_vec(unfolded);
 }
 
+// primitive "vector-copy!" procedure:
+data primitive_VECTOR_COPY_BANG(scm_list& args) {
+  return primitive_STATIC_SEQUENCE_COPY_BANG_template(args, "vector-copy!", 
+    "\n     (vector-copy! <target-vector> <target-start-idx> <source-vector>)",
+    types::vec, "vector", &data_value_field::vec);
+}
+
+// primitive "vector-swap!" procedure:
+data primitive_VECTOR_SWAP_BANG(scm_list& args) {
+  if(args.size() != 2)
+    THROW_ERR("'vector-swap! received incorrect # of args (only "
+      << count_args(args) << "):\n     (vector-swap! <vector1> <vector2>)" 
+      << FCN_ERR("vector-swap!", args));
+  if(!args[0].is_type(types::vec))
+    THROW_ERR("'vector-swap! 1st arg "<<PROFILE(args[0])<<" isn't a vector: "
+      "\n     (vector-swap! <vector1> <vector2>)" << FCN_ERR("vector-swap!",args));
+  if(!args[1].is_type(types::vec))
+    THROW_ERR("'vector-swap! 2nd arg "<<PROFILE(args[1])<<" isn't a vector: "
+      "\n     (vector-swap! <vector1> <vector2>)" << FCN_ERR("vector-swap!",args));
+  scm_list tmp(*args[0].value.vec);
+  *args[0].value.vec = *args[1].value.vec;
+  *args[1].value.vec = tmp;
+  return VOID_DATA_OBJECT;
+}
+
+// primitive "vector-binary-search" procedure:
+data primitive_VECTOR_BINARY_SEARCH(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (vector-binary-search <vector> <value> <3-way-comparison>)"
+    "\n     ; Suppose values a & b"
+    "\n     ; a < b -> (<3-way-comparison> a b) < 0"
+    "\n     ; a = b -> (<3-way-comparison> a b) = 0"
+    "\n     ; a > b -> (<3-way-comparison> a b) > 0";
+  // extract the environment
+  auto env = args.rbegin()->value.env;
+  args.pop_back();
+  // Confirm proper args
+  if(args.size() != 3)
+    THROW_ERR("'vector-binary-search received incorrect # of args (given "
+      << count_args(args) << "):" << format << FCN_ERR("vector-binary-search", args));
+  if(!args[0].is_type(types::vec))
+    THROW_ERR("'vector-binary-search 1st arg "<<PROFILE(args[0])<<" isn't a vector:"
+      << format << FCN_ERR("vector-binary-search", args));
+  primitive_confirm_data_is_a_procedure(args[2], "vector-binary-search", format, args);
+  // Perform binary search
+  if(args[0].value.vec->empty()) return FALSE_DATA_BOOLEAN;
+  const auto& vec   = *args[0].value.vec;
+  const auto& value = args[1];
+  auto& proc        = args[2].value.exp;
+  size_type high    = vec.size()-1, 
+            low     = 0;
+  while (low <= high) {
+    const auto mid = low + (high-low)/2; // no overflow on mid
+    scm_list bsearch_args(2);
+    bsearch_args[0] = vec[mid], bsearch_args[1] = value;
+    auto cmp_result = data_cast(execute_application(std::move(proc),bsearch_args,env));
+    if(!cmp_result.is_type(types::num))
+      THROW_ERR("'vector-binary-search result "<<PROFILE(cmp_result)<<
+        " from procedure "<<args[2]<<"\n     applied to args "<<vec[mid]
+        <<" and "<<value<<" isn't a number:"<< format << FCN_ERR("vector-binary-search", args));
+    if(cmp_result.value.num.is_zero()) // found <value> in <vec>
+      return num_type(mid);
+    if(cmp_result.value.num.is_neg())
+      low = mid + 1;
+    else {
+      if(!mid) return FALSE_DATA_BOOLEAN;
+      high = mid - 1;
+    }
+  }
+  return FALSE_DATA_BOOLEAN;
+}
+
 /******************************************************************************
-* SORTING PRIMITIVES: FOR BOTH LISTS & VECTORS
+* ALGORITHMIC PRIMITIVES: FOR SEQUENCES (LISTS, VECTORS, & STRINGS)
+******************************************************************************/
+
+// Sequence description for generic algorithm primitives
+#define SEQUENCE_DESCRIPTION\
+  "\n     <sequence> = <list> || <vector> || <string>"
+
+// primitive "empty" procedure (given <sequence>, return its empty version):
+data primitive_EMPTY(scm_list& args) {
+  confirm_given_one_sequence_arg(args,"empty");
+  if(args[0].is_type(types::par) || data_is_the_empty_expression(args[0]))
+    return symconst::emptylist;
+  if(args[0].is_type(types::vec)) return make_vec(scm_list{});
+  if(args[0].is_type(types::str)) return make_str("");
+  THROW_ERR("'empty given arg "<<PROFILE(args[0])<<" isn't a proper sequence!" 
+      "\n     (empty <sequence>)" SEQUENCE_DESCRIPTION << FCN_ERR("empty",args));
+  return VOID_DATA_OBJECT; // never used due to the throw above
+}
+
+// primitive "length" procedure:
+data primitive_LENGTH(scm_list& args) {
+  confirm_given_one_sequence_arg(args,"length");
+  return primtive_compute_seq_length(args,"length",
+    "\n     (length <sequence>)" SEQUENCE_DESCRIPTION);
+}
+
+// primitive "length+" procedure:
+// => return #f on circular lists (instead of error)
+data primitive_LENGTH_PLUS(scm_list& args) {
+  confirm_given_one_sequence_arg(args, "length+");
+  if(args[0].is_type(types::par) &&
+    primitive_list_is_acyclic_and_null_terminated(args[0]) == list_status::cyclic){
+    return FALSE_DATA_BOOLEAN;
+  }
+  return primtive_compute_seq_length(args,"length+",
+    "\n     (length+ <sequence>)" SEQUENCE_DESCRIPTION);
+}
+
+// primitive "reverse" procedure:
+data primitive_REVERSE(scm_list& args) {
+  confirm_given_one_sequence_arg(args,"reverse");
+  switch(is_proper_sequence(args[0],args,"reverse",
+    "\n     (reverse <sequence>)" SEQUENCE_DESCRIPTION)) {
+    case heist_sequence::vec: 
+      return primitive_reverse_copy_STATIC_SEQUENCE_logic(args[0],&data_value_field::vec,make_vec);
+    case heist_sequence::str: 
+      return primitive_reverse_copy_STATIC_SEQUENCE_logic(args[0],&data_value_field::str,make_str);
+    case heist_sequence::nul: 
+      return args[0];
+    default:
+      return primitive_list_reverse_logic(args[0]);
+  }
+}
+
+// primitive "reverse!" procedure:
+data primitive_REVERSE_BANG(scm_list& args) {
+  confirm_given_one_sequence_arg(args,"reverse!");
+  switch(is_proper_sequence(args[0],args,"reverse!",
+    "\n     (reverse! <sequence>)" SEQUENCE_DESCRIPTION)) {
+    case heist_sequence::vec:
+      return primitive_reverse_bang_STATIC_SEQUENCE_logic(args[0], &data_value_field::vec);
+    case heist_sequence::str:
+      return primitive_reverse_bang_STATIC_SEQUENCE_logic(args[0], &data_value_field::str);
+    case heist_sequence::nul:
+      return VOID_DATA_OBJECT;
+    default:
+      return primitive_list_reverse_bang_logic(args[0]);
+  }
+}
+
+// primitive "fold" procedure:
+data primitive_FOLD(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (fold <procedure> <init> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+  auto env = args.rbegin()->value.env;
+  args.pop_back();
+  if(args.size() < 3) 
+    THROW_ERR("'fold received insufficient args (only " 
+      << count_args(args) << "):" << format << FCN_ERR("fold",args));
+  primitive_confirm_data_is_a_procedure(args[0], "fold", format, args);
+  switch(is_proper_sequence(args[2],args,"fold",format)) {
+    case heist_sequence::vec:
+      return primitive_STATIC_SEQUENCE_FOLD_template(args, "fold", 
+        format, true, types::vec, "vector", &data_value_field::vec, env);
+    case heist_sequence::str:
+      return primitive_STATIC_SEQUENCE_FOLD_template(args, "fold", 
+        format, true, types::str, "string", &data_value_field::str, env);
+    case heist_sequence::nul:
+      return args[1];
+    default:
+      return primitive_FOLD_template(args, "fold", format, true, env);
+  }
+}
+
+// primitive "fold-right" procedure:
+data primitive_FOLD_RIGHT(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (fold-right <procedure> <init> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+  auto env = args.rbegin()->value.env;
+  args.pop_back();
+  if(args.size() < 3) 
+    THROW_ERR("'fold-right received insufficient args (only " 
+      << count_args(args) << "):" << format << FCN_ERR("fold-right",args));
+  primitive_confirm_data_is_a_procedure(args[0], "fold-right", format, args);
+  switch(is_proper_sequence(args[2],args,"fold-right",format)) {
+    case heist_sequence::vec:
+      return primitive_STATIC_SEQUENCE_FOLD_template(args, "fold-right", 
+        format, false, types::vec, "vector", &data_value_field::vec, env);
+    case heist_sequence::str:
+      return primitive_STATIC_SEQUENCE_FOLD_template(args, "fold-right", 
+        format, false, types::str, "string", &data_value_field::str, env);
+    case heist_sequence::nul:
+      return args[1];
+    default:
+      return primitive_FOLD_template(args, "fold-right", format, false, env);
+  }
+}
+
+// primitive "filter" procedure:
+data primitive_FILTER(scm_list& args) {
+  auto env = args.rbegin()->value.env;
+  args.pop_back();
+  static constexpr const char * const format = 
+    "\n     (filter <procedure> <sequence>)" SEQUENCE_DESCRIPTION;
+  if(args.size() != 2) 
+    THROW_ERR("'filter received incorrect # of args (given " 
+      << count_args(args) << "):" << format << FCN_ERR("filter",args));
+  primitive_confirm_data_is_a_procedure(args[0], "filter", format, args);
+  switch(is_proper_sequence(args[1],args,"filter",format)) {
+    case heist_sequence::vec:
+      return prm_sequence_selective_iteration_template<is_true_scm_condition>(args, 
+        types::vec, &data_value_field::vec, env);
+    case heist_sequence::str:
+      return prm_sequence_selective_iteration_template<is_true_scm_condition>(args, 
+        types::str, &data_value_field::str, env);
+    case heist_sequence::nul:
+      return args[1];
+    default:
+      return primitive_list_filter_logic(args, env);
+  }
+}
+
+// primitive "map" procedure:
+data primitive_MAP(scm_list& args) {
+  auto env = args.rbegin()->value.env;
+  args.pop_back();
+  static constexpr const char * const format = 
+    "\n     (map <procedure> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+  if(args.size() < 2) 
+    THROW_ERR("'map received incorrect # of args (given " 
+      << count_args(args) << "):" << format << FCN_ERR("map",args));
+  primitive_confirm_data_is_a_procedure(args[0], "map", format, args);
+  switch(is_proper_sequence(args[1],args,"map",format)) {
+    case heist_sequence::vec:
+      return primitive_STATIC_SEQUENCE_MAP_template(args, "map", 
+        format, types::vec, "vector", &data_value_field::vec, env);
+    case heist_sequence::str:
+      return primitive_STATIC_SEQUENCE_MAP_template(args, "map", 
+        format, types::str, "string", &data_value_field::str, env);
+    default:
+      return primitive_list_map_logic(args, env, format);
+  }
+}
+
+// primitive "map!" procedure:
+data primitive_MAP_BANG(scm_list& args) {
+  auto env = args.rbegin()->value.env;
+  args.pop_back();
+  static constexpr const char * const format = 
+    "\n     (map! <procedure> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+  if(args.size() < 2) 
+    THROW_ERR("'map! received incorrect # of args (given " 
+      << count_args(args) << "):" << format << FCN_ERR("map!",args));
+  primitive_confirm_data_is_a_procedure(args[0], "map!", format, args);
+  switch(is_proper_sequence(args[1],args,"map!",format)) {
+    case heist_sequence::vec:
+      *args[1].value.vec = *primitive_STATIC_SEQUENCE_MAP_template(args, "map!",
+        format, types::vec, "vector", &data_value_field::vec, env).value.vec;
+      return VOID_DATA_OBJECT;
+    case heist_sequence::str:
+      *args[1].value.str = *primitive_STATIC_SEQUENCE_MAP_template(args, "map!",
+        format, types::str, "string", &data_value_field::str, env).value.str;
+      return VOID_DATA_OBJECT;
+    default:
+      scm_list list_heads(args.begin()+1, args.end());
+      primitive_confirm_proper_same_sized_lists(list_heads,"map!",format,1,args);
+      primitive_MAP_BANG_list_constructor(list_heads, args[0].value.exp, env);
+      return VOID_DATA_OBJECT;
+  }
+}
+
+// primitive "for-each" procedure:
+data primitive_FOR_EACH(scm_list& args) {
+  auto env = args.rbegin()->value.env;
+  args.pop_back();
+  static constexpr const char * const format = 
+    "\n     (for-each <procedure> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+  if(args.size() < 2) 
+    THROW_ERR("'for-each received incorrect # of args (given " 
+      << count_args(args) << "):" << format << FCN_ERR("for-each",args));
+  primitive_confirm_data_is_a_procedure(args[0], "for-each", format, args);
+  switch(is_proper_sequence(args[1],args,"for-each",format)) {
+    case heist_sequence::vec:
+      return primitive_STATIC_SEQUENCE_FOR_EACH_template(args, "for-each", 
+        format, types::vec, "vector", &data_value_field::vec, env);
+    case heist_sequence::str:
+      return primitive_STATIC_SEQUENCE_FOR_EACH_template(args, "for-each", 
+        format, types::str, "string", &data_value_field::str, env);
+    default:
+      return primitive_list_for_each_logic(args,env,format);
+  }
+}
+
+// primitive "copy" procedure:
+data primitive_COPY(scm_list& args) {
+  confirm_given_one_sequence_arg(args,"copy");
+  switch(is_proper_sequence(args[0],args,"copy",
+    "\n     (copy <sequence>)" SEQUENCE_DESCRIPTION)) {
+    case heist_sequence::vec: return make_vec(*args[0].value.vec);
+    case heist_sequence::str: return make_str(*args[0].value.str);
+    case heist_sequence::nul: return data(symconst::emptylist);
+    default:                  return primitive_list_copy_logic(args[0]);
+  }
+}
+
+// primitive "reverse-copy" procedure:
+data primitive_REVERSE_COPY(scm_list& args) {
+  confirm_given_one_sequence_arg(args,"reverse-copy");
+  switch(is_proper_sequence(args[0],args,"reverse-copy",
+    "\n     (reverse-copy <sequence>)" SEQUENCE_DESCRIPTION)) {
+    case heist_sequence::vec: 
+      return primitive_STATIC_SEQUENCE_reverse_copy_logic(args[0],&data_value_field::vec,make_vec);
+    case heist_sequence::str:
+      return primitive_STATIC_SEQUENCE_reverse_copy_logic(args[0],&data_value_field::str,make_str);
+    case heist_sequence::nul: 
+      return data(symconst::emptylist);
+    default:
+      return primitive_list_reverse_copy_logic(args[0]);
+  }
+}
+
+// primitive "count" procedure:
+data primitive_COUNT(scm_list& args) {
+  auto env = args.rbegin()->value.env;
+  args.pop_back();
+  static constexpr const char * const format = 
+    "\n     (count <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
+  if(args.size() != 2) 
+    THROW_ERR("'count received incorrect # of args (given " 
+      << count_args(args) << "):" << format << FCN_ERR("count",args));
+  primitive_confirm_data_is_a_procedure(args[0], "count", format, args);
+  switch(is_proper_sequence(args[1],args,"count",format)) {
+    case heist_sequence::vec:
+      return primitive_STATIC_SEQUENCE_COUNT_template(args, &data_value_field::vec, env);
+    case heist_sequence::str:
+      return primitive_STATIC_SEQUENCE_COUNT_template(args, &data_value_field::str, env);
+    case heist_sequence::nul:
+      return num_type();
+    default:
+      return primitive_list_count_logic(args,env);
+  }
+}
+
+// primitive "ref" procedure:
+data primitive_REF(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (ref <sequence> <index>)" SEQUENCE_DESCRIPTION;
+  if(args.size() != 2) 
+    THROW_ERR("'ref received incorrect # of args (given " 
+      << count_args(args) << "):" << format 
+      << VALID_SEQUENCE_INDEX_RANGE << FCN_ERR("ref",args));
+  switch(is_proper_sequence(args[0],args,"ref",format)) {
+    case heist_sequence::nul:
+      THROW_ERR("'ref 1st arg '() of type \"null\" has no elements to reference:" 
+        << format << VALID_SEQUENCE_INDEX_RANGE << FCN_ERR("ref",args));
+    case heist_sequence::vec:
+      return args[0].value.vec->operator[](primitive_get_if_valid_vector_idx(args,"ref",format));
+    case heist_sequence::str:
+      return args[0].value.str->operator[](primitive_get_if_valid_string_idx(args,"ref",format));
+    default:
+      if(!primitive_is_valid_index(args[1])) 
+        THROW_ERR("'ref <list> 2nd arg " << PROFILE(args[1]) << " is an invalid <index>:"
+          << format << VALID_SEQUENCE_INDEX_RANGE << FCN_ERR("ref",args));
+      return primitive_list_ref_seeker(args[0],(size_type)args[1].value.num.extract_inexact(),format,args);
+  }
+}
+
+// primitive "slice" procedure (generic 'sublist 'subvector 'substring):
+data primitive_SLICE(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (slice <sequence> <start-index> <end-index>)" SEQUENCE_DESCRIPTION;
+  if(args.size() != 3) 
+    THROW_ERR("'slice received incorrect # of args (given " 
+      << count_args(args) << "):"<<format<<VALID_SEQUENCE_INDEX_RANGE<<FCN_ERR("slice",args));
+  switch(is_proper_sequence(args[0],args,"slice",format)) {
+    case heist_sequence::vec: return primitive_subvector_extraction(args,format);
+    case heist_sequence::str: return primitive_substring_logic(args,format);
+    default:                  return primitive_sublist_extraction(args,format);
+  }
+}
+
+// primitive "set-index!" procedure ('vector-set! 'string-set! SRFIs):
+data primitive_SET_INDEX_BANG(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (set-index! <sequence> <index> <obj>)" SEQUENCE_DESCRIPTION;
+  if(args.size() != 3) 
+    THROW_ERR("'set-index! received incorrect # of args (given " 
+      << count_args(args) << "):" << format 
+      << VALID_SEQUENCE_INDEX_RANGE << FCN_ERR("set-index!",args));
+  switch(is_proper_sequence(args[0],args,"set-index!",format)) {
+    case heist_sequence::nul:
+      THROW_ERR("'set-index! 1st arg '() of type \"null\" has no elements to set:" 
+        << format << VALID_SEQUENCE_INDEX_RANGE << FCN_ERR("set-index!",args));
+    case heist_sequence::vec:
+      args[0].value.vec->operator[](primitive_get_if_valid_vector_idx(args,"set-index!",format)) = args[2];
+      return VOID_DATA_OBJECT;
+    case heist_sequence::str:
+      if(!args[2].is_type(types::chr))
+        THROW_ERR("'set-index! <string> for "<<PROFILE(args[0])<<" received non-character set-value\n     " 
+          << PROFILE(args[2]) << '!' << format << VALID_SEQUENCE_INDEX_RANGE << FCN_ERR("set-index!",args));
+      args[0].value.str->operator[](primitive_get_if_valid_string_idx(args,"set-index!",format)) = args[2].value.chr;
+      return VOID_DATA_OBJECT;
+    default:
+      if(!primitive_is_valid_index(args[1])) 
+        THROW_ERR("'set-index! <list> 2nd arg " << PROFILE(args[1]) << " is an invalid <index>:"
+          << format << VALID_SEQUENCE_INDEX_RANGE << FCN_ERR("set-index!",args));
+      primitive_list_set_index_applicator(args[0],(size_type)args[1].value.num.extract_inexact(),format,args);
+      return VOID_DATA_OBJECT;
+  }
+}
+
+// primitive "fill!" procedure:
+data primitive_FILL_BANG(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (fill! <sequence> <fill-value>)" SEQUENCE_DESCRIPTION;
+  if(args.size() != 2) 
+    THROW_ERR("'fill! received incorrect # of args (given " 
+      << count_args(args) << "):" << format 
+      << FCN_ERR("fill!",args));
+  switch(is_proper_sequence(args[0],args,"fill!",format)) {
+    case heist_sequence::vec: return primitive_vector_fill_logic(args);
+    case heist_sequence::str: return primitive_string_fill_logic(args,format);
+    default:                  return primitive_list_fill_logic(args[0],args[1]);
+  }
+}
+
+// primitive "append" procedure:
+// (append) = '()
+// (append <obj>) = <obj>
+// (append <empty-sequence1> ... <empty-sequenceN> <obj>) = <obj>
+// (append <sequence1> ... <sequenceN> <obj>) = <sequence1> | ... | <sequenceN> | <obj>
+data primitive_APPEND(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (append <sequence1> ... <sequenceN> <obj>)" SEQUENCE_DESCRIPTION;
+  if(no_args_given(args)) return data(symconst::emptylist);
+  if(args.size() == 1)    return args[0];
+  switch(is_proper_sequence(args[0],args,"append",format)) {
+    case heist_sequence::vec: return primitive_vector_append_logic(args,format);
+    case heist_sequence::str: return primitive_string_append_logic(args,format);
+    default:                  return primitive_list_append_logic(args,format);
+  }
+}
+
+// primitive "remove" procedure:
+data primitive_REMOVE(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (remove <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
+  auto env = args.rbegin()->value.env;
+  args.pop_back();
+  if(args.size() != 2) 
+    THROW_ERR("'remove received incorrect # of args (given " 
+      << count_args(args) << "):" << format << FCN_ERR("remove",args));
+  primitive_confirm_data_is_a_procedure(args[0], "remove", format, args);
+  switch(is_proper_sequence(args[1],args,"remove",format)) {
+    case heist_sequence::nul:
+      return args[1];
+    case heist_sequence::vec:
+      return prm_sequence_selective_iteration_template<is_false_scm_condition>(args, 
+        types::vec, &data_value_field::vec, env);
+    case heist_sequence::str:
+      return prm_sequence_selective_iteration_template<is_false_scm_condition>(args, 
+        types::str, &data_value_field::str, env);
+    default:
+      return primitive_remove_list_logic(args[1],args[0].value.exp,env);
+  }
+}
+
+// primitive "delete" procedure:
+data primitive_DELETE(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (delete <sequence> <index>)" SEQUENCE_DESCRIPTION;
+  if(args.size() != 2) 
+    THROW_ERR("'delete received incorrect # of args (given " 
+      << count_args(args) << "):" << format 
+      << VALID_SEQUENCE_INDEX_RANGE << FCN_ERR("delete",args));
+  switch(is_proper_sequence(args[0],args,"delete",format)) {
+    case heist_sequence::nul:
+      THROW_ERR("'delete 1st arg '() of type \"null\" has no elements to reference:" 
+        << format << VALID_SEQUENCE_INDEX_RANGE << FCN_ERR("delete",args));
+    case heist_sequence::vec:
+      return primitive_delete_STATIC_SEQUENCE_logic<primitive_get_if_valid_vector_idx>(
+        args,format,&data_value_field::vec,make_vec);
+    case heist_sequence::str:
+      return primitive_delete_STATIC_SEQUENCE_logic<primitive_get_if_valid_string_idx>(
+        args,format,&data_value_field::str,make_str);
+    default:
+      return primitive_list_delete_logic(args, format);
+  }
+}
+
+// primitive "last" procedure (last elt):
+data primitive_LAST(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (last <sequence>)" SEQUENCE_DESCRIPTION;
+    confirm_given_one_sequence_arg(args,"last");
+  if(data_is_empty(args[0]))
+    THROW_ERR("'last empty sequence arg "<<PROFILE(args[0])<<" has no last elt!" 
+      << format << FCN_ERR("last",args));
+  switch(is_proper_sequence(args[0],args,"last",format)) {
+    case heist_sequence::vec: return *args[0].value.vec->rbegin();
+    case heist_sequence::str: return *args[0].value.str->rbegin();
+    default:                  return primitive_list_last_logic(args[0]);
+  }
+}
+
+// primitive "tail" procedure (all except head):
+data primitive_TAIL(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (tail <sequence>)" SEQUENCE_DESCRIPTION;
+  confirm_given_one_sequence_arg(args,"tail");
+  if(data_is_empty(args[0]))
+    THROW_ERR("'tail empty sequence arg "<<PROFILE(args[0])<<" has no tail!" 
+      << format << FCN_ERR("tail",args));
+  switch(is_proper_sequence(args[0],args,"tail",format)) {
+    case heist_sequence::vec:
+      return make_vec(scm_list(args[0].value.vec->begin()+1,args[0].value.vec->end()));
+    case heist_sequence::str:
+      return make_str(scm_string(args[0].value.str->begin()+1,args[0].value.str->end()));
+    default:
+      return primitive_list_copy_logic(args[0].value.par->second);
+  }
+}
+
+// primitive "head" procedure (first elt):
+data primitive_HEAD(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (head <sequence>)" SEQUENCE_DESCRIPTION;
+  confirm_given_one_sequence_arg(args,"head");
+  if(data_is_empty(args[0]))
+    THROW_ERR("'head empty sequence arg "<<PROFILE(args[0])<<" has no 1st elt!" 
+      << format << FCN_ERR("head",args));
+  switch(is_proper_sequence(args[0],args,"head",format)) {
+    case heist_sequence::vec: return *args[0].value.vec->begin();
+    case heist_sequence::str: return *args[0].value.str->begin();
+    default:                  return args[0].value.par->first;
+  }
+}
+
+// primitive "init" procedure (all except last):
+data primitive_INIT(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (init <sequence>)" SEQUENCE_DESCRIPTION;
+  confirm_given_one_sequence_arg(args,"init");
+  if(data_is_empty(args[0]))
+    THROW_ERR("'init empty sequence arg "<<PROFILE(args[0])<<" has no init!" 
+      << format << FCN_ERR("init",args));
+  switch(is_proper_sequence(args[0],args,"init",format)) {
+    case heist_sequence::vec:
+      return make_vec(scm_list(args[0].value.vec->begin(),args[0].value.vec->end()-1));
+    case heist_sequence::str:
+      return make_str(scm_string(args[0].value.str->begin(),args[0].value.str->end()-1));
+    default:
+      return primitive_list_init_logic(args[0]);
+  }
+}
+
+// primitive "seq=" procedure:
+data primitive_SEQ_EQ(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (seq= <elt=?> <sequence1> <sequence2> ...)"
+    SEQUENCE_DESCRIPTION;
+  auto env = args.rbegin()->value.env;
+  args.pop_back();
+  if(no_args_given(args))
+    THROW_ERR("'seq= didn't recieve any args:" 
+      << format << FCN_ERR("seq=", args));
+  primitive_confirm_data_is_a_procedure(args[0], "seq=", format, args);
+  switch(is_proper_sequence(args[1],args,"seq=",format)) {
+    case heist_sequence::vec:
+      return primitive_STATIC_SEQUENCE_sequence_eq_logic(args,format,env,types::vec,&data_value_field::vec);
+    case heist_sequence::str:
+      return primitive_STATIC_SEQUENCE_sequence_eq_logic(args,format,env,types::str,&data_value_field::str);
+    default:
+      return primitive_list_sequence_eq_logic(args,format,env);
+  }
+}
+
+// primitive "skip" procedure:
+data primitive_SKIP(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (skip <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
+  auto env = args.rbegin()->value.env;
+  args.pop_back();
+  if(args.size() != 2) 
+    THROW_ERR("'skip received incorrect # of args (given " 
+      << count_args(args) << "):" << format << FCN_ERR("skip",args));
+  primitive_confirm_data_is_a_procedure(args[0], "skip", format, args);
+  switch(is_proper_sequence(args[1],args,"skip",format)) {
+    case heist_sequence::nul: 
+      return FALSE_DATA_BOOLEAN;
+    case heist_sequence::vec:
+      return prm_search_STATIC_SEQUENCE_from_left<is_false_scm_condition>(args,&data_value_field::vec,env);
+    case heist_sequence::str:
+      return prm_search_STATIC_SEQUENCE_from_left<is_false_scm_condition>(args,&data_value_field::str,env);
+    default:
+      return prm_search_list_from_left<is_false_scm_condition>(args[1],args[0].value.exp,env);
+  }
+}
+
+// primitive "skip-right" procedure:
+data primitive_SKIP_RIGHT(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (skip-right <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
+  auto env = args.rbegin()->value.env;
+  args.pop_back();
+  if(args.size() != 2) 
+    THROW_ERR("'skip-right received incorrect # of args (given " 
+      << count_args(args) << "):" << format << FCN_ERR("skip-right",args));
+  primitive_confirm_data_is_a_procedure(args[0], "skip-right", format, args);
+  switch(is_proper_sequence(args[1],args,"skip-right",format)) {
+    case heist_sequence::nul: 
+      return args[1];
+    case heist_sequence::vec:
+      return prm_search_STATIC_SEQUENCE_from_right<is_false_scm_condition>(args,&data_value_field::vec,env);
+    case heist_sequence::str:
+      return prm_search_STATIC_SEQUENCE_from_right<is_false_scm_condition>(args,&data_value_field::str,env);
+    default:
+      return prm_search_list_from_right<is_false_scm_condition>(args,env);
+  }
+}
+
+// primitive "index" procedure:
+data primitive_INDEX(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (index <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
+  auto env = args.rbegin()->value.env;
+  args.pop_back();
+  if(args.size() != 2) 
+    THROW_ERR("'index received incorrect # of args (given " 
+      << count_args(args) << "):" << format << FCN_ERR("index",args));
+  primitive_confirm_data_is_a_procedure(args[0], "index", format, args);
+  switch(is_proper_sequence(args[1],args,"index",format)) {
+    case heist_sequence::nul:
+      return FALSE_DATA_BOOLEAN;
+    case heist_sequence::vec:
+      return prm_search_STATIC_SEQUENCE_from_left<is_true_scm_condition>(args,&data_value_field::vec,env);
+    case heist_sequence::str:
+      return prm_search_STATIC_SEQUENCE_from_left<is_true_scm_condition>(args,&data_value_field::str,env);
+    default:
+      return prm_search_list_from_left<is_true_scm_condition>(args[1],args[0].value.exp,env);
+  }
+}
+
+// primitive "index-right" procedure:
+data primitive_INDEX_RIGHT(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (index-right <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
+  auto env = args.rbegin()->value.env;
+  args.pop_back();
+  if(args.size() != 2) 
+    THROW_ERR("'index-right received incorrect # of args (given " 
+      << count_args(args) << "):" << format << FCN_ERR("index-right",args));
+  primitive_confirm_data_is_a_procedure(args[0], "index-right", format, args);
+  switch(is_proper_sequence(args[1],args,"index-right",format)) {
+    case heist_sequence::nul:
+      return args[1];
+    case heist_sequence::vec:
+      return prm_search_STATIC_SEQUENCE_from_right<is_true_scm_condition>(args,&data_value_field::vec,env);
+    case heist_sequence::str:
+      return prm_search_STATIC_SEQUENCE_from_right<is_true_scm_condition>(args,&data_value_field::str,env);
+    default:
+      return prm_search_list_from_right<is_true_scm_condition>(args,env);
+  }
+}
+
+// primitive "drop" procedure:
+data primitive_DROP(scm_list& args) {
+  return primitive_take_drop_template 
+    <primitive_drop_GENERIC_logic<false>, 
+     primitive_drop_GENERIC_logic<false>, 
+     primitive_drop_GENERIC_logic<true>> 
+    (args, "drop", "\n     (drop <sequence> <length>)" SEQUENCE_DESCRIPTION);
+}
+
+// primitive "drop-right" procedure:
+data primitive_DROP_RIGHT(scm_list& args) {
+  return primitive_take_drop_template 
+    <primitive_drop_right_GENERIC_logic<false>, 
+     primitive_drop_right_GENERIC_logic<false>, 
+     primitive_drop_right_GENERIC_logic<true>> 
+    (args, "drop-right", "\n     (drop-right <sequence> <length>)" SEQUENCE_DESCRIPTION);
+}
+
+// primitive "take" procedure:
+data primitive_TAKE(scm_list& args) {
+  return primitive_take_drop_template 
+    <primitive_take_GENERIC_logic<false>, 
+     primitive_take_GENERIC_logic<false>, 
+     primitive_take_GENERIC_logic<true>> 
+    (args, "take", "\n     (take <sequence> <length>)" SEQUENCE_DESCRIPTION);
+}
+
+// primitive "take-right" procedure:
+data primitive_TAKE_RIGHT(scm_list& args) {
+  return primitive_take_drop_template 
+    <primitive_take_right_GENERIC_logic<false>, 
+     primitive_take_right_GENERIC_logic<false>, 
+     primitive_take_right_GENERIC_logic<true>> 
+    (args, "take-right", "\n     (take-right <sequence> <length>)" SEQUENCE_DESCRIPTION);
+}
+
+// primitive "drop-while" procedure:
+data primitive_DROP_WHILE(scm_list& args) {
+  return primitive_take_drop_while_template
+    <primitive_drop_while_GENERIC_logic<false>, 
+     primitive_drop_while_GENERIC_logic<false>, 
+     primitive_drop_while_GENERIC_logic<true>> 
+    (args, "drop-while", "\n     (drop-while <predicate> <sequence>)" SEQUENCE_DESCRIPTION);
+}
+
+// primitive "drop-right-while" procedure:
+data primitive_DROP_RIGHT_WHILE(scm_list& args) {
+  return primitive_take_drop_while_template 
+    <primitive_drop_right_while_GENERIC_logic<false>, 
+     primitive_drop_right_while_GENERIC_logic<false>, 
+     primitive_drop_right_while_GENERIC_logic<true>> 
+    (args, "drop-right-while", "\n     (drop-right-while <predicate> <sequence>)" SEQUENCE_DESCRIPTION);
+}
+
+// primitive "take-while" procedure:
+data primitive_TAKE_WHILE(scm_list& args) {
+  return primitive_take_drop_while_template 
+    <primitive_take_while_GENERIC_logic<false>, 
+     primitive_take_while_GENERIC_logic<false>, 
+     primitive_take_while_GENERIC_logic<true>> 
+    (args, "take-while", "\n     (take-while <predicate> <sequence>)" SEQUENCE_DESCRIPTION);
+}
+
+// primitive "take-right-while" procedure:
+data primitive_TAKE_RIGHT_WHILE(scm_list& args) {
+  return primitive_take_drop_while_template 
+    <primitive_take_right_while_GENERIC_logic<false>, 
+     primitive_take_right_while_GENERIC_logic<false>, 
+     primitive_take_right_while_GENERIC_logic<true>> 
+    (args, "take-right-while", "\n     (take-right-while <predicate> <sequence>)" SEQUENCE_DESCRIPTION);
+}
+
+// primitive "any" procedure:
+data primitive_ANY(scm_list& args) {
+  auto env = args.rbegin()->value.env;
+  args.pop_back();
+  static constexpr const char * const format = 
+    "\n     (any <predicate> <sequence1> <sequence2> ...)" 
+    SEQUENCE_DESCRIPTION;
+  if(args.size() < 2) 
+    THROW_ERR("'any received incorrect # of args (given " 
+      << count_args(args) << "):" << format << FCN_ERR("any",args));
+  primitive_confirm_data_is_a_procedure(args[0], "any", format, args);
+  switch(is_proper_sequence(args[1],args,"any",format)) {
+    case heist_sequence::nul:
+      return FALSE_DATA_BOOLEAN;
+    case heist_sequence::vec:
+      return primitive_STATIC_SEQUENCE_any_logic<types::vec>(args,env,&data_value_field::vec,"vector",format);
+    case heist_sequence::str:
+      return primitive_STATIC_SEQUENCE_any_logic<types::str>(args,env,&data_value_field::str,"string",format);
+    default:
+      return primitive_list_any_logic(args,env,format);
+  }
+}
+
+// primitive "every" procedure:
+data primitive_EVERY(scm_list& args) {
+  auto env = args.rbegin()->value.env;
+  args.pop_back();
+  static constexpr const char * const format = 
+    "\n     (every <predicate> <sequence1> <sequence2> ...)" 
+    SEQUENCE_DESCRIPTION;
+  if(args.size() < 2) 
+    THROW_ERR("'every received incorrect # of args (given " 
+      << count_args(args) << "):" << format << FCN_ERR("every",args));
+  primitive_confirm_data_is_a_procedure(args[0], "every", format, args);
+  switch(is_proper_sequence(args[1],args,"every",format)) {
+    case heist_sequence::nul:
+      return FALSE_DATA_BOOLEAN;
+    case heist_sequence::vec:
+      return primitive_STATIC_SEQUENCE_every_logic<types::vec>(args,env,&data_value_field::vec,"vector",format);
+    case heist_sequence::str:
+      return primitive_STATIC_SEQUENCE_every_logic<types::str>(args,env,&data_value_field::str,"string",format);
+    default:
+      return primitive_list_every_logic(args,env,format);
+  }
+}
+
+// primitive "conj" procedure:
+data primitive_CONJ(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (conj <obj> <sequence>)" SEQUENCE_DESCRIPTION;
+  if(args.size() != 2)
+    THROW_ERR("'conj received incorrect # of arguments:" 
+      << format << FCN_ERR("conj",args));
+  scm_list new_vec;
+  switch(is_proper_sequence(args[1],args,"conj",format)) {
+    case heist_sequence::vec:
+      new_vec.insert(new_vec.end(),args[1].value.vec->begin(),args[1].value.vec->end());
+      new_vec.push_back(args[0]);
+      return make_vec(new_vec);
+    case heist_sequence::str:
+      if(!args[0].is_type(types::chr))
+        THROW_ERR("'conj <string> 1st arg "<<PROFILE(args[0])<<" isn't a character:"
+          << format << FCN_ERR("conj",args));
+      return make_str((*args[1].value.str) + char(args[0].value.chr));
+    default:
+      data new_pair = data(make_par());
+      new_pair.value.par->first = args[0];
+      new_pair.value.par->second = args[1];
+      return new_pair;
+  }
+}
+
+/******************************************************************************
+* SORTING PRIMITIVES: FOR SEQUENCES (LISTS, VECTORS, & STRINGS)
 ******************************************************************************/
 
 // primitive "sort" procedure:
 data primitive_SORT(scm_list& args) {
+  constexpr const char * const format = 
+    "\n     (sort <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
   // extract the environment
   auto env = args.rbegin()->value.env;
   args.pop_back();
   // confirm has a valid argument signature
-  primitive_confirm_sortable_container(args, "sort", 
-    "\n     (sort <procedure> <list>)\n     (sort <procedure> <vector>)");
+  primitive_confirm_sortable_sequence(args, "sort", format);
   // return if sorting the empty list
   if(args[1].is_type(types::sym)) return args[1];
-  // sort the container
-  return primitive_sort_container(args, env);
+  // sort the sequence
+  return primitive_sort_sequence(args, env, "sort", format);
 }
 
 // primitive "sort!" procedure:
 data primitive_SORT_BANG(scm_list& args) {
+  constexpr const char * const format = 
+    "\n     (sort! <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
   // extract the environment
   auto env = args.rbegin()->value.env;
   args.pop_back();
   // confirm has a valid argument signature
-  primitive_confirm_sortable_container(args, "sort!", 
-    "\n     (sort! <procedure> <list>)\n     (sort! <procedure> <vector>)");
+  primitive_confirm_sortable_sequence(args, "sort!", format);
   // return if sorting the empty list (already sorted)
-  if(args[1].is_type(types::sym)) return data(types::dne);
-  // set the container to its sorted variant
-  if(args[1].is_type(types::vec))
-    *args[1].value.vec = *primitive_sort_container(args, env).value.vec;
-  else
-    *args[1].value.par = *primitive_sort_container(args, env).value.par;
-  return data(types::dne);
+  if(args[1].is_type(types::sym)) return VOID_DATA_OBJECT;
+  // set the sequence to its sorted variant
+  return mutatable_assign_scm_sequence(args[1],
+    primitive_sort_sequence(args,env,"sort!",format));
 }
 
 // primitive "sorted?" procedure:
@@ -1579,20 +2453,20 @@ data primitive_SORTEDP(scm_list& args) {
   auto env = args.rbegin()->value.env;
   args.pop_back();
   // confirm has a valid argument signature
-  primitive_confirm_sortable_container(args, "sorted?", 
-    "\n     (sorted? <procedure> <list>)\n     (sorted? <procedure> <vector>)");
+  primitive_confirm_sortable_sequence(args, "sorted?", 
+    "\n     (sorted? <predicate> <sequence>)" SEQUENCE_DESCRIPTION);
   // return if sorting the empty list
   if(args[1].is_type(types::sym)) return args[1];
-  // unpack the container
-  scm_list container;
-  const bool sorting_a_vector = args[1].is_type(types::vec);
-  cast_scheme_container_to_ast(sorting_a_vector,args[1],container);
-  // confirm the unpacked container is sorted as per the args[0] procedure
-  if(container.size() > 1) {
+  // unpack the sequence
+  scm_list sequence;
+  cast_scheme_sequence_to_ast(args[1],sequence);
+  // confirm the unpacked sequence is sorted as per the args[0] procedure
+  if(sequence.size() > 1) {
     auto& procedure = args[0].value.exp;
-    for(size_type i = 0, n = container.size(); i < n-1; ++i) {
-      scm_list args_list({container[i], container[i+1]});
-      if(!is_true_scm_condition(procedure,args_list,env))
+    for(size_type i = 0, n = sequence.size(); i+1 < n; ++i) {
+      scm_list args_list(2);
+      args_list[0] = sequence[i], args_list[1] = sequence[i+1];
+      if(is_false_scm_condition(procedure,args_list,env))
         return FALSE_DATA_BOOLEAN;
     }
   }
@@ -1602,77 +2476,82 @@ data primitive_SORTEDP(scm_list& args) {
 // primitive "merge" procedure:
 data primitive_MERGE(scm_list& args) { 
   constexpr const char * const format = 
-    "\n     (merge <procedure> <list1> <list2>)"
-    "\n     (merge <procedure> <vector1> <vector2>)";
+    "\n     (merge <predicate> <sequence1> <sequence2>)"
+    SEQUENCE_DESCRIPTION;
   // extract the environment
   auto env = args.rbegin()->value.env;
   args.pop_back();
-  // Confirm given minimum # of args needed
+  // Confirm given correct # of args needed
   if(args.size() != 3) 
-    THROW_ERR("'merge recieved incorrect # of args (given " 
+    THROW_ERR("'merge received incorrect # of args (given " 
       << count_args(args) << "):" << format << FCN_ERR("merge",args));
   // Confirm given a procedure
   primitive_confirm_data_is_a_procedure(args[0], "merge", format, args);
-  // Confirm given only proper lists or only vectors
-  for(size_type i = 1, n = args.size(); i < n; ++i)
-    if(scm_list arg_list({args[i]}); 
-       !args[i].is_type(types::vec) && !primitive_LISTP(arg_list).value.bol.val)
-      THROW_ERR("'merge arg #" << i+1 << ' ' << PROFILE(args[i]) 
-        << " isn't a proper list or vector!" << format << FCN_ERR("merge",args));
+  // Confirm given only proper lists, only vectors, or only strings
+  is_proper_sequence(args[1],args,"merge",format);
+  is_proper_sequence(args[2],args,"merge",format);
   // If given '() and a proper list, return the proper list
   if((args[1].is_type(types::sym) && args[2].is_type(types::par)) || 
      (args[2].is_type(types::sym) && args[1].is_type(types::par)))
     return args[1].is_type(types::sym) ? args[2] : args[1];
-  // Confirm given containers are either 2 proper lists or 2 vectors
+  // Confirm given sequences are either 2 proper lists, vectors, or strings
   if(args[1].type != args[2].type)
-    THROW_ERR("'merge containers " << PROFILE(args[1]) << " and "
-      << PROFILE(args[2]) << "\n     are not both proper lists or both vectors!"
+    THROW_ERR("'merge sequences " << PROFILE(args[1]) << " and "
+      << PROFILE(args[2]) << "\n     are not matching sequence types!"
       << format << FCN_ERR("merge",args));
-  // If merging vectors: 
-  scm_list merged_container;
-  if(args[1].is_type(types::vec)) {
-    primitive_MERGE_vector_constructor(*args[1].value.vec,*args[2].value.vec, 
-                                       args[0].value.exp,merged_container,env);
-    return make_vec(merged_container);
-  }
-  // Else apply the procedure on each list elt & merge args as per the result
+  // If merging vectors or strings: 
+  scm_list merged_sequence;
+  if(!args[1].is_type(types::par)) 
+    return primitive_MERGE_vector_string_constructor(args,merged_sequence,env,format);
+  // Else apply the procedure on each list elt & merge args as per the result into a list
   scm_list list_heads(args.begin()+1, args.end());
-  primitive_MERGE_list_constructor(list_heads,args[0].value.exp,merged_container,env);
-  return primitive_LIST(merged_container); // return a list of the results
+  primitive_MERGE_list_constructor(list_heads,args[0].value.exp,merged_sequence,env);
+  return primitive_LIST_to_CONS_constructor(merged_sequence.begin(),merged_sequence.end());
 }
 
 // primitive "delete-neighbor-dups" procedure:
 data primitive_DELETE_NEIGHBOR_DUPS(scm_list& args) {
-  // extract the environment
-  auto env = args.rbegin()->value.env;
-  args.pop_back();
-  // confirm has a valid argument signature
-  primitive_confirm_sortable_container(args,"delete-neighbor-dups",
-    "\n     (delete-neighbor-dups <binary-equality-procedure> <list>)"
-    "\n     (delete-neighbor-dups <binary-equality-procedure> <vector>)");
-  // return if deleting duplicates from the empty list
-  if(args[1].is_type(types::sym)) return args[1];
-  // unpack container
-  scm_list container;
-  const bool is_vector = args[1].is_type(types::vec);
-  cast_scheme_container_to_ast(is_vector,args[1],container);
-  // return if deleting duplicates from an empty container
-  if(container.empty()) 
-    return cast_ast_container_to_scheme(is_vector,container);
-  // rm duplicates from the container
-  scm_list new_container({container[0]});
-  auto& procedure = args[0].value.exp;
-  for(size_type i=1, j=0, n = container.size(); i < n; ++i) {
-    scm_list args_list({new_container[j],container[i]});
-    if(!is_true_scm_condition(procedure,args_list,env))
-      new_container.push_back(container[i]), ++j;
-  }
-  return cast_ast_container_to_scheme(is_vector,new_container);
+  return primitive_DELETE_NEIGHBOR_DUPS_template(args,"delete-neighbor-dups",
+    "\n     (delete-neighbor-dups <equality-predicate> <sequence>)"
+    SEQUENCE_DESCRIPTION,false);
 }
+
+// primitive "delete-neighbor-dups!" procedure:
+data primitive_DELETE_NEIGHBOR_DUPS_BANG(scm_list& args) {
+  return primitive_DELETE_NEIGHBOR_DUPS_template(args,"delete-neighbor-dups!",
+    "\n     (delete-neighbor-dups! <equality-predicate> <sequence>)"
+    SEQUENCE_DESCRIPTION,true);
+}
+
+#undef SEQUENCE_DESCRIPTION // End of generic algorithm primitives
 
 /******************************************************************************
 * TYPE-CHECKING PRIMITIVES
 ******************************************************************************/
+
+// primitive "void" procedure:
+data primitive_VOID(scm_list& args) { return VOID_DATA_OBJECT; }
+
+// primitive "void?" procedure:
+data primitive_VOIDP(scm_list& args) { 
+  confirm_given_one_arg(args, "void?");
+  return data(boolean(args[0].is_type(types::dne)));
+}
+
+// primitive "undefined" procedure:
+data primitive_UNDEFINED(scm_list& args) { return data(); }
+
+// primitive "undefined?" procedure:
+data primitive_UNDEFINEDP(scm_list& args) { 
+  confirm_given_one_arg(args, "undefined?");
+  return data(boolean(args[0].is_type(types::undefined)));
+}
+
+// primitive "empty?" procedure:
+data primitive_EMPTYP(scm_list& args) {
+  confirm_given_one_arg(args, "empty?");
+  return data(boolean(data_is_empty(args[0])));
+}
 
 // primitive "pair?" procedure:
 data primitive_PAIRP(scm_list& args) {
@@ -1742,11 +2621,7 @@ data primitive_ATOMP(scm_list& args) {
 // primitive "procedure?" procedure:
 data primitive_PROCEDUREP(scm_list& args) {
   confirm_given_one_arg(args, "procedure?");
-  bool is_procedure = args[0].is_type(types::exp) &&
-                      args[0].value.exp[0].is_type(types::sym) &&
-                      (args[0].value.exp[0].value.sym == PROCEDURE_TAG || 
-                       args[0].value.exp[0].value.sym == PRIMITIVE_TAG);
-  return data(boolean(is_procedure));
+  return data(boolean(primitive_data_is_a_procedure(args[0])));
 }
 
 // primitive "input-port?" procedure:
@@ -1790,6 +2665,20 @@ data primitive_STREAMP(scm_list& args) {
                        data_is_a_delay(args[0].value.par->second))));
 }
 
+// primitive "syntax-rules-object?" procedure:
+data primitive_SYNTAX_RULES_OBJECTP(scm_list& args) {
+  confirm_given_one_arg(args, "syntax-rules-object?");
+  return data(boolean(args[0].is_type(types::syn)));
+}
+
+// primitive "seq?" procedure:
+data primitive_SEQP(scm_list& args) {
+  confirm_given_one_arg(args, "seq?");
+  return data(boolean(args[0].is_type(types::vec) || 
+                      args[0].is_type(types::str) || 
+                      data_is_proper_list(args[0])));
+}
+
 /******************************************************************************
 * EVAL PRIMITIVE
 ******************************************************************************/
@@ -1817,7 +2706,7 @@ data primitive_EVAL(scm_list& args) {
   }
   // confirm the correct # of arguments were passed
   if(args.size() != 1 || no_args_given(args))
-    THROW_ERR("'eval recieved incorrect # of arguments:"
+    THROW_ERR("'eval received incorrect # of arguments:"
       "\n     (eval <data> <optional-environment>)" << FCN_ERR("eval", args));
   // if arg is self-evaluating, return arg
   if(args[0].is_type(types::num) || args[0].is_type(types::str) || 
@@ -1830,20 +2719,24 @@ data primitive_EVAL(scm_list& args) {
     if(args[0].value.sym == THE_EMPTY_LIST) 
       THROW_ERR("'eval can't evaluate '() (nil to eval):"
         "\n     (eval <data> <optional-environment>)" << FCN_ERR("eval", args));
-    return data_cast(scm_eval(scm_list({args[0]}),env));
+    scm_list first_arg(1); first_arg[0] = args[0];
+    return data_cast(scm_eval(std::move(first_arg),env));
   }
   // else confirm arg is a proper list
   if(!args[0].is_type(types::par))
-    THROW_ERR("'eval didn't recieve an evaluable expression:\n     "<<PROFILE(args[0])
+    THROW_ERR("'eval didn't receive an evaluable expression:\n     "<<PROFILE(args[0])
       << "\n     (eval <data> <optional-environment>)" << FCN_ERR("eval", args));
-  if(scm_list first_arg({args[0]}); !primitive_LISTP(first_arg).value.bol.val)
-    THROW_ERR("'eval recieved an improper list: "<<PROFILE(args[0])
+  if(!data_is_proper_list(args[0]))
+    THROW_ERR("'eval received an improper list: "<<PROFILE(args[0])
       << "\n     (eval <data> <optional-environment>)" << FCN_ERR("eval", args));
   // eval list contents
   scm_list par_as_exp;
   deep_unpack_list_into_exp(args[0], par_as_exp);
-  if(evaling_an_argless_procedure(args[0].value.par)) // requires sentinel arg
-    par_as_exp = scm_list({data_cast(par_as_exp), symconst::sentinel});
+  if(evaling_an_argless_procedure(args[0].value.par)) { // requires sentinel arg
+    scm_list argless_call(2);
+    argless_call[0] = data_cast(par_as_exp), argless_call[1] = symconst::sentinel;
+    par_as_exp = std::move(argless_call);
+  }
   return data_cast(scm_eval(std::move(par_as_exp),env));
 }
 
@@ -1859,12 +2752,12 @@ data primitive_APPLY(scm_list& args) {
   // confirm the correct # of arguments were passed
   static constexpr const char * const format = "\n     (apply <procedure> <argument-list>)";
   if(args.size() != 2)
-    THROW_ERR("'apply recieved incorrect # of arguments:" << format << FCN_ERR("apply",args));
+    THROW_ERR("'apply received incorrect # of arguments:" << format << FCN_ERR("apply",args));
   // confirm 1st arg is a procedure
   primitive_confirm_data_is_a_procedure(args[0], "apply", format, args);
   // confirm 2nd arg is a finite, nul-terminated list
-  if(scm_list second_arg({args[1]}); !primitive_LISTP(second_arg).value.bol.val)
-    THROW_ERR("'apply arg #2 " << PROFILE(args[0]) << " isn't a proper list!"
+  if(!data_is_proper_list(args[1]))
+    THROW_ERR("'apply 2nd arg " << PROFILE(args[0]) << " isn't a proper list!"
       << format << FCN_ERR("apply",args));
   // apply arguments in list to the procedure
   scm_list args_list;
@@ -1879,7 +2772,7 @@ data primitive_APPLY(scm_list& args) {
 // primitive "delay?" predicate procedure:
 data primitive_DELAYP(scm_list& args) {
   if(args.size() != 1 || no_args_given(args))
-    THROW_ERR("'delay? recieved incorrect # of arguments: (delay? <obj>)"
+    THROW_ERR("'delay? received incorrect # of arguments: (delay? <obj>)"
       << FCN_ERR("delay?", args));
   return boolean(data_is_a_delay(args[0]));
 }
@@ -1887,7 +2780,7 @@ data primitive_DELAYP(scm_list& args) {
 // primitive "force" procedure:
 data primitive_FORCE(scm_list& args) {
   if(args.size() != 1 || no_args_given(args))
-    THROW_ERR("'force recieved incorrect # of arguments:"
+    THROW_ERR("'force received incorrect # of arguments:"
       "\n     (force <delayed-expression>)" << FCN_ERR("force", args));
   return force_data_delay(args[0]); // "call-by-need" evaluation
 }
@@ -1916,7 +2809,7 @@ data primitive_SCDR(scm_list& args) {
 data primitive_STREAM_LENGTH(scm_list& args) {
   static constexpr const char * const format = "\n     (stream-length <stream>)";
   if(no_args_given(args) || args.size() != 1)
-    THROW_ERR("'stream-length recieved incorrect # of arguments:"
+    THROW_ERR("'stream-length received incorrect # of arguments:"
       << format << FCN_ERR("stream-length", args));
   // Length of '() = 0
   if(data_is_the_empty_expression(args[0])) return num_type();
@@ -2197,7 +3090,7 @@ data primitive_STREAM_FOR_EACH(scm_list& args) {
   static constexpr const char * const format = 
     "\n     (stream-for-each <procedure> <stream1> <stream2> ...)";
   if(args.size() < 2) 
-    THROW_ERR("'stream-for-each recieved insufficient args (only "
+    THROW_ERR("'stream-for-each received insufficient args (only "
       << count_args(args) << "):" << format << FCN_ERR("stream-for-each", args));
   // Confirm given a procedure
   primitive_confirm_data_is_a_procedure(args[0], "stream-for-each", format, args);
@@ -2206,7 +3099,7 @@ data primitive_STREAM_FOR_EACH(scm_list& args) {
   primitive_confirm_only_given_streams(stream_heads,"stream-for-each",format,1,args);
   // Apply the procedure on each elt of each stream
   primitive_STREAM_FOR_EACH_applicator(stream_heads, args[0].value.exp, env);
-  return data(types::dne);
+  return VOID_DATA_OBJECT;
 }
 
 // primitive "stream-ref" procedure:
@@ -2215,7 +3108,7 @@ data primitive_STREAM_REF(scm_list& args) {
   static constexpr const char * const format = 
     "\n     (stream-ref <stream-pair> <index>)";
   if(args.size() != 2) 
-    THROW_ERR("'stream-ref recieved incorrect # of args (given "
+    THROW_ERR("'stream-ref received incorrect # of args (given "
       << count_args(args) << "):" << format << FCN_ERR("stream-ref", args));
   // Confirm given a stream-pair
   if(!data_is_stream_pair(args[0]))
@@ -2223,7 +3116,7 @@ data primitive_STREAM_REF(scm_list& args) {
       << format << FCN_ERR("stream-ref", args));
   // Confirm given a valid index
   if(!primitive_is_valid_index(args[1]))
-    THROW_ERR("'stream-ref " << PROFILE(args[1]) << " isn't a valid index!"
+    THROW_ERR("'stream-ref " << PROFILE(args[1]) << " isn't a valid <index>!"
       << format << FCN_ERR("stream-ref", args));
   // Get the stream's index'th item
   const size_type n = (size_type)args[1].value.num.extract_inexact();
@@ -2231,7 +3124,7 @@ data primitive_STREAM_REF(scm_list& args) {
   data item = primitive_REF_DROP_SUBSTREAM_seeker(get_stream_data_cdr(args[0]), 
                                                   n, "stream-ref", format);
   if(!data_is_stream_pair(item))
-    THROW_ERR("'stream-ref index " << n << " is out of range!"
+    THROW_ERR("'stream-ref <index> " << n << " is out of range!"
       << format << FCN_ERR("stream-ref", args));
   return get_stream_data_car(item);
 }
@@ -2256,12 +3149,11 @@ data primitive_STREAM_DROP_WHILE(scm_list& args) {
   auto env = args.rbegin()->value.env;
   args.pop_back();
   // Confirm appropriate # of args given
-  static constexpr const char * const format = "\n     (stream-drop-while <predicate> <stream>)";
-  primitive_TEMPLATE_TAKE_DROP_WHILE_VALIDATION(args, "stream-drop-while", format);
+  primitive_TEMPLATE_TAKE_DROP_WHILE_VALIDATION(args, "stream-drop-while", 
+    "\n     (stream-drop-while <predicate> <stream>)");
   // Get keep dropping items while 'predicate' is true, then return result
   if(data_is_the_empty_expression(args[1])) return args[1];
-  return primitive_DROP_WHILE_ctor(std::move(args[1]), args[0].value.exp, 
-                                   env, "stream-drop-while", format);
+  return primitive_DROP_WHILE_ctor(std::move(args[1]), args[0].value.exp, env);
 }
 
 // primitive "stream-take" procedure:
@@ -2270,14 +3162,14 @@ data primitive_STREAM_TAKE(scm_list& args){
   auto env = args.rbegin()->value.env;
   args.pop_back();
   // Confirm appropriate # of args given
-  static constexpr const char * const format = "\n     (stream-take <n> <stream>)";
-  primitive_TEMPLATE_TAKE_DROP_VALIDATION(args, "stream-take", format);
+  primitive_TEMPLATE_TAKE_DROP_VALIDATION(args, "stream-take", 
+    "\n     (stream-take <n> <stream>)");
   // Get the a substream after dropping 'size' items from given stream
   if(data_is_the_empty_expression(args[1])) return args[1];
   const size_type n = (size_type)args[0].value.num.extract_inexact();
   if(!n) return data(symconst::emptylist);
   scm_list substream;
-  primitive_TAKE_SUBSTREAM_seeker(std::move(args[1]),n,substream,"stream-take",format);
+  primitive_TAKE_SUBSTREAM_seeker(std::move(args[1]),n,substream);
   return primitive_STREAM_to_SCONS_constructor(substream.begin(),substream.end(),env);
 }
 
@@ -2287,13 +3179,12 @@ data primitive_STREAM_TAKE_WHILE(scm_list& args) {
   auto env = args.rbegin()->value.env;
   args.pop_back();
   // Confirm appropriate # of args given
-  static constexpr const char * const format = "\n     (stream-take-while <predicate> <stream>)";
-  primitive_TEMPLATE_TAKE_DROP_WHILE_VALIDATION(args, "stream-take-while", format);
+  primitive_TEMPLATE_TAKE_DROP_WHILE_VALIDATION(args, "stream-take-while", 
+    "\n     (stream-take-while <predicate> <stream>)");
   // Get keep dropping items while 'predicate' is true, then return result
   if(data_is_the_empty_expression(args[1])) return args[1];
   scm_list substream;
-  primitive_TAKE_WHILE_ctor(std::move(args[1]), args[0].value.exp, substream,
-                            env, "stream-take-while", format);
+  primitive_TAKE_WHILE_ctor(std::move(args[1]), args[0].value.exp, substream, env);
   if(substream.empty()) return data(symconst::emptylist);
   return primitive_STREAM_to_SCONS_constructor(substream.begin(),substream.end(),env);
 }
@@ -2306,7 +3197,7 @@ data primitive_STREAM_REVERSE(scm_list& args) {
   // Confirm given a single stream arg
   static constexpr const char * const format = "\n     (stream-reverse <stream>)";
   if(args.size() != 1 || no_args_given(args))
-    THROW_ERR("'stream-reverse recieved incorrect # of args (given "
+    THROW_ERR("'stream-reverse received incorrect # of args (given "
       << count_args(args) << "):" << format << FCN_ERR("stream-reverse",args));
   if(!data_is_stream(args[0]))
     THROW_ERR("'stream-reverse "<<PROFILE(args[0])<<" isn't a stream:" 
@@ -2319,10 +3210,10 @@ data primitive_STREAM_REVERSE(scm_list& args) {
   return primitive_STREAM_to_SCONS_constructor(stream_as_exp.begin(),stream_as_exp.end(),env);
 }
 
-// primitive "stream-fold-left" procedure:
-data primitive_STREAM_FOLD_LEFT(scm_list& args) {
-  return primitive_STREAM_FOLD_template(args, "stream-fold-left", 
-          "\n     (stream-fold-left <procedure> <seed> <stream>)", true);
+// primitive "stream-fold" procedure:
+data primitive_STREAM_FOLD(scm_list& args) {
+  return primitive_STREAM_FOLD_template(args, "stream-fold", 
+          "\n     (stream-fold <procedure> <seed> <stream>)", true);
 }
 
 // primitive "stream-fold-right" procedure:
@@ -2345,7 +3236,7 @@ data primitive_CONVERT_STREAM_LIST(scm_list& args) {
   auto substream = primitive_STREAM_TAKE(args);
   scm_list stream_as_exp;
   unpack_stream_into_exp(std::move(substream), stream_as_exp);
-  return primitive_LIST(stream_as_exp);
+  return primitive_LIST_to_CONS_constructor(stream_as_exp.begin(),stream_as_exp.end());
 }
 
 // primitive "list->stream" procedure:
@@ -2355,11 +3246,11 @@ data primitive_CONVERT_LIST_STREAM(scm_list& args) {
   args.pop_back();
   // Confirm given a single proper list arg
   if(args.size() != 1 || no_args_given(args))
-    THROW_ERR("'list->stream recieved incorrect # of args (given " << count_args(args) 
-      << "):\n     (list->stream <size> <list>)" << FCN_ERR("list->stream",args));
-  if(!primitive_LISTP(args).value.bol.val)
+    THROW_ERR("'list->stream received incorrect # of args (given " << count_args(args) 
+      << "):\n     (list->stream <list>)" << FCN_ERR("list->stream",args));
+  if(!data_is_proper_list(args[0]))
     THROW_ERR("'list->stream "<<PROFILE(args[0])<<" isn't a proper list:" 
-      "\n     (list->stream <size> <list>)" << FCN_ERR("list->stream",args));
+      "\n     (list->stream <list>)" << FCN_ERR("list->stream",args));
   // Convert list -> exp -> stream
   if(data_is_the_empty_expression(args[0])) return args[0];
   scm_list par_as_exp;
@@ -2371,18 +3262,17 @@ data primitive_CONVERT_LIST_STREAM(scm_list& args) {
 // -----------------------------------------------------------
 // Infinite Stream Handler Primitives Defined In Heist Scheme:
 // -----------------------------------------------------------
-
 // primitive "stream-map" procedure:
 constexpr const char * const primitive_HEIST_STREAM_MAP = R"(
 (define (stream-map proc . streams)
   (if (not (procedure? proc))
-      (error 'stream-map 
-              "Arg #1 isn't a procedure!\n          (stream-map <procedure> <stream1> <stream2> ...)\n         "
+      (syntax-error 'stream-map 
+              "1st arg isn't a procedure!\n               (stream-map <procedure> <stream1> <stream2> ...)\n              "
               proc))
   (for-each (lambda (s) 
               (if (not (stream? s)) 
-                  (error 'stream-map
-                         "Recieved a non stream!\n          (stream-map <procedure> <stream1> <stream2> ...)\n         " 
+                  (syntax-error 'stream-map
+                         "received a non stream!\n               (stream-map <procedure> <stream1> <stream2> ...)\n              " 
                          s)))
             streams)
 
@@ -2400,12 +3290,12 @@ constexpr const char * const primitive_HEIST_STREAM_MAP = R"(
 constexpr const char * const primitive_HEIST_STREAM_FILTER = R"(
 (define (stream-filter pred? s)
   (if (not (procedure? pred?))
-      (error 'stream-filter 
-             "Arg #1 isn't a procedure!\n          (stream-filter <predicate> <stream>)\n         " 
+      (syntax-error 'stream-filter 
+             "1st arg isn't a procedure!\n               (stream-filter <predicate> <stream>)\n              " 
              pred?))
   (if (not (stream? s)) 
-      (error 'stream-filter 
-             "Arg #2 isn't a stream!\n          (stream-filter <predicate> <stream>)\n         " 
+      (syntax-error 'stream-filter 
+             "2nd arg isn't a stream!\n               (stream-filter <predicate> <stream>)\n              " 
              s))
 
   (define (stream-filter s)
@@ -2421,50 +3311,50 @@ constexpr const char * const primitive_HEIST_STREAM_FILTER = R"(
 // primitive "stream-from" procedure:
 constexpr const char * const primitive_HEIST_STREAM_FROM = R"(
 (define (stream-from first . step)
-  (define inc-proc 0)
+  (define suc-proc 0)
   (if (not (number? first))
-      (error 'stream-from 
-             "Arg #1 isn't a number!\n          (stream-from <seed-number> <optional-step>)\n         " 
+      (syntax-error 'stream-from 
+             "1st arg isn't a number!\n               (stream-from <seed-number> <optional-step>)\n              " 
              first))
   (if (> (length step) 1)
-      (error 'stream-from 
-             "Recieved more than 1 step!\n          (stream-from <seed-number> <optional-step>)\n         " 
+      (syntax-error 'stream-from 
+             "received more than 1 step!\n               (stream-from <seed-number> <optional-step>)\n              " 
              step))
   (if (null? step)
-      (set! inc-proc (lambda (n) (+ n 1)))
+      (set! suc-proc (lambda (n) (+ n 1)))
       (if (number? (car step))
           (begin (define step-val (car step)) 
-                 (set! inc-proc (lambda (n) (+ n step-val))))
-          (error 'stream-from 
-                 "Step (arg #2) isn't a number!\n          (stream-from <seed-number> <optional-step>)\n         " 
+                 (set! suc-proc (lambda (n) (+ n step-val))))
+          (syntax-error 'stream-from 
+                 "Step (2nd arg) isn't a number!\n               (stream-from <seed-number> <optional-step>)\n              " 
                  (car step))))
 
   (define (stream-from n)
-    (scons n (stream-from (inc-proc n))))
+    (scons n (stream-from (suc-proc n))))
 
   (stream-from first))
 )";
 
 // primitive "stream-unfold" procedure:
 constexpr const char * const primitive_HEIST_STREAM_UNFOLD = R"(
-(define (stream-unfold break-cond map-proc inc-proc seed)
+(define (stream-unfold break-cond map-proc suc-proc seed)
   (if (not (procedure? break-cond))
-      (error 'stream-unfold 
-             "Arg #1 isn't a procedure!\n          (stream-unfold <break-condition> <map-procdure> <increment-procedure> <seed>)\n         " 
+      (syntax-error 'stream-unfold 
+             "1st arg isn't a procedure!\n               (stream-unfold <break-condition> <map-procdure> <successor-procedure> <seed>)\n              " 
              break-cond))
   (if (not (procedure? map-proc))
-      (error 'stream-unfold 
-             "Arg #2 isn't a procedure!\n          (stream-unfold <break-condition> <map-procdure> <increment-procedure> <seed>)\n         " 
+      (syntax-error 'stream-unfold 
+             "2nd arg isn't a procedure!\n               (stream-unfold <break-condition> <map-procdure> <successor-procedure> <seed>)\n              " 
              map-proc))
-  (if (not (procedure? inc-proc))
-      (error 'stream-unfold 
-             "Arg #3 isn't a procedure!\n          (stream-unfold <break-condition> <map-procdure> <increment-procedure> <seed>)\n         " 
-             inc-proc))
+  (if (not (procedure? suc-proc))
+      (syntax-error 'stream-unfold 
+             "3rd arg isn't a procedure!\n               (stream-unfold <break-condition> <map-procdure> <successor-procedure> <seed>)\n              " 
+             suc-proc))
   
   (define (stream-unfold seed)
     (if (break-cond seed)
         stream-null
-        (scons (map-proc seed) (stream-unfold (inc-proc seed)))))
+        (scons (map-proc seed) (stream-unfold (suc-proc seed)))))
 
   (stream-unfold seed))
 )";
@@ -2472,14 +3362,14 @@ constexpr const char * const primitive_HEIST_STREAM_UNFOLD = R"(
 
 // primitive "stream-iterate" procedure:
 constexpr const char * const primitive_HEIST_STREAM_ITERATE = R"(
-(define (stream-iterate inc-proc seed)
-  (if (not (procedure? inc-proc))
-      (error 'stream-iterate 
-             "Arg #1 isn't a procedure!\n          (stream-iterate <increment-procedure> <seed>)\n         " 
-             inc-proc))
+(define (stream-iterate suc-proc seed)
+  (if (not (procedure? suc-proc))
+      (syntax-error 'stream-iterate 
+             "1st arg isn't a procedure!\n               (stream-iterate <successor-procedure> <seed>)\n              " 
+             suc-proc))
   
   (define (stream-iterate seed)
-    (scons seed (stream-iterate (inc-proc seed))))
+    (scons seed (stream-iterate (suc-proc seed))))
 
   (stream-iterate seed))
 )";
@@ -2489,8 +3379,8 @@ constexpr const char * const primitive_HEIST_STREAM_ZIP = R"(
 (define (stream-zip . streams)
   (for-each (lambda (s) 
               (if (not (stream? s)) 
-                  (error 'stream-zip 
-                         "Recieved a non stream!\n          (stream-zip <stream1> <stream2> ...)\n         " 
+                  (syntax-error 'stream-zip 
+                         "received a non stream!\n               (stream-zip <stream1> <stream2> ...)\n              " 
                          s)))
             streams)
   
@@ -2515,8 +3405,8 @@ constexpr const char * const primitive_HEIST_STREAM_APPEND = R"(
 (define (stream-append s . streams)
   (for-each (lambda (s) 
               (if (not (stream? s)) 
-                  (error 'stream-append 
-                         "Recieved a non stream!\n          (stream-append <stream1> <stream2> ...)\n         " 
+                  (syntax-error 'stream-append 
+                         "received a non stream!\n               (stream-append <stream1> <stream2> ...)\n              " 
                          s)))
             (cons s streams))
 
@@ -2536,12 +3426,12 @@ constexpr const char * const primitive_HEIST_STREAM_APPEND = R"(
 constexpr const char * const primitive_HEIST_STREAM_INTERLEAVE = R"(
 (define (stream-interleave stream1 stream2)
   (if (not (stream? stream1))
-      (error 'stream-interleave 
-             "Arg #1 isn't a stream!\n          (stream-interleave <stream1> <stream2>)\n         " 
+      (syntax-error 'stream-interleave 
+             "1st arg isn't a stream!\n               (stream-interleave <stream1> <stream2>)\n              " 
              stream1))
   (if (not (stream? stream2))
-      (error 'stream-interleave 
-             "Arg #2 isn't a stream!\n          (stream-interleave <stream2> <stream2>)\n         " 
+      (syntax-error 'stream-interleave 
+             "2nd arg isn't a stream!\n               (stream-interleave <stream2> <stream2>)\n              " 
              stream2))
   
   (define (stream-interleave stream1 stream2)
@@ -2568,10 +3458,10 @@ data primitive_COERCE_INTEGER_TO_CHAR(scm_list& args) {
     "\n     (integer->char <non_negative-integer>)"
     "\n     <non_negative-integer> range: [0,255]";
   if(no_args_given(args) || args.size() != 1)
-    THROW_ERR("'integer->char didn't recieve 1 integer arg:" << format 
+    THROW_ERR("'integer->char didn't receive 1 integer arg:" << format 
       << FCN_ERR("integer->char",args));
   if(!args[0].is_type(types::num) || !args[0].value.num.is_integer())
-    THROW_ERR("'integer->char didn't recieve an integer arg:"
+    THROW_ERR("'integer->char didn't receive an integer arg:"
       "\n     Received arg " << PROFILE(args[0]) << format 
       << FCN_ERR("integer->char",args));
   if((args[0].value.num.is_neg() || args[0].value.num > 255) && 
@@ -2585,7 +3475,7 @@ data primitive_COERCE_INTEGER_TO_CHAR(scm_list& args) {
 // primitive "number->string" procedure:
 data primitive_COERCE_NUMBER_TO_STRING(scm_list& args) {
   if(args.size() > 2 || no_args_given(args))
-    THROW_ERR("'number->string recieved incorrect # of arguments:"
+    THROW_ERR("'number->string received incorrect # of arguments:"
       "\n     (number->string <number> <optional-numeric-radix>)"
       << FCN_ERR("number->string", args));
   // no number or invalid radix given
@@ -2609,7 +3499,7 @@ data primitive_COERCE_NUMBER_TO_STRING(scm_list& args) {
 // primitive "string->number" procedure:
 data primitive_COERCE_STRING_TO_NUMBER(scm_list& args) {
   if(args.size() > 2 || no_args_given(args))
-    THROW_ERR("'string->number recieved incorrect # of arguments!"
+    THROW_ERR("'string->number received incorrect # of arguments!"
       "\n     (string->number <string> <optional-numeric-radix>)"
       << FCN_ERR("string->number", args));
   // no string or invalid radix given
@@ -2625,24 +3515,23 @@ data primitive_COERCE_STRING_TO_NUMBER(scm_list& args) {
         "\n     (string->number <string> <optional-numeric-radix>)"
         << FCN_ERR("string->number", args));
     if(radix != 10) {
-      try {
-        return data(num_type(*args[0].value.str, radix));
-      } catch(const num_type::error_t& err) {
-        return FALSE_DATA_BOOLEAN;
-      }
+      auto num = num_type(*args[0].value.str, radix);
+      if(num.is_nan()) return FALSE_DATA_BOOLEAN; // invalid conversion
+      return data(num);
     }
   }
-  try {
+  // immediate return if given NaN
+  if(*args[0].value.str == "+nan.0" || *args[0].value.str == "-nan.0")
     return data(num_type(*args[0].value.str));
-  } catch(const num_type::error_t& err) {
-    return FALSE_DATA_BOOLEAN;
-  }
+  auto num = num_type(*args[0].value.str);
+  if(num.is_nan()) return FALSE_DATA_BOOLEAN; // invalid conversion
+  return data(num);
 }
 
 // primitive "symbol->string" procedure:
 data primitive_COERCE_SYMBOL_TO_STRING(scm_list& args) {
   if(args.size() != 1 || no_args_given(args))
-    THROW_ERR("'symbol->string recieved incorrect # of arguments:"
+    THROW_ERR("'symbol->string received incorrect # of arguments:"
       "\n     (symbol->string <symbol>)" << FCN_ERR("symbol->string", args));
   if(!args[0].is_type(types::sym))
     return FALSE_DATA_BOOLEAN;
@@ -2653,7 +3542,7 @@ data primitive_COERCE_SYMBOL_TO_STRING(scm_list& args) {
 // primitive "string->symbol" procedure:
 data primitive_COERCE_STRING_TO_SYMBOL(scm_list& args) {
   if(args.size() != 1 || no_args_given(args))
-    THROW_ERR("'string->symbol recieved incorrect # of arguments:"
+    THROW_ERR("'string->symbol received incorrect # of arguments:"
       "\n     (string->symbol <string>)" << FCN_ERR("string->symbol", args));
   if(!args[0].is_type(types::str))
     return FALSE_DATA_BOOLEAN;
@@ -2662,8 +3551,8 @@ data primitive_COERCE_STRING_TO_SYMBOL(scm_list& args) {
 
 // primitive "vector->list" procedure:
 data primitive_COERCE_VECTOR_TO_LIST(scm_list& args) {
-  primitive_confirm_valid_vector_arg(args, 1, "vector->list", "(vector->list <vector>)");
-  return primitive_LIST(*args[0].value.vec);
+  primitive_confirm_valid_vector_arg(args, 1, "vector->list", "\n     (vector->list <vector>)");
+  return primitive_LIST_to_CONS_constructor(args[0].value.vec->begin(),args[0].value.vec->end());
 }
 
 // primitive "list->vector" procedure:
@@ -2675,13 +3564,38 @@ data primitive_COERCE_LIST_TO_VECTOR(scm_list& args) {
   return new_vec;
 }
 
+// primitive "string->vector" procedure:
+data primitive_STRING_TO_VECTOR(scm_list& args) {
+  primitive_confirm_valid_string_arg(args, 1, "string->vector", "\n     (string->vector <string>)");
+  scm_list char_vect;
+  for(const auto& ch : *args[0].value.str)
+    char_vect.push_back(ch);
+  return make_vec(char_vect);
+}
+
+// primitive "vector->string" procedure:
+data primitive_VECTOR_TO_STRING(scm_list& args) {
+  primitive_confirm_valid_vector_arg(args, 1, "vector->string", "\n     (vector->string <vector>)");
+  if(args[0].value.vec->empty()) return make_str("");
+  const scm_list& vect = *args[0].value.vec;
+  scm_string str_val;
+  for(size_type i = 0, n = vect.size(); i < n; ++i) {
+    if(!vect[i].is_type(types::chr)) 
+      THROW_ERR("'vector->string vector item #" << i+1 << ", " << PROFILE(vect[i]) 
+        << ",\n     isn't a character: (vector->string <vector>)" 
+        << FCN_ERR("vector->string", args));
+    str_val += vect[i].value.chr;
+  }
+  return make_str(str_val);
+}
+
 // primitive "string->list" procedure:
 data primitive_STRING_TO_LIST(scm_list& args) {
-  primitive_confirm_valid_string_arg(args, 1, "string->list", "(string->list <string>)");
+  primitive_confirm_valid_string_arg(args, 1, "string->list", "\n     (string->list <string>)");
   scm_list char_list;
   for(const auto& ch : *args[0].value.str)
     char_list.push_back(ch);
-  return primitive_LIST(char_list);
+  return primitive_LIST_to_CONS_constructor(char_list.begin(),char_list.end());
 }
 
 // primitive "list->string" procedure:
@@ -2691,12 +3605,13 @@ data primitive_LIST_TO_STRING(scm_list& args) {
   scm_list char_list;
   scm_string char_str;
   shallow_unpack_list_into_exp(args[0], char_list);
-  for(const auto ch : char_list) {
-    if(!ch.is_type(types::chr))
-      THROW_ERR("'list->string list obj "<<PROFILE(ch)<<" isn't a character!"
-        "\n     (list->string <char-list>)"<<FCN_ERR("list->string",args));
+  for(size_type i = 0, n = char_list.size(); i < n; ++i) {
+    if(!char_list[i].is_type(types::chr))
+      THROW_ERR("'list->string list item #"<<i+1<<", "<<PROFILE(char_list[i])
+        << " isn't a character!\n     (list->string <char-list>)"
+        << FCN_ERR("list->string",args));
     else
-      char_str += ch.value.chr;
+      char_str += char_list[i].value.chr;
   }
   return make_str(char_str);
 }
@@ -2714,7 +3629,7 @@ data primitive_WRITE(scm_list& args) {
     fflush(outs);
   }
   LAST_PRINTED_TO_STDOUT = (outs == stdout);
-  return data(types::dne);
+  return VOID_DATA_OBJECT;
 }
 
 data primitive_NEWLINE(scm_list& args) {
@@ -2724,7 +3639,7 @@ data primitive_NEWLINE(scm_list& args) {
   fputc('\n', outs);
   fflush(outs);
   LAST_PRINTED_NEWLINE_TO_STDOUT = LAST_PRINTED_TO_STDOUT = (outs == stdout);
-  return data(types::dne);
+  return VOID_DATA_OBJECT;
 }
 
 data primitive_DISPLAY(scm_list& args) {
@@ -2738,18 +3653,18 @@ data primitive_DISPLAY(scm_list& args) {
   } else if(args[0].is_type(types::str)) {
     // rm extra escaping '\' chars
     scm_string str(*args[0].value.str);
-    if(str.empty()) return data(types::dne);
+    if(str.empty()) return VOID_DATA_OBJECT;
     unescape_chars(str);          // cook the raw string
     fputs(str.c_str(), outs);
     if(*str.rbegin() == '\n')     // account for printed newlines
       LAST_PRINTED_NEWLINE_TO_STDOUT = (outs == stdout);
   } else {
-    if(args[0].is_type(types::dne)) return data(types::dne);
+    if(args[0].is_type(types::dne)) return VOID_DATA_OBJECT;
     fputs(args[0].cio_str().c_str(), outs);
   }
   fflush(outs);
   LAST_PRINTED_TO_STDOUT = (outs == stdout);
-  return data(types::dne);
+  return VOID_DATA_OBJECT;
 }
 
 data primitive_WRITE_CHAR(scm_list& args) {
@@ -2764,7 +3679,7 @@ data primitive_WRITE_CHAR(scm_list& args) {
   fputc(args[0].value.chr, outs);
   fflush(outs);
   LAST_PRINTED_TO_STDOUT = (outs == stdout);
-  return data(types::dne);
+  return VOID_DATA_OBJECT;
 }
 
 /******************************************************************************
@@ -2781,13 +3696,18 @@ data primitive_READ(scm_list& args) {
   if(!confirm_valid_input_args_and_non_EOF(args, ins, "read", reading_stdin)) 
     return chr_type(EOF);
   // Read input
-  if(reading_stdin)
-    return data_cast(scm_eval(scm_list({
-      symconst::quote, read_user_input(outs,ins,false)[0]
-    }), env));
-  return data_cast(scm_eval(scm_list({
-    symconst::quote, primitive_read_from_port(outs,ins)[0]
-  }), env));
+  scm_list read_data(2);
+  read_data[0] = symconst::quote;
+  if(reading_stdin) {
+    if(auto read_result = read_user_input(outs,ins,false); read_result.empty()) {
+      read_data[1] = VOID_DATA_OBJECT;
+    } else {
+      read_data[1] = std::move(read_result[0]);
+    }
+  } else {
+    read_data[1] = primitive_read_from_port(outs,ins)[0];
+  }
+  return data_cast(scm_eval(std::move(read_data), env));
 }
 
 data primitive_READ_STRING(scm_list& args) {
@@ -2800,7 +3720,9 @@ data primitive_READ_STRING(scm_list& args) {
     scm_list read_data;
     parse_input_exp(std::move(*args[0].value.str),read_data);
     if(read_data.empty()) return symconst::emptylist;
-    return data_cast(scm_eval(scm_list({symconst::quote,read_data[0]}),env));
+    scm_list quoted_read_data(2);
+    quoted_read_data[0] = symconst::quote, quoted_read_data[1] = std::move(read_data[0]);
+    return data_cast(scm_eval(std::move(quoted_read_data),env));
   // throw error otherwise & return void data
   } catch(const READER_ERROR& read_error) {
     if(is_non_repl_reader_error(read_error))
@@ -2811,7 +3733,21 @@ data primitive_READ_STRING(scm_list& args) {
     alert_reader_error(CURRENT_OUTPUT_PORT,read_error_index,*args[0].value.str);
   }
   fflush(CURRENT_OUTPUT_PORT);
-  return data(types::dne);
+  return VOID_DATA_OBJECT;
+}
+
+data primitive_READ_LINE(scm_list& args) {
+  // Confirm either given an open input port or no args
+  FILE* outs = CURRENT_OUTPUT_PORT, *ins = CURRENT_INPUT_PORT;
+  bool reading_stdin = (CURRENT_INPUT_PORT == stdin);
+  if(!confirm_valid_input_args_and_non_EOF(args, ins, "read-line", reading_stdin)) 
+    return data(make_str(""));
+  // Read a line of input into a string
+  fflush(outs);
+  scm_string line_buffer;
+  int ch = 0;
+  while((ch = fgetc(ins)) != '\n' && ch != EOF) line_buffer += ch;
+  return data(make_str(line_buffer));
 }
 
 data primitive_READ_CHAR(scm_list& args) {
@@ -2824,7 +3760,6 @@ data primitive_READ_CHAR(scm_list& args) {
   fflush(outs);
   if(!reading_stdin) return data(chr_type(getc(ins)));
   // Else read 1 char from stdin & throw away the rest of the line
-  fputs("  ", stdout);
   int ch = getc(stdin);
   if(ch!='\n') while(getc(stdin) != '\n'); // eat rest of the line
   return data(chr_type(ch));
@@ -2846,7 +3781,6 @@ data primitive_PEEK_CHAR(scm_list& args) {
   // Else peek 1 char from stdin & throw away the rest of the line
   // NOTE: 'peek-char' from stdin is equivalent to 'read-char' from stdin since
   //       both return 1 char from the stream & throw away the rest of the line
-  fputs("  ", stdout);
   int ch = getc(stdin);
   if(ch!='\n') while(getc(stdin) != '\n'); // eat rest of the line
   return data(chr_type(ch));
@@ -2857,13 +3791,27 @@ data primitive_CHAR_READYP(scm_list& args) {
   FILE* ins = CURRENT_INPUT_PORT;
   bool reading_stdin = (CURRENT_INPUT_PORT == stdin);
   if(!confirm_valid_input_args_and_non_EOF(args, ins, "char-ready?", reading_stdin)) 
-    return data(boolean(false));
+    return FALSE_DATA_BOOLEAN;
   // Stdin is always flushed, hence a char will never be waiting in its buffer
-  if(reading_stdin) return data(boolean(false));
+  if(reading_stdin) return FALSE_DATA_BOOLEAN;
   // Peek the non-stdin port for a non-EOF character
   int ch = getc(ins);
   ungetc(ch, ins);
   return data(boolean(ch != EOF));
+}
+
+// slurp a file's contents into a string
+data primitive_SLURP_FILE(scm_list& args){
+  // confirm given a filename string & slurp file if so
+  if(no_args_given(args) || args.size() != 1)
+    THROW_ERR("'slurp-file received incorrect # of args:"
+      "\n     (slurp-file <filename-string>)"<<FCN_ERR("slurp-file",args));
+  FILE* ins = confirm_valid_input_file(args[0],"slurp-file","(slurp-file <filename-string>)",args);
+  scm_string buffer;
+  int ch = 0;
+  while((ch = fgetc(ins)) != EOF) buffer += ch;
+  fclose(ins);
+  return make_str(buffer); // slurp file
 }
 
 /******************************************************************************
@@ -2872,19 +3820,40 @@ data primitive_CHAR_READYP(scm_list& args) {
 
 // file & ports predicates
 data primitive_FILEP(scm_list& args) {
-  confirm_given_one_string_arg(args, "file?", "(file? <potential-filename-string>)");
+  confirm_given_one_string_arg(args, "file?", "\n     (file? <filename-string>)");
   return data(boolean(confirm_file_exists(args[0].value.str->c_str())));
 }
 
+// returns whether succeed deleting given filename-string
+data primitive_DELETE_FILE_BANG(scm_list& args) {
+  confirm_given_one_string_arg(args, "delete-file!", "\n     (delete-file! <filename-string>)");
+  return data(boolean(std::remove(args[0].value.str->c_str()) == 0));
+}
+
+// returns whether succeed deleting given filename-string
+data primitive_RENAME_FILE_BANG(scm_list& args) {
+  static constexpr const char * const format = 
+    "\n     (rename-file! <old-name-string> <new-name-string>)";
+  if(args.size() != 2) 
+    THROW_ERR("'rename-file! didn't receive any args:"<<format 
+      << FCN_ERR("rename-file!",args));
+  for(size_type i = 0; i < 2; ++i)
+    if(!args[i].is_type(types::str)) 
+      THROW_ERR("'rename-file! arg "<<PROFILE(args[i])<<" isn't a string:"<<format 
+        << FCN_ERR("rename-file!",args));
+  return data(boolean(std::rename(args[0].value.str->c_str(),
+                                  args[1].value.str->c_str()) == 0));
+}
+
 data primitive_OPEN_PORTP(scm_list& args) {
-  confirm_valid_port_predicate_arg(args,"open-port?","(open-port? <port>)");
+  confirm_valid_port_predicate_arg(args,"open-port?","\n     (open-port? <port>)");
   if(args[0].is_type(types::fip))
     return data(boolean(args[0].value.fip.is_open()));
   return data(boolean(args[0].value.fop.is_open()));
 }
 
 data primitive_CLOSED_PORTP(scm_list& args) {
-  confirm_valid_port_predicate_arg(args,"closed-port?","(closed-port? <port>)");
+  confirm_valid_port_predicate_arg(args,"closed-port?","\n     (closed-port? <port>)");
   if(args[0].is_type(types::fip))
     return data(boolean(!args[0].value.fip.is_open()));
   return data(boolean(!args[0].value.fop.is_open()));
@@ -2955,7 +3924,7 @@ data primitive_OPEN_INPUT_FILE(scm_list& args){
   // confirm given a filename string
   static constexpr const char * const format = "\n     (open-input-file <filename-string>)";
   if(no_args_given(args) || args.size() != 1)
-    THROW_ERR("'open-input-file recieved incorrect # of args:" << format 
+    THROW_ERR("'open-input-file received incorrect # of args:" << format 
       << FCN_ERR("open-input-file", args));
   PORT_REGISTRY.push_back(confirm_valid_input_file(args[0],"open-input-file",format,args));
   return iport(PORT_REGISTRY.size()-1);
@@ -2968,24 +3937,10 @@ data primitive_OPEN_OUTPUT_FILE(scm_list& args){
   // confirm given a filename string
   static constexpr const char * const format = "\n     (open-output-file <filename-string>)";
   if(no_args_given(args) || args.size() != 1)
-    THROW_ERR("'open-output-file recieved incorrect # of args:" << format
+    THROW_ERR("'open-output-file received incorrect # of args:" << format
       << FCN_ERR("open-output-file", args));
   PORT_REGISTRY.push_back(confirm_valid_output_file(args[0],"open-output-file",format,args));
   return oport(PORT_REGISTRY.size()-1);
-}
-
-// slurp a file's contents as a string
-data primitive_SLURP_FILE(scm_list& args){
-  // confirm given a filename string & slurp file if so
-  if(no_args_given(args) || args.size() != 1)
-    THROW_ERR("'slurp-file recieved incorrect # of args:"
-      "\n     (slurp-file <filename-string>)"<<FCN_ERR("slurp-file",args));
-  FILE* ins = confirm_valid_input_file(args[0],"slurp-file","(slurp-file <filename-string>)",args);
-  scm_string buffer;
-  int ch = 0;
-  while((ch = fgetc(ins)) != EOF) buffer += ch;
-  fclose(ins);
-  return make_str(buffer); // slurp file
 }
 
 // close ports
@@ -2996,7 +3951,7 @@ data primitive_CLOSE_INPUT_PORT(scm_list& args){
     fclose(args[0].value.fip.port());
     args[0].value.fip.port() = nullptr;
   }
-  return data(types::dne);
+  return VOID_DATA_OBJECT;
 }
 
 data primitive_CLOSE_OUTPUT_PORT(scm_list& args){
@@ -3006,7 +3961,7 @@ data primitive_CLOSE_OUTPUT_PORT(scm_list& args){
     fclose(args[0].value.fop.port());
     args[0].value.fop.port() = nullptr;
   }
-  return data(types::dne);
+  return VOID_DATA_OBJECT;
 }
 
 /******************************************************************************
@@ -3025,11 +3980,11 @@ data primitive_LOAD_LOCAL(scm_list& args) {
   return primitive_LOAD_TEMPLATE(args,env,"load-local");
 }
 
-// Make a system call, returns #f if can't use 'system, and the call's success
-//   status if can use the system
+// Make a system call, returns #f if can't use 'system, 
+//   and the call's success status if can use the system
 data primitive_SYSTEM(scm_list& args) {
   if(args.size() > 1)
-    THROW_ERR("'system recieved incorrect # of args!"
+    THROW_ERR("'system received incorrect # of args!"
       "\n     (system <optional-system-call-string>)"<<FCN_ERR("system",args));
   if(!no_args_given(args) && !args[0].is_type(types::str))
     THROW_ERR("'system "<<PROFILE(args[0])<<" isn't a string!"
@@ -3048,7 +4003,7 @@ data primitive_GETENV(scm_list& args) {
   args.pop_back();
   // confirm proper arg signature
   if(no_args_given(args) || args.size() != 1)
-    THROW_ERR("'getenv recieved incorrect # of args!"
+    THROW_ERR("'getenv received incorrect # of args!"
       "\n     (getenv <variable-name-string>)"<<FCN_ERR("getenv",args));
   if(!no_args_given(args) && !args[0].is_type(types::str))
     THROW_ERR("'getenv "<<PROFILE(args[0])<<" isn't a string!"
@@ -3064,6 +4019,16 @@ data primitive_GETENV(scm_list& args) {
         return make_str(val_list[j].cio_str());
   }
   return FALSE_DATA_BOOLEAN;
+}
+
+// Returns a string of Heist Scheme's command-line args & their descriptions
+data primitive_COMMAND_LINE(scm_list& args) {
+  if(!no_args_given(args))
+    THROW_ERR("'command-line doesn't take any arguments:"
+      "\n     (command-line)" << FCN_ERR("command-line",args));
+  return make_str("> To run a Script:     -script <script-filename>"
+                "\n> Disable ANSI Colors: -nansi"
+                "\n> Case Insensitivity:  -ci");
 }
 
 /******************************************************************************
@@ -3086,7 +4051,7 @@ data primitive_SET_MAX_RECURSION_DEPTH(scm_list& args) {
   // Confirm valid maximum recursion arg
   if(no_args_given(args) || args.size() != 1 || !args[0].is_type(types::num) || 
      !args[0].value.num.is_integer() || !args[0].value.num.is_pos())
-    THROW_ERR("'set-max-recursion-depth! didn't recieve a positive integer arg:"
+    THROW_ERR("'set-max-recursion-depth! didn't receive a positive integer arg:"
       "\n     (set-max-recursion-depth! <positive-integer>)"
       "\n     <positive-integer>: (0, " << MAX_SIZE_TYPE << ']'
       << FCN_ERR("set-max-recursion-depth!", args));
@@ -3103,60 +4068,138 @@ data primitive_SET_MAX_RECURSION_DEPTH(scm_list& args) {
 }
 
 /******************************************************************************
-* TOGGLE ANSI ESCAPE SEQUENCES
+* INTERPRETER DISPLAY MANIPULATION PRIMITIVES
 ******************************************************************************/
 
 // Defaults to disabling ANSI escape sequences, if not given a boolean.
 // Returns whether ANSI escapes sequences were disabled prior this call
 data primitive_SET_NANSI(scm_list& args) {
-  if(args.size() > 1)
-    THROW_ERR("'set-nansi! recieved incorrect # of args:"
-      "\n     (set-nansi! <optional-bool>)"
-      << FCN_ERR("set-nansi!",args));
-  bool original_nansi_status = !USING_ANSI_ESCAPE_SEQUENCES;
-  USING_ANSI_ESCAPE_SEQUENCES = false;
-  if(!no_args_given(args)) 
-    USING_ANSI_ESCAPE_SEQUENCES = !is_true(args);
-  return boolean(original_nansi_status);
+  return primitive_TOGGLE_DISPLAY_SETTING(args, "set-nansi!", 
+                                          USING_ANSI_ESCAPE_SEQUENCES);
+}
+
+// Defaults to enabling case-sensitivity, if not given a boolean.
+// Returns whether case-sensitivity was active prior this call
+data primitive_SET_CI(scm_list& args) {
+  return primitive_TOGGLE_DISPLAY_SETTING(args, "set-ci!", 
+                                          USING_CASE_SENSITIVE_SYMBOLS);
+}
+
+// Changes the REPL's line-by-line prompt from the default "> "
+data primitive_SET_REPL_PROMPT(scm_list& args) {
+  if(no_args_given(args) || args.size() != 1)
+    THROW_ERR("'set-repl-prompt! recieved incorrect # of args:"
+      "\n     (set-repl-prompt! <prompt-string>)" << FCN_ERR("set-repl-prompt!",args));
+  if(!args[0].is_type(types::str))
+    THROW_ERR("'set-repl-prompt! "<<PROFILE(args[0])<<" isn't a string:"
+      "\n     (set-repl-prompt! <prompt-string>)" << FCN_ERR("set-repl-prompt!",args));
+  if(args[0].value.str->empty()) {
+    REPL_PROMPT = REPL_TAB = "";
+    return VOID_DATA_OBJECT;
+  }
+  REPL_PROMPT = *args[0].value.str;
+  unescape_chars(REPL_PROMPT); // cook the raw string
+  REPL_TAB = scm_string(REPL_PROMPT.size()-1, ' ');
+  return VOID_DATA_OBJECT;
 }
 
 /******************************************************************************
-* ERROR HANDLING PRIMITIVE
+* ERROR HANDLING PRIMITIVES
 ******************************************************************************/
 
 data primitive_ERROR(scm_list& args) {
-  // Confirm valid error layout (a tad ironic)
-  if(args.size() < 2)
-    THROW_ERR("'error requires at least 2 args: a SYMBOL to represent the errorful entity & a STRING explaining the error!"
-      "\n     (error <errorful-obj-symbol> <error-string> <optional-errorful-objs>)"
-      << FCN_ERR("error", args));
-  if(!args[0].is_type(types::sym))
-    THROW_ERR("'error requires 1st arg "<<PROFILE(args[0])<<" to be a SYMBOL to represent the errorful entity!"
-      "\n     (error <errorful-obj-symbol> <error-string> <optional-errorful-objs>)"
-      << FCN_ERR("error", args));
-  if(!args[1].is_type(types::str))
-    THROW_ERR("'error requires its 2nd arg "<<PROFILE(args[1])<<" to be a STRING explaining the error!"
-      "\n     (error <errorful-obj-symbol> <error-string> <optional-errorful-objs>)"
-      << FCN_ERR("error", args));
-  // Cook the raw error string
-  scm_string error_str(*args[1].value.str);
-  unescape_chars(error_str); 
-  // Alert error
-  fprintf(CURRENT_OUTPUT_PORT, 
-          "\n%sException%s in %s: %s", afmt(AFMT_131), afmt(AFMT_01), 
-          args[0].value.sym.c_str(), error_str.c_str());
-  // Check for irritants (if provided, these are optional)
-  if(args.size() == 3)
-    fprintf(CURRENT_OUTPUT_PORT, " with irritant %s", args[2].cio_str().c_str());
-  else if(args.size() > 3) {
-    scm_list irritant_list(args.begin()+2, args.end());
-    fprintf(CURRENT_OUTPUT_PORT, " with irritants %s", primitive_LIST(irritant_list).cio_str().c_str());
-  }
-  fprintf(CURRENT_OUTPUT_PORT, "%s\n", afmt(AFMT_0));
-  fflush(CURRENT_OUTPUT_PORT);
-  throw SCM_EXCEPT::EVAL;
+  primitive_error_template(args,"error","Exception",AFMT_131);
   return data{};
 }
+
+data primitive_SYNTAX_ERROR(scm_list& args) {
+  primitive_error_template(args,"syntax-error","Invalid Syntax",AFMT_135);
+  return data{};
+}
+
+/******************************************************************************
+* MATHEMATICAL CONSTANTS
+******************************************************************************/
+
+constexpr const char* const MATHEMATICAL_FLONUM_CONSTANTS = R"(
+(define fl-e (exp 1)) ; Bound to the mathematical constant e
+
+(define fl-1/e (/ fl-e)) ; Bound to 1/e
+
+(define fl-e-2 (exp 2)) ; Bound to e^2
+
+(define fl-pi (acos -1)) ; Bound to the mathematical constant π
+
+(define fl-1/pi (/ fl-pi)) ; Bound to 1/π
+
+(define fl-2pi (* fl-pi 2)) ; Bound to 2π
+
+(define fl-pi/2 (/ fl-pi 2)) ; Bound to π/2
+
+(define fl-pi/4 (/ fl-pi 4)) ; Bound to π/4
+
+(define fl-pi-squared (* fl-pi fl-pi)) ; Bound to π^2
+
+(define fl-degree (/ fl-pi 180)) ; Bound to π/180, the number of radians in a degree.
+
+(define fl-2/pi (/ 2 fl-pi)) ; Bound to 2/π
+
+(define fl-2/sqrt-pi (/ 2 (sqrt fl-pi))) ; Bound to 2/√π
+
+(define fl-e-pi/4 (exp fl-pi/4)) ; Bound to e^(π/4)
+
+(define fl-log2-e (/ (log 2))) ; Bound to log2(e)
+
+(define fl-log10-e (/ (log 10))) ; Bound to log10(e)
+
+(define fl-log-2 (log 2)) ; Bound to loge(2)
+
+(define fl-1/log-2 (/ fl-log-2)) ; Bound to 1/loge(2)
+
+(define fl-log-3 (log 3)) ; Bound to loge(3)
+
+(define fl-log-pi (log fl-pi)) ; Bound to loge(π)
+
+(define fl-log-10 (log 10)) ; Bound to loge(10)
+
+(define fl-1/log-10 (/ fl-log-10)) ; Bound to 1/loge(10)
+
+(define fl-sqrt-2 (sqrt 2)) ; Bound to √2
+
+(define fl-sqrt-3 (sqrt 3)) ; Bound to √3
+
+(define fl-sqrt-5 (sqrt 5)) ; Bound to √5
+
+(define fl-sqrt-10 (sqrt 10)) ; Bound to √10
+
+(define fl-1/sqrt-2 (/ fl-sqrt-2)) ; Bound to 1/√2
+
+(define fl-cbrt-2 (expt 2 (/ 3))) ; Bound to 2^(1/3)
+
+(define fl-cbrt-3 (expt 3 (/ 3))) ; Bound to 3^(1/3)
+
+(define fl-4thrt-2 (expt 2 (/ 4))) ; Bound to 2^(1/4)
+
+(define fl-phi 1.618033988749895) ; Bound to the mathematical constant φ
+
+(define fl-log-phi (log fl-phi)) ; Bound to loge(φ)
+
+(define fl-1/log-phi (/ fl-log-phi)) ; Bound to 1/loge(φ)
+
+(define fl-euler 0.5772156649015329) ; Bound to the mathematical constant γ (Euler's constant)
+
+(define fl-e-euler (exp fl-euler)) ; Bound to e^γ
+
+(define fl-sin-1 (sin 1)) ; Bound to sin(1)
+
+(define fl-cos-1 (cos 1)) ; Bound to cos(1)
+
+(define fl-gamma-1/2 (sqrt fl-pi)) ; Bound to Γ(1/2) = √π
+
+(define fl-gamma-1/3 2.678938534707748) ; Bound to Γ(1/3)
+
+(define fl-gamma-2/3 1.3541179394264) ; Bound to Γ(2/3)
+)";
 
 /******************************************************************************
 * REGISTRY OF PRIMITIVES DEFINED _IN_ HEIST SCHEME TO EVAL PRIOR ANYTHING ELSE
@@ -3171,39 +4214,52 @@ constexpr const char * const PRIMITIVES_DEFINED_IN_HEIST_SCHEME[] = {
 };
 
 void evaluate_primtives_written_in_heist_scheme(env_type& env) {
+  // Process individual heist scheme primitive procedures
   scm_list heist_stream_map_prim;
   for(const auto& heist_prim : PRIMITIVES_DEFINED_IN_HEIST_SCHEME) {
     heist_stream_map_prim.clear();
     parse_input_exp(heist_prim, heist_stream_map_prim);
     scm_eval(std::move(heist_stream_map_prim[0].value.exp),env);
   }
+  // Process heist scheme primitive flonum mathematical constants
+  heist_stream_map_prim.clear();
+  parse_input_exp(MATHEMATICAL_FLONUM_CONSTANTS, heist_stream_map_prim);
+  for(auto& primitive_float_constant : heist_stream_map_prim)
+    scm_eval(std::move(primitive_float_constant.value.exp),env);
 }
 
 /******************************************************************************
 * REGISTRY OF PRIMITIVES ALSO REQUIRING AN ENVIRONMENT (TO APPLY A PROCEDURE)
 ******************************************************************************/
 
-constexpr const auto ENV_REQUIRING_PRIMITIVES = {
-  primitive_EVAL,      primitive_APPLY,         primitive_FOR_EACH,    
-  primitive_MAP,       primitive_FILTER,        primitive_VECTOR_MAP,
-  primitive_MERGE,     primitive_SORT,          primitive_SORT_BANG,   
-  primitive_SORTEDP,   primitive_READ,          primitive_READ_STRING, 
-  primitive_FOLD_LEFT, primitive_FOLD_RIGHT,    primitive_DELETE_NEIGHBOR_DUPS,
-  primitive_UNFOLD,    primitive_VECTOR_UNFOLD, primitive_GETENV,
+constexpr const prm_type ENV_REQUIRING_PRIMITIVES[] = {
+  primitive_EVAL,              primitive_APPLY,                primitive_FOR_EACH,
+  primitive_MAP,               primitive_FILTER,               primitive_MERGE,
+  primitive_SORT,              primitive_SORT_BANG,            primitive_SORTEDP,
+  primitive_READ,              primitive_READ_STRING,          primitive_FOLD,
+  primitive_FOLD_RIGHT,        primitive_DELETE_NEIGHBOR_DUPS, primitive_UNFOLD,
+  primitive_VECTOR_UNFOLD,     primitive_STRING_UNFOLD,        primitive_DELETE_NEIGHBOR_DUPS_BANG,
+  primitive_GETENV,            primitive_STRING_TRIM_BOTH,     primitive_STRING_TRIM,
+  primitive_STRING_TRIM_RIGHT, primitive_COUNT,                primitive_REMOVE,
+  primitive_SEQ_EQ,            primitive_MAP_BANG,             primitive_INDEX,
+  primitive_INDEX_RIGHT,       primitive_SKIP,                 primitive_SKIP_RIGHT,
+  primitive_EVERY,             primitive_VECTOR_BINARY_SEARCH, primitive_ANY, 
+  primitive_TAKE_WHILE,        primitive_TAKE_RIGHT_WHILE,     primitive_DROP_WHILE, 
+  primitive_DROP_RIGHT_WHILE,  primitive_MAKE_LOG_BASE, 
 
-  primitive_STREAM_FOR_EACH,     primitive_STREAM_DROP_WHILE, 
-  primitive_STREAM_TAKE,         primitive_STREAM_TAKE_WHILE, 
-  primitive_STREAM_REVERSE,      primitive_CONVERT_STREAM_LIST, 
-  primitive_CONVERT_LIST_STREAM, primitive_STREAM_FOLD_LEFT,
+  primitive_STREAM_FOR_EACH,     primitive_STREAM_DROP_WHILE,
+  primitive_STREAM_TAKE,         primitive_STREAM_TAKE_WHILE,
+  primitive_STREAM_REVERSE,      primitive_CONVERT_STREAM_LIST,
+  primitive_CONVERT_LIST_STREAM, primitive_STREAM_FOLD,
   primitive_STREAM_FOLD_RIGHT, 
 
-  primitive_CALL_WITH_INPUT_FILE, primitive_CALL_WITH_OUTPUT_FILE, 
+  primitive_CALL_WITH_INPUT_FILE, primitive_CALL_WITH_OUTPUT_FILE,
   primitive_WITH_INPUT_FROM_FILE, primitive_WITH_OUTPUT_TO_FILE,
   primitive_OPEN_INPUT_FILE,      primitive_OPEN_OUTPUT_FILE,
   primitive_LOAD_LOCAL,
 };
 
-constexpr bool primitive_requires_environment(const prm_type& prm) {
+constexpr bool primitive_requires_environment(const prm_type& prm) noexcept {
   for(const auto& p : ENV_REQUIRING_PRIMITIVES)
     if(p == prm) return true;
   return false;
@@ -3213,318 +4269,405 @@ constexpr bool primitive_requires_environment(const prm_type& prm) {
 * PRIMITIVE NAMES & OBJECTS AS FRAME VARS & VALS FOR THE GLOBAL ENVIRONMENT
 ******************************************************************************/
 
-auto primitive_procedure_objects = 
-  frame_vals({
-    data(scm_list({symconst::primitive, primitive_ADD, "+"})),
-    data(scm_list({symconst::primitive, primitive_SUB, "-"})),
-    data(scm_list({symconst::primitive, primitive_MUL, "*"})),
-    data(scm_list({symconst::primitive, primitive_DIV, "/"})),
+constexpr const std::pair<prm_type,const char*>primitive_procedure_declarations[]={
+  std::make_pair(primitive_ADD, "+"),
+  std::make_pair(primitive_SUB, "-"),
+  std::make_pair(primitive_MUL, "*"),
+  std::make_pair(primitive_DIV, "/"),
 
-    data(scm_list({symconst::primitive, primitive_ABS,       "abs"})),
-    data(scm_list({symconst::primitive, primitive_EXPT,      "expt"})),
-    data(scm_list({symconst::primitive, primitive_MAX,       "max"})),
-    data(scm_list({symconst::primitive, primitive_MIN,       "min"})),
-    data(scm_list({symconst::primitive, primitive_QUOTIENT,  "quotient"})),
-    data(scm_list({symconst::primitive, primitive_REMAINDER, "remainder"})),
-    data(scm_list({symconst::primitive, primitive_MODULO,    "modulo"})),
-    data(scm_list({symconst::primitive, primitive_EXP,       "exp"})),
-    data(scm_list({symconst::primitive, primitive_LOG,       "log"})),
-    data(scm_list({symconst::primitive, primitive_SQRT,      "sqrt"})),
-    data(scm_list({symconst::primitive, primitive_GCD,       "gcd"})),
-    data(scm_list({symconst::primitive, primitive_LCM,       "lcm"})),
+  std::make_pair(primitive_ABS,       "abs"),
+  std::make_pair(primitive_EXPT,      "expt"),
+  std::make_pair(primitive_MAX,       "max"),
+  std::make_pair(primitive_MIN,       "min"),
+  std::make_pair(primitive_QUOTIENT,  "quotient"),
+  std::make_pair(primitive_REMAINDER, "remainder"),
+  std::make_pair(primitive_MODULO,    "modulo"),
+  std::make_pair(primitive_EXP,       "exp"),
+  std::make_pair(primitive_LOG,       "log"),
+  std::make_pair(primitive_SQRT,      "sqrt"),
+  std::make_pair(primitive_GCD,       "gcd"),
+  std::make_pair(primitive_LCM,       "lcm"),
+  std::make_pair(primitive_MODF,      "modf"),
 
-    data(scm_list({symconst::primitive, primitive_ODDP,      "odd?"})),
-    data(scm_list({symconst::primitive, primitive_EVENP,     "even?"})),
-    data(scm_list({symconst::primitive, primitive_POSITIVEP, "positive?"})),
-    data(scm_list({symconst::primitive, primitive_NEGATIVEP, "negative?"})),
-    data(scm_list({symconst::primitive, primitive_ZEROP,     "zero?"})),
-    data(scm_list({symconst::primitive, primitive_INFINITEP, "infinite?"})),
-    data(scm_list({symconst::primitive, primitive_FINITEP,   "finite?"})),
-    data(scm_list({symconst::primitive, primitive_NANP,      "nan?"})),
+  std::make_pair(primitive_ODDP,      "odd?"),
+  std::make_pair(primitive_EVENP,     "even?"),
+  std::make_pair(primitive_POSITIVEP, "positive?"),
+  std::make_pair(primitive_NEGATIVEP, "negative?"),
+  std::make_pair(primitive_ZEROP,     "zero?"),
+  std::make_pair(primitive_INFINITEP, "infinite?"),
+  std::make_pair(primitive_FINITEP,   "finite?"),
+  std::make_pair(primitive_NANP,      "nan?"),
 
-    data(scm_list({symconst::primitive, primitive_CEILING,  "ceiling"})),
-    data(scm_list({symconst::primitive, primitive_FLOOR,    "floor"})),
-    data(scm_list({symconst::primitive, primitive_TRUNCATE, "truncate"})),
-    data(scm_list({symconst::primitive, primitive_ROUND,    "round"})),
+  std::make_pair(primitive_CEILING,  "ceiling"),
+  std::make_pair(primitive_FLOOR,    "floor"),
+  std::make_pair(primitive_TRUNCATE, "truncate"),
+  std::make_pair(primitive_ROUND,    "round"),
 
-    data(scm_list({symconst::primitive, primitive_COERCE_INEXACT_TO_EXACT, "inexact->exact"})),
-    data(scm_list({symconst::primitive, primitive_COERCE_EXACT_TO_INEXACT, "exact->inexact"})),
-    data(scm_list({symconst::primitive, primitive_EXACTP,                  "exact?"})),
-    data(scm_list({symconst::primitive, primitive_INEXACTP,                "inexact?"})),
-    data(scm_list({symconst::primitive, primitive_INTEGERP,                "integer?"})),
-    data(scm_list({symconst::primitive, primitive_NUMERATOR,               "numerator"})),
-    data(scm_list({symconst::primitive, primitive_DENOMINATOR,             "denominator"})),
+  std::make_pair(primitive_COERCE_INEXACT_TO_EXACT, "inexact->exact"),
+  std::make_pair(primitive_COERCE_EXACT_TO_INEXACT, "exact->inexact"),
+  std::make_pair(primitive_EXACTP,                  "exact?"),
+  std::make_pair(primitive_INEXACTP,                "inexact?"),
+  std::make_pair(primitive_INTEGERP,                "integer?"),
+  std::make_pair(primitive_NUMERATOR,               "numerator"),
+  std::make_pair(primitive_DENOMINATOR,             "denominator"),
+  std::make_pair(primitive_MAKE_LOG_BASE,           "make-log-base"),
 
-    data(scm_list({symconst::primitive, primitive_SIN,   "sin"})),
-    data(scm_list({symconst::primitive, primitive_COS,   "cos"})),
-    data(scm_list({symconst::primitive, primitive_TAN,   "tan"})),
-    data(scm_list({symconst::primitive, primitive_ASIN,  "asin"})),
-    data(scm_list({symconst::primitive, primitive_ACOS,  "acos"})),
-    data(scm_list({symconst::primitive, primitive_ATAN,  "atan"})),
-    data(scm_list({symconst::primitive, primitive_SINH,  "sinh"})),
-    data(scm_list({symconst::primitive, primitive_COSH,  "cosh"})),
-    data(scm_list({symconst::primitive, primitive_TANH,  "tanh"})),
-    data(scm_list({symconst::primitive, primitive_ASINH, "asinh"})),
-    data(scm_list({symconst::primitive, primitive_ACOSH, "acosh"})),
-    data(scm_list({symconst::primitive, primitive_ATANH, "atanh"})),
+  std::make_pair(primitive_SIN,   "sin"),
+  std::make_pair(primitive_COS,   "cos"),
+  std::make_pair(primitive_TAN,   "tan"),
+  std::make_pair(primitive_ASIN,  "asin"),
+  std::make_pair(primitive_ACOS,  "acos"),
+  std::make_pair(primitive_ATAN,  "atan"),
+  std::make_pair(primitive_SINH,  "sinh"),
+  std::make_pair(primitive_COSH,  "cosh"),
+  std::make_pair(primitive_TANH,  "tanh"),
+  std::make_pair(primitive_ASINH, "asinh"),
+  std::make_pair(primitive_ACOSH, "acosh"),
+  std::make_pair(primitive_ATANH, "atanh"),
 
-    data(scm_list({symconst::primitive, primitive_RANDOM, "random"})),
+  std::make_pair(primitive_LOGAND,      "logand"),
+  std::make_pair(primitive_LOGOR,       "logor"),
+  std::make_pair(primitive_LOGXOR,      "logxor"),
+  std::make_pair(primitive_LOGNOT,      "lognot"),
+  std::make_pair(primitive_LOGLSL,      "loglsl"),
+  std::make_pair(primitive_LOGLSR,      "loglsr"),
+  std::make_pair(primitive_LOGASR,      "logasr"),
+  std::make_pair(primitive_LOGBITP,     "logbit?"),
+  std::make_pair(primitive_LOGBIT1,     "logbit1"),
+  std::make_pair(primitive_LOGBIT0,     "logbit0"),
+  std::make_pair(primitive_LOGBIT_CMPL, "logbit~"),
 
-    data(scm_list({symconst::primitive, primitive_EQ,  "="})),
-    data(scm_list({symconst::primitive, primitive_GT,  ">"})),
-    data(scm_list({symconst::primitive, primitive_LT,  "<"})),
-    data(scm_list({symconst::primitive, primitive_GTE, ">="})),
-    data(scm_list({symconst::primitive, primitive_LTE, "<="})),
+  std::make_pair(primitive_RANDOM, "random"),
 
-    data(scm_list({symconst::primitive, primitive_EQP,    "eq?"})),
-    data(scm_list({symconst::primitive, primitive_EQVP,   "eqv?"})),
-    data(scm_list({symconst::primitive, primitive_EQUALP, "equal?"})),
-    data(scm_list({symconst::primitive, primitive_NOT,    "not"})),
+  std::make_pair(primitive_EQ,  "="),
+  std::make_pair(primitive_GT,  ">"),
+  std::make_pair(primitive_LT,  "<"),
+  std::make_pair(primitive_GTE, ">="),
+  std::make_pair(primitive_LTE, "<="),
 
-    data(scm_list({symconst::primitive, primitive_CHAR_EQ,          "char=?"})),
-    data(scm_list({symconst::primitive, primitive_CHAR_LT,          "char<?"})),
-    data(scm_list({symconst::primitive, primitive_CHAR_GT,          "char>?"})),
-    data(scm_list({symconst::primitive, primitive_CHAR_LTE,         "char<=?"})),
-    data(scm_list({symconst::primitive, primitive_CHAR_GTE,         "char>=?"})),
-    data(scm_list({symconst::primitive, primitive_CHAR_CI_EQ,       "char-ci=?"})),
-    data(scm_list({symconst::primitive, primitive_CHAR_CI_LT,       "char-ci<?"})),
-    data(scm_list({symconst::primitive, primitive_CHAR_CI_GT,       "char-ci>?"})),
-    data(scm_list({symconst::primitive, primitive_CHAR_CI_LTE,      "char-ci<=?"})),
-    data(scm_list({symconst::primitive, primitive_CHAR_CI_GTE,      "char-ci>=?"})),
-    data(scm_list({symconst::primitive, primitive_CHAR_ALPHABETICP, "char-alphabetic?"})),
-    data(scm_list({symconst::primitive, primitive_CHAR_NUMERICP,    "char-numeric?"})),
-    data(scm_list({symconst::primitive, primitive_CHAR_WHITESPACEP, "char-whitespace?"})),
-    data(scm_list({symconst::primitive, primitive_CHAR_UPPER_CASEP, "char-upper-case?"})),
-    data(scm_list({symconst::primitive, primitive_CHAR_LOWER_CASEP, "char-lower-case?"})),
-    data(scm_list({symconst::primitive, primitive_CHAR_UPCASE,      "char-upcase"})),
-    data(scm_list({symconst::primitive, primitive_CHAR_DOWNCASE,    "char-downcase"})),
+  std::make_pair(primitive_EQP,    "eq?"),
+  std::make_pair(primitive_EQVP,   "eqv?"),
+  std::make_pair(primitive_EQUALP, "equal?"),
+  std::make_pair(primitive_NOT,    "not"),
 
-    data(scm_list({symconst::primitive, primitive_MAKE_STRING,   "make-string"})),
-    data(scm_list({symconst::primitive, primitive_STRING,        "string"})),
-    data(scm_list({symconst::primitive, primitive_STRING_LENGTH, "string-length"})),
-    data(scm_list({symconst::primitive, primitive_STRING_REF,    "string-ref"})),
-    data(scm_list({symconst::primitive, primitive_STRING_SET,    "string-set!"})),
-    data(scm_list({symconst::primitive, primitive_SUBSTRING,     "substring"})),
-    data(scm_list({symconst::primitive, primitive_STRING_APPEND, "string-append"})),
-    data(scm_list({symconst::primitive, primitive_STRING_COPY,   "string-copy"})),
-    data(scm_list({symconst::primitive, primitive_STRING_FILL,   "string-fill!"})),
-    data(scm_list({symconst::primitive, primitive_STRING_EQ,     "string=?"})),
-    data(scm_list({symconst::primitive, primitive_STRING_LT,     "string<?"})),
-    data(scm_list({symconst::primitive, primitive_STRING_GT,     "string>?"})),
-    data(scm_list({symconst::primitive, primitive_STRING_LTE,    "string<=?"})),
-    data(scm_list({symconst::primitive, primitive_STRING_GTE,    "string>=?"})),
-    data(scm_list({symconst::primitive, primitive_STRING_CI_EQ,  "string-ci=?"})),
-    data(scm_list({symconst::primitive, primitive_STRING_CI_LT,  "string-ci<?"})),
-    data(scm_list({symconst::primitive, primitive_STRING_CI_GT,  "string-ci>?"})),
-    data(scm_list({symconst::primitive, primitive_STRING_CI_LTE, "string-ci<=?"})),
-    data(scm_list({symconst::primitive, primitive_STRING_CI_GTE, "string-ci>=?"})),
+  std::make_pair(primitive_CHAR_EQ,          "char=?"),
+  std::make_pair(primitive_CHAR_LT,          "char<?"),
+  std::make_pair(primitive_CHAR_GT,          "char>?"),
+  std::make_pair(primitive_CHAR_LTE,         "char<=?"),
+  std::make_pair(primitive_CHAR_GTE,         "char>=?"),
+  std::make_pair(primitive_CHAR_CI_EQ,       "char-ci=?"),
+  std::make_pair(primitive_CHAR_CI_LT,       "char-ci<?"),
+  std::make_pair(primitive_CHAR_CI_GT,       "char-ci>?"),
+  std::make_pair(primitive_CHAR_CI_LTE,      "char-ci<=?"),
+  std::make_pair(primitive_CHAR_CI_GTE,      "char-ci>=?"),
+  std::make_pair(primitive_CHAR_ALPHABETICP, "char-alphabetic?"),
+  std::make_pair(primitive_CHAR_NUMERICP,    "char-numeric?"),
+  std::make_pair(primitive_CHAR_WHITESPACEP, "char-whitespace?"),
+  std::make_pair(primitive_CHAR_UPPER_CASEP, "char-upper-case?"),
+  std::make_pair(primitive_CHAR_LOWER_CASEP, "char-lower-case?"),
+  std::make_pair(primitive_CHAR_UPCASE,      "char-upcase"),
+  std::make_pair(primitive_CHAR_DOWNCASE,    "char-downcase"),
 
-    data(scm_list({symconst::primitive, primitive_CONS,   "cons"})),
-    data(scm_list({symconst::primitive, primitive_CAR,    "car"})),
-    data(scm_list({symconst::primitive, primitive_CDR,    "cdr"})),
-    data(scm_list({symconst::primitive, primitive_NULLP,  "null?"})),
-    data(scm_list({symconst::primitive, primitive_SETCAR, "set-car!"})),
-    data(scm_list({symconst::primitive, primitive_SETCDR, "set-cdr!"})),
+  std::make_pair(primitive_MAKE_STRING,           "make-string"),
+  std::make_pair(primitive_STRING,                "string"),
+  std::make_pair(primitive_STRING_UNFOLD,         "string-unfold"),
+  std::make_pair(primitive_STRING_PAD,            "string-pad"),
+  std::make_pair(primitive_STRING_PAD_RIGHT,      "string-pad-right"),
+  std::make_pair(primitive_STRING_TRIM,           "string-trim"),
+  std::make_pair(primitive_STRING_TRIM_RIGHT,     "string-trim-right"),
+  std::make_pair(primitive_STRING_TRIM_BOTH,      "string-trim-both"),
+  std::make_pair(primitive_STRING_REPLACE,        "string-replace"),
+  std::make_pair(primitive_STRING_CONTAINS,       "string-contains"),
+  std::make_pair(primitive_STRING_CONTAINS_RIGHT, "string-contains-right"),
+  std::make_pair(primitive_STRING_JOIN,           "string-join"),
+  std::make_pair(primitive_STRING_SPLIT,          "string-split"),
+  std::make_pair(primitive_STRING_SWAP_BANG,      "string-swap!"),
+  std::make_pair(primitive_STRING_PUSH_BANG,      "string-push!"),
+  std::make_pair(primitive_STRING_EMPTYP,         "string-empty?"),
+  std::make_pair(primitive_STRING_COPY_BANG,      "string-copy!"),
 
-    data(scm_list({symconst::primitive, primitive_CAAR, "caar"})),
-    data(scm_list({symconst::primitive, primitive_CADR, "cadr"})),
-    data(scm_list({symconst::primitive, primitive_CDAR, "cdar"})),
-    data(scm_list({symconst::primitive, primitive_CDDR, "cddr"})),
-    data(scm_list({symconst::primitive, primitive_CAAAR, "caaar"})),
-    data(scm_list({symconst::primitive, primitive_CAADR, "caadr"})),
-    data(scm_list({symconst::primitive, primitive_CADAR, "cadar"})),
-    data(scm_list({symconst::primitive, primitive_CADDR, "caddr"})),
-    data(scm_list({symconst::primitive, primitive_CDAAR, "cdaar"})),
-    data(scm_list({symconst::primitive, primitive_CDADR, "cdadr"})),
-    data(scm_list({symconst::primitive, primitive_CDDAR, "cddar"})),
-    data(scm_list({symconst::primitive, primitive_CDDDR, "cdddr"})),
-    data(scm_list({symconst::primitive, primitive_CAAAAR, "caaaar"})),
-    data(scm_list({symconst::primitive, primitive_CAAADR, "caaadr"})),
-    data(scm_list({symconst::primitive, primitive_CAADAR, "caadar"})),
-    data(scm_list({symconst::primitive, primitive_CAADDR, "caaddr"})),
-    data(scm_list({symconst::primitive, primitive_CADAAR, "cadaar"})),
-    data(scm_list({symconst::primitive, primitive_CADADR, "cadadr"})),
-    data(scm_list({symconst::primitive, primitive_CADDAR, "caddar"})),
-    data(scm_list({symconst::primitive, primitive_CADDDR, "cadddr"})),
-    data(scm_list({symconst::primitive, primitive_CDAAAR, "cdaaar"})),
-    data(scm_list({symconst::primitive, primitive_CDAADR, "cdaadr"})),
-    data(scm_list({symconst::primitive, primitive_CDADAR, "cdadar"})),
-    data(scm_list({symconst::primitive, primitive_CDADDR, "cdaddr"})),
-    data(scm_list({symconst::primitive, primitive_CDDAAR, "cddaar"})),
-    data(scm_list({symconst::primitive, primitive_CDDADR, "cddadr"})),
-    data(scm_list({symconst::primitive, primitive_CDDDAR, "cdddar"})),
-    data(scm_list({symconst::primitive, primitive_CDDDDR, "cddddr"})),
+  std::make_pair(primitive_STRING_EQP,            "string=?"),
+  std::make_pair(primitive_STRING_LT,             "string<?"),
+  std::make_pair(primitive_STRING_GT,             "string>?"),
+  std::make_pair(primitive_STRING_LTE,            "string<=?"),
+  std::make_pair(primitive_STRING_GTE,            "string>=?"),
+  std::make_pair(primitive_STRING_CI_EQ,          "string-ci=?"),
+  std::make_pair(primitive_STRING_CI_LT,          "string-ci<?"),
+  std::make_pair(primitive_STRING_CI_GT,          "string-ci>?"),
+  std::make_pair(primitive_STRING_CI_LTE,         "string-ci<=?"),
+  std::make_pair(primitive_STRING_CI_GTE,         "string-ci>=?"),
 
-    data(scm_list({symconst::primitive, primitive_LIST,           "list"})),
-    data(scm_list({symconst::primitive, primitive_LENGTH,         "length"})),
-    data(scm_list({symconst::primitive, primitive_CIRCULAR_LISTP, "circular-list?"})),
-    data(scm_list({symconst::primitive, primitive_DOTTED_LISTP,   "dotted-list?"})),
-    data(scm_list({symconst::primitive, primitive_LISTP,          "list?"})),
-    data(scm_list({symconst::primitive, primitive_ALISTP,         "alist?"})),
-    data(scm_list({symconst::primitive, primitive_APPEND,         "append"})),
-    data(scm_list({symconst::primitive, primitive_REVERSE,        "reverse"})),
-    data(scm_list({symconst::primitive, primitive_SUBLIST,        "sublist"})),
-    data(scm_list({symconst::primitive, primitive_LIST_TAIL,      "list-tail"})),
-    data(scm_list({symconst::primitive, primitive_LIST_HEAD,      "list-head"})),
-    data(scm_list({symconst::primitive, primitive_LIST_REF,       "list-ref"})),
+  std::make_pair(primitive_CONS,   "cons"),
+  std::make_pair(primitive_CAR,    "car"),
+  std::make_pair(primitive_CDR,    "cdr"),
+  std::make_pair(primitive_NULLP,  "null?"),
+  std::make_pair(primitive_SETCAR, "set-car!"),
+  std::make_pair(primitive_SETCDR, "set-cdr!"),
 
-    data(scm_list({symconst::primitive, primitive_FOR_EACH,   "for-each"})),
-    data(scm_list({symconst::primitive, primitive_MAP,        "map"})),
-    data(scm_list({symconst::primitive, primitive_FILTER,     "filter"})),
-    data(scm_list({symconst::primitive, primitive_FOLD_LEFT,  "fold-left"})),
-    data(scm_list({symconst::primitive, primitive_FOLD_RIGHT, "fold-right"})),
-    data(scm_list({symconst::primitive, primitive_UNFOLD,     "unfold"})),
+  std::make_pair(primitive_CAAR, "caar"),
+  std::make_pair(primitive_CADR, "cadr"),
+  std::make_pair(primitive_CDAR, "cdar"),
+  std::make_pair(primitive_CDDR, "cddr"),
+  std::make_pair(primitive_CAAAR, "caaar"),
+  std::make_pair(primitive_CAADR, "caadr"),
+  std::make_pair(primitive_CADAR, "cadar"),
+  std::make_pair(primitive_CADDR, "caddr"),
+  std::make_pair(primitive_CDAAR, "cdaar"),
+  std::make_pair(primitive_CDADR, "cdadr"),
+  std::make_pair(primitive_CDDAR, "cddar"),
+  std::make_pair(primitive_CDDDR, "cdddr"),
+  std::make_pair(primitive_CAAAAR, "caaaar"),
+  std::make_pair(primitive_CAAADR, "caaadr"),
+  std::make_pair(primitive_CAADAR, "caadar"),
+  std::make_pair(primitive_CAADDR, "caaddr"),
+  std::make_pair(primitive_CADAAR, "cadaar"),
+  std::make_pair(primitive_CADADR, "cadadr"),
+  std::make_pair(primitive_CADDAR, "caddar"),
+  std::make_pair(primitive_CADDDR, "cadddr"),
+  std::make_pair(primitive_CDAAAR, "cdaaar"),
+  std::make_pair(primitive_CDAADR, "cdaadr"),
+  std::make_pair(primitive_CDADAR, "cdadar"),
+  std::make_pair(primitive_CDADDR, "cdaddr"),
+  std::make_pair(primitive_CDDAAR, "cddaar"),
+  std::make_pair(primitive_CDDADR, "cddadr"),
+  std::make_pair(primitive_CDDDAR, "cdddar"),
+  std::make_pair(primitive_CDDDDR, "cddddr"),
 
-    data(scm_list({symconst::primitive, primitive_MEMQ,   "memq"})),
-    data(scm_list({symconst::primitive, primitive_MEMV,   "memv"})),
-    data(scm_list({symconst::primitive, primitive_MEMBER, "member"})),
-    data(scm_list({symconst::primitive, primitive_ASSQ,   "assq"})),
-    data(scm_list({symconst::primitive, primitive_ASSV,   "assv"})),
-    data(scm_list({symconst::primitive, primitive_ASSOC,  "assoc"})),
+  std::make_pair(primitive_LIST,           "list"),
+  std::make_pair(primitive_LIST_STAR,      "list*"),
+  std::make_pair(primitive_MAKE_LIST,      "make-list"),
+  std::make_pair(primitive_IOTA,           "iota"),
+  std::make_pair(primitive_CIRCULAR_LIST,  "circular-list"),
+  std::make_pair(primitive_CIRCULAR_LISTP, "circular-list?"),
+  std::make_pair(primitive_DOTTED_LISTP,   "dotted-list?"),
+  std::make_pair(primitive_LISTP,          "list?"),
+  std::make_pair(primitive_ALISTP,         "alist?"),
+  std::make_pair(primitive_LAST_PAIR,      "last-pair"),
+  std::make_pair(primitive_UNFOLD,         "unfold"),
 
-    data(scm_list({symconst::primitive, primitive_VECTOR,        "vector"})),
-    data(scm_list({symconst::primitive, primitive_MAKE_VECTOR,   "make-vector"})),
-    data(scm_list({symconst::primitive, primitive_VECTOR_LENGTH, "vector-length"})),
-    data(scm_list({symconst::primitive, primitive_VECTOR_REF,    "vector-ref"})),
-    data(scm_list({symconst::primitive, primitive_VECTOR_SET,    "vector-set!"})),
-    data(scm_list({symconst::primitive, primitive_VECTOR_FILL,   "vector-fill!"})),
-    data(scm_list({symconst::primitive, primitive_VECTOR_GROW,   "vector-grow"})),
-    data(scm_list({symconst::primitive, primitive_SUBVECTOR,     "subvector"})),
-    data(scm_list({symconst::primitive, primitive_VECTOR_HEAD,   "vector-head"})),
-    data(scm_list({symconst::primitive, primitive_VECTOR_TAIL,   "vector-tail"})),
-    data(scm_list({symconst::primitive, primitive_VECTOR_MAP,    "vector-map"})),
-    data(scm_list({symconst::primitive, primitive_VECTOR_UNFOLD, "vector-unfold"})),
+  std::make_pair(primitive_MEMQ,   "memq"),
+  std::make_pair(primitive_MEMV,   "memv"),
+  std::make_pair(primitive_MEMBER, "member"),
+  std::make_pair(primitive_ASSQ,   "assq"),
+  std::make_pair(primitive_ASSV,   "assv"),
+  std::make_pair(primitive_ASSOC,  "assoc"),
 
-    data(scm_list({symconst::primitive, primitive_SORT,                 "sort"})),
-    data(scm_list({symconst::primitive, primitive_SORT_BANG,            "sort!"})),
-    data(scm_list({symconst::primitive, primitive_SORTEDP,              "sorted?"})),
-    data(scm_list({symconst::primitive, primitive_MERGE,                "merge"})),
-    data(scm_list({symconst::primitive, primitive_DELETE_NEIGHBOR_DUPS, "delete-neighbor-dups"})),
+  std::make_pair(primitive_VECTOR,               "vector"),
+  std::make_pair(primitive_MAKE_VECTOR,          "make-vector"),
+  std::make_pair(primitive_VECTOR_PUSH_BANG,     "vector-push!"),
+  std::make_pair(primitive_VECTOR_IOTA,          "vector-iota"),
+  std::make_pair(primitive_VECTOR_EMPTYP,        "vector-empty?"),
+  std::make_pair(primitive_VECTOR_GROW,          "vector-grow"),
+  std::make_pair(primitive_VECTOR_UNFOLD,        "vector-unfold"),
+  std::make_pair(primitive_VECTOR_COPY_BANG,     "vector-copy!"),
+  std::make_pair(primitive_VECTOR_SWAP_BANG,     "vector-swap!"),
+  std::make_pair(primitive_VECTOR_BINARY_SEARCH, "vector-binary-search"),
 
-    data(scm_list({symconst::primitive, primitive_PAIRP,        "pair?"})),
-    data(scm_list({symconst::primitive, primitive_VECTORP,      "vector?"})),
-    data(scm_list({symconst::primitive, primitive_CHARP,        "char?"})),
-    data(scm_list({symconst::primitive, primitive_NUMBERP,      "number?"})),
-    data(scm_list({symconst::primitive, primitive_REALP,        "real?"})),
-    data(scm_list({symconst::primitive, primitive_RATIONALP,    "rational?"})),
-    data(scm_list({symconst::primitive, primitive_STRINGP,      "string?"})),
-    data(scm_list({symconst::primitive, primitive_SYMBOLP,      "symbol?"})),
-    data(scm_list({symconst::primitive, primitive_BOOLEANP,     "boolean?"})),
-    data(scm_list({symconst::primitive, primitive_ATOMP,        "atom?"})),
-    data(scm_list({symconst::primitive, primitive_PROCEDUREP,   "procedure?"})),
-    data(scm_list({symconst::primitive, primitive_INPUT_PORTP,  "input-port?"})),
-    data(scm_list({symconst::primitive, primitive_OUTPUT_PORTP, "output-port?"})),
-    data(scm_list({symconst::primitive, primitive_EOF_OBJECTP,  "eof-object?"})),
-    data(scm_list({symconst::primitive, primitive_STREAM_PAIRP, "stream-pair?"})),
-    data(scm_list({symconst::primitive, primitive_STREAM_NULLP, "stream-null?"})),
-    data(scm_list({symconst::primitive, primitive_STREAMP,      "stream?"})),
+  std::make_pair(primitive_EMPTY,            "empty"),
+  std::make_pair(primitive_LENGTH,           "length"),
+  std::make_pair(primitive_LENGTH_PLUS,      "length+"),
+  std::make_pair(primitive_REVERSE,          "reverse"),
+  std::make_pair(primitive_REVERSE_BANG,     "reverse!"),
+  std::make_pair(primitive_FOLD,             "fold"),
+  std::make_pair(primitive_FOLD_RIGHT,       "fold-right"),
+  std::make_pair(primitive_FILTER,           "filter"),
+  std::make_pair(primitive_MAP,              "map"),
+  std::make_pair(primitive_MAP_BANG,         "map!"),
+  std::make_pair(primitive_FOR_EACH,         "for-each"),
+  std::make_pair(primitive_COPY,             "copy"),
+  std::make_pair(primitive_REVERSE_COPY,     "reverse-copy"),
+  std::make_pair(primitive_COUNT,            "count"),
+  std::make_pair(primitive_REF,              "ref"),
+  std::make_pair(primitive_SLICE,            "slice"),
+  std::make_pair(primitive_SET_INDEX_BANG,   "set-index!"),
+  std::make_pair(primitive_FILL_BANG,        "fill!"),
+  std::make_pair(primitive_APPEND,           "append"),
+  std::make_pair(primitive_REMOVE,           "remove"),
+  std::make_pair(primitive_DELETE,           "delete"),
+  std::make_pair(primitive_LAST,             "last"),
+  std::make_pair(primitive_TAIL,             "tail"),
+  std::make_pair(primitive_HEAD,             "head"),
+  std::make_pair(primitive_INIT,             "init"),
+  std::make_pair(primitive_SEQ_EQ,           "seq="),
+  std::make_pair(primitive_SKIP,             "skip"),
+  std::make_pair(primitive_SKIP_RIGHT,       "skip-right"),
+  std::make_pair(primitive_INDEX,            "index"),
+  std::make_pair(primitive_INDEX_RIGHT,      "index-right"),
+  std::make_pair(primitive_DROP,             "drop"),
+  std::make_pair(primitive_DROP_RIGHT,       "drop-right"),
+  std::make_pair(primitive_TAKE,             "take"),
+  std::make_pair(primitive_TAKE_RIGHT,       "take-right"),
+  std::make_pair(primitive_TAKE_WHILE,       "take-while"),
+  std::make_pair(primitive_TAKE_RIGHT_WHILE, "take-right-while"),
+  std::make_pair(primitive_DROP_WHILE,       "drop-while"),
+  std::make_pair(primitive_DROP_RIGHT_WHILE, "drop-right-while"),
+  std::make_pair(primitive_ANY,              "any"),
+  std::make_pair(primitive_EVERY,            "every"),
+  std::make_pair(primitive_CONJ,             "conj"),
 
-    data(scm_list({symconst::primitive, primitive_EVAL,  "eval"})),
-    data(scm_list({symconst::primitive, primitive_APPLY, "apply"})),
+  std::make_pair(primitive_SORT,                      "sort"),
+  std::make_pair(primitive_SORT_BANG,                 "sort!"),
+  std::make_pair(primitive_SORTEDP,                   "sorted?"),
+  std::make_pair(primitive_MERGE,                     "merge"),
+  std::make_pair(primitive_DELETE_NEIGHBOR_DUPS,      "delete-neighbor-dups"),
+  std::make_pair(primitive_DELETE_NEIGHBOR_DUPS_BANG, "delete-neighbor-dups!"),
 
-    data(scm_list({symconst::primitive, primitive_DELAYP, "delay?"})),
-    data(scm_list({symconst::primitive, primitive_FORCE,  "force"})),
+  std::make_pair(primitive_VOID,                 "void"),
+  std::make_pair(primitive_VOIDP,                "void?"),
+  std::make_pair(primitive_UNDEFINED,            "undefined"),
+  std::make_pair(primitive_UNDEFINEDP,           "undefined?"),
+  std::make_pair(primitive_EMPTYP,               "empty?"),
+  std::make_pair(primitive_PAIRP,                "pair?"),
+  std::make_pair(primitive_VECTORP,              "vector?"),
+  std::make_pair(primitive_CHARP,                "char?"),
+  std::make_pair(primitive_NUMBERP,              "number?"),
+  std::make_pair(primitive_REALP,                "real?"),
+  std::make_pair(primitive_RATIONALP,            "rational?"),
+  std::make_pair(primitive_STRINGP,              "string?"),
+  std::make_pair(primitive_SYMBOLP,              "symbol?"),
+  std::make_pair(primitive_BOOLEANP,             "boolean?"),
+  std::make_pair(primitive_ATOMP,                "atom?"),
+  std::make_pair(primitive_PROCEDUREP,           "procedure?"),
+  std::make_pair(primitive_INPUT_PORTP,          "input-port?"),
+  std::make_pair(primitive_OUTPUT_PORTP,         "output-port?"),
+  std::make_pair(primitive_EOF_OBJECTP,          "eof-object?"),
+  std::make_pair(primitive_STREAM_PAIRP,         "stream-pair?"),
+  std::make_pair(primitive_STREAM_NULLP,         "stream-null?"),
+  std::make_pair(primitive_STREAMP,              "stream?"),
+  std::make_pair(primitive_SYNTAX_RULES_OBJECTP, "syntax-rules-object?"),
+  std::make_pair(primitive_SEQP,                 "seq?"),
 
-    data(scm_list({symconst::primitive, primitive_SCAR,                "scar"})),
-    data(scm_list({symconst::primitive, primitive_SCDR,                "scdr"})),
-    data(scm_list({symconst::primitive, primitive_STREAM_LENGTH,       "stream-length"})),
-    data(scm_list({symconst::primitive, primitive_STREAM_FOR_EACH,     "stream-for-each"})),
-    data(scm_list({symconst::primitive, primitive_STREAM_REF,          "stream-ref"})),
-    data(scm_list({symconst::primitive, primitive_STREAM_DROP,         "stream-drop"})),
-    data(scm_list({symconst::primitive, primitive_STREAM_DROP_WHILE,   "stream-drop-while"})),
-    data(scm_list({symconst::primitive, primitive_STREAM_TAKE,         "stream-take"})),
-    data(scm_list({symconst::primitive, primitive_STREAM_TAKE_WHILE,   "stream-take-while"})),
-    data(scm_list({symconst::primitive, primitive_STREAM_REVERSE,      "stream-reverse"})),
-    data(scm_list({symconst::primitive, primitive_STREAM_FOLD_LEFT,    "stream-fold-left"})),
-    data(scm_list({symconst::primitive, primitive_STREAM_FOLD_RIGHT,   "stream-fold-right"})),
-    data(scm_list({symconst::primitive, primitive_CONVERT_STREAM_LIST, "stream->list"})),
-    data(scm_list({symconst::primitive, primitive_CONVERT_LIST_STREAM, "list->stream"})),
+  std::make_pair(primitive_EVAL,  "eval"),
+  std::make_pair(primitive_APPLY, "apply"),
 
-    data(scm_list({symconst::primitive, primitive_SCAAR, "scaar"})),
-    data(scm_list({symconst::primitive, primitive_SCADR, "scadr"})),
-    data(scm_list({symconst::primitive, primitive_SCDAR, "scdar"})),
-    data(scm_list({symconst::primitive, primitive_SCDDR, "scddr"})),
-    data(scm_list({symconst::primitive, primitive_SCAAAR, "scaaar"})),
-    data(scm_list({symconst::primitive, primitive_SCAADR, "scaadr"})),
-    data(scm_list({symconst::primitive, primitive_SCADAR, "scadar"})),
-    data(scm_list({symconst::primitive, primitive_SCADDR, "scaddr"})),
-    data(scm_list({symconst::primitive, primitive_SCDAAR, "scdaar"})),
-    data(scm_list({symconst::primitive, primitive_SCDADR, "scdadr"})),
-    data(scm_list({symconst::primitive, primitive_SCDDAR, "scddar"})),
-    data(scm_list({symconst::primitive, primitive_SCDDDR, "scdddr"})),
-    data(scm_list({symconst::primitive, primitive_SCAAAAR, "scaaaar"})),
-    data(scm_list({symconst::primitive, primitive_SCAAADR, "scaaadr"})),
-    data(scm_list({symconst::primitive, primitive_SCAADAR, "scaadar"})),
-    data(scm_list({symconst::primitive, primitive_SCAADDR, "scaaddr"})),
-    data(scm_list({symconst::primitive, primitive_SCADAAR, "scadaar"})),
-    data(scm_list({symconst::primitive, primitive_SCADADR, "scadadr"})),
-    data(scm_list({symconst::primitive, primitive_SCADDAR, "scaddar"})),
-    data(scm_list({symconst::primitive, primitive_SCADDDR, "scadddr"})),
-    data(scm_list({symconst::primitive, primitive_SCDAAAR, "scdaaar"})),
-    data(scm_list({symconst::primitive, primitive_SCDAADR, "scdaadr"})),
-    data(scm_list({symconst::primitive, primitive_SCDADAR, "scdadar"})),
-    data(scm_list({symconst::primitive, primitive_SCDADDR, "scdaddr"})),
-    data(scm_list({symconst::primitive, primitive_SCDDAAR, "scddaar"})),
-    data(scm_list({symconst::primitive, primitive_SCDDADR, "scddadr"})),
-    data(scm_list({symconst::primitive, primitive_SCDDDAR, "scdddar"})),
-    data(scm_list({symconst::primitive, primitive_SCDDDDR, "scddddr"})),
+  std::make_pair(primitive_DELAYP, "delay?"),
+  std::make_pair(primitive_FORCE,  "force"),
 
-    data(scm_list({symconst::primitive, primitive_COERCE_CHAR_TO_INTEGER,  "char->integer"})),
-    data(scm_list({symconst::primitive, primitive_COERCE_INTEGER_TO_CHAR,  "integer->char"})),
-    data(scm_list({symconst::primitive, primitive_COERCE_NUMBER_TO_STRING, "number->string"})),
-    data(scm_list({symconst::primitive, primitive_COERCE_STRING_TO_NUMBER, "string->number"})),
-    data(scm_list({symconst::primitive, primitive_COERCE_STRING_TO_SYMBOL, "string->symbol"})),
-    data(scm_list({symconst::primitive, primitive_COERCE_SYMBOL_TO_STRING, "symbol->string"})),
-    data(scm_list({symconst::primitive, primitive_COERCE_VECTOR_TO_LIST,   "vector->list"})),
-    data(scm_list({symconst::primitive, primitive_COERCE_LIST_TO_VECTOR,   "list->vector"})),
-    data(scm_list({symconst::primitive, primitive_STRING_TO_LIST,          "string->list"})),
-    data(scm_list({symconst::primitive, primitive_LIST_TO_STRING,          "list->string"})),
+  std::make_pair(primitive_SCAR,                "scar"),
+  std::make_pair(primitive_SCDR,                "scdr"),
+  std::make_pair(primitive_STREAM_LENGTH,       "stream-length"),
+  std::make_pair(primitive_STREAM_FOR_EACH,     "stream-for-each"),
+  std::make_pair(primitive_STREAM_REF,          "stream-ref"),
+  std::make_pair(primitive_STREAM_DROP,         "stream-drop"),
+  std::make_pair(primitive_STREAM_DROP_WHILE,   "stream-drop-while"),
+  std::make_pair(primitive_STREAM_TAKE,         "stream-take"),
+  std::make_pair(primitive_STREAM_TAKE_WHILE,   "stream-take-while"),
+  std::make_pair(primitive_STREAM_REVERSE,      "stream-reverse"),
+  std::make_pair(primitive_STREAM_FOLD,         "stream-fold"),
+  std::make_pair(primitive_STREAM_FOLD_RIGHT,   "stream-fold-right"),
+  std::make_pair(primitive_CONVERT_STREAM_LIST, "stream->list"),
+  std::make_pair(primitive_CONVERT_LIST_STREAM, "list->stream"),
 
-    data(scm_list({symconst::primitive, primitive_WRITE,      "write"})),
-    data(scm_list({symconst::primitive, primitive_DISPLAY,    "display"})),
-    data(scm_list({symconst::primitive, primitive_NEWLINE,    "newline"})),
-    data(scm_list({symconst::primitive, primitive_WRITE_CHAR, "write-char"})),
+  std::make_pair(primitive_SCAAR, "scaar"),
+  std::make_pair(primitive_SCADR, "scadr"),
+  std::make_pair(primitive_SCDAR, "scdar"),
+  std::make_pair(primitive_SCDDR, "scddr"),
+  std::make_pair(primitive_SCAAAR, "scaaar"),
+  std::make_pair(primitive_SCAADR, "scaadr"),
+  std::make_pair(primitive_SCADAR, "scadar"),
+  std::make_pair(primitive_SCADDR, "scaddr"),
+  std::make_pair(primitive_SCDAAR, "scdaar"),
+  std::make_pair(primitive_SCDADR, "scdadr"),
+  std::make_pair(primitive_SCDDAR, "scddar"),
+  std::make_pair(primitive_SCDDDR, "scdddr"),
+  std::make_pair(primitive_SCAAAAR, "scaaaar"),
+  std::make_pair(primitive_SCAAADR, "scaaadr"),
+  std::make_pair(primitive_SCAADAR, "scaadar"),
+  std::make_pair(primitive_SCAADDR, "scaaddr"),
+  std::make_pair(primitive_SCADAAR, "scadaar"),
+  std::make_pair(primitive_SCADADR, "scadadr"),
+  std::make_pair(primitive_SCADDAR, "scaddar"),
+  std::make_pair(primitive_SCADDDR, "scadddr"),
+  std::make_pair(primitive_SCDAAAR, "scdaaar"),
+  std::make_pair(primitive_SCDAADR, "scdaadr"),
+  std::make_pair(primitive_SCDADAR, "scdadar"),
+  std::make_pair(primitive_SCDADDR, "scdaddr"),
+  std::make_pair(primitive_SCDDAAR, "scddaar"),
+  std::make_pair(primitive_SCDDADR, "scddadr"),
+  std::make_pair(primitive_SCDDDAR, "scdddar"),
+  std::make_pair(primitive_SCDDDDR, "scddddr"),
 
-    data(scm_list({symconst::primitive, primitive_READ,        "read"})),
-    data(scm_list({symconst::primitive, primitive_READ_STRING, "read-string"})),
-    data(scm_list({symconst::primitive, primitive_READ_CHAR,   "read-char"})),
-    data(scm_list({symconst::primitive, primitive_PEEK_CHAR,   "peek-char"})),
-    data(scm_list({symconst::primitive, primitive_CHAR_READYP, "char-ready?"})),
+  std::make_pair(primitive_COERCE_CHAR_TO_INTEGER,  "char->integer"),
+  std::make_pair(primitive_COERCE_INTEGER_TO_CHAR,  "integer->char"),
+  std::make_pair(primitive_COERCE_NUMBER_TO_STRING, "number->string"),
+  std::make_pair(primitive_COERCE_STRING_TO_NUMBER, "string->number"),
+  std::make_pair(primitive_COERCE_STRING_TO_SYMBOL, "string->symbol"),
+  std::make_pair(primitive_COERCE_SYMBOL_TO_STRING, "symbol->string"),
+  std::make_pair(primitive_COERCE_VECTOR_TO_LIST,   "vector->list"),
+  std::make_pair(primitive_COERCE_LIST_TO_VECTOR,   "list->vector"),
+  std::make_pair(primitive_STRING_TO_VECTOR,        "string->vector"),
+  std::make_pair(primitive_VECTOR_TO_STRING,        "vector->string"),
+  std::make_pair(primitive_STRING_TO_LIST,          "string->list"),
+  std::make_pair(primitive_LIST_TO_STRING,          "list->string"),
 
-    data(scm_list({symconst::primitive, primitive_FILEP,                 "file?"})),
-    data(scm_list({symconst::primitive, primitive_OPEN_PORTP,            "open-port?"})),
-    data(scm_list({symconst::primitive, primitive_CLOSED_PORTP,          "closed-port?"})),
-    data(scm_list({symconst::primitive, primitive_CURRENT_INPUT_PORT,    "current-input-port"})),
-    data(scm_list({symconst::primitive, primitive_CURRENT_OUTPUT_PORT,   "current-output-port"})),
-    data(scm_list({symconst::primitive, primitive_CALL_WITH_INPUT_FILE,  "call-with-input-file"})),
-    data(scm_list({symconst::primitive, primitive_CALL_WITH_OUTPUT_FILE, "call-with-output-file"})),
-    data(scm_list({symconst::primitive, primitive_WITH_INPUT_FROM_FILE,  "with-input-from-file"})),
-    data(scm_list({symconst::primitive, primitive_WITH_OUTPUT_TO_FILE,   "with-output-to-file"})),
-    data(scm_list({symconst::primitive, primitive_OPEN_INPUT_FILE,       "open-input-file"})),
-    data(scm_list({symconst::primitive, primitive_OPEN_OUTPUT_FILE,      "open-output-file"})),
-    data(scm_list({symconst::primitive, primitive_SLURP_FILE,            "slurp-file"})),
-    data(scm_list({symconst::primitive, primitive_CLOSE_INPUT_PORT,      "close-input-port"})),
-    data(scm_list({symconst::primitive, primitive_CLOSE_OUTPUT_PORT,     "close-output-port"})),
+  std::make_pair(primitive_WRITE,      "write"),
+  std::make_pair(primitive_DISPLAY,    "display"),
+  std::make_pair(primitive_NEWLINE,    "newline"),
+  std::make_pair(primitive_WRITE_CHAR, "write-char"),
 
-    data(scm_list({symconst::primitive, primitive_LOAD,       "load"})),
-    data(scm_list({symconst::primitive, primitive_LOAD_LOCAL, "load-local"})),
-    data(scm_list({symconst::primitive, primitive_SYSTEM,     "system"})),
-    data(scm_list({symconst::primitive, primitive_GETENV,     "getenv"})),
+  std::make_pair(primitive_READ,        "read"),
+  std::make_pair(primitive_READ_STRING, "read-string"),
+  std::make_pair(primitive_READ_LINE,   "read-line"),
+  std::make_pair(primitive_READ_CHAR,   "read-char"),
+  std::make_pair(primitive_PEEK_CHAR,   "peek-char"),
+  std::make_pair(primitive_CHAR_READYP, "char-ready?"),
+  std::make_pair(primitive_SLURP_FILE,  "slurp-file"),
 
-    data(scm_list({symconst::primitive, primitive_SECONDS_SINCE_EPOCH, "seconds-since-epoch"})),
+  std::make_pair(primitive_FILEP,                 "file?"),
+  std::make_pair(primitive_DELETE_FILE_BANG,      "delete-file!"),
+  std::make_pair(primitive_RENAME_FILE_BANG,      "rename-file!"),
+  std::make_pair(primitive_OPEN_PORTP,            "open-port?"),
+  std::make_pair(primitive_CLOSED_PORTP,          "closed-port?"),
+  std::make_pair(primitive_CURRENT_INPUT_PORT,    "current-input-port"),
+  std::make_pair(primitive_CURRENT_OUTPUT_PORT,   "current-output-port"),
+  std::make_pair(primitive_CALL_WITH_INPUT_FILE,  "call-with-input-file"),
+  std::make_pair(primitive_CALL_WITH_OUTPUT_FILE, "call-with-output-file"),
+  std::make_pair(primitive_WITH_INPUT_FROM_FILE,  "with-input-from-file"),
+  std::make_pair(primitive_WITH_OUTPUT_TO_FILE,   "with-output-to-file"),
+  std::make_pair(primitive_OPEN_INPUT_FILE,       "open-input-file"),
+  std::make_pair(primitive_OPEN_OUTPUT_FILE,      "open-output-file"),
+  std::make_pair(primitive_CLOSE_INPUT_PORT,      "close-input-port"),
+  std::make_pair(primitive_CLOSE_OUTPUT_PORT,     "close-output-port"),
 
-    data(scm_list({symconst::primitive, primitive_SET_MAX_RECURSION_DEPTH, "set-max-recursion-depth!"})),
+  std::make_pair(primitive_LOAD,         "load"),
+  std::make_pair(primitive_LOAD_LOCAL,   "load-local"),
+  std::make_pair(primitive_SYSTEM,       "system"),
+  std::make_pair(primitive_GETENV,       "getenv"),
+  std::make_pair(primitive_COMMAND_LINE, "command-line"),
 
-    data(scm_list({symconst::primitive, primitive_SET_NANSI, "set-nansi!"})),
+  std::make_pair(primitive_SECONDS_SINCE_EPOCH, "seconds-since-epoch"),
 
-    data(scm_list({symconst::primitive, primitive_ERROR, "error"})),
-  });
+  std::make_pair(primitive_SET_MAX_RECURSION_DEPTH, "set-max-recursion-depth!"),
 
-frame_vars primitive_procedure_names() {
-  const auto n = primitive_procedure_objects.size();
+  std::make_pair(primitive_SET_NANSI,       "set-nansi!"),
+  std::make_pair(primitive_SET_CI,          "set-ci!"),
+  std::make_pair(primitive_SET_REPL_PROMPT, "set-repl-prompt!"),
+
+  std::make_pair(primitive_ERROR,        "error"),
+  std::make_pair(primitive_SYNTAX_ERROR, "syntax-error"),
+};
+
+frame_vals primitive_procedure_objects() noexcept {
+  constexpr const auto n = sizeof(primitive_procedure_declarations) /
+                           sizeof(primitive_procedure_declarations[0]);
+  frame_vals primitive_procedures(n);
+  for(size_type i = 0; i < n; ++i) {
+    scm_list primtive_object(3);
+    primtive_object[0] = symconst::primitive;
+    primtive_object[1] = primitive_procedure_declarations[i].first;
+    primtive_object[2] = primitive_procedure_declarations[i].second;
+    primitive_procedures[i] = std::move(primtive_object);
+  }
+  return primitive_procedures;
+}
+
+frame_vars primitive_procedure_names() noexcept {
+  constexpr const auto n = sizeof(primitive_procedure_declarations) /
+                           sizeof(primitive_procedure_declarations[0]);
   frame_vars names(n);
   for(size_type i = 0; i < n; ++i)
-    names[i] = primitive_procedure_objects[i].value.exp[2].value.sym;
+    names[i] = primitive_procedure_declarations[i].second;
   return names;
 }
+#undef VALID_SEQUENCE_INDEX_RANGE // Sequence bounds only tested by primitives (def in toolkit)
 #endif
