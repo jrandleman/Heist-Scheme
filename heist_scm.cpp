@@ -51,8 +51,8 @@
  *     > DEFINE-SYNTAX
  *     > LET-SYNTAX
  *     > LETREC-SYNTAX
+ *   - STRING I/O              ; read/write compatibility w/ strings as ports
  *   - RECURSIVE DEPTH CONTROL ; SET THE INTERPRETER'S MAX RECURSION DEPTH
- *   - READ-STRING             ; READ DATA FROM A STRING LITERAL AS IF A PORT
  *   - VECTOR-LITERAL          ; LONG-HAND VARIANT OF THE #( PREFIX
  */
 
@@ -141,7 +141,7 @@ exe_type scm_analyze(scm_list&& exp);
 
 // Confirm whether list begins w/ designated symbol
 bool is_tagged_list(const scm_list& exp, const char* const tag)noexcept{
-  return (exp[0].is_type(types::sym) && exp[0].value.sym == tag);
+  return !exp.empty() && exp[0].is_type(types::sym) && exp[0].value.sym == tag;
 }
 
 
@@ -149,18 +149,17 @@ bool is_tagged_list(const scm_list& exp, const char* const tag)noexcept{
 //   => If data = argless application, adds sentinel-arg
 //   => If data contains a scm_list, degrades data to scm_list
 //   => Else, wraps data in a scm_list
-scm_list scm_list_cast(const data& d) {
+scm_list scm_list_cast(const data& d)noexcept{
   // if at an argless application (ie a single entity in an expression)
   if(d.is_type(types::exp) && d.value.exp.size()==1) {
-    scm_list tmp(2), empty_arg(2); // add sentinel-arg to argless application
-    empty_arg[0] = symconst::quote, empty_arg[1] = symconst::sentinel;
-    tmp[0] = d.value.exp[0], tmp[1] = empty_arg;
-    return tmp;
+    scm_list argless_app(2); // add sentinel-arg to argless application
+    argless_app[0] = d.value.exp[0], argless_app[1] = scm_list(2);
+    argless_app[1].value.exp[0] = symconst::quote;
+    argless_app[1].value.exp[1] = symconst::sentinel;
+    return argless_app;
   }
-  if(d.is_type(types::exp)) 
-    return d.value.exp;
-  scm_list casted_list(1);
-  casted_list[0] = d;
+  if(d.is_type(types::exp)) return d.value.exp;
+  scm_list casted_list(1); casted_list[0] = d;
   return casted_list;
 }
 
@@ -168,7 +167,10 @@ scm_list scm_list_cast(const data& d) {
 // 'Casts' a scm_list object to a data object
 //   => If scm_list only contains 1 data object, degrades scm_list to the data
 //   => Else, wraps scm_list in a datum
-data data_cast(const scm_list& l) {return l.size()==1 ? l[0] : data(l);}
+data data_cast(const scm_list& l)noexcept{
+  if(l.size() == 1) return l[0]; 
+  return data(l);
+}
 
 
 // Generate a call signature from a procedure name & its given values
@@ -181,7 +183,7 @@ sym_type procedure_call_signature(const sym_type& name,const frame_vals& vals)no
 
 // Generate an improper procedure call error message
 sym_type improper_call_alert(sym_type name, const frame_vals& vals,
-                                            const frame_vars& vars){
+                                            const frame_vars& vars)noexcept{
   if(name.empty()) name = " #<procedure>"; // anonymous lambda
   name.erase(0,1);                         // rm initial ' '
   // Generate the call signature
@@ -275,7 +277,7 @@ void confirm_valid_lambda(const scm_list& exp) {
 // Transforms the appropriate 'vals' into a list (for the given variadic arg)
 //   => ((lambda (. l) l) <arg1> <arg2> ... <argN>)      [ BECOMES -> ]
 //      ((lambda (l) l) (list <arg1> <arg2> ... <argN>))
-void transform_variadic_vals_into_a_list(frame_vars& vars, frame_vals& vals) {
+void transform_variadic_vals_into_a_list(frame_vars& vars,frame_vals& vals)noexcept{
   const size_type va_arg_idx = vars.size()-2;
   // Transform the arg names & vals as needed
   vars[va_arg_idx] = vars[va_arg_idx+1]; // shift up variadic arg name (erasing '.')
@@ -283,17 +285,15 @@ void transform_variadic_vals_into_a_list(frame_vars& vars, frame_vals& vals) {
   data list_of_vals;
   if(no_args_given(vals))
     list_of_vals = symconst::emptylist;
-  else {
-    scm_list values(vals.begin()+va_arg_idx, vals.end());
-    list_of_vals = primitive_LIST(values);
-  }
+  else
+    list_of_vals = primitive_LIST_to_CONS_constructor(vals.begin()+va_arg_idx, vals.end());
   vals.erase(vals.begin()+va_arg_idx, vals.end()); // erase individual arg instances
   vals.push_back(list_of_vals);                    // reinsert args as a list
 }
 
 
 // Confirm given no args & NOT applying a void-arg fcn & NOT a variadic-arg fcn
-bool invalid_sentinel_arg_use(const frame_vars& vars, const frame_vals& vals) {
+bool invalid_sentinel_arg_use(const frame_vars& vars,const frame_vals& vals)noexcept{
   return no_args_given(vals) &&
           !(vars.size()==1 && vars[0]==SENTINEL_ARG) && 
           !(vars.size()==2 && vars[0]==".");
@@ -301,7 +301,7 @@ bool invalid_sentinel_arg_use(const frame_vars& vars, const frame_vals& vals) {
 
 
 // Confirm passing an arg to an argless procedure
-bool given_arg_for_argless_fcn(const frame_vars& vars,const frame_vals& vals){
+bool given_arg_for_argless_fcn(const frame_vars& vars,const frame_vals& vals)noexcept{
   return !no_args_given(vals) && vars.size()==1 && vars[0]==SENTINEL_ARG;
 }
 
@@ -327,9 +327,9 @@ bool confirm_valid_environment_extension(frame_vars& vars, frame_vals& vals,
 ******************************************************************************/
 
 // -- ENVIRONMENTAL GETTERS
-frame_vars& frame_variables(frame_t& f) {return std::get<0>(f);}
-frame_vals& frame_values(frame_t& f)    {return std::get<1>(f);}
-frame_macs& frame_macros(frame_t& f)    {return std::get<2>(f);}
+frame_vars& frame_variables(frame_t& f)noexcept{return std::get<0>(f);}
+frame_vals& frame_values(frame_t& f)   noexcept{return std::get<1>(f);}
+frame_macs& frame_macros(frame_t& f)   noexcept{return std::get<2>(f);}
 
 
 // -- ENVIRONMENTAL EXTENSION
@@ -377,7 +377,7 @@ frame_val lookup_variable_value(const frame_var& var, env_type& env) {
 
 
 // -- VARIABLE SETTING: (set! <var> <val>)
-bool is_single_self_evaluating_object_in_list(frame_val& val) {
+bool is_single_self_evaluating_object_in_list(frame_val& val)noexcept{
   return val.is_type(types::exp) && val.value.exp.size()==1;
 }
 void set_variable_value(const frame_var& var, frame_val&& val, env_type& env) {
@@ -393,13 +393,15 @@ void set_variable_value(const frame_var& var, frame_val&& val, env_type& env) {
         return;
       }
   }
-  THROW_ERR("Variable " << var << " is not bound!" 
-    << EXP_ERR(scm_list({symconst::set, var, val})));
+  scm_list invalid_set_call(3);
+  invalid_set_call[0] = symconst::set;
+  invalid_set_call[1] = var, invalid_set_call[2] = val;
+  THROW_ERR("Variable "<<var<<" is not bound!"<<EXP_ERR(invalid_set_call));
 }
 
 
 // -- VARIABLE DEFINITION: (define <var> <val>)
-void define_variable(const frame_var& var, frame_val val, env_type& env) {
+void define_variable(const frame_var& var, frame_val val, env_type& env)noexcept{
   if(env->empty()) // add an empty frame to if given an empty environment
     env->push_back(make_frame(frame_t{})); 
   if(is_single_self_evaluating_object_in_list(val)) val = val.value.exp[0];
@@ -418,7 +420,7 @@ void define_variable(const frame_var& var, frame_val val, env_type& env) {
 
 
 // -- MACRO DEFINITION: (define-syntax <label> <syntax-rules>)
-void define_syntax_extension(const frame_mac& mac, env_type& env) {
+void define_syntax_extension(const frame_mac& mac, env_type& env)noexcept{
   if(env->empty()) // add an empty frame to if given an empty environment
     env->push_back(make_frame(frame_t{})); 
   // macro list of the first frame
@@ -438,18 +440,17 @@ void define_syntax_extension(const frame_mac& mac, env_type& env) {
 ******************************************************************************/
 
 // -- IDENTIFICATION, GETTERS, & CONSTRUCTION
-bool is_if(const scm_list& exp)noexcept{return is_tagged_list(exp, "if");}
-scm_list if_predicate(scm_list& exp)   {return scm_list_cast(exp[1]);}
-scm_list if_consequent(scm_list& exp)  {return scm_list_cast(exp[2]);}
+bool is_if(const scm_list& exp)      noexcept{return is_tagged_list(exp, "if");}
+scm_list if_predicate(scm_list& exp) noexcept{return scm_list_cast(exp[1]);}
+scm_list if_consequent(scm_list& exp)noexcept{return scm_list_cast(exp[2]);}
 
-scm_list if_alternative(scm_list& exp){
-  if(exp.size() == 4)                   // if has an <alternative>
-    return scm_list_cast(exp[3]);
+scm_list if_alternative(scm_list& exp)noexcept{
+  if(exp.size() == 4) return scm_list_cast(exp[3]); // if has an <alternative>
   return VOID_DATA_EXPRESSION; // w/o <alternative> return VOID
 }
 
 scm_list make_if(const scm_list& predicate, const scm_list& consequent, 
-                                            const scm_list& alternative){
+                                            const scm_list& alternative)noexcept{
   scm_list if_exp(4);
   if_exp[0] = symconst::if_t, if_exp[1] = predicate;
   if_exp[2] = consequent, if_exp[3] = alternative;
@@ -458,10 +459,10 @@ scm_list make_if(const scm_list& predicate, const scm_list& consequent,
 
 
 // -- PREDICATE TESTING
-bool is_true(const scm_list& exp) { // true is not false
+bool is_true(const scm_list& exp)noexcept{ // true is not false
   return !exp[0].is_type(types::bol) || exp[0].value.bol.val;
 }
-bool is_false(const scm_list& exp) { // false is false
+bool is_false(const scm_list& exp)noexcept{ // false is false
   return exp[0].is_type(types::bol) && !exp[0].value.bol.val;
 }
 
@@ -533,8 +534,8 @@ exe_type analyze_or(scm_list& or_exp) {
 * REPRESENTING SEQUENCES: (begin <body>)
 ******************************************************************************/
 
-bool is_begin(const scm_list& exp)noexcept{return is_tagged_list(exp, "begin");}
-scm_list begin_actions(scm_list& exp)     {return scm_list(exp.begin()+1, exp.end());}
+bool is_begin(const scm_list& exp)   noexcept{return is_tagged_list(exp, "begin");}
+scm_list begin_actions(scm_list& exp)noexcept{return scm_list(exp.begin()+1, exp.end());}
 
 // Analyzes each expression, then returns an exec proc which 
 //   sequentially invokes each expression's exec proc
@@ -556,7 +557,7 @@ exe_type analyze_sequence(scm_list&& exps){ // used for 'begin' & lambda bodies
 }
 
 // Convert a sequence into a single expression via 'begin
-scm_list convert_sequence_exp(scm_list seq) { 
+scm_list convert_sequence_exp(scm_list seq)noexcept{ 
   scm_list begin_sequence(seq.size()+1); 
   begin_sequence[0] = symconst::begin;
   std::move(seq.begin(),seq.end(),begin_sequence.begin()+1);
@@ -567,9 +568,9 @@ scm_list convert_sequence_exp(scm_list seq) {
 * REPRESENTING ASSIGNMENT: (set! <var> <val>)
 ******************************************************************************/
 
-bool is_assignment(const scm_list& exp)noexcept{return is_tagged_list(exp, "set!");}
-frame_var& assignment_variable(scm_list& exp)  {return exp[1].value.sym;}
-scm_list assignment_value(const scm_list& exp) {return scm_list_cast(exp[2]);}
+bool is_assignment(const scm_list& exp)       noexcept{return is_tagged_list(exp, "set!");}
+frame_var& assignment_variable(scm_list& exp) noexcept{return exp[1].value.sym;}
+scm_list assignment_value(const scm_list& exp)noexcept{return scm_list_cast(exp[2]);}
 
 // Analyzes value being assigned, & returns an execution procedure 
 //   to install it as the variable in the designated env
@@ -608,15 +609,15 @@ frame_var demangled_lambda_tag(const data& tag)noexcept{
 bool is_definition(const scm_list& exp)noexcept{return is_tagged_list(exp, "define");}
 scm_list make_lambda(scm_list parameters, // Lambda ctor
                      scm_list body, 
-                     const frame_var& lambda_tag = symconst::lambda); 
+                     const frame_var& lambda_tag = symconst::lambda)noexcept; 
 
-frame_var& definition_variable(scm_list& exp) {
+frame_var& definition_variable(scm_list& exp)noexcept{
   // if defining a variable, else defining a procedure
   if(exp[1].is_type(types::sym)) return exp[1].value.sym; 
   return exp[1].value.exp[0].value.sym;
 }
 
-scm_list definition_value(scm_list& exp, const frame_var& var_name) {
+scm_list definition_value(scm_list& exp,const frame_var& var_name)noexcept{
   // if defining a variable, else defining a procedure
   if(exp[1].is_type(types::sym)) return scm_list_cast(exp[2]); 
   scm_list args(exp[1].value.exp.begin()+1,exp[1].value.exp.end());
@@ -644,7 +645,7 @@ bool is_delay(const scm_list& exp)noexcept{return is_tagged_list(exp,"delay");}
 
 // 'Delay' data struct consists of the delayed expression, its environment, 
 //   whether its already been forced, and the result of forcing it (if forced)
-scm_list make_delay(const scm_list& exp, env_type& env) {
+scm_list make_delay(const scm_list& exp, env_type& env)noexcept{
   scm_list del(2); del[0] = symconst::delay, del[1] = make_del(exp,env);
   return del;
 }
@@ -686,7 +687,7 @@ exe_type analyze_scons(scm_list& exp) {
 // -- stream: (stream <a> <b> ...) = (scons <a> (scons <b> ...))
 bool is_stream(const scm_list& exp)noexcept{return is_tagged_list(exp,"stream");}
 
-exe_type analyze_stream(scm_list& exp) {
+exe_type analyze_stream(scm_list& exp)noexcept{
   if(exp.size() == 1 || data_is_the_SENTINEL_VAL(exp[1]))
     return [](env_type& env){return EMPTY_LIST_EXPRESSION;};
   return [exp=std::move(exp)](env_type& env) mutable {
@@ -708,18 +709,18 @@ bool is_vector_literal(const scm_list& exp)noexcept{
 }
 
 // Confirm whether quoting a vector literal
-bool quoting_a_vector_literal(const scm_list& exp) {
+bool quoting_a_vector_literal(const scm_list& exp)noexcept{
   return exp[1].is_type(types::exp) && !exp[1].value.exp.empty() && 
          is_vector_literal(exp[1].value.exp);
 }
 
 // Returns whether data is the (.) symbol
-bool data_is_dot_operator(const data& d) {
+bool data_is_dot_operator(const data& d)noexcept{
   return d.is_type(types::sym) && d.value.sym == ".";
 }
 
 // Returns quoted data's contents
-data text_of_quotation(scm_list& exp) {
+data text_of_quotation(scm_list& exp)noexcept{
   if(!exp[1].is_type(types::sym)) return exp[1];
   if(exp[1].value.sym=="#f" || exp[1].value.sym=="#t")
     return boolean(exp[1].value.sym=="#t");
@@ -837,7 +838,7 @@ exe_type analyze_quoted(scm_list& exp) {
 * REPRESENTING SELF-EVALUATING EXPRESSIONS & VARIABLES
 ******************************************************************************/
 
-bool is_self_evaluating(const scm_list& exp) {
+bool is_self_evaluating(const scm_list& exp)noexcept{
   return exp.size() == 1 && 
          (exp[0].is_type(types::num) || exp[0].is_type(types::str) || 
           exp[0].is_type(types::chr) || exp[0].is_type(types::par) || 
@@ -846,7 +847,7 @@ bool is_self_evaluating(const scm_list& exp) {
           exp[0].is_type(types::undefined));
 }
 
-bool is_variable(const scm_list& exp) {return (exp[0].is_type(types::sym));}
+bool is_variable(const scm_list& exp)noexcept{return exp[0].is_type(types::sym);}
 
 /******************************************************************************
 * REPRESENTING PROCEDURES
@@ -854,7 +855,7 @@ bool is_variable(const scm_list& exp) {return (exp[0].is_type(types::sym));}
 
 // PROCEDURE CONSTRUCTION
 scm_list make_procedure(const scm_list& parameters, const exe_type& body_proc,
-                        env_type& env, const frame_var& name){
+                        env_type& env, const frame_var& name)noexcept{
   scm_list procedure_exp(6);
   procedure_exp[0] = symconst::procedure, procedure_exp[1] = parameters;
   procedure_exp[2] = body_proc,           procedure_exp[3] = env;
@@ -862,10 +863,10 @@ scm_list make_procedure(const scm_list& parameters, const exe_type& body_proc,
   return procedure_exp;
 }
 
-bool is_compound_procedure(const scm_list& p)noexcept{return is_tagged_list(p, PROCEDURE_TAG);}
-exe_type procedure_body(scm_list& p)                 {return p[2].value.exe;}
-env_type& procedure_environment(scm_list& p)         {return p[3].value.env;}
-size_type& procedure_recursive_depth(scm_list& p)    {return *p[4].value.cal;}
+bool is_compound_procedure(const scm_list& p)    noexcept{return is_tagged_list(p, PROCEDURE_TAG);}
+exe_type procedure_body(scm_list& p)             noexcept{return p[2].value.exe;}
+env_type& procedure_environment(scm_list& p)     noexcept{return p[3].value.env;}
+size_type& procedure_recursive_depth(scm_list& p)noexcept{return *p[4].value.cal;}
 
 frame_var procedure_name(const scm_list& p)noexcept{
   if(is_compound_procedure(p)) // compound procedure name
@@ -873,7 +874,7 @@ frame_var procedure_name(const scm_list& p)noexcept{
   return ' ' + p[2].value.sym; // primitive procedure name
 }
 
-frame_vars procedure_parameters(scm_list& p)  {
+frame_vars procedure_parameters(scm_list& p)noexcept{
   frame_vars var_names(p[1].value.exp.size());
   for(size_type i = 0, n = p[1].value.exp.size(); i < n; ++i)
     var_names[i] = p[1].value.exp[i].value.sym;
@@ -882,18 +883,18 @@ frame_vars procedure_parameters(scm_list& p)  {
 
 
 // -- LAMBDAS: (lambda (<parameters>) <body>)
-bool is_lambda(const scm_list& exp)noexcept{return is_tagged_list(exp,"lambda") || 
-                                                   is_mangled_lambda_tag(exp[0]);}
-scm_list  lambda_parameters(scm_list& exp) {return exp[1].value.exp;}
-scm_list  lambda_body(scm_list& exp)       {return scm_list(exp.begin()+2,exp.end());}
-frame_var lambda_name(scm_list& exp)       {return demangled_lambda_tag(exp[0]);}
+bool is_lambda(const scm_list& exp)       noexcept{return is_tagged_list(exp,"lambda") || 
+                                                          is_mangled_lambda_tag(exp[0]);}
+scm_list  lambda_parameters(scm_list& exp)noexcept{return exp[1].value.exp;}
+scm_list  lambda_body(scm_list& exp)      noexcept{return scm_list(exp.begin()+2,exp.end());}
+frame_var lambda_name(scm_list& exp)      noexcept{return demangled_lambda_tag(exp[0]);}
 
 // Ctor for lambdas
 //   => NOTE: "lambda_tag" != "lambda" iff ctoring the value of a procedural
 //            definition, wherein the tag is also mangled w/ the procedure name
-scm_list make_lambda(scm_list parameters,scm_list body,const frame_var& lambda_tag){
+scm_list make_lambda(scm_list parameters,scm_list body,const frame_var& lambda_tag)noexcept{
   scm_list new_lambda(body.size()+2); 
-  new_lambda[0] = lambda_tag, new_lambda[1] = parameters;
+  new_lambda[0] = lambda_tag, new_lambda[1] = std::move(parameters);
   if(new_lambda[1].value.exp.empty()) // add the sentinel arg as needed
     new_lambda[1].value.exp.push_back(symconst::sentinel);
   std::move(body.begin(), body.end(), new_lambda.begin()+2);
@@ -916,9 +917,9 @@ exe_type analyze_lambda(scm_list& exp) {
 
 
 // -- PROCEDURAL APPLICATION
-bool is_application(const scm_list& exp) {return exp.size()>1;}
-scm_list operator_of(scm_list& exp)      {return scm_list_cast(exp[0]);}
-scm_list operands(scm_list& exp)         {return scm_list(exp.begin()+1, exp.end());}
+bool is_application(const scm_list& exp)noexcept{return exp.size()>1;}
+scm_list operator_of(scm_list& exp)     noexcept{return scm_list_cast(exp[0]);}
+scm_list operands(scm_list& exp)        noexcept{return scm_list(exp.begin()+1, exp.end());}
 
 /******************************************************************************
 * DERIVING COND: (cond <clause1> ... <clauseN>)
@@ -940,7 +941,7 @@ void confirm_valid_clause(const scm_node& current_clause, const scm_list& exp){
 
 
 // -- CLAUSE GETTERS
-scm_list cond_predicate(scm_node& clause) {
+scm_list cond_predicate(scm_node& clause)noexcept{
   if(clause->value.exp[0].is_type(types::exp))
     return clause->value.exp[0].value.exp; // expression
   scm_list cond_pred(2); 
@@ -948,7 +949,7 @@ scm_list cond_predicate(scm_node& clause) {
   return cond_pred; // variable as an expression
 }
 
-scm_list cond_actions(scm_node& clause) {
+scm_list cond_actions(scm_node& clause)noexcept{
   return convert_sequence_exp(scm_list(
           clause->value.exp.begin()+1,clause->value.exp.end()));
 }
@@ -956,7 +957,7 @@ scm_list cond_actions(scm_node& clause) {
 
 // -- CLAUSE ANALYSIS
 bool is_cond_else_clause(const scm_node& clause)noexcept{
-  return !clause->value.exp.empty() && is_tagged_list(clause->value.exp,"else");
+  return is_tagged_list(clause->value.exp,"else");
 }
 
 bool is_cond_arrow_clause(const scm_node& clause, const scm_list& exp) {
@@ -971,7 +972,7 @@ bool is_cond_arrow_clause(const scm_node& clause, const scm_list& exp) {
   return has_cond_arrow_notation;
 }
 
-data cond_arrow_procedure(scm_node& clause) {
+data cond_arrow_procedure(scm_node& clause)noexcept{
   return clause->value.exp[2];
 }
 
@@ -1036,18 +1037,18 @@ scm_list convert_cond_if(scm_list& exp) {
 
 // ((lambda (<var1> ... <varN>) <body>) <val1> ... <valN>)
 
-bool      is_let(const scm_list& exp)noexcept {return is_tagged_list(exp, "let");}
-bool      is_named_let(const scm_list& exp)   {return exp[1].is_type(types::sym);}
-sym_type  named_let_name(const scm_list& exp) {return exp[1].value.sym;}
-scm_list& let_parameters(scm_list& exp)       {return exp[1].value.exp;}
-scm_list& named_let_parameters(scm_list& exp) {return exp[2].value.exp;}
-scm_list  let_body(scm_list& exp)             {return scm_list(exp.begin()+2,exp.end());}
-scm_list  named_let_body(scm_list& exp)       {return scm_list(exp.begin()+3,exp.end());}
+bool      is_let(const scm_list& exp)        noexcept{return is_tagged_list(exp, "let");}
+bool      is_named_let(const scm_list& exp)  noexcept{return exp[1].is_type(types::sym);}
+sym_type  named_let_name(const scm_list& exp)noexcept{return exp[1].value.sym;}
+scm_list& let_parameters(scm_list& exp)      noexcept{return exp[1].value.exp;}
+scm_list& named_let_parameters(scm_list& exp)noexcept{return exp[2].value.exp;}
+scm_list  let_body(scm_list& exp)            noexcept{return scm_list(exp.begin()+2,exp.end());}
+scm_list  named_let_body(scm_list& exp)      noexcept{return scm_list(exp.begin()+3,exp.end());}
 
 
 // PARAMETERS = (<varN> <valN>) OF 'let
 // Return list of parameter <var> names
-scm_list let_variables(const scm_list& parameters) {
+scm_list let_variables(const scm_list& parameters)noexcept{
   scm_list vars(parameters.size()); // return var names
   for(size_type i = 0, n = parameters.size(); i < n; ++i)
     vars[i] = parameters[i].value.exp[0];
@@ -1055,7 +1056,7 @@ scm_list let_variables(const scm_list& parameters) {
 }
 
 // Return list of parameter <val> values
-scm_list let_expressions(const scm_list& parameters) {
+scm_list let_expressions(const scm_list& parameters)noexcept{
   // returns variable values (ie their assinged expressions) of parameters
   scm_list exps(parameters.size());
   for(size_type i = 0, n = parameters.size(); i < n; ++i)
@@ -1077,7 +1078,7 @@ scm_list convert_let_combination(scm_list exp) {
       "\n     <var-binding> = (<name> <value>)" << EXP_ERR(exp));
 
   // list of var-val pairs
-  auto params = named ? named_let_parameters(exp) : let_parameters(exp);
+  scm_list params = (named ? named_let_parameters : let_parameters)(exp);
 
   // add the sentinel arg as a var name, if 'let' was given no parameters
   if(params.empty()) {
@@ -1090,8 +1091,7 @@ scm_list convert_let_combination(scm_list exp) {
 
   // retreive let expressions & body
   auto exprs             = let_expressions(params);
-  auto let_body_getter   = named ? named_let_body : let_body;
-  data let_lambda_object = data(make_lambda(let_variables(params),let_body_getter(exp)));
+  auto let_lambda_object = data(make_lambda(let_variables(params),(named ? named_let_body : let_body)(exp)));
 
   // convert let into a lambda (both named & unnamed)
   if(named) {
@@ -1125,7 +1125,7 @@ scm_list convert_let_combination(scm_list exp) {
 // -- LET*: "LET", BUT VARIABLES CAN INVOKE ONE ANOTHER IN BINDINGS
 bool is_let_star(const scm_list& exp)noexcept{return is_tagged_list(exp, "let*");}
 
-scm_list make_let(const scm_list& variable_bindings, scm_list&& body) {
+scm_list make_let(const scm_list& variable_bindings,scm_list&& body)noexcept{
   scm_list let_exp(3);
   let_exp[0] = symconst::let, let_exp[1] = variable_bindings, let_exp[2] = body;
   return let_exp;
@@ -1217,7 +1217,7 @@ void confirm_valid_case_clause(const scm_node& clause,        const char* format
   // Confirm clause contains 2 elts
   if(clause->value.exp.size() != 2)
     THROW_ERR("'case clause #" << clause_count << " isn't an expression of length 2 (length = "
-      << (no_args_given(clause->value.exp) ? 0 : clause->value.exp.size()) << ")!" 
+      << (!no_args_given(clause->value.exp) * clause->value.exp.size()) << ")!" 
       << format << EXP_ERR(exp));
   // Confirm clause was given a list of keys
   if(!is_cond_else_clause(clause) && !clause->value.exp[0].is_type(types::exp))
@@ -1226,7 +1226,7 @@ void confirm_valid_case_clause(const scm_node& clause,        const char* format
 }
 
 // Construct a 'cond equality clause from the 'case clause
-scm_list case_equality_clause(scm_node& clause, data& sought_val) {
+scm_list case_equality_clause(scm_node& clause, data& sought_val)noexcept{
   data keys_list(scm_list(clause->value.exp[0].value.exp.size()+1));
   keys_list.value.exp[0] = symconst::list;
   std::copy(clause->value.exp[0].value.exp.begin(), 
@@ -1239,13 +1239,13 @@ scm_list case_equality_clause(scm_node& clause, data& sought_val) {
 }
 
 // Extract a normal & <else> 'case clause
-scm_list case_clause(scm_node& clause, data& sought_val) {
+scm_list case_clause(scm_node& clause, data& sought_val)noexcept{
   scm_list clause_exp(2);
   clause_exp[0] = case_equality_clause(clause,sought_val);
   clause_exp[1] = cond_actions(clause);
   return clause_exp;
 }
-scm_list case_else_clause(scm_node& clause) {
+scm_list case_else_clause(scm_node& clause)noexcept{
   scm_list else_exp(2);
   else_exp[0] = symconst::else_t;
   else_exp[1] = data_cast(cond_actions(clause));
@@ -1350,7 +1350,7 @@ frame_vars do_var_names(const scm_list& var_defn_list, const scm_list& exp) {
 
 // Returns a list of variabl initial values
 // PRECONDITION: 'var_defn_list' MUST BE VALIDATED
-scm_list do_var_init_values(const scm_list& var_defn_list) {
+scm_list do_var_init_values(const scm_list& var_defn_list)noexcept{
   if(var_defn_list.empty()) {
     scm_list empty_inits(1);
     empty_inits[0] = scm_list(2);
@@ -1367,7 +1367,7 @@ scm_list do_var_init_values(const scm_list& var_defn_list) {
 // Returns a list of variable per-iteration value modifications
 // PRECONDITION: 'var_defn_list' MUST BE VALIDATED
 scm_list do_var_iteration_updates(const scm_list& var_defn_list, 
-                                  const frame_vars& names) {
+                                  const frame_vars& names)noexcept{
   if(var_defn_list.empty()) return scm_list();
   scm_list modifications(var_defn_list.size());
   // parse variable modifications
@@ -1392,9 +1392,8 @@ scm_list do_break_test_exps(const data& break_exp, const scm_list& exp) {
 
 
 // Returns the do-exp's body + variable modifications (per-iteration) wrapped in a 'begin' clause
-scm_list do_modified_body(const scm_list& exp, 
-                          const frame_vars& names, 
-                          const scm_list&& mod_vals) {
+scm_list do_modified_body(const scm_list& exp, const frame_vars& names, 
+                                               const scm_list&& mod_vals)noexcept{
   // Add the do-expression's body
   scm_list body(exp.begin()+3, exp.end());
   // Add the modifications of its values (per-iteration)
@@ -1417,9 +1416,8 @@ scm_list do_modified_body(const scm_list& exp,
 
 // Returns a lambda to run for each iteration over the loop, until >= 1 break 
 //   condition is met
-scm_list do_iteration_lambda(const scm_list& body, 
-                             const scm_list&& break_test_exps, 
-                             const frame_vars& names) {
+scm_list do_iteration_lambda(const scm_list& body, const scm_list&& break_test_exps, 
+                                                   const frame_vars& names)noexcept{
   // test the break condition
   scm_list conditioned_body(2);
   conditioned_body[0] = symconst::if_t;
@@ -1497,7 +1495,7 @@ data process_unquoted(const scm_list& exp) {
 
 
 // Requotes data if symbolic
-data unquote_splicing_atom(const data& d) {
+data unquote_splicing_atom(const data& d)noexcept{
   if(d.is_type(types::sym)) {
     scm_list quoted_sym(2);
     quoted_sym[0] = symconst::quote, quoted_sym[1] = d;
@@ -1508,7 +1506,7 @@ data unquote_splicing_atom(const data& d) {
 
 
 // Confirm whether 'd' is the AST's empty-list representation
-bool data_is_the_AST_empty_list(const data& d){
+bool data_is_the_AST_empty_list(const data& d)noexcept{
   return d.is_type(types::exp) && d.value.exp.size() == 2 && 
          d.value.exp[0].is_type(types::sym) && 
          d.value.exp[0].value.sym == "quote" && 
@@ -1521,7 +1519,7 @@ bool data_is_the_AST_empty_list(const data& d){
 //   => Helper fcn for processing ,@
 //   => Returns whether pair sequence was NOT null-terminated.
 // PRECONDITION: 'pair_object' MUST BE ACYCLIC
-bool expand_list_into_exp(par_type& pair_object, scm_list& exp) {
+bool expand_list_into_exp(par_type& pair_object,scm_list& exp)noexcept{
   // unpack car
   exp.push_back(unquote_splicing_atom(pair_object->first));
   // unpack cdr
@@ -1748,24 +1746,24 @@ exe_type analyze_quasiquote(scm_list& exp) {
 bool mismatched_subexpressions(const data& pat_elt,    const data& arg_elt,
                                const sym_type& label,  const frame_vars& keywords,
                                const size_type& pat_No,const scm_list& exp);
-bool duplicate_pattern_object_name_instance(const sym_type& obj1_name,const data& obj2);
+bool duplicate_pattern_object_name_instance(const sym_type& obj1_name,const data& obj2)noexcept;
 
 // Confirm whether the given word is a keyword
-bool is_keyword(const sym_type& word, const frame_vars& keywords) {
+bool is_keyword(const sym_type& word, const frame_vars& keywords)noexcept{
   return std::find(keywords.begin(), keywords.end(), word) != keywords.end();
 }
 
 
 // Determine whether only the par's elt OR only the arg's elt is a keyword
-bool mismatched_keywords(const data& pat_elt, const data& arg_elt, const frame_vars& keywords) {
+bool mismatched_keywords(const data& pat_elt, const data& arg_elt, const frame_vars& keywords)noexcept{
   const bool pat_is_key = pat_elt.is_type(types::sym) && is_keyword(pat_elt.value.sym,keywords);
   const bool arg_is_key = arg_elt.is_type(types::sym) && is_keyword(arg_elt.value.sym,keywords);
-  return int(pat_is_key) ^ int(arg_is_key);
+  return pat_is_key ^ arg_is_key;
 }
 
 
 // Primitive symbolic literals: #t #f '()
-bool is_primitive_symbolic_literal(const data& obj) {
+bool is_primitive_symbolic_literal(const data& obj)noexcept{
   return obj.is_type(types::sym) && (obj.value.sym == symconst::true_t || 
                                      obj.value.sym == symconst::false_t || 
                                      obj.value.sym == symconst::emptylist);
@@ -1773,7 +1771,7 @@ bool is_primitive_symbolic_literal(const data& obj) {
 
 
 // Confirm given 2 incompatible atomics
-bool mismatched_atomics(const data& pat_entity, const data& arg_entity){
+bool mismatched_atomics(const data& pat_entity, const data& arg_entity)noexcept{
   if(is_primitive_symbolic_literal(pat_entity) || is_primitive_symbolic_literal(arg_entity))
      return !is_primitive_symbolic_literal(pat_entity) || 
             !is_primitive_symbolic_literal(arg_entity) || 
@@ -1789,29 +1787,28 @@ bool mismatched_atomics(const data& pat_entity, const data& arg_entity){
 
 
 // Confirm whether 'pattern' is argless but was given 'args' (or vise versa)
-bool incompatible_void_arg_use(const scm_list& pattern, const scm_list& args) {
+bool incompatible_void_arg_use(const scm_list& pattern, const scm_list& args)noexcept{
   const bool pattern_is_argless = pattern.size() == 2 && 
                                   pattern[1].is_type(types::sym) && 
                                   pattern[1].value.sym==SENTINEL_ARG;
-  const bool args_is_argless    = args.size()==1 && 
-                                  data_is_the_SENTINEL_VAL(args[0]);
-  return int(pattern_is_argless) ^ int(args_is_argless);
+  const bool args_is_argless    = args.size()==1 && data_is_the_SENTINEL_VAL(args[0]);
+  return pattern_is_argless ^ args_is_argless;
 }
 
 
 // Check whether enough args to match against the current pattern
-bool incompatible_sizes(const scm_list& pattern, const scm_list& args) {
+bool incompatible_sizes(const scm_list& pattern, const scm_list& args)noexcept{
   const bool ends_in_ellipsis = !pattern.empty() && 
                                 pattern.rbegin()->is_type(types::sym) && 
                                 pattern.rbegin()->value.sym=="...";
   return pattern.empty() ||                                              // no pattern
-          args.size() < (pattern.size()-1-(ends_in_ellipsis ? 1 : 0)) || // not enough args (for possible variadic)
+          args.size() < (pattern.size()-1-ends_in_ellipsis) || // not enough args (for possible variadic)
           (!ends_in_ellipsis && args.size() != pattern.size()-1);        // not exact args (for non-variadic)
 }
 
 
 // Confirms pattern sub-expression does not contain an object with the same name as 'existing_pat_obj'
-bool pattern_sub_expression_has_duplicate(const sym_type& existing_pat_obj,const scm_list& pattern) {
+bool pattern_sub_expression_has_duplicate(const sym_type& existing_pat_obj,const scm_list& pattern)noexcept{
   for(const auto& pat : pattern) {
     if(!pat.is_type(types::sym) && !pat.is_type(types::exp)) continue; // naught to compare
     if(duplicate_pattern_object_name_instance(existing_pat_obj, pat)) return true;
@@ -1821,7 +1818,7 @@ bool pattern_sub_expression_has_duplicate(const sym_type& existing_pat_obj,const
 
 
 // Confirms whether the obj1 & obj2 share a duplicate name instance
-bool duplicate_pattern_object_name_instance(const sym_type& obj1_name, const data& obj2) {
+bool duplicate_pattern_object_name_instance(const sym_type& obj1_name, const data& obj2)noexcept{
   return (!is_primitive_symbolic_literal(obj2) && obj2.is_type(types::sym) && obj2.value.sym == obj1_name) ||
          (obj2.is_type(types::exp) && pattern_sub_expression_has_duplicate(obj1_name,obj2.value.exp));
 }
@@ -1842,7 +1839,7 @@ void confirm_no_duplicate_pattern_objects(const sym_type& label,  const scm_list
 
 
 // Check whether '...' was used prior the 3rd pattern object
-bool uses_Ellipsis_prematurely(const scm_list& pattern) {
+bool uses_Ellipsis_prematurely(const scm_list& pattern)noexcept{
   const size_type n = pattern.size();
   return (pattern[0].is_type(types::sym) && pattern[0].value.sym == "...") ||
          (n > 1 && pattern[1].is_type(types::sym) && pattern[1].value.sym == "...") || 
@@ -1950,7 +1947,7 @@ bool is_macro_match(const sym_type& label, const scm_list& args,
 
 // Splice in 'obj' for every instance of 'macro_arg_name' in 'expanded_exp'
 void splice_object_throughout_macro(const data& obj, const sym_type& macro_arg_name, 
-                                                     scm_list& expanded_exp){
+                                                     scm_list& expanded_exp)noexcept{
   for(auto& e : expanded_exp) {
     if(e.is_type(types::sym) && e.value.sym == macro_arg_name)
       e = obj;
@@ -1962,7 +1959,7 @@ void splice_object_throughout_macro(const data& obj, const sym_type& macro_arg_n
 
 // Splice in the 'remaining_body' for every instance of '...' in 'expanded_exp'
 void splice_remaining_body_throughout_macro(const scm_list& remaining_body, 
-                                                  scm_list& expanded_exp) {
+                                                  scm_list& expanded_exp)noexcept{
   for(size_type i = 0; i < expanded_exp.size(); ++i) {
     if(expanded_exp[i].is_type(types::sym) && expanded_exp[i].value.sym == "...") {
       // erase the "..." arg & splicing in the 'remaining body'
@@ -1979,7 +1976,7 @@ void splice_remaining_body_throughout_macro(const scm_list& remaining_body,
 // NOTE: "skip_pattern_name" = true iff at the 1st (non-recursive) call 
 void expand_macro(const scm_list& args, const scm_list& pattern, 
                   const frame_vars& keywords, scm_list& expanded_exp, 
-                  const bool& skip_pattern_name = false) {
+                  const bool& skip_pattern_name = false)noexcept{
   for(size_type i = size_type(skip_pattern_name), j = 0, n = pattern.size(); i < n; ++i, ++j){
     if(pattern[i].is_type(types::sym) && is_keyword(pattern[i].value.sym, keywords)) continue;
     // Expand args nested w/in expressions
@@ -1999,7 +1996,7 @@ void expand_macro(const scm_list& args, const scm_list& pattern,
 ******************************************************************************/
 
 // Confirm whether 'application_label' is a potential macro label
-bool application_is_a_potential_macro(const scm_string& application_label) {
+bool application_is_a_potential_macro(const scm_string& application_label)noexcept{
   if(application_label.empty()) return false;
   for(const auto& label : MACRO_LABEL_REGISTRY)
     if(label == application_label)
@@ -2365,7 +2362,7 @@ env_type setup_environment() {
 * GLOBAL PORT REGISTRY CLEANUP
 ******************************************************************************/
 
-void close_port_registry() {
+void close_port_registry()noexcept{
   for(size_type i = 2, n = PORT_REGISTRY.size(); i < n; ++i)
     if(PORT_REGISTRY[i] && 
        PORT_REGISTRY[i]!=stdout && PORT_REGISTRY[i]!=stderr &&
@@ -2379,27 +2376,27 @@ void close_port_registry() {
 * REPL DRIVER LOOP
 ******************************************************************************/
 
-void announce_input(FILE* outs){fputs(REPL_PROMPT.c_str(), outs);}
-void indent_input(FILE* outs)  {fputs(REPL_TAB.c_str(), outs);}
+void announce_input(FILE* outs)noexcept{fputs(REPL_PROMPT.c_str(), outs);}
+void indent_input(FILE* outs)  noexcept{fputs(REPL_TAB.c_str(), outs);}
 
 // Account for whether REPL should print a newline
-void print_repl_newline(const bool& printed_data) { // after printing data
+void print_repl_newline(const bool& printed_data)noexcept{ // after printing data
   if(!LAST_PRINTED_NEWLINE_TO_STDOUT&&(printed_data||LAST_PRINTED_TO_STDOUT))
     putchar('\n');
   LAST_PRINTED_NEWLINE_TO_STDOUT = LAST_PRINTED_TO_STDOUT = false;
 }
 
-void print_repl_newline() { // after printing an error
+void print_repl_newline()noexcept{ // after printing an error
   putchar('\n'), LAST_PRINTED_NEWLINE_TO_STDOUT=LAST_PRINTED_TO_STDOUT=false;
 }
 
-void account_for_whether_printed_data(const scm_list& val, bool& printed_data){
+void account_for_whether_printed_data(const scm_list& val,bool& printed_data)noexcept{
   printed_data = !val.empty() && !val[0].is_type(types::dne);
 }
 
 
 // Print output object
-void user_print(FILE* outs, scm_list& object) {
+void user_print(FILE* outs, scm_list& object)noexcept{
   if(is_compound_procedure(object) || is_primitive_procedure(object))
     fprintf(outs, "#<procedure%s>", procedure_name(object).c_str());
   else if(is_delay(object) && object.size() > 1)
@@ -2433,16 +2430,16 @@ scm_list read_user_input(FILE* outs, FILE* ins, const bool& in_repl){
           indent_input(outs);
       // Alert user if read an invalid expression, then reprompt for input
       } else {
-        auto faulty_input = !input.empty() ? input+'\n'+tmp_buffer : tmp_buffer;
-        alert_reader_error(outs,read_error,faulty_input);
+        if(!input.empty()) alert_reader_error(outs,read_error,input+'\n'+tmp_buffer);
+        else               alert_reader_error(outs,read_error,tmp_buffer);
         fputc('\n', outs);
         if(in_repl) announce_input(outs);
         abstract_syntax_tree.clear(), input.clear();
       }
     // Alert user if detected unparsable input (-:- ANOMALY -:-)
     } catch(const size_type& read_error_index) {
-      auto faulty_input = !input.empty() ? input+'\n'+tmp_buffer : tmp_buffer;
-      alert_reader_error(outs,read_error_index,faulty_input);
+      if(!input.empty()) alert_reader_error(outs,read_error_index,input+'\n'+tmp_buffer);
+      else               alert_reader_error(outs,read_error_index,tmp_buffer);
       fputc('\n', outs);
       if(in_repl) announce_input(outs);
       abstract_syntax_tree.clear(), input.clear();
@@ -2485,7 +2482,7 @@ void driver_loop(env_type& the_global_environment) {
 * COMMAND LINE ARGUMENT VALIDATION
 ******************************************************************************/
 
-bool confirm_valid_command_line_args(int argc, char* argv[], int& script_name_pos){
+bool confirm_valid_command_line_args(int argc,char* argv[],int& script_name_pos)noexcept{
   if(argc == 1) return true;
 
   constexpr const char * const cmd_line_options = 
