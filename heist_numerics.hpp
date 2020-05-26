@@ -603,8 +603,9 @@ Scm_numeric Scm_numeric::extract_denominator() const noexcept {
 
 Scm_numeric::inexact_t Scm_numeric::extract_inexact() const noexcept {
   if(auto tmp = to_inexact(); tmp.stat != status::success) {
-    return tmp.is_nan()     ? INEXACT_NAN : 
-           tmp.is_pos_inf() ? INEXACT_INF : (-1 * INEXACT_INF);
+    if(tmp.is_nan())     return INEXACT_NAN;
+    if(tmp.is_pos_inf()) return INEXACT_INF;
+    return -1 * INEXACT_INF;
   } else if(tmp.is_neg()) { 
     return tmp.float_num * -1;
   } else {
@@ -615,8 +616,11 @@ Scm_numeric::inexact_t Scm_numeric::extract_inexact() const noexcept {
 
 Scm_numeric::exact_t Scm_numeric::extract_exact() const noexcept {
   auto tmp = to_exact();
-  if(tmp.stat != status::success)
-    return tmp.is_nan() ? "+nan.0" : tmp.is_pos_inf() ? "+inf.0" : "-inf.0";
+  if(tmp.stat != status::success) {
+    if(tmp.is_nan())     return "+nan.0";
+    if(tmp.is_pos_inf()) return "+inf.0";
+    return "-inf.0";
+  }
   if(tmp.is_zero()) return "0";
   exact_t number;
   if(tmp.is_neg()) number += '-';
@@ -889,8 +893,10 @@ Scm_numeric Scm_numeric::operator%(const Scm_numeric& s) const noexcept {
   // for n < m, n % m = n
   if(abs_this < abs_s) return *this;
   // modding by inf: if n != inf, 1; else, 0
-  if(abs_s.is_pos_inf())
-    return (!abs_this.is_pos_inf()) ? *this : Scm_numeric();
+  if(abs_s.is_pos_inf()) {
+    if(!abs_this.is_pos_inf()) return *this;
+    return Scm_numeric();
+  }
 
   // apply the above algorithm
   tmp = *this / s;
@@ -987,8 +993,8 @@ Scm_numeric Scm_numeric::expt(const Scm_numeric& s) const noexcept {
     if(is_neg() && (unum_remainder&1)) tmp.sign = signs::neg; // neg^odd_pow = neg
     else                               tmp.sign = signs::pos;
 
-    auto exponentiated = lhs * tmp; // ((a^SIZE_TYPE_MAX)^q) * a^r
-    return pow.is_neg() ? (1/exponentiated) : exponentiated;
+    if(pow.is_neg()) return 1/(lhs * tmp); // 1 / (((a^SIZE_TYPE_MAX)^q) * a^r)
+    return lhs * tmp;                      // ((a^SIZE_TYPE_MAX)^q) * a^r
   }
 
   // Account for the Negative Power (since using std::pow)
@@ -1352,7 +1358,7 @@ Scm_numeric Scm_numeric::operator^(const Scm_numeric& rhs) const noexcept {
   // Perform Bitwise XOR
   exact_t bin_str_result(bin_str_lhs.size(), '0');
   for(auto i = bin_str_lhs.size(); i-- > 0;)
-    bin_str_result[i] = char(int(bin_str_lhs[i]=='1') ^ int(bin_str_rhs[i]=='1')) + '0';
+    bin_str_result[i] = char((bin_str_lhs[i]=='1') ^ (bin_str_rhs[i]=='1')) + '0';
   // Revert binary string to a decminal reresentation
   return big_int_revert_BINARY_to_Scm_numeric(bin_str_result, 
     (is_neg() || rhs.is_neg()) && bin_str_result[0] == '1');
