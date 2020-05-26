@@ -19,12 +19,13 @@ enum class heist_sequence {lis, nul, vec, str};
 
 
 //       -- FROM THE EVALUATOR
-bool     is_true(const scm_list& exp);
+bool     is_true(const scm_list& exp)noexcept;
 bool     is_non_escaped_double_quote(size_type i, const scm_string& input)noexcept;
+bool     prepare_string_for_AST_generation(scm_string& input);
 void     parse_input_exp(scm_string&& input, scm_list& abstract_syntax_tree);
-data     data_cast(const scm_list& l);
-scm_list scm_list_cast(const data& d);
-scm_list make_delay(const scm_list& exp, env_type& env);
+data     data_cast(const scm_list& l)noexcept;
+scm_list scm_list_cast(const data& d)noexcept;
+scm_list make_delay(const scm_list& exp, env_type& env)noexcept;
 scm_list read_user_input(FILE* outs,FILE* ins,const bool& in_repl=true);
 scm_list scm_eval(scm_list&& exp, env_type& env);
 scm_list execute_application(scm_list&& procedure,scm_list& arguments,env_type& env);
@@ -35,14 +36,15 @@ std::pair<chr_type,scm_string> data_is_named_char(const size_type& i,
 
 
 //          -- FROM PRIMITIVES & ITS TOOLKIT
-bool        prm_compare_PAIRs(const par_type& p1, const par_type& p2);
-bool        prm_compare_VECTs(const vec_type& v1, const vec_type& v2);
-bool        prm_compare_EXPRs(const scm_list& l1, const scm_list& l2);
-bool        prm_compare_SNTXs(const syn_type& s1, const syn_type& s2);
+bool        prm_compare_PAIRs(const par_type& p1, const par_type& p2)noexcept;
+bool        prm_compare_VECTs(const vec_type& v1, const vec_type& v2)noexcept;
+bool        prm_compare_EXPRs(const scm_list& l1, const scm_list& l2)noexcept;
+bool        prm_compare_SNTXs(const syn_type& s1, const syn_type& s2)noexcept;
 bool        data_is_the_empty_expression(const data& d)noexcept;
-void        shallow_unpack_list_into_exp(data& curr_pair, scm_list& args_list);
-num_type    primitive_guarenteed_list_length(const data& d);
-list_status primitive_list_is_acyclic_and_null_terminated(const data& curr_pair);
+void        shallow_unpack_list_into_exp(data& curr_pair, scm_list& args_list)noexcept;
+num_type    primitive_guarenteed_list_length(const data& d)noexcept;
+list_status primitive_list_is_acyclic_and_null_terminated(const data& curr_pair)noexcept;
+scm_list    primitive_read_from_port(FILE* outs, FILE* ins);
 constexpr bool IS_OPEN_PAREN(const char& c) noexcept;
 constexpr bool IS_CLOSE_PAREN(const char& c) noexcept;
 
@@ -204,7 +206,7 @@ void confirm_unary_numeric(const scm_list& args, const char* primitive_name,
 ******************************************************************************/
 
 bool prm_compare_atomic_values(const data_value_field& v1, 
-                               const data_value_field& v2, const types& t){
+                               const data_value_field& v2, const types& t)noexcept{
   switch(t) {
     case types::undefined: case types::dne: case types::exe: return true;
     case types::num: return v1.num == v2.num && v1.num.is_exact() == v2.num.is_exact();
@@ -227,7 +229,7 @@ bool prm_compare_atomic_values(const data_value_field& v1,
 }
 
 
-bool prm_compare_EXPRs(const scm_list& l1, const scm_list& l2) {
+bool prm_compare_EXPRs(const scm_list& l1, const scm_list& l2)noexcept{
   if(l1.size() != l2.size()) return false;
   for(size_type i = 0, n = l1.size(); i < n; ++i) {
     if(l1[i].type != l2[i].type) return false; // compare types
@@ -247,8 +249,8 @@ bool prm_compare_EXPRs(const scm_list& l1, const scm_list& l2) {
 }
 
 
-bool prm_compare_PAIRs(const par_type& p1, const par_type& p2) {
-  if(p1->first.type != p2->first.type || p1->second.type != p2->second.type) 
+bool prm_compare_PAIRs(const par_type& p1, const par_type& p2)noexcept{
+  if(!p1 || !p2 || p1->first.type != p2->first.type || p1->second.type != p2->second.type)
     return false;
   auto& p1_car = p1->first, &p2_car = p2->first;
   auto& p1_cdr = p1->second, &p2_cdr = p2->second;
@@ -272,12 +274,12 @@ bool prm_compare_PAIRs(const par_type& p1, const par_type& p2) {
 }
 
 
-bool prm_compare_VECTs(const vec_type& v1, const vec_type& v2) {
+bool prm_compare_VECTs(const vec_type& v1, const vec_type& v2)noexcept{
   return prm_compare_EXPRs(*v1, *v2);
 }
 
 
-bool prm_compare_SNTXs(const syn_type& s1, const syn_type& s2){
+bool prm_compare_SNTXs(const syn_type& s1, const syn_type& s2)noexcept{
   frame_var label;
   frame_vars keywords;
   std::vector<scm_list> patterns;
@@ -534,7 +536,7 @@ template<typename SEQUENCE_PTR>
 data primitive_STATIC_SEQUENCE_COUNT_template(scm_list& args, SEQUENCE_PTR seq_ptr, env_type& env){
   size_type count = 0;
   for(auto& d : *(args[1].value.*seq_ptr)){
-    scm_list count_args({data(d)});
+    scm_list count_args(1); count_args[0] = d;
     count += size_type(is_true_scm_condition(args[0].value.exp,count_args,env));
   }
   return num_type(count);
@@ -547,7 +549,7 @@ data prm_sequence_selective_iteration_template(scm_list& args, const types& seq_
                                                SEQUENCE_PTR seq_ptr, env_type& env){
   scm_list pruned_sequence;
   for(auto& d : *(args[1].value.*seq_ptr)){
-    scm_list pruning_args({data(d)});
+    scm_list pruning_args(1); pruning_args[0] = d;
     if(truth_proc(args[0].value.exp,pruning_args,env)) // true = filter, false = rm
       pruned_sequence.push_back(data(d));
   }
@@ -617,7 +619,7 @@ size_type primitive_get_if_valid_string_idx(const scm_list& args,const char* nam
 }
 
 
-scm_string lowercase_str(const scm_string& s) {
+scm_string lowercase_str(const scm_string& s)noexcept{
   scm_string tmp;
   for(const auto& ch : s) tmp += mklower(ch);
   return tmp;
@@ -673,7 +675,7 @@ data prm_trim_left_of_string(scm_list& args, env_type& env) {
     for(; i < n && isspace(str[i]); ++i);
   } else {
     for(; i < n; ++i) { // while predicate is true, trim character
-      scm_list proc_args({data(chr_type(str[i]))});
+      scm_list proc_args(1); proc_args[0] = data(chr_type(str[i]));
       if(is_false_scm_condition(args[1].value.exp,proc_args,env))
         break;
     }
@@ -692,13 +694,14 @@ data prm_trim_right_of_string(scm_list& args, env_type& env) {
     for(; i > 0 && isspace(str[i]); --i);
     if(i == 0 && isspace(str[i])) return make_str("");
   } else {
+    scm_list proc_args(1); 
     for(; i > 0; --i) { // while predicate is true, trim character
-      scm_list proc_args({data(chr_type(str[i]))});
+      proc_args[0] = data(chr_type(str[i]));
       if(is_false_scm_condition(args[1].value.exp,proc_args,env))
         break;
     }
-    if(scm_list proc_args({data(chr_type(str[i]))});
-       i == 0 && is_true_scm_condition(args[1].value.exp,proc_args,env)){
+    proc_args[0] = data(chr_type(str[i]));
+    if(i == 0 && is_true_scm_condition(args[1].value.exp,proc_args,env)){
       return make_str("");
     }
   }
@@ -832,7 +835,7 @@ void confirm_nth_cdr_is_pair(const data& nth_arg,const char* name,
 ******************************************************************************/
 
 // "list" primitive proper-list construction helper
-data primitive_LIST_to_CONS_constructor(const scm_node& obj, const scm_node& null_obj){
+data primitive_LIST_to_CONS_constructor(const scm_node& obj, const scm_node& null_obj)noexcept{
   if(obj == null_obj) return symconst::emptylist;
   data new_pair = data(make_par());
   new_pair.value.par->first = *obj;
@@ -842,7 +845,7 @@ data primitive_LIST_to_CONS_constructor(const scm_node& obj, const scm_node& nul
 
 
 // "list*" primitive dotted-list construction helper
-data primitive_LIST_STAR_to_CONS_constructor(const scm_node& obj, const scm_node& null_obj){
+data primitive_LIST_STAR_to_CONS_constructor(const scm_node& obj, const scm_node& null_obj)noexcept{
   if(obj+1 == null_obj) return *obj;
   data new_pair = data(make_par());
   new_pair.value.par->first = *obj;
@@ -853,7 +856,7 @@ data primitive_LIST_STAR_to_CONS_constructor(const scm_node& obj, const scm_node
 
 // "circular-list" primitive construction helper
 data primitive_CIRCULAR_LIST_to_CONS_constructor(const scm_node& obj,       const scm_node& null_obj, 
-                                                 const data& head = data{}, const bool& past_head = false){
+                                                 const data& head = data{}, const bool& past_head = false)noexcept{
   data new_pair = data(make_par());
   new_pair.value.par->first = *obj;
   if(obj+1 == null_obj) {
@@ -872,7 +875,7 @@ data primitive_CIRCULAR_LIST_to_CONS_constructor(const scm_node& obj,       cons
 
 // "length" & "length+" primitive helper
 void primitive_list_LENGTH_computation(const data& curr_pair, num_type& exact_count, 
-                                                              size_type count = 1){
+                                                              size_type count = 1)noexcept{
   if(count == MAX_SIZE_TYPE) {
     exact_count += count;
     count = 0;
@@ -891,7 +894,7 @@ void primitive_LIST_COUNT_computation(const data& curr_pair, num_type& exact_cou
     count = 0;
   }
   if(curr_pair.is_type(types::par)) {
-    scm_list args({curr_pair.value.par->first});
+    scm_list args(1); args[0] = curr_pair.value.par->first;
     count += size_type(is_true_scm_condition(pred,args,env)); // if(pred(elt)) ++count
     primitive_LIST_COUNT_computation(curr_pair.value.par->second,exact_count,pred,env,count+1);
   }
@@ -931,17 +934,15 @@ list_status primitive_list_is_acyclic_and_null_terminated(const data& curr_pair)
 
 
 // "alist?" primitive helper
-bool primitive_list_only_contains_pairs(const data& curr_pair) {
-  if(!curr_pair.value.par->first.is_type(types::par))
-    return false;
-  if(!curr_pair.value.par->second.is_type(types::par))
-    return true;
+bool primitive_list_only_contains_pairs(const data& curr_pair)noexcept{
+  if(!curr_pair.value.par->first.is_type(types::par))  return false;
+  if(!curr_pair.value.par->second.is_type(types::par)) return true;
   return primitive_list_only_contains_pairs(curr_pair.value.par->second);
 }
 
 
 // "last-pair" primitive helper
-data primitive_LAST_iteration(const data& curr_pair, const bool& last_pair){
+data primitive_LAST_iteration(const data& curr_pair, const bool& last_pair)noexcept{
   if(curr_pair.value.par->second.is_type(types::par)) 
     return primitive_LAST_iteration(curr_pair.value.par->second, last_pair);
   if(last_pair) return curr_pair;
@@ -953,7 +954,7 @@ data primitive_LAST_iteration(const data& curr_pair, const bool& last_pair){
 ******************************************************************************/
 
 // Compute length of a guarenteed 'data' list (avoids redundant error handling)
-num_type primitive_guarenteed_list_length(const data& d) {
+num_type primitive_guarenteed_list_length(const data& d)noexcept{
   if(data_is_the_empty_expression(d)) return num_type();
   num_type count;
   primitive_list_LENGTH_computation(d.value.par->second,count);
@@ -981,7 +982,7 @@ void primitive_confirm_proper_same_sized_lists(const scm_list& lists,const char*
 
 // Adds cars to 'args' & advances cdrs. Returns whether lists are empty
 bool check_empty_list_else_acquire_cars_advance_cdrs(scm_list& curr_pairs, 
-                                                     scm_list& args){
+                                                     scm_list& args)noexcept{
   // Return if fully iterated through each list
   if(!curr_pairs[0].is_type(types::par)) return true;
   // Add each arg for 'proc' & advance each list's head ptr
@@ -1028,7 +1029,7 @@ void primitive_FILTER_list_constructor(data& curr_pair, scm_list& proc,
   // Return if fully iterated through the list
   if(!curr_pair.is_type(types::par)) return;
   // Execute proc, store result, & recurse down the rest of the lists
-  scm_list arg({curr_pair.value.par->first});
+  scm_list arg(1); arg[0] = curr_pair.value.par->first;
   if(is_true_scm_condition(proc,arg,env))
     filtered_list.push_back(curr_pair.value.par->first);
   // Recurse through the rest of the list
@@ -1092,7 +1093,7 @@ void primitive_UNFOLD_template(scm_list& args,scm_list& unfolded,
   auto& break_condition = args[0].value.exp;
   auto& mapper          = args[1].value.exp;
   auto& successor       = args[2].value.exp;
-  scm_list seed({args[3]});
+  scm_list seed(1); seed[0] = args[3];
   while(is_false_scm_condition(break_condition,seed,env)) {
     unfolded.push_back(data_cast(execute_application(std::move(mapper),seed,env)));
     seed[0] = data_cast(execute_application(std::move(successor),seed,env));
@@ -1107,9 +1108,10 @@ void primitive_UNFOLD_template(scm_list& args,scm_list& unfolded,
 //   & returns a sublist w/ 'obj' as its 'car' if found. Else returns #f
 data primitive_MEM_car_comparison(data& curr_pair, const data& obj, 
                                                    const prm_type& equality_fcn){
-  if(!curr_pair.is_type(types::par))
-    return FALSE_DATA_BOOLEAN;
-  if(scm_list args({curr_pair.value.par->first, obj}); equality_fcn(args).value.bol.val)
+  if(!curr_pair.is_type(types::par)) return FALSE_DATA_BOOLEAN;
+  scm_list args(2);
+  args[0] = curr_pair.value.par->first, args[1] = obj;
+  if(equality_fcn(args).value.bol.val)
     return curr_pair;
   return primitive_MEM_car_comparison(curr_pair.value.par->second, obj, equality_fcn);
 }
@@ -1147,8 +1149,9 @@ data primitive_ASSOCIATION_key_seeker(data& curr_pair,  const data& obj,
     THROW_ERR('\''<<name<<" 2nd arg "<<head
       <<" isn't a proper association list (list of pairs)!"
       "\n     ("<<name<<" <obj> <association-list>)"<<FCN_ERR(name,args));
-  if(scm_list args({curr_pair.value.par->first.value.par->first, obj}); 
-     equality_fcn(args).value.bol.val)
+  scm_list eq_args(2);
+  eq_args[0] = curr_pair.value.par->first.value.par->first, eq_args[1] = obj;
+  if(equality_fcn(eq_args).value.bol.val)
     return curr_pair.value.par->first;
   return primitive_ASSOCIATION_key_seeker(curr_pair.value.par->second, 
                                           obj,head,name,equality_fcn,args);
@@ -1257,7 +1260,7 @@ data primtive_compute_seq_length(scm_list& args, const char* name, const char* f
 
 
 // ************************ "reverse" helpers ************************
-data primitive_list_reverse_logic(data& d) {
+data primitive_list_reverse_logic(data& d)noexcept{
   scm_list par_as_exp;
   shallow_unpack_list_into_exp(d, par_as_exp);
   std::reverse(par_as_exp.begin(),par_as_exp.end());
@@ -1266,7 +1269,7 @@ data primitive_list_reverse_logic(data& d) {
 
 template<typename SEQUENCE_PTR, typename SEQUENCE_CTOR>
 data primitive_reverse_copy_STATIC_SEQUENCE_logic(data& d, SEQUENCE_PTR seq_ptr, 
-                                                  SEQUENCE_CTOR make_sequence){
+                                                  SEQUENCE_CTOR make_sequence)noexcept{
   auto reversed_sequence(*(d.value.*seq_ptr));
   std::reverse(reversed_sequence.begin(), reversed_sequence.end());
   return make_sequence(reversed_sequence);
@@ -1274,13 +1277,13 @@ data primitive_reverse_copy_STATIC_SEQUENCE_logic(data& d, SEQUENCE_PTR seq_ptr,
 
 
 // ************************ "reverse!" helpers ************************
-data primitive_list_reverse_bang_logic(data& d) {
+data primitive_list_reverse_bang_logic(data& d)noexcept{
   *d.value.par = *primitive_list_reverse_logic(d).value.par;
   return VOID_DATA_OBJECT;
 }
 
 template<typename SEQUENCE_PTR>
-data primitive_reverse_bang_STATIC_SEQUENCE_logic(data& d, SEQUENCE_PTR seq_ptr){
+data primitive_reverse_bang_STATIC_SEQUENCE_logic(data& d, SEQUENCE_PTR seq_ptr)noexcept{
   std::reverse((d.value.*seq_ptr)->begin(), (d.value.*seq_ptr)->end());
   return VOID_DATA_OBJECT;
 }
@@ -1316,7 +1319,7 @@ data primitive_list_for_each_logic(scm_list& args, env_type& env, const char* fo
 
 
 // ************************ "copy" helper ************************
-data primitive_list_copy_logic(const data& curr_pair){
+data primitive_list_copy_logic(const data& curr_pair)noexcept{
   if(!curr_pair.is_type(types::par)) return symconst::emptylist;
   data new_pair = data(make_par());
   new_pair.value.par->first = curr_pair.value.par->first;
@@ -1328,13 +1331,13 @@ data primitive_list_copy_logic(const data& curr_pair){
 // ************************ "reverse-copy" helpers ************************
 template<typename SEQUENCE_PTR, typename SEQUENCE_CTOR>
 data primitive_STATIC_SEQUENCE_reverse_copy_logic(data& d, SEQUENCE_PTR seq_ptr, 
-                                                  SEQUENCE_CTOR make_sequence){
+                                                  SEQUENCE_CTOR make_sequence)noexcept{
   auto new_sequence(*(d.value.*seq_ptr));
   std::reverse(new_sequence.begin(),new_sequence.end());
   return make_sequence(new_sequence);
 }
 
-data primitive_list_reverse_copy_logic(data& d){
+data primitive_list_reverse_copy_logic(data& d)noexcept{
   scm_list par_as_exp;
   shallow_unpack_list_into_exp(d, par_as_exp);
   std::reverse(par_as_exp.begin(),par_as_exp.end());
@@ -1412,7 +1415,7 @@ data primitive_subvector_extraction(scm_list& args, const char* format) {
 // recursively mk sublist from 'curr_pair's [start,end)
 void primitive_MK_SUBLIST_recur(data& curr_pair,      const size_type& start, 
                                 const size_type& end, const size_type& count, 
-                                                      scm_list& list_exp){
+                                                      scm_list& list_exp)noexcept{
   if(count == end || !curr_pair.is_type(types::par)) return;
   if(count >= start) list_exp.push_back(curr_pair.value.par->first);
   primitive_MK_SUBLIST_recur(curr_pair.value.par->second, start, end, count+1, list_exp);
@@ -1463,7 +1466,7 @@ void primitive_list_set_index_applicator(data& curr_pair, const size_type& idx, 
 
 
 // ************************ "fill!" helper ************************
-data primitive_vector_fill_logic(scm_list& args) {
+data primitive_vector_fill_logic(scm_list& args)noexcept{
   for(size_type i = 0, n = args[0].value.vec->size(); i < n; ++i)
     args[0].value.vec->operator[](i) = args[1];
   return VOID_DATA_OBJECT;
@@ -1478,7 +1481,7 @@ data primitive_string_fill_logic(scm_list& args, const char* format){
   return VOID_DATA_OBJECT;
 }
 
-data primitive_list_fill_logic(data& curr_pair, data& fill_value){
+data primitive_list_fill_logic(data& curr_pair, data& fill_value)noexcept{
   if(!curr_pair.is_type(types::par)) return VOID_DATA_OBJECT;
   curr_pair.value.par->first = fill_value;
   return primitive_list_fill_logic(curr_pair.value.par->second,fill_value);
@@ -1486,7 +1489,7 @@ data primitive_list_fill_logic(data& curr_pair, data& fill_value){
 
 
 // ************************ "append" helpers ************************
-void shallow_unpack_possibly_dotted_list_into_exp(data& curr_pair, scm_list& args_list){
+void shallow_unpack_possibly_dotted_list_into_exp(data& curr_pair, scm_list& args_list)noexcept{
   if(curr_pair.is_type(types::par)) {
     args_list.push_back(curr_pair.value.par->first);
     shallow_unpack_possibly_dotted_list_into_exp(curr_pair.value.par->second, args_list); 
@@ -1495,7 +1498,7 @@ void shallow_unpack_possibly_dotted_list_into_exp(data& curr_pair, scm_list& arg
   }
 }
 
-data make_deep_copy_of_list(data& curr_pair) {
+data make_deep_copy_of_list(data& curr_pair)noexcept{
   if(!curr_pair.is_type(types::par)) return curr_pair;
   data new_pair = data(make_par());
   new_pair.value.par->first = curr_pair.value.par->first;
@@ -1503,7 +1506,7 @@ data make_deep_copy_of_list(data& curr_pair) {
   return new_pair;
 }
 
-void primitive_appended_deep_copy_of_RHS_to_mutated_LHS(data& LHS, data& RHS) {
+void primitive_appended_deep_copy_of_RHS_to_mutated_LHS(data& LHS, data& RHS)noexcept{
   if(!LHS.value.par->second.is_type(types::par)) {
     LHS.value.par->second = make_deep_copy_of_list(RHS);
     return;
@@ -1590,7 +1593,8 @@ data primitive_list_append_logic(scm_list& args, const char* format){
 // ************************ "remove" helper ************************
 data primitive_remove_list_logic(data& curr_pair, scm_list& proc, env_type& env) {
   if(curr_pair.is_type(types::par)) {
-    scm_list pruning_args({curr_pair.value.par->first});
+    scm_list pruning_args(1);
+    pruning_args[0] = curr_pair.value.par->first;
     if(is_false_scm_condition(proc,pruning_args,env)){
       data new_pair = data(make_par());
       new_pair.value.par->first = curr_pair.value.par->first;
@@ -1630,7 +1634,7 @@ data primitive_list_delete_logic(scm_list& args, const char* format){
 
 
 // ************************ "last" helper ************************
-data primitive_list_last_logic(const data& curr_pair) {
+data primitive_list_last_logic(const data& curr_pair)noexcept{
   if(!curr_pair.value.par->second.is_type(types::par))
     return curr_pair.value.par->first;
   return primitive_list_last_logic(curr_pair.value.par->second); 
@@ -1638,7 +1642,7 @@ data primitive_list_last_logic(const data& curr_pair) {
 
 
 // ************************ "init" helper ************************
-data primitive_list_init_logic(const data& curr_pair){
+data primitive_list_init_logic(const data& curr_pair)noexcept{
   if(!curr_pair.value.par->second.is_type(types::par)) 
     return symconst::emptylist;
   data new_pair = data(make_par());
@@ -1720,7 +1724,7 @@ data prm_search_STATIC_SEQUENCE_from_left(scm_list& args, SEQUENCE_PTR seq_ptr,
   if((args[1].value.*seq_ptr)->empty()) return FALSE_DATA_BOOLEAN;
   const auto& sequence = *(args[1].value.*seq_ptr);
   for(size_type i = 0, n = sequence.size(); i < n; ++i) {
-    scm_list proc_args({data(sequence[i])});
+    scm_list proc_args(1); proc_args[0] = data(sequence[i]);
     if(truth_proc(args[0].value.exp,proc_args,env))
       return num_type(i);
   }
@@ -1731,7 +1735,7 @@ template <bool(*truth_proc)(scm_list&,scm_list&,env_type&)>
 data prm_search_list_from_left(data& curr_pair,scm_list& proc,env_type& env,
                                                   const size_type& count=0){
   if(!curr_pair.is_type(types::par)) return FALSE_DATA_BOOLEAN;
-  scm_list proc_args({curr_pair.value.par->first});
+  scm_list proc_args(1); proc_args[0] = curr_pair.value.par->first;
   if(truth_proc(proc,proc_args,env)) return num_type(count);
   return prm_search_list_from_left<truth_proc>(curr_pair.value.par->second,proc,env,count+1);
 }
@@ -1744,7 +1748,7 @@ data prm_search_STATIC_SEQUENCE_from_right(scm_list& args, SEQUENCE_PTR seq_ptr,
   if((args[1].value.*seq_ptr)->empty()) return FALSE_DATA_BOOLEAN;
   const auto& sequence = *(args[1].value.*seq_ptr);
   for(size_type i = sequence.size(); i-- > 0;) {
-    scm_list proc_args({data(sequence[i])});
+    scm_list proc_args(1); proc_args[0] = data(sequence[i]);
     if(truth_proc(args[0].value.exp,proc_args,env))
       return num_type(i);
   }
@@ -1756,7 +1760,7 @@ data prm_search_list_from_right(scm_list& args, env_type& env){
   scm_list sequence;
   shallow_unpack_list_into_exp(args[1],sequence);
   for(size_type i = sequence.size(); i-- > 0;) {
-    scm_list proc_args({data(sequence[i])});
+    scm_list proc_args(1); proc_args[0] = data(sequence[i]);
     if(truth_proc(args[0].value.exp,proc_args,env))
       return num_type(i);
   }
@@ -1910,7 +1914,7 @@ data primitive_drop_while_GENERIC_logic(SEQUENCE_TYPE& sequence,
                                         scm_list& proc, env_type& env){
   size_type i = 0;
   for(const size_type n = sequence.size(); i < n; ++i){
-    scm_list arg({data(sequence[i])});
+    scm_list arg(1); arg[0] = data(sequence[i]);
     if(is_false_scm_condition(proc,arg,env)) break;
   }
   // Lists DON'T require a C++ ctor to mk a Heist sequence from iterators
@@ -1929,7 +1933,7 @@ data primitive_drop_right_while_GENERIC_logic(SEQUENCE_TYPE& sequence,
                                               scm_list& proc, env_type& env){
   size_type i = sequence.size();
   for(; i-- > 0;){
-    scm_list arg({data(sequence[i])});
+    scm_list arg(1); arg[0] = data(sequence[i]);
     if(is_false_scm_condition(proc,arg,env)) break;
   }
   if constexpr (MAKING_A_LIST) { // See "primitive_drop_while_GENERIC_logic"
@@ -1947,7 +1951,7 @@ data primitive_take_while_GENERIC_logic(SEQUENCE_TYPE& sequence,
                                         scm_list& proc, env_type& env){
   size_type i = 0;
   for(const size_type n = sequence.size(); i < n; ++i){
-    scm_list arg({data(sequence[i])});
+    scm_list arg(1); arg[0] = data(sequence[i]);
     if(is_false_scm_condition(proc,arg,env)) break;
   }
   if constexpr (MAKING_A_LIST) { // See "primitive_drop_while_GENERIC_logic"
@@ -1965,7 +1969,7 @@ data primitive_take_right_while_GENERIC_logic(SEQUENCE_TYPE& sequence,
                                               scm_list& proc, env_type& env){
   size_type i = sequence.size();
   for(; i-- > 0;){
-    scm_list arg({data(sequence[i])});
+    scm_list arg(1); arg[0] = data(sequence[i]);
     if(is_false_scm_condition(proc,arg,env)) break;
   }
   if constexpr (MAKING_A_LIST) { // See "primitive_drop_while_GENERIC_logic"
@@ -2108,7 +2112,7 @@ data cast_ast_sequence_to_scheme(const types& seq_type, scm_list& sequence,
 
 
 // Convert the given pair or vector to an AST sequence
-void cast_scheme_sequence_to_ast(data& scm_sequence,scm_list& sequence){
+void cast_scheme_sequence_to_ast(data& scm_sequence,scm_list& sequence)noexcept{
   if(scm_sequence.type == types::vec) {
     sequence = *scm_sequence.value.vec;
   } else if(scm_sequence.type == types::par) {
@@ -2140,7 +2144,8 @@ data primitive_sort_sequence(scm_list& args, env_type& env, const char* name,
     std::sort(sequence.begin(), sequence.end(),
       [procedure=std::move(args[0].value.exp),env=std::move(env)]
       (data& lhs, data& rhs) mutable {
-        scm_list args_list({lhs, rhs});
+        scm_list args_list(2);
+        args_list[0] = lhs, args_list[1] = rhs;
         return is_true_scm_condition(procedure,args_list,env);
       });
   }
@@ -2163,7 +2168,9 @@ void primitive_MERGE_list_constructor(scm_list& curr_pairs, scm_list& proc,
     return;
   }
   // Test proc, merge appropriate arg, & recurse down the rest of the lists
-  scm_list args({curr_pairs[0].value.par->first, curr_pairs[1].value.par->first});
+  scm_list args(2);
+  args[0] = curr_pairs[0].value.par->first;
+  args[1] = curr_pairs[1].value.par->first;
   if(is_true_scm_condition(proc,args,env)) {
     merged_list.push_back(args[0]);
     curr_pairs[0] = curr_pairs[0].value.par->second;
@@ -2185,8 +2192,9 @@ data primitive_MERGE_vector_string_constructor(scm_list& args, scm_list& merged,
   size_type i = 0, j = 0;
   // Merge sequences
   for(; i < n1 && j < n2;) {
-    scm_list args({sequence1[i], sequence2[j]});
-    if(is_true_scm_condition(proc,args,env))
+    scm_list eq_args(2);
+    eq_args[0] = sequence1[i], eq_args[1] = sequence2[j];
+    if(is_true_scm_condition(proc,eq_args,env))
       merged.push_back(sequence1[i]), ++i;
     else
       merged.push_back(sequence2[j]), ++j;
@@ -2201,7 +2209,7 @@ data primitive_MERGE_vector_string_constructor(scm_list& args, scm_list& merged,
 
 
 // Mutates 'sequence_target' by assigning its value to 'sequence_source'
-data mutatable_assign_scm_sequence(data& sequence_target, data&& sequence_source){
+data mutatable_assign_scm_sequence(data& sequence_target, data&& sequence_source)noexcept{
   if(sequence_target.is_type(types::vec))
     *sequence_target.value.vec = *sequence_source.value.vec;
   else if(sequence_target.is_type(types::par))
@@ -2235,10 +2243,11 @@ data primitive_DELETE_NEIGHBOR_DUPS_template(scm_list& args,     const char* nam
     return cast_ast_sequence_to_scheme(seq_type,sequence,name,format,args);
   }
   // rm duplicates from the sequence
-  scm_list new_sequence({sequence[0]});
+  scm_list new_sequence(1); new_sequence[0] = sequence[0];
   auto& procedure = args[0].value.exp;
   for(size_type i=1, j=0, n = sequence.size(); i < n; ++i) {
-    scm_list args_list({new_sequence[j],sequence[i]});
+    scm_list args_list(2);
+    args_list[0] = new_sequence[j], args_list[1] = sequence[i];
     if(is_false_scm_condition(procedure,args_list,env))
       new_sequence.push_back(sequence[i]), ++j;
   }
@@ -2253,20 +2262,20 @@ data primitive_DELETE_NEIGHBOR_DUPS_template(scm_list& args,     const char* nam
 ******************************************************************************/
 
 // [ EVAL ] Confirms whether given data is the AST's repn of ()
-bool data_is_the_empty_expression(const data& d) noexcept {
+bool data_is_the_empty_expression(const data& d)noexcept{
   return d.is_type(types::sym) && d.value.sym==THE_EMPTY_LIST;
 }
 
 
 // [ EVAL ] Confirms pair is the invocation of an argless procedure
-bool evaling_an_argless_procedure(const par_type& par) {
+bool evaling_an_argless_procedure(const par_type& par)noexcept{
   return primitive_IS_THE_EMPTY_LIST(par->second);
 }
 
 
 // [ EVAL ] Converts the given pair into an expression ('deep' b/c it 
 //   also recursively converts ALL nested pairs into expressions too)
-void deep_unpack_list_into_exp(data& curr_pair, scm_list& args_list) {
+void deep_unpack_list_into_exp(data& curr_pair, scm_list& args_list)noexcept{
   if(curr_pair.is_type(types::par)) {
     // Recursively unpack nested lists
     if(curr_pair.value.par->first.is_type(types::par)) {
@@ -2275,7 +2284,7 @@ void deep_unpack_list_into_exp(data& curr_pair, scm_list& args_list) {
       args_list.push_back(nested_list);
     // Convert the empty list to an empty expression
     } else if(data_is_the_empty_expression(curr_pair.value.par->first)) {
-      args_list.push_back(scm_list({}));
+      args_list.push_back(scm_list{});
     // Unpack atomic obj
     } else {
       args_list.push_back(curr_pair.value.par->first);
@@ -2290,7 +2299,7 @@ void deep_unpack_list_into_exp(data& curr_pair, scm_list& args_list) {
 
 // [ APPLY ] Converts the given pair into an expression ('shallow' b/c it 
 //   doesn't recursively convert ALL nested pairs into expressions too) 
-void shallow_unpack_list_into_exp(data& curr_pair, scm_list& args_list) {
+void shallow_unpack_list_into_exp(data& curr_pair, scm_list& args_list)noexcept{
   if(curr_pair.is_type(types::par)) {
     args_list.push_back(curr_pair.value.par->first);
     shallow_unpack_list_into_exp(curr_pair.value.par->second, args_list); 
@@ -2334,7 +2343,7 @@ bool data_is_stream_pair(const data& d)noexcept{
 }
 
 
-bool data_is_stream(const data& d) {
+bool data_is_stream(const data& d)noexcept{
   return data_is_the_empty_expression(d) || data_is_stream_pair(d);
 }
 
@@ -2404,9 +2413,11 @@ data get_stream_data_cdr(data&& d, const char * const name,
 // "stream" special form helper fcn: recursively constructs embedded sconses
 data primitive_STREAM_to_SCONS_constructor(const scm_node& obj, 
                                            const scm_node& null_obj,
-                                           env_type& env){
-  if(obj == null_obj)
-    return data(scm_list({symconst::list})); // becomes '() once forced
+                                           env_type& env)noexcept{
+  if(obj == null_obj) {
+    scm_list empty_list(1); empty_list[0] = symconst::list;
+    return empty_list; // becomes '() once forced
+  }
   data new_stream_pair = data(make_par());
   new_stream_pair.value.par->first  = make_delay(scm_list_cast(*obj),env);
   new_stream_pair.value.par->second = make_delay(
@@ -2525,8 +2536,8 @@ void primitive_TAKE_SUBSTREAM_seeker(data&& curr_pair,    const size_type& n,
 data primitive_DROP_WHILE_ctor(data&& curr_pair, scm_list& proc, env_type& env){
   if(!data_is_stream_pair(curr_pair))
     return std::move(curr_pair);
-  if(scm_list args({get_stream_data_car(curr_pair)}); 
-    is_false_scm_condition(proc,args,env))
+  scm_list args(1); args[0] = get_stream_data_car(curr_pair);
+  if(is_false_scm_condition(proc,args,env))
     return std::move(curr_pair);
   return primitive_DROP_WHILE_ctor(get_stream_data_cdr(curr_pair),proc,env);
 }
@@ -2535,9 +2546,9 @@ data primitive_DROP_WHILE_ctor(data&& curr_pair, scm_list& proc, env_type& env){
 void primitive_TAKE_WHILE_ctor(data&& curr_pair, scm_list& proc, 
                                scm_list& substream, env_type& env){
   if(!data_is_stream_pair(curr_pair)) return;
-  if(scm_list args({get_stream_data_car(curr_pair)}); 
-    is_false_scm_condition(proc,args,env)) return;
-  substream.push_back(get_stream_data_car(curr_pair));
+  scm_list args(1); args[0] = get_stream_data_car(curr_pair);
+  if(is_false_scm_condition(proc,args,env)) return;
+  substream.push_back(args[0]);
   primitive_TAKE_WHILE_ctor(get_stream_data_cdr(curr_pair),proc,substream,env);
 }
 
@@ -2549,13 +2560,15 @@ void primitive_STREAM_FOLD_accumulator(data&& curr_pair, scm_list& proc,
   if(!data_is_stream_pair(curr_pair)) return;
   // Execute proc, accumulate result, & recurse down the rest of the lists
   if(folding_left) { // stream-fold is preorder
-    scm_list args({init_val, get_stream_data_car(curr_pair)});
+    scm_list args(2);
+    args[0] = init_val, args[1] = get_stream_data_car(curr_pair);
     init_val = data_cast(execute_application(std::move(proc),args,env));
   }
   primitive_STREAM_FOLD_accumulator(get_stream_data_cdr(curr_pair),
                                     proc,init_val,env,folding_left);
   if(!folding_left) { // stream-fold-right is postorder
-    scm_list args({get_stream_data_car(curr_pair), init_val});
+    scm_list args(2);
+    args[0] = get_stream_data_car(curr_pair), args[1] = init_val;
     init_val = data_cast(execute_application(std::move(proc),args,env));
   }
 }
@@ -2593,12 +2606,12 @@ void primitive_TEMPLATE_TAKE_DROP_VALIDATION(scm_list& args, const char* name,
     THROW_ERR('\''<<name<<" received incorrect # of args (given "
       << count_args(args) << "):" << format << FCN_ERR(name, args));
   // Confirm given a valid size
-  if(!primitive_is_valid_index(args[0]))
-    THROW_ERR('\''<<name<<' '<< PROFILE(args[0]) << " isn't a valid size!"
+  if(!primitive_is_valid_index(args[1]))
+    THROW_ERR('\''<<name<<' '<< PROFILE(args[1]) << " isn't a valid size!"
       << format << FCN_ERR(name, args));
   // Confirm given a stream
-  if(!data_is_stream(args[1]))
-    THROW_ERR('\''<<name<<' '<< PROFILE(args[1]) << " isn't a stream!"
+  if(!data_is_stream(args[0]))
+    THROW_ERR('\''<<name<<' '<< PROFILE(args[0]) << " isn't a stream!"
       << format << FCN_ERR(name, args));
 }
 
@@ -2624,7 +2637,7 @@ void primitive_TEMPLATE_TAKE_DROP_WHILE_VALIDATION(scm_list& args,
 // Determine whether input[i] is at a hex value.
 // POSTCONDITION: i is returned if input[i] is _NOT_ at a hex value.
 //                else, the index of the hex value's closing ';' is returned.
-size_type is_symbol_hex_val(size_type i, const size_type& n, const scm_string& input){
+size_type is_symbol_hex_val(size_type i, const size_type& n, const scm_string& input)noexcept{
   if(i < n-2 && input[i] == '\\' && input[i+1] == 'x') {
     auto j = i+2; // mv past the '\x' prefix
     while(input[j] && isalnum(input[j])) ++j;
@@ -2635,7 +2648,7 @@ size_type is_symbol_hex_val(size_type i, const size_type& n, const scm_string& i
 
 
 // primitive "symbol->string" conversion helper
-scm_string convert_symbol_to_string(const scm_string& string_val) {
+scm_string convert_symbol_to_string(const scm_string& string_val)noexcept{
   if(string_val.size() <= 2) return string_val;
   scm_string symbol_str;
   for(size_type i = 0, n = string_val.size(); i < n; ++i) {
@@ -2654,14 +2667,14 @@ scm_string convert_symbol_to_string(const scm_string& string_val) {
 
 
 // primitive "string->symbol" conversion helper
-scm_string convert_string_to_symbol(const scm_string& symbol_val) {
+scm_string convert_string_to_symbol(const scm_string& symbol_val)noexcept{
   if(symbol_val.empty()) return symbol_val;
   std::ostringstream symbol_str;
   symbol_str << std::hex << std::uppercase;
   const scm_string hex_chars = R"(()[]{}`'",;\)";
   // Convert chars in the string to their symbolic versions
   for(const auto& ch : symbol_val) {
-    if(hex_chars.find(ch) != scm_string::npos || isspace(ch)) 
+    if(isspace(ch) || hex_chars.find(ch) != scm_string::npos) 
       symbol_str << "\\x" << unsigned(ch) << ';';
     else 
       symbol_str << ch;
@@ -2682,7 +2695,7 @@ enum class READER_ERROR {
 
 
 // Confirm reader error is a non-repl-specific fatal error
-constexpr bool is_non_repl_reader_error(const READER_ERROR& err) {
+constexpr bool is_non_repl_reader_error(const READER_ERROR& err)noexcept{
   return err == READER_ERROR::incomplete_string || 
          err == READER_ERROR::incomplete_expression || 
          err == READER_ERROR::incomplete_comment;
@@ -2690,7 +2703,7 @@ constexpr bool is_non_repl_reader_error(const READER_ERROR& err) {
 
 
 // Alert error as per read's throw
-void alert_reader_error(FILE* outs, const READER_ERROR& read_error, const scm_string& input) {
+void alert_reader_error(FILE* outs, const READER_ERROR& read_error, const scm_string& input)noexcept{
   if(read_error == READER_ERROR::early_end_paren) {
     if(USING_ANSI_ESCAPE_SEQUENCES) {
       fputs("\n\x1b[1m\x1b[31m-----------\x1b[0m\x1b[1m--------------------------------\x1b[0m\n", outs);
@@ -2750,7 +2763,7 @@ void alert_reader_error(FILE* outs, const READER_ERROR& read_error, const scm_st
   }
 }
 
-void alert_non_repl_reader_error(FILE* outs, const READER_ERROR& read_error, const scm_string& input) {
+void alert_non_repl_reader_error(FILE* outs, const READER_ERROR& read_error, const scm_string& input)noexcept{
   if(read_error == READER_ERROR::incomplete_string) {
     if(USING_ANSI_ESCAPE_SEQUENCES) {
       fputs("\n\x1b[1m\x1b[31m-----------\x1b[0m\x1b[1m------------------------------------------\x1b[0m\n",outs);
@@ -2796,7 +2809,7 @@ void alert_non_repl_reader_error(FILE* outs, const READER_ERROR& read_error, con
   }
 }
 
-void alert_reader_error(FILE* outs, const size_type& read_error_index, const scm_string& input) {
+void alert_reader_error(FILE* outs, const size_type& read_error_index, const scm_string& input)noexcept{
   if(USING_ANSI_ESCAPE_SEQUENCES) {
     fputs("\n\x1b[1m\x1b[31m-----------\x1b[0m\x1b[1m---------------------------------------------\x1b[0m\n", outs);
     fprintf(outs,"\x1b[1m\x1b[31mREAD ERROR:\x1b[0m\x1b[1m Unparsable Type In Expression At Index = %03zu\x1b[0m\n",read_error_index);
@@ -2817,7 +2830,7 @@ void alert_reader_error(FILE* outs, const size_type& read_error_index, const scm
 ******************************************************************************/
 
 // Confirm character c is an escaped character
-constexpr bool is_escapable_char(const char& c) {
+constexpr bool is_escapable_char(const char& c)noexcept{
   return c=='\''||c=='"'||c=='?'||c=='\\'||c=='a'||
          c=='b' ||c=='f'||c=='n'||c=='r'||c=='t' ||
          c=='v';
@@ -2825,25 +2838,25 @@ constexpr bool is_escapable_char(const char& c) {
 
 
 // Constexpr isxdigit
-constexpr bool ishexdigit(const char& c) {
+constexpr bool ishexdigit(const char& c)noexcept{
   return (c>='0' && c<='9')||(c>='A' && c<='F')||(c>='a' && c<='f');
 }
 
 
 // Confirm char is an escape hexadecimal char
-constexpr bool is_hex_escape(const char& c, const char& c2) {
+constexpr bool is_hex_escape(const char& c, const char& c2)noexcept{
   return c=='x' && ishexdigit(c2);
 }
 
 
 // Confirm char is an escape octal char
-constexpr bool is_oct_escape(const char& c) {
+constexpr bool is_oct_escape(const char& c)noexcept{
   return c>='0' && c<='7';
 }
 
 
 // Retrieve the special character variant of the given escaped character
-constexpr char special_char_variant(const char& c) {
+constexpr char special_char_variant(const char& c)noexcept{
   switch(c) {
     case 'a': return '\a'; case 'b': return '\b';
     case 'f': return '\f'; case 'n': return '\n';
@@ -2854,17 +2867,17 @@ constexpr char special_char_variant(const char& c) {
 
 
 // Inserts the unescaped hex/oct as a char & rm's its escaped representation
-void insert_hex_oct_escaped_char(scm_string& str,size_type& i,const int& base){
+void insert_hex_oct_escaped_char(scm_string& str,size_type& i,const int& base)noexcept{
   str[i] = char(std::stoi(str.substr(i), nullptr, base));
   ++i;
-  auto is_parsed_digit = (base == 16) ? ishexdigit : is_oct_escape;
+  const auto is_parsed_digit = (base == 16) ? ishexdigit : is_oct_escape;
   while(str[i] && is_parsed_digit(str[i])) str.erase(i,1);
   --i; // account for 'unescape_chars's for-loop ++i
 }
 
 
 // Unescape escaped special characters in the given string
-void unescape_chars(scm_string& str) {
+void unescape_chars(scm_string& str)noexcept{
   for(size_type i = 0; i+1 < str.size(); ++i)
     if(str[i] == '\\') {
       if(is_escapable_char(str[i+1])) {
@@ -2883,26 +2896,68 @@ void unescape_chars(scm_string& str) {
 
 // Confirm given valid output args
 //  => NOTE: 'total_non_port_args' also doubles as the index of 
-//           where the port would be if it were given as an arg
-void confirm_valid_output_args(const scm_list& args, FILE*& outs, 
+//           where the port/string would be if it were given as an arg
+//  => NOTE: returns whether writing to a port (instead of a string)
+bool confirm_valid_output_args(const scm_list& args, FILE*& outs, 
                                const size_type& total_non_port_args,
                                const char* name, const char* format){
   // Confirm given 0 args if expected such
-  if(!total_non_port_args && no_args_given(args)) return;
-  // Confirm given enough non-port args if given no port
-  if(!no_args_given(args) && args.size()==total_non_port_args) return;
-  // Confirm given an open output port if received the optional port arg
+  if(!total_non_port_args && no_args_given(args)) return true;
+  // Confirm given enough non-port args if given no port/string
+  if(!no_args_given(args) && args.size()==total_non_port_args) return true;
+  // Confirm given an open output port if received the optional port/string arg
   if(!no_args_given(args) && args.size()==total_non_port_args+1) {
     if(args[total_non_port_args].is_type(types::fop) && 
        args[total_non_port_args].value.fop.is_open()) {
       outs = args[total_non_port_args].value.fop.port(); 
-      return;
+      return true;
+    } else if(args[total_non_port_args].is_type(types::str)) {
+      return false;
     } else {
       THROW_ERR('\''<< name <<" arg "<< PROFILE(args[total_non_port_args])
         << " isn't an open output port: "<< format << FCN_ERR(name,args));
     }
   }
   THROW_ERR('\''<<name<<" received incorrect # of args: "<<format<<FCN_ERR(name,args));
+  return true;
+}
+
+
+data primitive_display_string_logic(const data& obj, scm_string& write_to)noexcept{
+  if(obj.is_type(types::chr)) {
+    write_to += char(obj.value.chr);
+  } else if(obj.is_type(types::str)) {
+    if(!obj.value.str->empty()) {
+      scm_string str(*obj.value.str); // rm extra escaping '\' chars
+      unescape_chars(str);            // by cooking  the raw string
+      write_to += str;
+    }
+  } else if(!obj.is_type(types::dne)) {
+    write_to += obj.cio_str();
+  }
+  return VOID_DATA_OBJECT;
+}
+
+
+data primitive_display_port_logic(const data& obj, FILE*& outs)noexcept{
+  if(obj.is_type(types::chr)) {
+    fputc(obj.value.chr, outs);
+    if(obj.value.chr == '\n') // account for printing a newline
+      LAST_PRINTED_NEWLINE_TO_STDOUT = (outs == stdout);
+  } else if(obj.is_type(types::str)) {
+    if(!obj.value.str->empty()) {
+      scm_string str(*obj.value.str); // rm extra escaping '\' chars
+      unescape_chars(str);            // by cooking the raw string
+      fputs(str.c_str(), outs);
+      if(*str.rbegin() == '\n') // account for printed newlines
+        LAST_PRINTED_NEWLINE_TO_STDOUT = (outs == stdout);  
+    }
+  } else if(!obj.is_type(types::dne)) {
+    fputs(obj.cio_str().c_str(), outs);
+  }
+  fflush(outs);
+  LAST_PRINTED_TO_STDOUT = (outs == stdout);
+  return VOID_DATA_OBJECT;
 }
 
 /******************************************************************************
@@ -2911,9 +2966,14 @@ void confirm_valid_output_args(const scm_list& args, FILE*& outs,
 
 // Confirm given valid input args, & return whether at the input file's EOF
 bool confirm_valid_input_args_and_non_EOF(const scm_list& args, FILE*& ins, 
-                                          const char* name, bool& reading_stdin){
+                                          const char* name, bool& reading_stdin,
+                                                            bool& reading_string){
   if(!no_args_given(args)) {
     if(args.size() == 1) {
+      if((reading_string = args[0].is_type(types::str))) {
+        reading_stdin = false;
+        return !args[0].value.str->empty();
+      }
       if(args[0].is_type(types::fip) && args[0].value.fip.is_open()) {
         ins = args[0].value.fip.port();
         // NOT reading from stdin requires a specialized parsing algorithm
@@ -2924,16 +2984,65 @@ bool confirm_valid_input_args_and_non_EOF(const scm_list& args, FILE*& ins,
       } else {
         THROW_ERR('\''<< name <<" arg " << PROFILE(args[0]) <<
           " isn't an open input port:"
-          "\n     ("<< name <<" <optional-open-input-port>)" <<
+          "\n     ("<< name <<" <optional-open-input-port-or-string>)" <<
           FCN_ERR(name,args));
       }
     } else {
       THROW_ERR('\''<< name <<" received incorrect # of args:" 
-        "\n     ("<< name <<" <optional-open-input-port>)" <<
+        "\n     ("<< name <<" <optional-open-input-port-or-string>)" <<
         FCN_ERR(name,args));
     }
   }
   return true;
+}
+
+
+data primitive_read_from_input_port_logic(FILE*& outs, FILE*& ins, const bool& reading_stdin, 
+                                                                              env_type& env){
+  // Read input
+  scm_list read_data(2);
+  read_data[0] = symconst::quote;
+  if(reading_stdin) {
+    if(auto read_result = read_user_input(outs,ins,false); read_result.empty()) {
+      read_data[1] = VOID_DATA_OBJECT;
+    } else {
+      read_data[1] = std::move(read_result[0]);
+    }
+  } else {
+    read_data[1] = primitive_read_from_port(outs,ins)[0];
+  }
+  return data_cast(scm_eval(std::move(read_data), env));
+}
+
+
+data primitive_read_from_string_logic(scm_string& outs_str, env_type& env){
+  try {
+    scm_list read_data;
+    // attempt to parse an AST expression from the given string
+    unescape_chars(outs_str); // rm extra escaping '\' chars
+    parse_input_exp(scm_string(outs_str),read_data);
+    if(read_data.empty()) return symconst::emptylist;
+    // remove the parsed portion from the original string
+    prepare_string_for_AST_generation(outs_str);
+    size_type i = 0; // also trim prepending whitespace
+    for(size_type n = outs_str.size(); i < n && isspace(outs_str[i]); ++i);
+    outs_str.erase(0,i);
+    outs_str.erase(0,read_data[0].cio_str().size());
+    // return the parsed AST
+    scm_list quoted_read_data(2);
+    quoted_read_data[0] = symconst::quote, quoted_read_data[1] = std::move(read_data[0]);
+    return data_cast(scm_eval(std::move(quoted_read_data),env));
+  // throw error otherwise & return void data
+  } catch(const READER_ERROR& read_error) {
+    if(is_non_repl_reader_error(read_error))
+      alert_non_repl_reader_error(CURRENT_OUTPUT_PORT,read_error,outs_str);
+    else
+      alert_reader_error(CURRENT_OUTPUT_PORT,read_error,outs_str);
+  } catch(const size_type& read_error_index) {
+    alert_reader_error(CURRENT_OUTPUT_PORT,read_error_index,outs_str);
+  }
+  fflush(CURRENT_OUTPUT_PORT);
+  return VOID_DATA_OBJECT;
 }
 
 /******************************************************************************
@@ -2943,16 +3052,16 @@ bool confirm_valid_input_args_and_non_EOF(const scm_list& args, FILE*& ins,
 namespace read_port {
   // Determine the read char's length (for reading from a port)
   // PRECONDITION: input[i] = the 1st char after the '#\' of the char literal
-  size_type character_length(const size_type& i, const scm_string& input) {
-    if(auto [ch, name] = data_is_named_char(i,input); !name.empty()) 
-      return (input[i] == 'x' && isxdigit(input[i+1])) ? name.size()+1 : name.size();
+  size_type character_length(const size_type& i, const scm_string& input)noexcept{
+    if(auto [ch, name] = data_is_named_char(i,input); !name.empty())
+      return name.size() + (input[i] == 'x' && isxdigit(input[i+1]));
     return 1;
   }
 
 
   // Parse a char literal from "ins", rm excess letters from "input", & 
   //   mv "ins" back to be 1 char past the end of the char literal
-  void parse_char(FILE*& ins, scm_string& input) {
+  void parse_char(FILE*& ins, scm_string& input)noexcept{
     const size_type char_start = input.find("#\\")+2;
     if(char_start+2 > input.size()) return; // if parsing a single/null character
     const size_type char_length = character_length(char_start,input);
@@ -2965,20 +3074,20 @@ namespace read_port {
 
 
   // Confirm improper use for quote, quasiquote, & unquote
-  constexpr bool improper_quotation_char(const chr_type& c,const chr_type& c2){
+  constexpr bool improper_quotation_char(const chr_type& c,const chr_type& c2)noexcept{
     return (c == '\'' || c == '`' || c == ',') && (IS_CLOSE_PAREN(c2) || isspace(c2));
   }
 
 
   // Confirm improper use for unquote-splicing
   constexpr bool improper_quotation_char(const chr_type& c,const chr_type& c2,
-                                                           const chr_type& c3){
+                                                           const chr_type& c3)noexcept{
     return c == ',' && c2 == '@' && (IS_CLOSE_PAREN(c3) || isspace(c3));
   }
 
 
   // Confirm improper use for any quotation shorthand
-  bool improper_quotation(const scm_string& input) {
+  bool improper_quotation(const scm_string& input)noexcept{
     return (input.size() > 1 && 
             improper_quotation_char(*(input.end()-2),*input.rbegin())) 
            ||
@@ -2989,7 +3098,7 @@ namespace read_port {
 
 
   // Confirm quotation shorthand found at the end of the file
-  bool improper_EOF_quotation(const scm_string& input) {
+  bool improper_EOF_quotation(const scm_string& input)noexcept{
     return ((!input.empty() && 
              (*input.rbegin()=='\''||*input.rbegin()=='`'||*input.rbegin()==','))
             || 
@@ -3003,7 +3112,7 @@ namespace read_port {
 
   // Confirm just appended a valid open/close paren to 'input'
   bool is_valid_open_exp(const scm_string &input,  const size_type& paren_count,
-                         const bool& possible_vect,const bool& found_nonquote_data){
+                         const bool& possible_vect,const bool& found_nonquote_data)noexcept{
     return IS_OPEN_PAREN(*input.rbegin()) && (input.size() < 3 || 
                                               *(input.rbegin()+2) != '#' || 
                                               *(input.rbegin()+1) != '\\')
@@ -3013,7 +3122,7 @@ namespace read_port {
   }
 
 
-  bool is_valid_close_exp(const scm_string &input) {
+  bool is_valid_close_exp(const scm_string &input)noexcept{
     return IS_CLOSE_PAREN(*input.rbegin()) && (input.size() < 3 || 
                                                *(input.rbegin()+2) != '#' || 
                                                *(input.rbegin()+1) != '\\');
@@ -3151,7 +3260,10 @@ scm_list primitive_read_from_port(FILE* outs, FILE* ins) {
 
 
   // If read an empty file
-  if(input.empty()) return scm_list({data(chr_type(EOF))});
+  if(input.empty()) {
+    scm_list eof_char(1); eof_char[0] = data(chr_type(EOF));
+    return eof_char;
+  }
 
   // Confirm file didn't end mid-string or mid-expression
   if(in_a_string || paren_count) {
@@ -3205,7 +3317,7 @@ void confirm_given_one_string_arg(const scm_list& args, const char* name,
 
 
 // Confirm the given filename exists as a file
-bool confirm_file_exists(const char* filename) {
+bool confirm_file_exists(const char* filename)noexcept{
   FILE* existential_check = fopen(filename, "r");
   const bool exists = existential_check != nullptr;
   if(existential_check) fclose(existential_check);
@@ -3255,8 +3367,7 @@ FILE* confirm_valid_output_file(const data& filename, const char* name,
 // Confirm the port predicate was given 1 port
 void confirm_valid_port_predicate_arg(const scm_list& args,const char* name, 
                                                            const char* format){
-  if(no_args_given(args) || args.size() != 1)
-    THROW_ERR('\'' << name << " received incorrect # of args: "<<format<<FCN_ERR(name,args));
+  confirm_given_one_arg(args,name,"<port>");
   if(!args[0].is_type(types::fip) && !args[0].is_type(types::fop))
     THROW_ERR('\''<<name<<" arg "<<PROFILE(args[0])<<" isn't a port: "<<format<<FCN_ERR(name,args));
 }
@@ -3292,7 +3403,7 @@ data primitive_CALL_WITH_FILE(scm_list& args,     const char* name,
   // add file to the port registry
   PORT_REGISTRY.push_back(get_port(args[0],name,format,args));
   // apply the given procedure w/ a port to the file
-  scm_list port_arg({port_ctor(PORT_REGISTRY.size()-1)});
+  scm_list port_arg(1); port_arg[0] = port_ctor(PORT_REGISTRY.size()-1);
   return data_cast(execute_application(std::move(args[1].value.exp),port_arg,env));
 }
 
@@ -3314,8 +3425,10 @@ data primitive_WITH_FILE(scm_list& args,     const char* name,
   FILE* original_port = DEFAULT_PORT;
   DEFAULT_PORT = get_port(args[0], name, format, args);
   // apply the given procedure
-  auto null_arg = scm_eval(scm_list({symconst::quote, symconst::sentinel}),env);
-  auto result   = data_cast(execute_application(std::move(args[1].value.exp),null_arg,env));
+  scm_list null_arg_val(2);
+  null_arg_val[0] = symconst::quote, null_arg_val[1] = symconst::sentinel;
+  auto null_arg   = scm_eval(std::move(null_arg_val),env);
+  auto result     = data_cast(execute_application(std::move(args[1].value.exp),null_arg,env));
   // reset the current port
   if(DEFAULT_PORT && DEFAULT_PORT != stdin && 
      DEFAULT_PORT != stdout && DEFAULT_PORT != stderr) fclose(DEFAULT_PORT);
@@ -3329,12 +3442,11 @@ data primitive_WITH_FILE(scm_list& args,     const char* name,
 
 data primitive_LOAD_TEMPLATE(scm_list& args, env_type& env, const char* name){
   // Confirm given a valid input filename string
+  confirm_given_one_arg(args,name,"<filename-string>");
   const scm_string load_err = afmt(AFMT_135) + scm_string(">> Load Exception:") + 
                               afmt(AFMT_01)  + scm_string(1, ' ');
-  const scm_string format   = "\n     ("+scm_string(name)+" <filename-string>)";
-  if(no_args_given(args) || args.size() != 1)
-    THROW_ERR('\''<<name<<" received incorrect # of args:"<<format<<FCN_ERR(name,args));
   // Load file contents
+  const scm_string format   = "\n     ("+scm_string(name)+" <filename-string>)";
   FILE* ins = confirm_valid_input_file(args[0],name,format.c_str(),args);
   size_type exp_count = 1;
   while(!feof(ins)) {
