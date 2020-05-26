@@ -373,7 +373,7 @@ struct data {
       "recursive-call-count", "input-port", "output-port", "void", "syntax-rules", 
       "undefined"
     };
-    return type_names[int(type) * int(type!=types::sym || value.sym[0])]; // idx 0 for '() typename
+    return type_names[int(type) * (type!=types::sym || value.sym[0])]; // idx 0 for '() typename
   }
 
   // constructors
