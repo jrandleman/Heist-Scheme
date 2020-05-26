@@ -36,7 +36,7 @@ constexpr const char * const ansi_formats[] = {
   "\x1b[35m", "\x1b[1m\x1b[31m", "\x1b[1m\x1b[35m", "\x1b[0m\x1b[1m",
 };
 
-#define afmt(ansi_esc) ansi_formats[int(USING_ANSI_ESCAPE_SEQUENCES)*ansi_esc]
+#define afmt(ansi_esc) ansi_formats[USING_ANSI_ESCAPE_SEQUENCES*ansi_esc]
 
 /******************************************************************************
 * ERROR HANDLING CODE ENUMERATIONS
