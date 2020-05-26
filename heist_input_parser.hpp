@@ -161,7 +161,7 @@ bool confirm_valid_scm_expression(const scm_string& input) {
 
 // Return size of expandable quotation, hence 0 if NOT expandable
 constexpr int is_expandable_quotation(const char& c, const char& c2) noexcept {
-  return (c==',' && c2=='@') ? 2 : (c=='\'' || c=='`' || c==',') ? 1 : 0; 
+  return (c==',' && c2=='@') ? 2 : (c=='\'' || c=='`' || c==','); 
 }
 
 // Return the expanded prefix of the given quotation shorthand
@@ -222,7 +222,7 @@ void expand_quoted_data(scm_string& input) {
         i += expandable_length;
         while((quote_length = is_expandable_quotation(input[i],input[i+1]))) 
           recusive_quotations += quote_length, i += quote_length;
-        i -= (input[i-1]=='@') ? 2 : 1; // mv back so input[i] = the rightmost ' ` ,
+        i -= 1+(input[i-1]=='@'); // mv back so input[i] = the rightmost ' ` ,
       }
 
     quote_expansion_start:
@@ -422,7 +422,7 @@ bool data_is_char(size_type& i, const scm_string& input, chr_type& exp) noexcept
   if(input[i] == '#' && input[i+1] == '\\') {
     i += 2;
     if(auto [ch, name] = data_is_named_char(i,input); !name.empty()) 
-      exp = ch, i += (name.size()>2) ? name.size()-1 : name.size();
+      exp = ch, i += name.size()-(name.size()>2);
     else exp = input[i];
     return true;
   }
@@ -473,15 +473,22 @@ void construct_abstract_syntax_tree(size_type& i, const scm_string& input,
   }
 }
 
-// Expands scheme input quote-shorthands & returns derived Abstract Syntax Tree
-// => GIVEN THE RAW USER INPUT
-void parse_input_exp(scm_string&& input, scm_list& abstract_syntax_tree) {
-  if(input.empty() || !confirm_valid_scm_expression(input)) return;
-  size_type start_index = 0;
+// Mutates <input> prior AST parsing: rming comments, expanding quotes, etc.
+//   => NOTE: returns whether <input> is a candidate for AST parsing
+bool prepare_string_for_AST_generation(scm_string& input) {
+  if(input.empty() || !confirm_valid_scm_expression(input)) return false;
   strip_comments_and_redundant_whitespace(input);
   if(!USING_CASE_SENSITIVE_SYMBOLS) render_input_cAsE_iNsEnSiTiVe(input);
   expand_vector_literals(input); // #(<exp>) => (vector-literal <exp>)
   expand_quoted_data(input);     // '<exp>    => (quote <exp>)
+  return true;
+}
+
+// Expands scheme input quote-shorthands & returns derived Abstract Syntax Tree
+// => GIVEN THE RAW USER INPUT
+void parse_input_exp(scm_string&& input, scm_list& abstract_syntax_tree) {
+  if(!prepare_string_for_AST_generation(input)) return;
+  size_type start_index = 0;
   construct_abstract_syntax_tree(start_index,input,abstract_syntax_tree);
 }
 #endif
