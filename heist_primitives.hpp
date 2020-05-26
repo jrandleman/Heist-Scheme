@@ -1399,13 +1399,13 @@ data primitive_CDDDDR(scm_list& args) {
 ******************************************************************************/
 
 // primitive "list" procedure:
-data primitive_LIST(scm_list& args) {
+data primitive_LIST(scm_list& args)noexcept{
   if(no_args_given(args)) return data(symconst::emptylist); // (list) = '()
   return primitive_LIST_to_CONS_constructor(args.begin(), args.end());
 }
 
 // primitive "list*" procedure:
-data primitive_LIST_STAR(scm_list& args) {
+data primitive_LIST_STAR(scm_list& args)noexcept{
   if(no_args_given(args)) return data(symconst::emptylist); // (list*) = '()
   return primitive_LIST_STAR_to_CONS_constructor(args.begin(), args.end());
 }
@@ -1436,9 +1436,8 @@ data primitive_IOTA(scm_list& args) {
 }
 
 // primitive "circular-list" procedure:
-data primitive_CIRCULAR_LIST(scm_list& args) {
-  if(no_args_given(args))
-    return data(symconst::emptylist);
+data primitive_CIRCULAR_LIST(scm_list& args)noexcept{
+  if(no_args_given(args)) return data(symconst::emptylist);
   return primitive_CIRCULAR_LIST_to_CONS_constructor(args.begin(), args.end());
 }
 
@@ -1541,7 +1540,7 @@ data primitive_ASSOC(scm_list& args) {
 ******************************************************************************/
 
 // primitive "vector" procedure:
-data primitive_VECTOR(scm_list& args) {
+data primitive_VECTOR(scm_list& args)noexcept{
   if(no_args_given(args)) return data(make_vec(scm_list{}));
   return data(make_vec(scm_list(args.begin(), args.end())));
 }
@@ -2530,7 +2529,7 @@ data primitive_DELETE_NEIGHBOR_DUPS_BANG(scm_list& args) {
 ******************************************************************************/
 
 // primitive "void" procedure:
-data primitive_VOID(scm_list& args) { return VOID_DATA_OBJECT; }
+data primitive_VOID(scm_list& args)noexcept{return VOID_DATA_OBJECT;}
 
 // primitive "void?" procedure:
 data primitive_VOIDP(scm_list& args) { 
@@ -2539,7 +2538,7 @@ data primitive_VOIDP(scm_list& args) {
 }
 
 // primitive "undefined" procedure:
-data primitive_UNDEFINED(scm_list& args) { return data(); }
+data primitive_UNDEFINED(scm_list& args)noexcept{return data();}
 
 // primitive "undefined?" procedure:
 data primitive_UNDEFINEDP(scm_list& args) { 
@@ -2771,17 +2770,13 @@ data primitive_APPLY(scm_list& args) {
 
 // primitive "delay?" predicate procedure:
 data primitive_DELAYP(scm_list& args) {
-  if(args.size() != 1 || no_args_given(args))
-    THROW_ERR("'delay? received incorrect # of arguments: (delay? <obj>)"
-      << FCN_ERR("delay?", args));
+  confirm_given_one_arg(args,"delay?");
   return boolean(data_is_a_delay(args[0]));
 }
 
 // primitive "force" procedure:
 data primitive_FORCE(scm_list& args) {
-  if(args.size() != 1 || no_args_given(args))
-    THROW_ERR("'force received incorrect # of arguments:"
-      "\n     (force <delayed-expression>)" << FCN_ERR("force", args));
+  confirm_given_one_arg(args,"force","<delayed-expression>");
   return force_data_delay(args[0]); // "call-by-need" evaluation
 }
 
@@ -2807,14 +2802,11 @@ data primitive_SCDR(scm_list& args) {
 
 // primitive "stream-length" procedure:
 data primitive_STREAM_LENGTH(scm_list& args) {
-  static constexpr const char * const format = "\n     (stream-length <stream>)";
-  if(no_args_given(args) || args.size() != 1)
-    THROW_ERR("'stream-length received incorrect # of arguments:"
-      << format << FCN_ERR("stream-length", args));
+  confirm_given_one_arg(args,"stream-length","<stream>");
   // Length of '() = 0
   if(data_is_the_empty_expression(args[0])) return num_type();
   // Confirm given a stream pair, if not '()
-  confirm_given_a_stream_pair_arg(args, "stream-length", format);
+  confirm_given_a_stream_pair_arg(args,"stream-length","\n     (stream-length <stream>)");
   num_type count;
   primitive_STREAM_LENGTH_computation(get_stream_data_cdr(args[0]),count);
   return count;
@@ -3132,14 +3124,14 @@ data primitive_STREAM_REF(scm_list& args) {
 // primitive "stream-drop" procedure:
 data primitive_STREAM_DROP(scm_list& args) {
   // Confirm appropriate # of args given
-  static constexpr const char * const format = "\n     (stream-drop <n> <stream>)";
+  static constexpr const char * const format = "\n     (stream-drop <stream> <n>)";
   primitive_TEMPLATE_TAKE_DROP_VALIDATION(args, "stream-drop", format);
   // Get the a substream after dropping 'size' items from given stream
-  if(data_is_the_empty_expression(args[1])) return args[1];
-  const size_type n = (size_type)args[0].value.num.extract_inexact();
-  if(!n)     return args[1];
-  if(n == 1) return get_stream_data_cdr(args[1]);
-  return primitive_REF_DROP_SUBSTREAM_seeker(get_stream_data_cdr(args[1]), 
+  if(data_is_the_empty_expression(args[0])) return args[0];
+  const size_type n = (size_type)args[1].value.num.extract_inexact();
+  if(!n)     return args[0];
+  if(n == 1) return get_stream_data_cdr(args[0]);
+  return primitive_REF_DROP_SUBSTREAM_seeker(get_stream_data_cdr(args[0]), 
                                              n, "stream-drop", format, 1, false);
 }
 
@@ -3163,13 +3155,13 @@ data primitive_STREAM_TAKE(scm_list& args){
   args.pop_back();
   // Confirm appropriate # of args given
   primitive_TEMPLATE_TAKE_DROP_VALIDATION(args, "stream-take", 
-    "\n     (stream-take <n> <stream>)");
+    "\n     (stream-take <stream> <n>)");
   // Get the a substream after dropping 'size' items from given stream
-  if(data_is_the_empty_expression(args[1])) return args[1];
-  const size_type n = (size_type)args[0].value.num.extract_inexact();
+  if(data_is_the_empty_expression(args[0])) return args[0];
+  const size_type n = (size_type)args[1].value.num.extract_inexact();
   if(!n) return data(symconst::emptylist);
   scm_list substream;
-  primitive_TAKE_SUBSTREAM_seeker(std::move(args[1]),n,substream);
+  primitive_TAKE_SUBSTREAM_seeker(std::move(args[0]),n,substream);
   return primitive_STREAM_to_SCONS_constructor(substream.begin(),substream.end(),env);
 }
 
@@ -3195,13 +3187,10 @@ data primitive_STREAM_REVERSE(scm_list& args) {
   auto env = args.rbegin()->value.env;
   args.pop_back();
   // Confirm given a single stream arg
-  static constexpr const char * const format = "\n     (stream-reverse <stream>)";
-  if(args.size() != 1 || no_args_given(args))
-    THROW_ERR("'stream-reverse received incorrect # of args (given "
-      << count_args(args) << "):" << format << FCN_ERR("stream-reverse",args));
+  confirm_given_one_arg(args,"stream-reverse","<stream>");
   if(!data_is_stream(args[0]))
     THROW_ERR("'stream-reverse "<<PROFILE(args[0])<<" isn't a stream:" 
-      << format << FCN_ERR("stream-reverse",args));
+      "\n     (stream-reverse <stream>)" << FCN_ERR("stream-reverse",args));
   // Convert stream to a scm_list, reverse, & revert to a stream
   if(data_is_the_empty_expression(args[0])) return args[0];
   scm_list stream_as_exp;
@@ -3229,7 +3218,7 @@ data primitive_CONVERT_STREAM_LIST(scm_list& args) {
   args.pop_back();
   // Confirm given proper args (same signature as stream-drop & stream-take)
   primitive_TEMPLATE_TAKE_DROP_VALIDATION(args, "stream->list", 
-                                          "\n     (stream->list <size> <stream>)");
+                                          "\n     (stream->list <stream> <size>)");
   // Invoke stream-take, convert substream -> exp -> list
   if(data_is_the_empty_expression(args[0])) return args[0];
   args.push_back(env); // reinsert env for stream-take
@@ -3245,9 +3234,7 @@ data primitive_CONVERT_LIST_STREAM(scm_list& args) {
   auto env = args.rbegin()->value.env;
   args.pop_back();
   // Confirm given a single proper list arg
-  if(args.size() != 1 || no_args_given(args))
-    THROW_ERR("'list->stream received incorrect # of args (given " << count_args(args) 
-      << "):\n     (list->stream <list>)" << FCN_ERR("list->stream",args));
+  confirm_given_one_arg(args,"list->stream","<list>");
   if(!data_is_proper_list(args[0]))
     THROW_ERR("'list->stream "<<PROFILE(args[0])<<" isn't a proper list:" 
       "\n     (list->stream <list>)" << FCN_ERR("list->stream",args));
@@ -3530,22 +3517,15 @@ data primitive_COERCE_STRING_TO_NUMBER(scm_list& args) {
 
 // primitive "symbol->string" procedure:
 data primitive_COERCE_SYMBOL_TO_STRING(scm_list& args) {
-  if(args.size() != 1 || no_args_given(args))
-    THROW_ERR("'symbol->string received incorrect # of arguments:"
-      "\n     (symbol->string <symbol>)" << FCN_ERR("symbol->string", args));
-  if(!args[0].is_type(types::sym))
-    return FALSE_DATA_BOOLEAN;
-
+  confirm_given_one_arg(args,"symbol->string","<symbol>");
+  if(!args[0].is_type(types::sym)) return FALSE_DATA_BOOLEAN;
   return make_str(convert_symbol_to_string(args[0].value.sym));
 }
 
 // primitive "string->symbol" procedure:
 data primitive_COERCE_STRING_TO_SYMBOL(scm_list& args) {
-  if(args.size() != 1 || no_args_given(args))
-    THROW_ERR("'string->symbol received incorrect # of arguments:"
-      "\n     (string->symbol <string>)" << FCN_ERR("string->symbol", args));
-  if(!args[0].is_type(types::str))
-    return FALSE_DATA_BOOLEAN;
+  confirm_given_one_arg(args,"string->symbol","<string>");
+  if(!args[0].is_type(types::str)) return FALSE_DATA_BOOLEAN;
   return data(convert_string_to_symbol(*args[0].value.str)); 
 }
 
@@ -3622,63 +3602,59 @@ data primitive_LIST_TO_STRING(scm_list& args) {
 
 data primitive_WRITE(scm_list& args) {
   FILE* outs = CURRENT_OUTPUT_PORT;
-  confirm_valid_output_args(args, outs, 1, "write", 
-                            "\n     (write <obj> <optional-open-output-port>)");
+  bool is_port = confirm_valid_output_args(args, outs, 1, "write", 
+                  "\n     (write <obj> <optional-open-output-port-or-string>)");
   if(!args[0].is_type(types::dne)) {
-    fputs(args[0].cio_str().c_str(), outs);
-    fflush(outs);
+    if(is_port) {
+      fputs(args[0].cio_str().c_str(), outs);
+      fflush(outs);
+    } else {
+      *args[1].value.str += args[0].cio_str();
+    }
   }
-  LAST_PRINTED_TO_STDOUT = (outs == stdout);
+  LAST_PRINTED_TO_STDOUT = (outs == stdout && is_port);
   return VOID_DATA_OBJECT;
 }
 
 data primitive_NEWLINE(scm_list& args) {
   FILE* outs = CURRENT_OUTPUT_PORT;
-  confirm_valid_output_args(args, outs, 0, "newline", 
-                            "\n     (newline <optional-open-output-port>)");
-  fputc('\n', outs);
-  fflush(outs);
-  LAST_PRINTED_NEWLINE_TO_STDOUT = LAST_PRINTED_TO_STDOUT = (outs == stdout);
+  bool is_port = confirm_valid_output_args(args, outs, 0, "newline", 
+                  "\n     (newline <optional-open-output-port-or-string>)");
+  if(is_port) {
+    fputc('\n', outs);
+    fflush(outs);
+    LAST_PRINTED_NEWLINE_TO_STDOUT = LAST_PRINTED_TO_STDOUT = (outs == stdout);
+  } else {
+    *args[0].value.str += '\n';
+  }
   return VOID_DATA_OBJECT;
 }
 
 data primitive_DISPLAY(scm_list& args) {
   FILE* outs = CURRENT_OUTPUT_PORT;
-  confirm_valid_output_args(args, outs, 1, "display", 
-                            "\n     (display <obj> <optional-open-output-port>)");
-  if(args[0].is_type(types::chr)) {
-    fputc(args[0].value.chr, outs);
-    if(args[0].value.chr == '\n') // account for printing a newline
-      LAST_PRINTED_NEWLINE_TO_STDOUT = (outs == stdout);
-  } else if(args[0].is_type(types::str)) {
-    // rm extra escaping '\' chars
-    scm_string str(*args[0].value.str);
-    if(str.empty()) return VOID_DATA_OBJECT;
-    unescape_chars(str);          // cook the raw string
-    fputs(str.c_str(), outs);
-    if(*str.rbegin() == '\n')     // account for printed newlines
-      LAST_PRINTED_NEWLINE_TO_STDOUT = (outs == stdout);
-  } else {
-    if(args[0].is_type(types::dne)) return VOID_DATA_OBJECT;
-    fputs(args[0].cio_str().c_str(), outs);
-  }
-  fflush(outs);
-  LAST_PRINTED_TO_STDOUT = (outs == stdout);
-  return VOID_DATA_OBJECT;
+  bool is_port = confirm_valid_output_args(args, outs, 1, "display", 
+                  "\n     (display <obj> <optional-open-output-port-or-string>)");
+  if(is_port)
+    return primitive_display_port_logic(args[0], outs);
+  return primitive_display_string_logic(args[0], *args[1].value.str);
 }
 
 data primitive_WRITE_CHAR(scm_list& args) {
   FILE* outs = CURRENT_OUTPUT_PORT;
-  confirm_valid_output_args(args, outs, 1, "write-char", 
-                            "\n     (write-char <char> <optional-open-output-port>)");
+  bool is_port = confirm_valid_output_args(args, outs, 1, "write-char", 
+                  "\n     (write-char <char> <optional-open-output-port-or-string>)");
   // confirm given a character
   if(!args[0].is_type(types::chr))
     THROW_ERR("'write-char arg "<<PROFILE(args[0])<<" isn't a character:" 
-      "\n     (write-char <char> <optional-open-output-port>)"
+      "\n     (write-char <char> <optional-open-output-port-or-string>)"
       << FCN_ERR("write-char", args));
-  fputc(args[0].value.chr, outs);
-  fflush(outs);
-  LAST_PRINTED_TO_STDOUT = (outs == stdout);
+  if(is_port) {
+    fputc(args[0].value.chr, outs);
+    fflush(outs);
+    LAST_PRINTED_TO_STDOUT = (outs == stdout);
+  } else {
+    *args[1].value.str += char(args[0].value.chr);
+  }
   return VOID_DATA_OBJECT;
 }
 
@@ -3690,128 +3666,139 @@ data primitive_READ(scm_list& args) {
   // Extract the environment
   auto env = args.rbegin()->value.env;
   args.pop_back();
-  // Confirm either given an open input port or no args
+  // Confirm either given an open input port or string or no args
   FILE* outs = CURRENT_OUTPUT_PORT, *ins = CURRENT_INPUT_PORT;
-  bool reading_stdin = (CURRENT_INPUT_PORT == stdin);
-  if(!confirm_valid_input_args_and_non_EOF(args, ins, "read", reading_stdin)) 
+  bool reading_stdin = (CURRENT_INPUT_PORT == stdin), reading_string = false;
+  if(!confirm_valid_input_args_and_non_EOF(args, ins, "read", reading_stdin, reading_string)) 
     return chr_type(EOF);
-  // Read input
-  scm_list read_data(2);
-  read_data[0] = symconst::quote;
-  if(reading_stdin) {
-    if(auto read_result = read_user_input(outs,ins,false); read_result.empty()) {
-      read_data[1] = VOID_DATA_OBJECT;
-    } else {
-      read_data[1] = std::move(read_result[0]);
-    }
-  } else {
-    read_data[1] = primitive_read_from_port(outs,ins)[0];
-  }
-  return data_cast(scm_eval(std::move(read_data), env));
+  if(reading_string)
+    return primitive_read_from_string_logic(*args[0].value.str,env);
+  return primitive_read_from_input_port_logic(outs,ins,reading_stdin,env);
 }
 
 data primitive_READ_STRING(scm_list& args) {
   // extract the environment
   auto env = args.rbegin()->value.env;
   args.pop_back();
-  // return AST if successfully parsed an expression
-  confirm_given_one_string_arg(args,"read-string","\n     (read-string <string>)");
-  try {
-    scm_list read_data;
-    parse_input_exp(std::move(*args[0].value.str),read_data);
-    if(read_data.empty()) return symconst::emptylist;
-    scm_list quoted_read_data(2);
-    quoted_read_data[0] = symconst::quote, quoted_read_data[1] = std::move(read_data[0]);
-    return data_cast(scm_eval(std::move(quoted_read_data),env));
-  // throw error otherwise & return void data
-  } catch(const READER_ERROR& read_error) {
-    if(is_non_repl_reader_error(read_error))
-      alert_non_repl_reader_error(CURRENT_OUTPUT_PORT,read_error,*args[0].value.str);
-    else
-      alert_reader_error(CURRENT_OUTPUT_PORT,read_error,*args[0].value.str);
-  } catch(const size_type& read_error_index) {
-    alert_reader_error(CURRENT_OUTPUT_PORT,read_error_index,*args[0].value.str);
-  }
-  fflush(CURRENT_OUTPUT_PORT);
-  return VOID_DATA_OBJECT;
+  // return string w/ next valid scheme expression, if successfully parsed one
+  FILE* outs = CURRENT_OUTPUT_PORT, *ins = CURRENT_INPUT_PORT;
+  bool reading_stdin = (CURRENT_INPUT_PORT == stdin), reading_string = false;
+  if(!confirm_valid_input_args_and_non_EOF(args, ins, "read-string", reading_stdin, reading_string)) 
+    return make_str("");
+  if(reading_string)
+    return make_str(primitive_read_from_string_logic(*args[0].value.str,env).cio_str());
+  return make_str(primitive_read_from_input_port_logic(outs,ins,reading_stdin,env).cio_str());
 }
 
 data primitive_READ_LINE(scm_list& args) {
   // Confirm either given an open input port or no args
   FILE* outs = CURRENT_OUTPUT_PORT, *ins = CURRENT_INPUT_PORT;
-  bool reading_stdin = (CURRENT_INPUT_PORT == stdin);
-  if(!confirm_valid_input_args_and_non_EOF(args, ins, "read-line", reading_stdin)) 
-    return data(make_str(""));
+  bool reading_stdin = (CURRENT_INPUT_PORT == stdin), reading_string = false;
+  if(!confirm_valid_input_args_and_non_EOF(args, ins, "read-line", reading_stdin, reading_string)) 
+    return make_str("");
   // Read a line of input into a string
-  fflush(outs);
+  if(reading_string) {
+    auto line_buffer = args[0].value.str->substr(0,args[0].value.str->find('\n'));
+    args[0].value.str->erase(0,args[0].value.str->find('\n'));
+    return make_str(line_buffer);
+  }
   scm_string line_buffer;
+  fflush(outs);
   int ch = 0;
   while((ch = fgetc(ins)) != '\n' && ch != EOF) line_buffer += ch;
-  return data(make_str(line_buffer));
+  return make_str(line_buffer);
 }
 
 data primitive_READ_CHAR(scm_list& args) {
   // Confirm either given an open input port or no args
   FILE* outs = CURRENT_OUTPUT_PORT, *ins = CURRENT_INPUT_PORT;
-  bool reading_stdin = (CURRENT_INPUT_PORT == stdin);
-  if(!confirm_valid_input_args_and_non_EOF(args, ins, "read-char", reading_stdin)) 
+  bool reading_stdin = (CURRENT_INPUT_PORT == stdin), reading_string = false;
+  if(!confirm_valid_input_args_and_non_EOF(args, ins, "read-char", reading_stdin, reading_string)) 
     return chr_type(EOF);
+  // Read a char from a string as needed
+  if(reading_string) {
+    auto ch = args[0].value.str->operator[](0);
+    args[0].value.str->erase(0,1);
+    return chr_type(ch);
+  }
   // Read a char from a port as needed
   fflush(outs);
-  if(!reading_stdin) return data(chr_type(getc(ins)));
+  if(!reading_stdin) return chr_type(getc(ins));
   // Else read 1 char from stdin & throw away the rest of the line
   int ch = getc(stdin);
   if(ch!='\n') while(getc(stdin) != '\n'); // eat rest of the line
-  return data(chr_type(ch));
+  return chr_type(ch);
 }
 
 data primitive_PEEK_CHAR(scm_list& args) {
   // Confirm either given an open input port or no args
   FILE* outs = CURRENT_OUTPUT_PORT, *ins = CURRENT_INPUT_PORT;
-  bool reading_stdin = (CURRENT_INPUT_PORT == stdin);
-  if(!confirm_valid_input_args_and_non_EOF(args, ins, "peek-char", reading_stdin)) 
+  bool reading_stdin = (CURRENT_INPUT_PORT == stdin), reading_string = false;
+  if(!confirm_valid_input_args_and_non_EOF(args, ins, "peek-char", reading_stdin, reading_string)) 
     return chr_type(EOF);
+// Peek a char from a string as needed
+  if(reading_string) {
+    auto ch = args[0].value.str->operator[](0);
+    args[0].value.str->erase(0,1);
+    return chr_type(ch);
+  }
   // Peek a char from a port as needed
   fflush(outs);
   if(!reading_stdin) {
     int ch = getc(ins);
     ungetc(ch, ins);
-    return data(chr_type(ch));
+    return chr_type(ch);
   }
   // Else peek 1 char from stdin & throw away the rest of the line
   // NOTE: 'peek-char' from stdin is equivalent to 'read-char' from stdin since
   //       both return 1 char from the stream & throw away the rest of the line
   int ch = getc(stdin);
   if(ch!='\n') while(getc(stdin) != '\n'); // eat rest of the line
-  return data(chr_type(ch));
+  return chr_type(ch);
 }
 
 data primitive_CHAR_READYP(scm_list& args) {
   // Confirm either given an open input port or no args
   FILE* ins = CURRENT_INPUT_PORT;
-  bool reading_stdin = (CURRENT_INPUT_PORT == stdin);
-  if(!confirm_valid_input_args_and_non_EOF(args, ins, "char-ready?", reading_stdin)) 
+  bool reading_stdin = (CURRENT_INPUT_PORT == stdin), reading_string = false;
+  if(!confirm_valid_input_args_and_non_EOF(args, ins, "char-ready?", reading_stdin, reading_string)) 
     return FALSE_DATA_BOOLEAN;
+  // Empty strings trigger EOF above, hence will always have a character ready here
+  if(reading_string) return TRUE_DATA_BOOLEAN;
   // Stdin is always flushed, hence a char will never be waiting in its buffer
-  if(reading_stdin) return FALSE_DATA_BOOLEAN;
+  if(reading_stdin)  return FALSE_DATA_BOOLEAN;
   // Peek the non-stdin port for a non-EOF character
   int ch = getc(ins);
   ungetc(ch, ins);
   return data(boolean(ch != EOF));
 }
 
+// slurp a port's contents into a string
+data primitive_SLURP_PORT(scm_list& args){
+  // confirm given a filename string & slurp file if so
+  FILE* outs = CURRENT_OUTPUT_PORT, *ins = CURRENT_INPUT_PORT;
+  bool reading_stdin = (CURRENT_INPUT_PORT == stdin), reading_string = false;
+  if(!confirm_valid_input_args_and_non_EOF(args, ins, "slurp-port", reading_stdin, reading_string)) 
+    return make_str("");
+  if(reading_string) return make_str(*args[0].value.str);
+  if(reading_stdin)  return make_str("");
+  scm_string buffer;
+  int ch = 0;
+  while((ch = fgetc(ins)) != EOF) buffer += ch; // slurp entire file
+  fclose(ins);
+  return make_str(buffer);
+}
+
 // slurp a file's contents into a string
 data primitive_SLURP_FILE(scm_list& args){
   // confirm given a filename string & slurp file if so
-  if(no_args_given(args) || args.size() != 1)
-    THROW_ERR("'slurp-file received incorrect # of args:"
-      "\n     (slurp-file <filename-string>)"<<FCN_ERR("slurp-file",args));
+  confirm_given_one_arg(args,"slurp-file","<filename-string>");
   FILE* ins = confirm_valid_input_file(args[0],"slurp-file","(slurp-file <filename-string>)",args);
   scm_string buffer;
   int ch = 0;
-  while((ch = fgetc(ins)) != EOF) buffer += ch;
+  while((ch = fgetc(ins)) != EOF) buffer += ch; // slurp entire file
   fclose(ins);
-  return make_str(buffer); // slurp file
+  return make_str(buffer);
 }
 
 /******************************************************************************
@@ -3922,11 +3909,9 @@ data primitive_OPEN_INPUT_FILE(scm_list& args){
   auto env = args.rbegin()->value.env;
   args.pop_back();
   // confirm given a filename string
-  static constexpr const char * const format = "\n     (open-input-file <filename-string>)";
-  if(no_args_given(args) || args.size() != 1)
-    THROW_ERR("'open-input-file received incorrect # of args:" << format 
-      << FCN_ERR("open-input-file", args));
-  PORT_REGISTRY.push_back(confirm_valid_input_file(args[0],"open-input-file",format,args));
+  confirm_given_one_arg(args,"open-input-file","<filename-string>");
+  PORT_REGISTRY.push_back(confirm_valid_input_file(args[0],"open-input-file",
+    "\n     (open-input-file <filename-string>)",args));
   return iport(PORT_REGISTRY.size()-1);
 }
 
@@ -3935,11 +3920,9 @@ data primitive_OPEN_OUTPUT_FILE(scm_list& args){
   auto env = args.rbegin()->value.env;
   args.pop_back();
   // confirm given a filename string
-  static constexpr const char * const format = "\n     (open-output-file <filename-string>)";
-  if(no_args_given(args) || args.size() != 1)
-    THROW_ERR("'open-output-file received incorrect # of args:" << format
-      << FCN_ERR("open-output-file", args));
-  PORT_REGISTRY.push_back(confirm_valid_output_file(args[0],"open-output-file",format,args));
+  confirm_given_one_arg(args,"open-output-file","<filename-string>");
+  PORT_REGISTRY.push_back(confirm_valid_output_file(args[0],"open-output-file",
+    "\n     (open-output-file <filename-string>)",args));
   return oport(PORT_REGISTRY.size()-1);
 }
 
@@ -4002,9 +3985,7 @@ data primitive_GETENV(scm_list& args) {
   auto env = args.rbegin()->value.env;
   args.pop_back();
   // confirm proper arg signature
-  if(no_args_given(args) || args.size() != 1)
-    THROW_ERR("'getenv received incorrect # of args!"
-      "\n     (getenv <variable-name-string>)"<<FCN_ERR("getenv",args));
+  confirm_given_one_arg(args,"getenv","<variable-name-string>");
   if(!no_args_given(args) && !args[0].is_type(types::str))
     THROW_ERR("'getenv "<<PROFILE(args[0])<<" isn't a string!"
       "\n     (getenv <variable-name-string>)"<<FCN_ERR("getenv",args));
@@ -4087,9 +4068,7 @@ data primitive_SET_CI(scm_list& args) {
 
 // Changes the REPL's line-by-line prompt from the default "> "
 data primitive_SET_REPL_PROMPT(scm_list& args) {
-  if(no_args_given(args) || args.size() != 1)
-    THROW_ERR("'set-repl-prompt! recieved incorrect # of args:"
-      "\n     (set-repl-prompt! <prompt-string>)" << FCN_ERR("set-repl-prompt!",args));
+  confirm_given_one_arg(args,"set-repl-prompt!","<prompt-string>");
   if(!args[0].is_type(types::str))
     THROW_ERR("'set-repl-prompt! "<<PROFILE(args[0])<<" isn't a string:"
       "\n     (set-repl-prompt! <prompt-string>)" << FCN_ERR("set-repl-prompt!",args));
@@ -4259,7 +4238,7 @@ constexpr const prm_type ENV_REQUIRING_PRIMITIVES[] = {
   primitive_LOAD_LOCAL,
 };
 
-constexpr bool primitive_requires_environment(const prm_type& prm) noexcept {
+constexpr bool primitive_requires_environment(const prm_type& prm)noexcept{
   for(const auto& p : ENV_REQUIRING_PRIMITIVES)
     if(p == prm) return true;
   return false;
@@ -4611,6 +4590,7 @@ constexpr const std::pair<prm_type,const char*>primitive_procedure_declarations[
   std::make_pair(primitive_READ_CHAR,   "read-char"),
   std::make_pair(primitive_PEEK_CHAR,   "peek-char"),
   std::make_pair(primitive_CHAR_READYP, "char-ready?"),
+  std::make_pair(primitive_SLURP_PORT,  "slurp-port"),
   std::make_pair(primitive_SLURP_FILE,  "slurp-file"),
 
   std::make_pair(primitive_FILEP,                 "file?"),
@@ -4647,7 +4627,7 @@ constexpr const std::pair<prm_type,const char*>primitive_procedure_declarations[
   std::make_pair(primitive_SYNTAX_ERROR, "syntax-error"),
 };
 
-frame_vals primitive_procedure_objects() noexcept {
+frame_vals primitive_procedure_objects()noexcept{
   constexpr const auto n = sizeof(primitive_procedure_declarations) /
                            sizeof(primitive_procedure_declarations[0]);
   frame_vals primitive_procedures(n);
@@ -4661,7 +4641,7 @@ frame_vals primitive_procedure_objects() noexcept {
   return primitive_procedures;
 }
 
-frame_vars primitive_procedure_names() noexcept {
+frame_vars primitive_procedure_names()noexcept{
   constexpr const auto n = sizeof(primitive_procedure_declarations) /
                            sizeof(primitive_procedure_declarations[0]);
   frame_vars names(n);
