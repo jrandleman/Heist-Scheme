@@ -11,4 +11,10 @@ Compile Script to C++: `$ ./heist_main -compile <your-scripts-filename-here> <op
 # Features:
 1) Hygienic Macros
 2) Tail-Call Optimization
-3) See heist_main.cpp for more!
+3) Native Even Streams (Lists w/ Delayed Car & Cdr)
+4) Generic Algorithms (Polymorphic Algorithm Primitives)
+5) SFRI Primitives (List, Vector, String, etc.)
+6) Eval (Evaluate Symbolic Data as Code)
+7) String I/O (Read/Write Compatibility w/ Strings as Ports)
+8) Recursive Depth Control
+9) See heist_main.cpp for more!
