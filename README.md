@@ -1,11 +1,14 @@
-# Heist-Scheme-Proto
-WIP (Work In Progress) Scheme Interpreter Written in C++
+# Heist-Scheme
+Souped-Up Scheme Interpreter Written in C++!
 ---------------------
 # Using Heist Scheme:
-Compile: `$ g++ -std=c++17 -O3 -o heist_scm heist_scm.cpp`</br>
-REPL: `$ ./heist_scm` (exit REPL via `exit` command)</br>
-Interpret Script: `$ ./heist_scm -script <your-scripts-filename-here>`</br>
-* See heist_main.cpp for more!
----------------------
-# In the works:
-- Optimized tail calls (both recursive & non-recursive)
+Compile: `$ clang++ -std=c++17 -O3 -o heist_main heist_main.cpp`</br>
+REPL: `$ ./heist_main` (exit REPL via `(exit)` command)</br>
+Interpret Script: `$ ./heist_main -script <your-scripts-filename-here>`</br>
+Compile Script to C++: `$ ./heist_main -compile <your-scripts-filename-here> <optional-target-name>`</br>
+
+----------
+# Features:
+1) Hygienic Macros
+2) Tail-Call Optimization
+3) See heist_main.cpp for more!
