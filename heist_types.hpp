@@ -91,6 +91,7 @@ namespace heist_scm {
     constexpr const char * const do_label     = "__HEIST-DO-LETREC";
     constexpr const char * const primitive    = "__HEIST-PRIMITIVE";
     constexpr const char * const procedure    = "__HEIST-PROCEDURE";
+    constexpr const char * const tail_call    = "__HEIST-TAIL-CALL";
     constexpr const char * const null_env     = "null-environment";
     constexpr const char * const locl_env     = "local-environment";
     constexpr const char * const lambda       = "lambda";
@@ -180,12 +181,6 @@ namespace heist_scm {
   auto make_env = std::make_shared<environment>;
   auto make_del = std::make_shared<struct delay_data,const scm_list&,const env_type&>;
   auto make_cal = std::make_shared<size_type,size_type>;
-
-  /******************************************************************************
-  * TAIL CALL SIGNATURE STORAGE
-  ******************************************************************************/
-
-  std::pair<exe_type,env_type> TAIL_CALL_SIGNATURE;// proc body & extended env
 
   /******************************************************************************
   * GLOBAL ENVIRONMENT POINTER

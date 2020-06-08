@@ -44,7 +44,7 @@ namespace heist_scm {
   * ERROR HANDLING CODE ENUMERATIONS
   ******************************************************************************/
 
-  enum class SCM_EXCEPT {EXIT, EVAL, READ, TAIL_CALL};
+  enum class SCM_EXCEPT {EXIT, EVAL, READ};
 
   /******************************************************************************
   * ERROR HANDLING PRINTER MACROS

@@ -30,7 +30,7 @@ namespace heist_scm {
   scm_list make_delay(const scm_list& exp, env_type& env)noexcept;
   scm_list read_user_input(FILE* outs,FILE* ins,const bool& in_repl=true);
   scm_list scm_eval(scm_list&& exp, env_type& env);
-  scm_list execute_application(scm_list& procedure,scm_list& arguments,env_type& env,const bool& tail_call=false);
+  scm_list execute_application(scm_list& procedure,scm_list& arguments,env_type& env,const bool tail_call=false);
   scm_string get_heist_main_interpreter_filepath()noexcept;
   constexpr bool IS_END_OF_WORD(const char& c, const char& c2)noexcept;
   std::pair<chr_type,scm_string> data_is_named_char(const size_type& i,

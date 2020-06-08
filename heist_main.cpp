@@ -27,7 +27,7 @@
 * => HINT: JUST USE WHAT "$ pwd" (OR "$ cd" ON WINDOWS) PRINTS!
 ******************************************************************************/
 
-// #define HEIST_DIRECTORY_FILE_PATH "/Users/jordanrandleman/Desktop/Rec_Coding/SCHEME"
+#define HEIST_DIRECTORY_FILE_PATH "/Users/jordanrandleman/Desktop/Rec_Coding/SCHEME"
 
 /******************************************************************************
 * WARN USER IF COMPILING W/O AN ABSOLUTE FILE PATH
@@ -100,8 +100,6 @@
  *         * ,                ; unquote
  *         * ,@               ; unquote-splicing
  *         * .                ; VARIADIC ARGS, cons LITERAL
- *         * '()              ; EMPTY LIST
- *         * #()              ; EMPTY VECTOR
  *         * #\               ; CHARACTER PREFIX
  *         * =>               ; APPLY CONDITION RESULT (FOR cond)
  *         * quote            ; SYMBOLIZE ARGS (CONVERT CODE TO DATA)
@@ -151,7 +149,7 @@
 namespace heist_scm {
 
   scm_list scm_eval(scm_list&& exp, env_type& env);
-  exe_type scm_analyze(scm_list&& exp,const bool& tail_call=false);
+  exe_type scm_analyze(scm_list&& exp,const bool tail_call=false);
 
   /******************************************************************************
   * AST-ANALYSIS HELPER FUNCTIONS
@@ -486,7 +484,7 @@ namespace heist_scm {
   // -- ANALYSIS
   // Returns lambda so that if true, only eval consequent: 
   //   else, only eval alternative
-  exe_type analyze_if(scm_list& exp,const bool& tail_call=false) { 
+  exe_type analyze_if(scm_list& exp,const bool tail_call=false) { 
     if(exp.size() < 3) 
       THROW_ERR("IF didn't receive enough args:"
         "\n     (if <predicate> <consequent> <optional-alternative>)"
@@ -552,7 +550,7 @@ namespace heist_scm {
 
   // Analyzes each expression, then returns an exec proc which 
   //   sequentially invokes each expression's exec proc
-  exe_type analyze_sequence(scm_list&& exps,const bool& tail_call=false){ // used for 'begin' & lambda bodies
+  exe_type analyze_sequence(scm_list&& exps,const bool tail_call=false){ // used for 'begin' & lambda bodies
     if(exps.empty() || (exps.size()==1 && data_is_the_SENTINEL_VAL(exps[0])))
       return [](env_type& env){return VOID_DATA_EXPRESSION;}; // void data
     const size_type n = exps.size();
@@ -2265,23 +2263,22 @@ namespace heist_scm {
 
 
   // -- APPLY
-  // Applies the given procedure, and then re-applies last proc. if had a tail call
-  scm_list recursive_procedure_application(exe_type proc, env_type extended_env) {
-    try {
-      return proc(extended_env);
-    } catch(const SCM_EXCEPT& eval_throw) {
-      if(eval_throw == SCM_EXCEPT::TAIL_CALL) {
-        return recursive_procedure_application(TAIL_CALL_SIGNATURE.first,TAIL_CALL_SIGNATURE.second);
-      }
-      throw eval_throw;
+  // Applies the given procedure, & then reapplies iteratively if at a tail call
+  scm_list apply_compound_procedure(const exe_type& proc, env_type& extended_env) {
+    auto result = proc(extended_env);
+  tail_call_recur:
+    if(is_tagged_list(result,symconst::tail_call)) { // if tail call
+      result = result[1].exe(result[2].env);
+      goto tail_call_recur;
     }
+    return result;
   }
 
 
   // Analogue to "apply", except no need to analyze the body of compound 
   //   procedures (already done). Hence only calls the execution procedure 
   //   for the proc's body w/ the extended environment
-  scm_list execute_application(scm_list& procedure,scm_list& arguments,env_type& env,const bool& tail_call){
+  scm_list execute_application(scm_list& procedure,scm_list& arguments,env_type& env,const bool tail_call){
     if(is_primitive_procedure(procedure)) // execute primitive procedure directly
       return apply_primitive_procedure(procedure,arguments,env);
     else if(is_compound_procedure(procedure)) {
@@ -2300,14 +2297,16 @@ namespace heist_scm {
         THROW_ERR("Maximum recursion depth of "<<MAX_RECURSION_DEPTH<<" exceeded!"
           << FCN_ERR(name, arguments));
       }
-      // store application data & throw back up to the last call if in a tail call
+      // store application data & return such back up to the last call if in a tail call
       if(tail_call) {
-        TAIL_CALL_SIGNATURE.first  = procedure_body(procedure);
-        TAIL_CALL_SIGNATURE.second = extended_env;
-        throw SCM_EXCEPT::TAIL_CALL;
+        scm_list tail_call_signature(3); // {tail-call-tag, proc-body, extended-env}
+        tail_call_signature[0] = symconst::tail_call;
+        tail_call_signature[1] = procedure_body(procedure);
+        tail_call_signature[2] = extended_env;
+        return tail_call_signature;
       }
       ++recursive_depth;
-      auto result = recursive_procedure_application(procedure_body(procedure),extended_env);
+      auto result = apply_compound_procedure(procedure_body(procedure),extended_env);
       --recursive_depth;
       return result;
     }
@@ -2317,7 +2316,7 @@ namespace heist_scm {
   }
 
   // R-value overload
-  scm_list execute_application(scm_list&& procedure,scm_list& arguments,env_type& env,const bool& tail_call=false){
+  scm_list execute_application(scm_list&& procedure,scm_list& arguments,env_type& env,const bool tail_call=false){
     return execute_application(procedure,arguments,env,tail_call);
   }
 
@@ -2325,7 +2324,7 @@ namespace heist_scm {
   // Analyzes the operator & operands, then returns an exec proc passing 
   //   both the operator/operand proc exec's to 'execute-application'
   //   (after having checked for macro use as well)
-  exe_type analyze_application(scm_list& exp,const bool& tail_call=false) {
+  exe_type analyze_application(scm_list& exp,const bool tail_call=false) {
     auto op_proc  = scm_analyze(operator_of(exp));
     auto arg_exps = operands(exp);
     // Save name of invoking entity (iff a symbol) to check for a possible macro
@@ -2373,7 +2372,7 @@ namespace heist_scm {
   }
 
 
-  exe_type scm_analyze(scm_list&& exp,const bool& tail_call) { // analyze expression
+  exe_type scm_analyze(scm_list&& exp,const bool tail_call) { // analyze expression
     if(exp.empty())                         THROW_ERR("Can't eval an empty expression!"<<EXP_ERR("()"));
     else if(is_self_evaluating(exp)) return [exp=std::move(exp)](env_type& env){return exp;};
     else if(is_quoted(exp))          return analyze_quoted(exp);
@@ -2543,14 +2542,6 @@ void driver_loop() {
         user_print(stdout, value);
         print_repl_newline(printed_data);
       } catch(const heist_scm::SCM_EXCEPT& eval_throw) {
-        if(eval_throw == heist_scm::SCM_EXCEPT::TAIL_CALL) {
-          PRINT_ERR("Improper Tail Call Optimization Detected! -:- BUG ALERT -:-"
-             "\n     Triggered By: " << input << 
-             "\n  => Please send your code to jrandleman@scu.edu to fix"
-             "\n     the interpreter's bug!"
-             "\n  => Terminating Heist Scheme Interpretation.");
-          return;
-        }
         if(eval_throw == heist_scm::SCM_EXCEPT::EXIT) { puts("Adios!"); return; }
         print_repl_newline();
       } catch(...) {
