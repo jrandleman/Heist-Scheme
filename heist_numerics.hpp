@@ -21,7 +21,8 @@
  * CAPABILITIES:
  * -------------
  *
- * => NOTE: Use the _n suffix for int, float, and string <Snum> literals!
+ * NOTE: Use the _n suffix for int, float, and string <Snum> literals!
+ *       => Use _n2, _n8, & _n16 for bin, oct, & hex string <Snum> literals!
  *
  * +
  * -
@@ -70,8 +71,8 @@
  * sinh,  cosh,  tanh
  * asinh, acosh, atanh
  *
- * logand, logor,  logxor, lognot
- * loglsl, loglsr, logasr
+ * logand, logor,  logxor, lognot // & | ^ ~
+ * loglsl, loglsr, logasr         // << >> sign-extending>>
  * 
  * random -- BOTH w/ & w/o a seed (defaults to the current time since epoch)
  **/
@@ -215,15 +216,15 @@ namespace scm_numeric {
 
     // *********************** TO_STRING OUTPUT GENERATORS **********************
 
-    // get current value as a string (for c-style I/O)
-    std::string cio_str() const noexcept;
+    // get current value as a std::string (for c-style I/O)
+    std::string cpp_str() const noexcept;
 
     // get current value as a string in 'base' radix form
-    std::string cio_str(const int& base) const noexcept;
+    std::string cpp_str(const int& base) const noexcept;
 
     // puts operator for std::ostream
     friend std::ostream& operator<<(std::ostream& outs, const scm_numeric::Snum& n) noexcept {
-      outs << n.cio_str();
+      outs << n.cpp_str();
       return outs;
     }
 
@@ -1445,7 +1446,7 @@ namespace scm_numeric {
   ******************************************************************************/
 
   // get current value as a string (for c-style I/O)
-  std::string Snum::cio_str() const noexcept {
+  std::string Snum::cpp_str() const noexcept {
     // Return NaN/Inf as needed
     if(stat != Snum::status::success) {
       if(is_nan())     return "+nan.0";
@@ -1473,7 +1474,7 @@ namespace scm_numeric {
   }
 
   // get current value as a string in 'base' radix form
-  std::string Snum::cio_str(const int& base) const noexcept {
+  std::string Snum::cpp_str(const int& base) const noexcept {
     return convert_dec_to_base_N(base, *this);
   }
 
@@ -1543,7 +1544,7 @@ namespace scm_numeric {
     }
     if(n.stat != status::success) return false;
     // Get number as unsigned binary string of its absolute value
-    bit_str = n.cio_str(2);
+    bit_str = n.cpp_str(2);
     if(bit_str[0] == '-') bit_str.erase(0,1);
     // Account for sign
     if(is_signed) {
@@ -2391,12 +2392,12 @@ namespace scm_numeric {
 * "_n" LITERAL SUFFIX FOR SCHEME NUMERICS
 ******************************************************************************/
 
-scm_numeric::Snum operator"" _n(unsigned long long int n)   {return scm_numeric::Snum(n);}
-scm_numeric::Snum operator"" _N(unsigned long long int n)   {return scm_numeric::Snum(n);}
-scm_numeric::Snum operator"" _n(long double n)              {return scm_numeric::Snum(n);}
-scm_numeric::Snum operator"" _N(long double n)              {return scm_numeric::Snum(n);}
-scm_numeric::Snum operator"" _n(const char* n, std::size_t) {return scm_numeric::Snum(n);}
-scm_numeric::Snum operator"" _N(const char* n, std::size_t) {return scm_numeric::Snum(n);}
+scm_numeric::Snum operator"" _n(unsigned long long int n)    {return scm_numeric::Snum(n);}
+scm_numeric::Snum operator"" _n(long double n)               {return scm_numeric::Snum(n);}
+scm_numeric::Snum operator"" _n(const char* n, std::size_t)  {return scm_numeric::Snum(n);}
+scm_numeric::Snum operator"" _n2(const char* n, std::size_t) {return scm_numeric::Snum(n,2);} // Binary
+scm_numeric::Snum operator"" _n8(const char* n, std::size_t) {return scm_numeric::Snum(n,8);} // Octal
+scm_numeric::Snum operator"" _n16(const char* n, std::size_t){return scm_numeric::Snum(n,16);}// Hexadecimal
 
 #undef EXACT_T_IS_1 // @END-OF-NUMERICS
 #undef EXACT_T_IS_0

@@ -2375,7 +2375,7 @@ namespace heist_scm {
   data force_data_delay(data& d) {
     if(!data_is_a_delay(d))
       THROW_ERR("'force "<<PROFILE(d)<<" isn't a delayed expression:\n     "
-        "(force <delayed-expression>)"<<EXP_ERR("(force "<<d.cio_str()<<')'));
+        "(force <delayed-expression>)"<<EXP_ERR("(force "<<d.cpp_str()<<')'));
     auto delay = d.exp[1].del;
     if(!delay->already_forced) {
       delay->already_forced = true;
@@ -2420,7 +2420,7 @@ namespace heist_scm {
     if(!data_is_stream_pair(d))
       THROW_ERR("'scar "<<PROFILE(d)<<" isn't a stream-pair:" 
         "\n     (scar <stream-pair>)" << 
-        EXP_ERR("(scar " << d.cio_str() << ')'));
+        EXP_ERR("(scar " << d.cpp_str() << ')'));
     return force_data_delay(d.par->first);
   }
 
@@ -2428,12 +2428,12 @@ namespace heist_scm {
   data get_stream_data_cdr(data& d) {
     if(!data_is_stream_pair(d))
       THROW_ERR("'scdr "<<PROFILE(d)<<" isn't a stream-pair:\n     "
-        "(scdr <stream-pair>)" << EXP_ERR("(scdr " << d.cio_str() << ')'));
+        "(scdr <stream-pair>)" << EXP_ERR("(scdr " << d.cpp_str() << ')'));
     data cdr_promise = force_data_delay(d.par->second);
     if(!data_is_stream(cdr_promise))
       THROW_ERR("'scdr forced cdr " << PROFILE(cdr_promise)
         << " isn't a stream:\n     (scdr <stream-pair>)" 
-        << EXP_ERR("(scdr " << d.cio_str() << ')'));
+        << EXP_ERR("(scdr " << d.cpp_str() << ')'));
     return cdr_promise;
   }
 
@@ -2445,7 +2445,7 @@ namespace heist_scm {
     if(!data_is_stream_pair(d))
       THROW_ERR('\''<<name<<STREAM_SCXXXXR_ACCESSOR_NUMBER[nth_scar]
         <<" 'scar' "<<PROFILE(d)<<" isn't a stream-pair:" 
-        <<format<<EXP_ERR("(scar "<<d.cio_str()<<')'));
+        <<format<<EXP_ERR("(scar "<<d.cpp_str()<<')'));
     return force_data_delay(d.par->first);
   }
 
@@ -2456,12 +2456,12 @@ namespace heist_scm {
     if(!data_is_stream_pair(d))
       THROW_ERR('\''<<name<<STREAM_SCXXXXR_ACCESSOR_NUMBER[nth_scdr]
         <<" 'scdr' "<<PROFILE(d)<<" isn't a stream-pair:"
-        <<format<<EXP_ERR("(scdr "<<d.cio_str()<<')'));
+        <<format<<EXP_ERR("(scdr "<<d.cpp_str()<<')'));
     data cdr_promise = force_data_delay(d.par->second);
     if(!data_is_stream(cdr_promise))
       THROW_ERR('\''<<name<<STREAM_SCXXXXR_ACCESSOR_NUMBER[nth_scdr]
         <<" 'scdr's forced cdr "<<PROFILE(cdr_promise)
-        <<" isn't a stream:"<<format<<EXP_ERR("(scdr "<<d.cio_str()<<')'));
+        <<" isn't a stream:"<<format<<EXP_ERR("(scdr "<<d.cpp_str()<<')'));
     return cdr_promise;
   }
 
@@ -2991,7 +2991,7 @@ namespace heist_scm {
         write_to += str;
       }
     } else if(!obj.is_type(types::dne)) {
-      write_to += obj.cio_str();
+      write_to += obj.cpp_str();
     }
     return VOID_DATA_OBJECT;
   }
@@ -3011,7 +3011,7 @@ namespace heist_scm {
           LAST_PRINTED_NEWLINE_TO_STDOUT = (outs == stdout);  
       }
     } else if(!obj.is_type(types::dne)) {
-      fputs(obj.cio_str().c_str(), outs);
+      fputs(obj.cpp_str().c_str(), outs);
     }
     fflush(outs);
     LAST_PRINTED_TO_STDOUT = (outs == stdout);
@@ -3085,7 +3085,7 @@ namespace heist_scm {
       size_type i = 0; // also trim prepending whitespace
       for(size_type n = outs_str.size(); i < n && isspace(outs_str[i]); ++i);
       outs_str.erase(0,i);
-      outs_str.erase(0,read_data[0].cio_str().size());
+      outs_str.erase(0,read_data[0].cpp_str().size());
       // return the parsed AST
       scm_list quoted_read_data(2);
       quoted_read_data[0] = symconst::quote, quoted_read_data[1] = std::move(read_data[0]);
@@ -3541,7 +3541,7 @@ namespace heist_scm {
           break;
         default:         // NUMBER
           vector_assigns += assignment_chain+'['+std::to_string(i)+"] = heist_scm::num_type("+
-            expressions[i].num.cio_str()+");\n";
+            expressions[i].num.cpp_str()+");\n";
       }
     }
   }
@@ -3650,13 +3650,13 @@ namespace heist_scm {
             args[0].sym.c_str(), error_str.c_str());
     // Check for irritants (if provided, these are optional)
     if(args.size() == 3)
-      fprintf(CURRENT_OUTPUT_PORT, " with irritant %s", args[2].cio_str().c_str());
+      fprintf(CURRENT_OUTPUT_PORT, " with irritant %s", args[2].cpp_str().c_str());
     else if(args.size() > 3) {
       scm_list irritant_list(args.begin()+2, args.end());
       fprintf(CURRENT_OUTPUT_PORT, " with irritants %s", 
               primitive_LIST_to_CONS_constructor(irritant_list.begin(),
                                                  irritant_list.end()
-                                                ).cio_str().c_str());
+                                                ).cpp_str().c_str());
     }
     fprintf(CURRENT_OUTPUT_PORT, "%s\n", afmt(AFMT_0));
     fflush(CURRENT_OUTPUT_PORT);

@@ -2366,7 +2366,7 @@ namespace heist_scm {
                        "\n         Profile of data in expression:");
     for(size_type i = 0, n = exp.size(); i < n; ++i)
       err_str += (("\n         " + std::to_string(i+1) + ". " + 
-                    exp[i].cio_str() + " of type \"") + exp[i].type_name()) + '"';
+                    exp[i].cpp_str() + " of type \"") + exp[i].type_name()) + '"';
     THROW_ERR(err_str << "\n         => Please send your code to jrandleman@scu.edu to fix"
                          "\n            the interpreter's bug!");
   }
@@ -2523,7 +2523,7 @@ void user_print(FILE* outs, heist_scm::scm_list& object)noexcept{
   else if(heist_scm::is_delay(object) && object.size() > 1)
     fputs("#<delay>", outs);
   else
-    fputs(object[0].cio_str().c_str(), outs);
+    fputs(object[0].cpp_str().c_str(), outs);
   fflush(outs);
 }
 

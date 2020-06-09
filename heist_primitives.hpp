@@ -1594,7 +1594,7 @@ namespace heist_scm {
         "\n     (vector-grow <vector> <size>)"
         "\n     <size> range: (0," << MAX_SIZE_TYPE << ']' << FCN_ERR("vector-grow", args));
     if(args[1].num < args[0].vec->size())
-      THROW_ERR("'vector-grow "<<args[1].num.cio_str()<<" is too small to expand "
+      THROW_ERR("'vector-grow "<<args[1].num.cpp_str()<<" is too small to expand "
         << args[0] << " of size " << args[0].vec->size() << " with!"
         "\n     (vector-grow <vector> <size>)"
         "\n     <size> range: (0," << MAX_SIZE_TYPE << ']' << FCN_ERR("vector-grow", args));
@@ -3571,9 +3571,9 @@ namespace heist_scm {
           "\n     (number->string <number> <optional-numeric-radix>)"
           << FCN_ERR("number->string", args));
       if(radix != 10)
-        return make_str(args[0].num.cio_str(radix));
+        return make_str(args[0].num.cpp_str(radix));
     }
-    return make_str(args[0].num.cio_str());
+    return make_str(args[0].num.cpp_str());
   }
 
   // primitive "string->number" procedure:
@@ -3699,10 +3699,10 @@ namespace heist_scm {
                     "\n     (write <obj> <optional-open-output-port-or-string>)");
     if(!args[0].is_type(types::dne)) {
       if(is_port) {
-        fputs(args[0].cio_str().c_str(), outs);
+        fputs(args[0].cpp_str().c_str(), outs);
         fflush(outs);
       } else {
-        *args[1].str += args[0].cio_str();
+        *args[1].str += args[0].cpp_str();
       }
     }
     LAST_PRINTED_TO_STDOUT = (outs == stdout && is_port);
@@ -3779,8 +3779,8 @@ namespace heist_scm {
     if(!confirm_valid_input_args_and_non_EOF(args, ins, "read-string", reading_stdin, reading_string)) 
       return make_str("");
     if(reading_string)
-      return make_str(primitive_read_from_string_logic(*args[0].str,env).cio_str());
-    return make_str(primitive_read_from_input_port_logic(outs,ins,reading_stdin,env).cio_str());
+      return make_str(primitive_read_from_string_logic(*args[0].str,env).cpp_str());
+    return make_str(primitive_read_from_input_port_logic(outs,ins,reading_stdin,env).cpp_str());
   }
 
   data primitive_READ_LINE(scm_list& args) {
@@ -4136,7 +4136,7 @@ namespace heist_scm {
       // Search Variable-Value List Pair In Frame
       for(size_type j = 0, total_vars = var_list.size(); j < total_vars; ++j)
         if(var == var_list[j] && !val_list[j].is_type(types::undefined))
-          return make_str(val_list[j].cio_str());
+          return make_str(val_list[j].cpp_str());
     }
     return FALSE_DATA_BOOLEAN;
   }

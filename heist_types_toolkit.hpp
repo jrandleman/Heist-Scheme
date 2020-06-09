@@ -88,7 +88,7 @@ namespace heist_scm {
         list_str += ')';
       }
     } else {
-      list_str += pair_object.par->first.cio_str();
+      list_str += pair_object.par->first.cpp_str();
     }
     // store space if not last item in list
     if(is_not_THE_EMPTY_LIST(pair_object.par->second)) list_str += ' ';
@@ -98,7 +98,7 @@ namespace heist_scm {
       cio_acyclic_list_str_recur(list_str, pair_object.par->second);
     } else if(is_not_THE_EMPTY_LIST(pair_object.par->second)){// don't store last '()
       // store ' . ' since not a null-terminated list
-      list_str += ". " + pair_object.par->second.cio_str();
+      list_str += ". " + pair_object.par->second.cpp_str();
     }
   }
 
@@ -125,7 +125,7 @@ namespace heist_scm {
         list_str += ')';
       }
     } else {
-      list_str += slow.par->first.cio_str();
+      list_str += slow.par->first.cpp_str();
     }
     // store space if not last item in list
     if(is_not_THE_EMPTY_LIST(slow.par->second)) list_str += ' ';
@@ -140,7 +140,7 @@ namespace heist_scm {
         cio_acyclic_list_str_recur(list_str, slow.par->second);
     } else if(is_not_THE_EMPTY_LIST(slow.par->second)){// don't store last '()
       // store ' . ' since not a null-terminated list
-      list_str += ". " + slow.par->second.cio_str();
+      list_str += ". " + slow.par->second.cpp_str();
     }
   }
 
@@ -164,7 +164,7 @@ namespace heist_scm {
       if(vector_object->operator[](i).is_type(types::vec))
         vect_str += cio_vect_str(vector_object->operator[](i).vec);
       else
-        vect_str += vector_object->operator[](i).cio_str();
+        vect_str += vector_object->operator[](i).cpp_str();
       if(i < n-1) vect_str +=  ' ';
     }
     return vect_str + ')';
@@ -232,7 +232,7 @@ namespace heist_scm {
         exp_str += ')';
       // Append atomic data
       } else {
-        exp_str += d->cio_str();
+        exp_str += d->cpp_str();
       }
       // Add a space if not at the end of the current expression
       if(d+1 != exp_object.end() && !data_is_the_SENTINEL_VAL(*(d+1))) 

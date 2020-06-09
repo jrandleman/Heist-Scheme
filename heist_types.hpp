@@ -386,9 +386,9 @@ namespace heist_scm {
     }
 
     // get current value as a string (for c-style I/O)
-    scm_string cio_str() const noexcept {
+    scm_string cpp_str() const noexcept {
       switch(type) {
-        case types::sym: 
+        case types::sym:
           if(sym==symconst::emptylist)             return "()";
           if(sym.find(symconst::mangle_prefix)==0) return "lambda";
           return sym;
@@ -417,7 +417,7 @@ namespace heist_scm {
         case types::par: return cio_list_str(*this);
         case types::vec: return cio_vect_str(vec);
         case types::exp: return cio_expr_str(exp);
-        case types::num: return num.cio_str();
+        case types::num: return num.cpp_str();
         case types::str: return '"' + *str + '"';
         case types::bol: return (bol.val?"#t":"#f");
         case types::env: return "#<environment>";
@@ -435,7 +435,7 @@ namespace heist_scm {
 
     // friend output function
     friend std::ostream& operator<<(std::ostream& outs, const data& d) noexcept {
-      outs << d.cio_str();
+      outs << d.cpp_str();
       return outs;
     }
 
