@@ -9,6 +9,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdio>
+#include <iostream>
 #include <limits>
 #include <random>
 #include <string>
@@ -19,6 +20,8 @@
  * -------------
  * CAPABILITIES:
  * -------------
+ *
+ * => NOTE: Use the _n suffix for int, float, and string <Snum> literals!
  *
  * +
  * -
@@ -136,7 +139,7 @@ namespace scm_numeric {
   * NUMERIC CLASS
   ******************************************************************************/
 
-  class Scm_numeric {
+  class Snum {
   public:
     // ***************** CLASS TYPES & FLOATING POINT CONSTANTS *****************
 
@@ -157,10 +160,10 @@ namespace scm_numeric {
 
     // ********************** PRECISION CONVERSION METHODS **********************
 
-    Scm_numeric to_inexact()          const noexcept;
-    Scm_numeric to_exact()            const noexcept;
-    Scm_numeric extract_numerator()   const noexcept;
-    Scm_numeric extract_denominator() const noexcept;
+    Snum to_inexact()          const noexcept;
+    Snum to_exact()            const noexcept;
+    Snum extract_numerator()   const noexcept;
+    Snum extract_denominator() const noexcept;
 
 
     // ************************ PRIMITIVE TYPES COERCION ************************
@@ -199,15 +202,15 @@ namespace scm_numeric {
 
     // ******************************* CTORS/DTOR *******************************
 
-    Scm_numeric()                     noexcept {}
-    Scm_numeric(const Scm_numeric& s) noexcept {*this = s;}
-    Scm_numeric(Scm_numeric&& s)      noexcept {*this = std::move(s);}
-    ~Scm_numeric()                    noexcept {}
-    Scm_numeric(exact_t data) noexcept {construct_number(data);}
-    Scm_numeric(exact_t data, const int& base) noexcept {*this=convert_base_N_to_dec(base,data);}
+    Snum()              noexcept {}
+    Snum(const Snum& s) noexcept {*this = s;}
+    Snum(Snum&& s)      noexcept {*this = std::move(s);}
+    ~Snum()             noexcept {}
+    Snum(const exact_t& data) noexcept {construct_number(data);}
+    Snum(const exact_t& data, const int& base) noexcept {*this=convert_base_N_to_dec(base,data);}
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
-    Scm_numeric(NumericData data) noexcept {construct_number(data);}
-    Scm_numeric(const inexact_t& data) noexcept;
+    Snum(NumericData data) noexcept {construct_number(data);}
+    Snum(const inexact_t& data) noexcept;
 
 
     // *********************** TO_STRING OUTPUT GENERATORS **********************
@@ -218,151 +221,157 @@ namespace scm_numeric {
     // get current value as a string in 'base' radix form
     std::string cio_str(const int& base) const noexcept;
 
+    // puts operator for std::ostream
+    friend std::ostream& operator<<(std::ostream& outs, const scm_numeric::Snum& n) noexcept {
+      outs << n.cio_str();
+      return outs;
+    }
+
 
     // ********************** ARITHMETIC OPERATOR OVERLOADS *********************
 
     // assignment operator
-    Scm_numeric& operator=(const Scm_numeric& s) noexcept;
-    Scm_numeric& operator=(Scm_numeric&& s) noexcept;
+    Snum& operator=(const Snum& s) noexcept;
+    Snum& operator=(Snum&& s) noexcept;
 
     // overloaded arithmetic operators
-    Scm_numeric  operator+ (const Scm_numeric& s) const noexcept;
-    Scm_numeric& operator+=(const Scm_numeric& s)noexcept{*this = *this + s; return *this;}
-    Scm_numeric  operator-()const noexcept;
-    Scm_numeric  operator- (const Scm_numeric& s) const noexcept{return *this + -s;}
-    Scm_numeric& operator-=(const Scm_numeric& s)noexcept{*this = *this - s; return *this;}
-    Scm_numeric  operator* (const Scm_numeric& s) const noexcept;
-    Scm_numeric& operator*=(const Scm_numeric& s)noexcept{*this = *this * s; return *this;}
-    Scm_numeric  operator/ (const Scm_numeric& s) const noexcept;
-    Scm_numeric& operator/=(const Scm_numeric& s)noexcept{*this = *this / s; return *this;}
-    Scm_numeric  operator% (const Scm_numeric& s) const noexcept;
-    Scm_numeric& operator%=(const Scm_numeric& s)noexcept{*this = *this % s; return *this;}
+    Snum  operator+ (const Snum& s) const noexcept;
+    Snum& operator+=(const Snum& s)noexcept{*this = *this + s; return *this;}
+    Snum  operator-()const noexcept;
+    Snum  operator- (const Snum& s) const noexcept{return *this + -s;}
+    Snum& operator-=(const Snum& s)noexcept{*this = *this - s; return *this;}
+    Snum  operator* (const Snum& s) const noexcept;
+    Snum& operator*=(const Snum& s)noexcept{*this = *this * s; return *this;}
+    Snum  operator/ (const Snum& s) const noexcept;
+    Snum& operator/=(const Snum& s)noexcept{*this = *this / s; return *this;}
+    Snum  operator% (const Snum& s) const noexcept;
+    Snum& operator%=(const Snum& s)noexcept{*this = *this % s; return *this;}
 
     // overloaded friend arithmetic operators
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
-    friend Scm_numeric operator+(const NumericData& lhs,const Scm_numeric& rhs)noexcept{return rhs + lhs;}
+    friend Snum operator+(const NumericData& lhs,const Snum& rhs)noexcept{return rhs + lhs;}
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
-    friend Scm_numeric operator-(const NumericData& lhs,const Scm_numeric& rhs)noexcept{return -rhs + lhs;}
+    friend Snum operator-(const NumericData& lhs,const Snum& rhs)noexcept{return -rhs + lhs;}
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
-    friend Scm_numeric operator*(const NumericData& lhs,const Scm_numeric& rhs)noexcept{return rhs * lhs;}
+    friend Snum operator*(const NumericData& lhs,const Snum& rhs)noexcept{return rhs * lhs;}
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
-    friend Scm_numeric operator/(const NumericData& lhs,const Scm_numeric& rhs)noexcept{Scm_numeric tmp=lhs; return tmp / rhs;}
+    friend Snum operator/(const NumericData& lhs,const Snum& rhs)noexcept{Snum tmp=lhs; return tmp / rhs;}
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
-    friend Scm_numeric operator%(const NumericData& lhs,const Scm_numeric& rhs)noexcept{Scm_numeric tmp=lhs; return tmp % rhs;}
+    friend Snum operator%(const NumericData& lhs,const Snum& rhs)noexcept{Snum tmp=lhs; return tmp % rhs;}
 
 
     // ************************ RANDOM NUMBER GENERATION ************************
 
     // pseudo random big int number generator
-    static Scm_numeric random(Scm_numeric seed = std::chrono::system_clock::now().time_since_epoch().count())noexcept;
+    static Snum random(Snum seed = std::chrono::system_clock::now().time_since_epoch().count())noexcept;
 
 
     // **************** MISCELLANEOUS DERIVED NUMERIC OPERATIONS ****************
 
     // Exponentiation
-    Scm_numeric  expt(const Scm_numeric& s) const noexcept;
-    Scm_numeric& expt_eq(const Scm_numeric& s)noexcept{*this = expt(s); return *this;}
+    Snum  expt(const Snum& s) const noexcept;
+    Snum& expt_eq(const Snum& s)noexcept{*this = expt(s); return *this;}
 
     // greatest common denominator
-    Scm_numeric gcd(const Scm_numeric& s) const noexcept;
+    Snum gcd(const Snum& s) const noexcept;
     // least common multiple
-    Scm_numeric lcm(const Scm_numeric& s) const noexcept;
+    Snum lcm(const Snum& s) const noexcept;
 
     // exponential function
-    Scm_numeric exp()  const noexcept {return UNDERLYING_CPP_GENERIC_FCN(12);}
+    Snum exp()  const noexcept {return UNDERLYING_CPP_GENERIC_FCN(12);}
 
     // sqrt function
-    Scm_numeric sqrt() const noexcept {return expt(0.5L);}
+    Snum sqrt() const noexcept {return expt(0.5L);}
 
     // NATURAL logarithm
-    Scm_numeric log()  const noexcept;
+    Snum log()  const noexcept;
 
     // absolute value
-    Scm_numeric abs()  const noexcept {return (is_neg() || is_neg_inf()) ? -*this : *this;}
+    Snum abs()  const noexcept {return (is_neg() || is_neg_inf()) ? -*this : *this;}
 
     // quotient & modulo of being div'd by arg
-    Scm_numeric quotient(const Scm_numeric& s) const noexcept;
-    Scm_numeric modulo  (const Scm_numeric& s) const noexcept;
+    Snum quotient(const Snum& s) const noexcept;
+    Snum modulo  (const Snum& s) const noexcept;
 
 
     // **************************** ROUNDING METHODS ****************************
 
-    Scm_numeric ceil()  const noexcept {return ROUNDING_GENERIC_FCN(0);}
-    Scm_numeric floor() const noexcept {return ROUNDING_GENERIC_FCN(1);}
-    Scm_numeric trunc() const noexcept {return ROUNDING_GENERIC_FCN(2);}
-    Scm_numeric round() const noexcept {return ROUNDING_GENERIC_FCN(3);}
+    Snum ceil()  const noexcept {return ROUNDING_GENERIC_FCN(0);}
+    Snum floor() const noexcept {return ROUNDING_GENERIC_FCN(1);}
+    Snum trunc() const noexcept {return ROUNDING_GENERIC_FCN(2);}
+    Snum round() const noexcept {return ROUNDING_GENERIC_FCN(3);}
 
 
     // ****************** TRIGONOMETRIC METHODS -:- IN RADIANS ******************
 
-    Scm_numeric sin()   const noexcept {return UNDERLYING_CPP_GENERIC_FCN(0);}
-    Scm_numeric cos()   const noexcept {return UNDERLYING_CPP_GENERIC_FCN(1);}
-    Scm_numeric tan()   const noexcept {return UNDERLYING_CPP_GENERIC_FCN(2);}
-    Scm_numeric asin()  const noexcept {return UNDERLYING_CPP_GENERIC_FCN(3);}
-    Scm_numeric acos()  const noexcept {return UNDERLYING_CPP_GENERIC_FCN(4);}
-    Scm_numeric atan()  const noexcept {return UNDERLYING_CPP_GENERIC_FCN(5);}
-    Scm_numeric sinh()  const noexcept {return UNDERLYING_CPP_GENERIC_FCN(6);}
-    Scm_numeric cosh()  const noexcept {return UNDERLYING_CPP_GENERIC_FCN(7);}
-    Scm_numeric tanh()  const noexcept {return UNDERLYING_CPP_GENERIC_FCN(8);}
-    Scm_numeric asinh() const noexcept {return UNDERLYING_CPP_GENERIC_FCN(9);}
-    Scm_numeric acosh() const noexcept {return UNDERLYING_CPP_GENERIC_FCN(10);}
-    Scm_numeric atanh() const noexcept {return UNDERLYING_CPP_GENERIC_FCN(11);}
+    Snum sin()   const noexcept {return UNDERLYING_CPP_GENERIC_FCN(0);}
+    Snum cos()   const noexcept {return UNDERLYING_CPP_GENERIC_FCN(1);}
+    Snum tan()   const noexcept {return UNDERLYING_CPP_GENERIC_FCN(2);}
+    Snum asin()  const noexcept {return UNDERLYING_CPP_GENERIC_FCN(3);}
+    Snum acos()  const noexcept {return UNDERLYING_CPP_GENERIC_FCN(4);}
+    Snum atan()  const noexcept {return UNDERLYING_CPP_GENERIC_FCN(5);}
+    Snum sinh()  const noexcept {return UNDERLYING_CPP_GENERIC_FCN(6);}
+    Snum cosh()  const noexcept {return UNDERLYING_CPP_GENERIC_FCN(7);}
+    Snum tanh()  const noexcept {return UNDERLYING_CPP_GENERIC_FCN(8);}
+    Snum asinh() const noexcept {return UNDERLYING_CPP_GENERIC_FCN(9);}
+    Snum acosh() const noexcept {return UNDERLYING_CPP_GENERIC_FCN(10);}
+    Snum atanh() const noexcept {return UNDERLYING_CPP_GENERIC_FCN(11);}
 
 
     // ************************** COMPARISON OPERATORS **************************
 
     // overloaded equality/comparison operators
-    bool operator==(const Scm_numeric& s) const noexcept;
-    bool operator!=(const Scm_numeric& s) const noexcept {return !(*this == s);}
-    bool operator< (const Scm_numeric& s) const noexcept;
-    bool operator> (const Scm_numeric& s) const noexcept;
-    bool operator<=(const Scm_numeric& s) const noexcept {return !(*this > s);}
-    bool operator>=(const Scm_numeric& s) const noexcept {return !(*this < s);}
-    bool operator!()                      const noexcept {return is_zero();}
+    bool operator==(const Snum& s) const noexcept;
+    bool operator!=(const Snum& s) const noexcept {return !(*this == s);}
+    bool operator< (const Snum& s) const noexcept;
+    bool operator> (const Snum& s) const noexcept;
+    bool operator<=(const Snum& s) const noexcept {return !(*this > s);}
+    bool operator>=(const Snum& s) const noexcept {return !(*this < s);}
+    bool operator!()               const noexcept {return is_zero();}
 
     // overloaded friend equality/comparison operators
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
-    friend bool operator==(const NumericData& lhs, const Scm_numeric& rhs) noexcept {return rhs == lhs;}
+    friend bool operator==(const NumericData& lhs, const Snum& rhs) noexcept {return rhs == lhs;}
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
-    friend bool operator!=(const NumericData& lhs, const Scm_numeric& rhs) noexcept {return rhs != lhs;}
+    friend bool operator!=(const NumericData& lhs, const Snum& rhs) noexcept {return rhs != lhs;}
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
-    friend bool operator< (const NumericData& lhs, const Scm_numeric& rhs) noexcept {return rhs > lhs;}
+    friend bool operator< (const NumericData& lhs, const Snum& rhs) noexcept {return rhs > lhs;}
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
-    friend bool operator> (const NumericData& lhs, const Scm_numeric& rhs) noexcept {return rhs < lhs;}
+    friend bool operator> (const NumericData& lhs, const Snum& rhs) noexcept {return rhs < lhs;}
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
-    friend bool operator<=(const NumericData& lhs, const Scm_numeric& rhs) noexcept {return rhs >= lhs;}
+    friend bool operator<=(const NumericData& lhs, const Snum& rhs) noexcept {return rhs >= lhs;}
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
-    friend bool operator>=(const NumericData& lhs, const Scm_numeric& rhs) noexcept {return rhs <= lhs;}
+    friend bool operator>=(const NumericData& lhs, const Snum& rhs) noexcept {return rhs <= lhs;}
 
 
     // *************************** LOGICAL-BIT OPERATORS **************************
 
     // overloaded bitwise operators
-    Scm_numeric operator~()const noexcept;
-    Scm_numeric operator& (const Scm_numeric& rhs) const noexcept;
-    Scm_numeric operator| (const Scm_numeric& rhs) const noexcept;
-    Scm_numeric operator^ (const Scm_numeric& rhs) const noexcept;
-    Scm_numeric operator<<(const Scm_numeric& rhs) const noexcept;
-    Scm_numeric operator>>(const Scm_numeric& rhs) const noexcept;
-    Scm_numeric asr       (const Scm_numeric& rhs) const noexcept;
+    Snum operator~()const noexcept;
+    Snum operator& (const Snum& rhs) const noexcept;
+    Snum operator| (const Snum& rhs) const noexcept;
+    Snum operator^ (const Snum& rhs) const noexcept;
+    Snum operator<<(const Snum& rhs) const noexcept;
+    Snum operator>>(const Snum& rhs) const noexcept;
+    Snum asr       (const Snum& rhs) const noexcept;
 
-    Scm_numeric& operator&= (const Scm_numeric& rhs) noexcept {*this = *this & rhs;  return *this;}
-    Scm_numeric& operator|= (const Scm_numeric& rhs) noexcept {*this = *this | rhs;  return *this;}
-    Scm_numeric& operator^= (const Scm_numeric& rhs) noexcept {*this = *this ^ rhs;  return *this;}
-    Scm_numeric& operator<<=(const Scm_numeric& rhs) noexcept {*this = *this << rhs; return *this;}
-    Scm_numeric& operator>>=(const Scm_numeric& rhs) noexcept {*this = *this >> rhs; return *this;}
-    Scm_numeric& asr_eq     (const Scm_numeric& rhs) noexcept {*this = asr(rhs);     return *this;}
+    Snum& operator&= (const Snum& rhs) noexcept {*this = *this & rhs;  return *this;}
+    Snum& operator|= (const Snum& rhs) noexcept {*this = *this | rhs;  return *this;}
+    Snum& operator^= (const Snum& rhs) noexcept {*this = *this ^ rhs;  return *this;}
+    Snum& operator<<=(const Snum& rhs) noexcept {*this = *this << rhs; return *this;}
+    Snum& operator>>=(const Snum& rhs) noexcept {*this = *this >> rhs; return *this;}
+    Snum& asr_eq     (const Snum& rhs) noexcept {*this = asr(rhs);     return *this;}
 
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
-    friend Scm_numeric operator&(const NumericData& lhs,const Scm_numeric& rhs) noexcept{Scm_numeric tmp=lhs; return tmp & rhs;}
+    friend Snum operator&(const NumericData& lhs,const Snum& rhs) noexcept{Snum tmp=lhs; return tmp & rhs;}
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
-    friend Scm_numeric operator|(const NumericData& lhs,const Scm_numeric& rhs) noexcept{Scm_numeric tmp=lhs; return tmp | rhs;}
+    friend Snum operator|(const NumericData& lhs,const Snum& rhs) noexcept{Snum tmp=lhs; return tmp | rhs;}
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
-    friend Scm_numeric operator^(const NumericData& lhs,const Scm_numeric& rhs) noexcept{Scm_numeric tmp=lhs; return tmp ^ rhs;}
+    friend Snum operator^(const NumericData& lhs,const Snum& rhs) noexcept{Snum tmp=lhs; return tmp ^ rhs;}
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
-    friend Scm_numeric operator<<(const NumericData& lhs,const Scm_numeric& rhs)noexcept{Scm_numeric tmp=lhs; return tmp << rhs;}
+    friend Snum operator<<(const NumericData& lhs,const Snum& rhs)noexcept{Snum tmp=lhs; return tmp << rhs;}
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
-    friend Scm_numeric operator>>(const NumericData& lhs,const Scm_numeric& rhs)noexcept{Scm_numeric tmp=lhs; return tmp >> rhs;}
+    friend Snum operator>>(const NumericData& lhs,const Snum& rhs)noexcept{Snum tmp=lhs; return tmp >> rhs;}
 
 
 
@@ -416,27 +425,26 @@ namespace scm_numeric {
     // Construct number from the given data
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
     void construct_number(NumericData num_str)noexcept{construct_number(convert_numeric_to_str(num_str));}
-    void construct_number(Scm_numeric num_str)noexcept{*this = num_str;}
     void construct_number(exact_t num_str)noexcept;
 
-    // Convert a base-n big int string into a decimal Scm_numeric
-    Scm_numeric convert_base_N_to_dec(const int& base, exact_t bnum) const noexcept;
-    // Converts the Scm_numeric decimal representation into the <base> # system
-    exact_t convert_dec_to_base_N(const int& base, const Scm_numeric& dnum) const noexcept;
+    // Convert a base-n big int string into a decimal Snum
+    Snum convert_base_N_to_dec(const int& base, exact_t bnum) const noexcept;
+    // Converts the Snum decimal representation into the <base> # system
+    exact_t convert_dec_to_base_N(const int& base, const Snum& dnum) const noexcept;
     // Evaluates the numerator & denominator of a base-N # & divides their results
-    Scm_numeric form_decimal_fraction(const int& base, const size_type& i, const exact_t& bnum, const bool& is_neg) const noexcept;
+    Snum form_decimal_fraction(const int& base, const size_type& i, const exact_t& bnum, const bool& is_neg) const noexcept;
     // Evaluates the integral & fractional of a base-N # & combines their results
-    Scm_numeric form_decimal_floating_pt(const int& base, const size_type& i, const exact_t& bnum, const bool& is_neg) const noexcept;
+    Snum form_decimal_floating_pt(const int& base, const size_type& i, const exact_t& bnum, const bool& is_neg) const noexcept;
     // Evaluates the numerator & denominator of a decimal # & divides their results
-    exact_t form_base_N_fraction(const int& base,const Scm_numeric& dnum) const noexcept;
+    exact_t form_base_N_fraction(const int& base,const Snum& dnum) const noexcept;
     // Evaluates the integral & fractional of a decimal # & combines their results
-    exact_t form_base_N_floating_pt(const int& base, const Scm_numeric& dnum) const noexcept;
+    exact_t form_base_N_floating_pt(const int& base, const Snum& dnum) const noexcept;
     // Confirms base is in the range of [2,36]
     constexpr bool confirm_base_in_range(const int& base) const noexcept;
     // Confirms <bnum> only contains digits in the range of the <base> # system
     bool confirm_valid_base_digits(const int& base, const exact_t& bnum) const noexcept;
     // Converts a decimal digit into a base-36 digit
-    const char * base_digit_conversion(const Scm_numeric& digit, const int& base) const noexcept;
+    const char * base_digit_conversion(const Snum& digit, const int& base) const noexcept;
 
     // Fast comparison for whether *this == -1
     bool is_negative_one() const noexcept;
@@ -448,14 +456,14 @@ namespace scm_numeric {
     void signed_big_int_BINARY_extend(exact_t& bit_str1, exact_t& bit_str2) const noexcept;
     // Unsigned-extend bit_str1 & bit_str2 to match lengths
     void unsigned_big_int_BINARY_extend(exact_t& bit_str1, exact_t& bit_str2) const noexcept;
-    // Convert possibly-signed binary string to a Scm_numeric
-    Scm_numeric big_int_revert_BINARY_to_Scm_numeric(exact_t bin_str, const bool& is_negative_binary) const noexcept;
-    // Convert a Scm_numeric to a no-fraction binary string (degrades fractions to inexact_t)
-    bool get_non_fraction_binary_string(Scm_numeric n, exact_t& bit_str, const bool& is_signed) const noexcept;
-    // Convert 2 Scm_numerics to no-fraction binary strings (degrades fractions to inexact_t)
-    bool get_non_fraction_binary_strings(const Scm_numeric& n1, exact_t& bit_str1, const Scm_numeric& n2, exact_t& bit_str2) const noexcept;
+    // Convert possibly-signed binary string to a Snum
+    Snum big_int_revert_BINARY_to_Snum(exact_t bin_str, const bool& is_negative_binary) const noexcept;
+    // Convert a Snum to a no-fraction binary string (degrades fractions to inexact_t)
+    bool get_non_fraction_binary_string(Snum n, exact_t& bit_str, const bool& is_signed) const noexcept;
+    // Convert 2 Snums to no-fraction binary strings (degrades fractions to inexact_t)
+    bool get_non_fraction_binary_strings(const Snum& n1, exact_t& bit_str1, const Snum& n2, exact_t& bit_str2) const noexcept;
     // Template outlining structure of LSR & ASR (logical/arithmetic shift right)
-    template<bool LOGIC_RIGHT_SHIFT> Scm_numeric GENERIC_SHIFT_RIGHT(const Scm_numeric& rhs) const noexcept;
+    template<bool LOGIC_RIGHT_SHIFT> Snum GENERIC_SHIFT_RIGHT(const Snum& rhs) const noexcept;
 
     // Erases redundant RHS padding 0s, trimming fractionals
     void reduce_redundant_RHS_0s(exact_t& fractional) const noexcept;
@@ -472,36 +480,37 @@ namespace scm_numeric {
     status coerce_fraction_to_float(inexact_t& num, const exact_t& numer, const exact_t& denom, const bool data_is_neg) const noexcept;
 
     // Decompose the numerator into SIZE_TYPE_MAX factors (enables repeated squaring)
-    std::pair<std::pair<size_type,size_type>,Scm_numeric::status> decompose_int_into_SIZE_TYPE_MAX() const noexcept;
+    std::pair<std::pair<size_type,size_type>,Snum::status> decompose_int_into_SIZE_TYPE_MAX() const noexcept;
     // Perform the "repeated squares" algorithm (rapid exponentiation)
-    Scm_numeric repeated_squares(const Scm_numeric& a, const size_type& b) const noexcept;
+    Snum repeated_squares(const Snum& a, const size_type& b) const noexcept;
 
     // Generic rounding fcn template for ceil, floor, trunc, & round
-    Scm_numeric ROUNDING_GENERIC_FCN(const size_type ROUNDING_TYPE_ID) const noexcept;
+    Snum ROUNDING_GENERIC_FCN(const size_type ROUNDING_TYPE_ID) const noexcept;
     // Generic cpp-fcn-invocation template
-    Scm_numeric UNDERLYING_CPP_GENERIC_FCN(const size_type CPP_FCN_TYPE_ID) const noexcept;
+    Snum UNDERLYING_CPP_GENERIC_FCN(const size_type CPP_FCN_TYPE_ID) const noexcept;
 
     // Returns whether big-int a > big-int b
     bool big_int_gt(const exact_t& a, const exact_t& b) const noexcept;
     // Returns whether big-int a < big-int b
     bool big_int_lt(const exact_t& a, const exact_t& b) const noexcept;
     // Sums 2 strings of decimal digits into a single string
-    template<bool INVOKED_BY_MUL>
     exact_t big_int_abs_val_sum(const exact_t& a, const exact_t& b) const noexcept;
     // Multiplies 2 strings of decimal digits into a single string
     exact_t big_int_abs_val_mul(const exact_t& a, const exact_t& b) const noexcept;
+    // MUL '* HELPER: Sums 2 strings of decimal digits into a single string
+    void big_int_abs_val_MUL_HELPER_sum(exact_t& a, const exact_t& b) const noexcept;
     // Returns the absolute difference (in a single string) of 2 strings of decimal digits
     exact_t big_int_abs_val_diff(const exact_t& a, const exact_t& b) const noexcept;
 
     // Returns gcd of flt a & b; PRECONDITION: a > b
     constexpr inexact_t inexact_t_GCD(const inexact_t a, const inexact_t b) const noexcept;
-  }; // End class Scm_numeric 
+  }; // End class Snum 
 
   /******************************************************************************
   * RANDOM NUMBER GENERATION
   ******************************************************************************/
 
-  Scm_numeric Scm_numeric::random(Scm_numeric seed) noexcept {
+  Snum Snum::random(Snum seed) noexcept {
     inexact_t seed_flt = 0;
     // Coerce seed to float as needed
     if(seed.is_float) {
@@ -527,14 +536,14 @@ namespace scm_numeric {
       rand_vals += std::to_string(rand_gen());
     if(rand_vals.size() > rand_val_total_digits)
       rand_vals.erase(rand_val_total_digits);
-    return Scm_numeric(rand_vals);
+    return Snum(rand_vals);
   }
 
   /******************************************************************************
   * CHECK IF NUMBER IS AN INTEGRAL, & EXACT/INEXACT CONVERSIONS
   ******************************************************************************/
 
-  bool Scm_numeric::is_integer() const noexcept {
+  bool Snum::is_integer() const noexcept {
     if(stat != status::success)                return false; // NaN & +- inf != integers
     if(is_zero())                              return true;  // 0 is an integer
     if(!is_float && EXACT_T_IS_1(denominator)) return true;
@@ -547,9 +556,9 @@ namespace scm_numeric {
   }
 
 
-  Scm_numeric Scm_numeric::to_inexact() const noexcept {
+  Snum Snum::to_inexact() const noexcept {
     if(stat != status::success || is_float) return *this;
-    Scm_numeric tmp;
+    Snum tmp;
     tmp.stat = coerce_fraction_to_float(tmp.float_num,numerator,denominator,is_neg());
     if(tmp.stat != status::success) {
       tmp.set_failed_status(); return tmp;
@@ -560,9 +569,9 @@ namespace scm_numeric {
   }
 
 
-  Scm_numeric Scm_numeric::to_exact() const noexcept {
+  Snum Snum::to_exact() const noexcept {
     if(stat != status::success || !is_float) return *this;
-    Scm_numeric tmp;
+    Snum tmp;
     // If zero, return immediately
     if(float_num == 0) return tmp;
     // If integer, convert directly as is
@@ -582,13 +591,13 @@ namespace scm_numeric {
     exact_t unsigned_numer    = std::to_string(size_type(fractional));
     exact_t unsigned_denom    = std::to_string(size_type(std::pow(10.0L, fractional_prec)));
 
-    auto exact_num = Scm_numeric(unsigned_integral) + Scm_numeric(unsigned_numer + "/" + unsigned_denom);
+    auto exact_num = Snum(unsigned_integral) + Snum(unsigned_numer + "/" + unsigned_denom);
     if(is_neg()) exact_num.sign = signs::neg;
     return exact_num;
   }
 
 
-  Scm_numeric Scm_numeric::extract_numerator() const noexcept {
+  Snum Snum::extract_numerator() const noexcept {
     auto tmp = to_exact();
     if(tmp.stat != status::success || tmp.is_float) {
       tmp.set_failed_status(); return tmp;
@@ -598,7 +607,7 @@ namespace scm_numeric {
   }
 
 
-  Scm_numeric Scm_numeric::extract_denominator() const noexcept {
+  Snum Snum::extract_denominator() const noexcept {
     auto tmp = to_exact().abs();
     if(tmp.stat != status::success || tmp.is_float) {
       tmp.set_failed_status(); return tmp;
@@ -612,7 +621,7 @@ namespace scm_numeric {
   * PRIMITIVE TYPES COERCION
   ******************************************************************************/
 
-  Scm_numeric::inexact_t Scm_numeric::extract_inexact() const noexcept {
+  Snum::inexact_t Snum::extract_inexact() const noexcept {
     if(auto tmp = to_inexact(); tmp.stat != status::success) {
       if(tmp.is_nan())     return INEXACT_NAN;
       if(tmp.is_pos_inf()) return INEXACT_INF;
@@ -625,7 +634,7 @@ namespace scm_numeric {
   }
 
 
-  Scm_numeric::exact_t Scm_numeric::extract_exact() const noexcept {
+  Snum::exact_t Snum::extract_exact() const noexcept {
     auto tmp = to_exact();
     if(tmp.stat != status::success) {
       if(tmp.is_nan())     return "+nan.0";
@@ -633,18 +642,21 @@ namespace scm_numeric {
       return "-inf.0";
     }
     if(tmp.is_zero()) return "0";
-    exact_t number;
-    if(tmp.is_neg()) number += '-';
-    number += tmp.numerator;
-    if(!EXACT_T_IS_1(tmp.denominator)) number += '/' + tmp.denominator;
-    return number;
+    if(tmp.is_pos()) {
+      if(EXACT_T_IS_1(tmp.denominator))
+        return tmp.numerator;
+      return tmp.numerator + '/' + tmp.denominator;
+    }
+    if(EXACT_T_IS_1(tmp.denominator))
+      return '-' + tmp.numerator;
+    return '-' + tmp.numerator + '/' + tmp.denominator;
   }
 
   /******************************************************************************
   * NUMBER SETTERS TO ZERO, PINF, NINF
   ******************************************************************************/
 
-  void Scm_numeric::set_zero() noexcept {
+  void Snum::set_zero() noexcept {
     sign = signs::zero;
     numerator = "0", denominator = "1";
     is_float = false;  // coerce back to 'exact' once 0
@@ -658,19 +670,21 @@ namespace scm_numeric {
   // Perform fixed floating point conversion to a string
   // NOTE: std::to_string only has a default precision of 6, so we use sprintf
   // NOTE: the result is _NOT_ an exact_t integer, but a string of the float
-  std::string Scm_numeric::convert_numeric_to_str(const inexact_t& n) const noexcept {
+  std::string Snum::convert_numeric_to_str(const inexact_t& n) const noexcept {
     char outs[64];
     sprintf(outs, LD_FIXED_SPRINTF_FORMAT(LDBL_DIG), n);
     exact_t num_str(outs);
     // rm redundant 0s to the right of the decimal
-    if(num_str.find_first_of('.') != std::string::npos && *num_str.rbegin() == '0')
-      for(size_type i = num_str.size()-1; i>1 && num_str[i-1]!='.' && num_str[i]=='0'; --i)
-        num_str.erase(i,1);
+    if(num_str.find_first_of('.') != std::string::npos && *num_str.rbegin() == '0') {
+      size_type i = num_str.size()-1;
+      for(; i>1 && num_str[i-1]!='.' && num_str[i]=='0'; --i);
+      num_str.erase(i+1);
+    }
     return num_str;
   }
 
   // Convert a inexact_t integer to a string
-  Scm_numeric::exact_t Scm_numeric::inexact_integer_to_str(const inexact_t& num)const noexcept{
+  Snum::exact_t Snum::inexact_integer_to_str(const inexact_t& num)const noexcept{
     auto str = std::to_string(num);
     auto iter = str.end()-1;
     while(*iter == '0') --iter; // move past 0's to the right of the decimal
@@ -679,7 +693,7 @@ namespace scm_numeric {
   }
 
   // Simplify the current number (simplifies exact number/converts to float as needed)
-  void Scm_numeric::simplify_numerics() noexcept {
+  void Snum::simplify_numerics() noexcept {
     if(is_float && float_num < 0) float_num *= -1;
     if(stat != status::success || is_zero() || is_float || EXACT_T_IS_1(denominator)) return; 
     if(numerator == denominator) numerator = denominator = "1";
@@ -695,7 +709,7 @@ namespace scm_numeric {
   }
 
   // Adjust the current number's float invariants
-  void Scm_numeric::adjust_float_invariants() noexcept {
+  void Snum::adjust_float_invariants() noexcept {
     if(std::isnan(float_num)) {stat=status::nan; return;}
     // account for float's sign
     is_float = true;
@@ -713,7 +727,7 @@ namespace scm_numeric {
 
   // Adjust invariants once stat != status::success
   // => 'nan' status need only be set, which is handled prior this invocation
-  constexpr void Scm_numeric::set_failed_status() noexcept {
+  constexpr void Snum::set_failed_status() noexcept {
     if(is_neg_inf()) set_ninf();
     else if(is_pos_inf()) set_pinf();
   }
@@ -723,7 +737,7 @@ namespace scm_numeric {
   ******************************************************************************/
 
   // assignment operator
-  Scm_numeric& Scm_numeric::operator=(const Scm_numeric& s) noexcept {
+  Snum& Snum::operator=(const Snum& s) noexcept {
     sign        = s.sign;
     stat        = s.stat;
     numerator   = s.numerator;
@@ -733,7 +747,7 @@ namespace scm_numeric {
     return *this;
   }
 
-  Scm_numeric& Scm_numeric::operator=(Scm_numeric&& s) noexcept {
+  Snum& Snum::operator=(Snum&& s) noexcept {
     sign        = std::move(s.sign);
     stat        = std::move(s.stat);
     numerator   = std::move(s.numerator);
@@ -747,8 +761,8 @@ namespace scm_numeric {
   * ADDITION
   ******************************************************************************/
 
-  Scm_numeric Scm_numeric::operator+(const Scm_numeric& s) const noexcept {
-    Scm_numeric tmp;
+  Snum Snum::operator+(const Snum& s) const noexcept {
+    Snum tmp;
     if(stat != status::success || s.stat != status::success) {
       // NaN if either NaN, or subtracting inf from inf
       if(is_nan() || s.is_nan() || (is_pos_inf() && s.is_neg_inf()) || (is_neg_inf() && s.is_pos_inf())) {
@@ -773,7 +787,7 @@ namespace scm_numeric {
       exact_t new_numer2 = big_int_abs_val_mul(s.numerator,denominator);
       tmp.denominator    = big_int_abs_val_mul(denominator,s.denominator);
       if(sign == s.sign) {
-        tmp.numerator = big_int_abs_val_sum<false>(new_numer1,new_numer2);
+        tmp.numerator = big_int_abs_val_sum(new_numer1,new_numer2);
         if(is_neg()) tmp.sign = signs::neg;
         else         tmp.sign = signs::pos; // if either 0, would've already returned by now.
       } else {
@@ -817,7 +831,7 @@ namespace scm_numeric {
   * NEGATION
   ******************************************************************************/
 
-  Scm_numeric Scm_numeric::operator-() const noexcept {
+  Snum Snum::operator-() const noexcept {
     auto tmp = *this;
     if(tmp.is_pos_inf())       tmp.set_ninf();
     else if(tmp.is_neg_inf())  tmp.set_pinf();
@@ -830,10 +844,10 @@ namespace scm_numeric {
   * MULTIPLICATION
   ******************************************************************************/
 
-  Scm_numeric  Scm_numeric::operator*(const Scm_numeric& s) const noexcept {
-    Scm_numeric tmp;
+  Snum  Snum::operator*(const Snum& s) const noexcept {
+    Snum tmp;
     // n * 0 = 0
-    if(is_zero() || s.is_zero()) return Scm_numeric();
+    if(is_zero() || s.is_zero()) return Snum();
     if(stat != status::success || s.stat != status::success) {
       // NaN if either NaN
       if(is_nan() || s.is_nan()) {
@@ -890,7 +904,7 @@ namespace scm_numeric {
   * DIVISION
   ******************************************************************************/
 
-  Scm_numeric Scm_numeric::operator/(const Scm_numeric& s) const noexcept {
+  Snum Snum::operator/(const Snum& s) const noexcept {
     auto tmp = s;
     // any div with NaN = n/0 = inf/inf = NaN
     if(is_nan() || tmp.is_nan() || tmp.is_zero() || 
@@ -898,7 +912,7 @@ namespace scm_numeric {
       tmp.stat=status::nan;return tmp;
     }
     // real# / inf = 0
-    if(tmp.is_pos_inf() || tmp.is_neg_inf()) return Scm_numeric();
+    if(tmp.is_pos_inf() || tmp.is_neg_inf()) return Snum();
     // invert numeric value, then multiply
     if(tmp.is_float)
       tmp.float_num = 1.0L / tmp.float_num;
@@ -911,7 +925,7 @@ namespace scm_numeric {
   * REMAINDER
   ******************************************************************************/
 
-  Scm_numeric Scm_numeric::operator%(const Scm_numeric& s) const noexcept {
+  Snum Snum::operator%(const Snum& s) const noexcept {
     // a % b:
     //   let a / b = x.yyyyyyyyyy <infin y's>
     //   let z = (a / b) - x
@@ -924,13 +938,13 @@ namespace scm_numeric {
       tmp.stat=status::nan;return tmp;
     }
     // n % n = 0
-    if(abs_this == abs_s) return Scm_numeric();
+    if(abs_this == abs_s) return Snum();
     // for n < m, n % m = n
     if(abs_this < abs_s) return *this;
     // modding by inf: if n != inf, 1; else, 0
     if(abs_s.is_pos_inf()) {
       if(!abs_this.is_pos_inf()) return *this;
-      return Scm_numeric();
+      return Snum();
     }
 
     // apply the above algorithm
@@ -962,8 +976,8 @@ namespace scm_numeric {
   * EXPONENTIATION
   ******************************************************************************/
 
-  Scm_numeric Scm_numeric::expt(const Scm_numeric& s) const noexcept {
-    Scm_numeric tmp, pow(s);
+  Snum Snum::expt(const Snum& s) const noexcept {
+    Snum tmp, pow(s);
     // n^NaN = NaN^n = NaN
     if(is_nan() || pow.is_nan()) {
       tmp.stat = status::nan;return tmp;
@@ -977,7 +991,7 @@ namespace scm_numeric {
       if(is_zero() && (s.is_neg() || s.is_neg_inf())) {
         tmp.stat = status::nan; return tmp;
       }
-      return Scm_numeric();
+      return Snum();
     }
     // +inf^n = n^+inf = +inf
     if(pow.is_pos_inf() || is_pos_inf()) {
@@ -1013,11 +1027,11 @@ namespace scm_numeric {
       auto [unum_decomposition, decomp_status] = pow.abs().decompose_int_into_SIZE_TYPE_MAX(); 
       if(decomp_status != status::success){
         if(decomp_status == status::nan)  {tmp.stat = status::nan;return tmp;} // n^NaN = NaN
-        if(decomp_status == status::ninf) return Scm_numeric();                // n^-inf = 0
+        if(decomp_status == status::ninf) return Snum();                // n^-inf = 0
         if(decomp_status == status::pinf) {tmp.set_pinf();return tmp;}         // n^+inf = +inf
       }
       auto [unum_amount, unum_remainder] = unum_decomposition;
-      Scm_numeric lhs("1");
+      Snum lhs("1");
       if(unum_amount > 0) {
         lhs = repeated_squares(*this, SIZE_TYPE_MAX);          // (a^SIZE_TYPE_MAX)
         lhs = repeated_squares(lhs, unum_amount);              // ((a^SIZE_TYPE_MAX)^q)
@@ -1057,8 +1071,8 @@ namespace scm_numeric {
   * GREATEST COMMON DENOMINATOR
   ******************************************************************************/
 
-  Scm_numeric Scm_numeric::gcd(const Scm_numeric& s) const noexcept {
-    Scm_numeric tmp;
+  Snum Snum::gcd(const Snum& s) const noexcept {
+    Snum tmp;
     // GCD of NaN = GCD of Float = NaN
     if(stat == status::nan || s.stat == status::nan || !is_integer() || !s.is_integer()) {
       tmp.stat=status::nan; return tmp;
@@ -1101,9 +1115,9 @@ namespace scm_numeric {
   * LEAST COMMON MULTIPLE
   ******************************************************************************/
 
-  Scm_numeric Scm_numeric::lcm(const Scm_numeric& s) const noexcept {
+  Snum Snum::lcm(const Snum& s) const noexcept {
     // Note that lcm(a,b) = |a*b|/gcd(a,b) = (|a|/gcd(a,b)) * |b|
-    Scm_numeric tmp;
+    Snum tmp;
     
     // LCM of NaN = LCM of Float = NaN
     if(stat == status::nan || s.stat == status::nan || !is_integer() || !s.is_integer()) {
@@ -1111,7 +1125,7 @@ namespace scm_numeric {
     }
     
     // LCM of 0,0 = 0 (special case)
-    if(is_zero() && s.is_zero()) return Scm_numeric();
+    if(is_zero() && s.is_zero()) return Snum();
     
     // account for LCM of inf
     if(stat != status::success)   return *this;
@@ -1129,8 +1143,8 @@ namespace scm_numeric {
   * NATURAL LOGARITHM
   ******************************************************************************/
 
-  Scm_numeric Scm_numeric::log() const noexcept {
-    Scm_numeric tmp(*this);
+  Snum Snum::log() const noexcept {
+    Snum tmp(*this);
     // ln(nan) = ln(-inf) = ln(-n) = ln(0) = NaN, ln(+inf) = +inf
     if(tmp.stat != status::success || tmp.is_zero() || tmp.is_neg()) {
       if(tmp.is_pos_inf()) tmp.set_pinf();
@@ -1150,14 +1164,14 @@ namespace scm_numeric {
       }
     }
     // Compute the Natural Log of 'ln_base'
-    return Scm_numeric(std::log(ln_base)); 
+    return Snum(std::log(ln_base)); 
   }
 
   /******************************************************************************
   * QUOTIENT & MODULO OF BEING DIV'D BY ARG
   ******************************************************************************/
 
-  Scm_numeric Scm_numeric::quotient(const Scm_numeric& s) const noexcept {
+  Snum Snum::quotient(const Snum& s) const noexcept {
     auto tmp = *this / s;
     if(tmp.stat != status::success) {tmp.set_failed_status(); return tmp;}
     if(!tmp.is_float) tmp = tmp.to_inexact();
@@ -1165,7 +1179,7 @@ namespace scm_numeric {
     return tmp.trunc().to_exact();
   }
 
-  Scm_numeric Scm_numeric::modulo(const Scm_numeric& s) const noexcept {
+  Snum Snum::modulo(const Snum& s) const noexcept {
     // Credit for this Algorithm (modE) goes to Daan Leijen of the University of Utrecht. 
     // Proof (see page 5):
     // "https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf"
@@ -1180,7 +1194,7 @@ namespace scm_numeric {
   * OVERLOADED EQUALITY/COMPARISON OPERATORS
   ******************************************************************************/
 
-  bool Scm_numeric::operator==(const Scm_numeric& s) const noexcept {
+  bool Snum::operator==(const Snum& s) const noexcept {
     if((stat != status::success && stat == s.stat) || (is_zero() && s.is_zero()))
       return true;
     if(sign != s.sign) 
@@ -1193,7 +1207,7 @@ namespace scm_numeric {
       return (*this - s).is_zero();
   }
 
-  bool Scm_numeric::operator<(const Scm_numeric& s) const noexcept {
+  bool Snum::operator<(const Snum& s) const noexcept {
     if(is_nan() || s.is_nan() || is_pos_inf() || s.is_neg_inf() || (is_zero() && s.is_zero())) 
       return false;
     if(is_neg_inf() || s.is_pos_inf())
@@ -1212,7 +1226,7 @@ namespace scm_numeric {
     }
   }
 
-  bool Scm_numeric::operator>(const Scm_numeric& s) const noexcept {
+  bool Snum::operator>(const Snum& s) const noexcept {
     if(is_nan() || s.is_nan() || is_neg_inf() || s.is_pos_inf() || (is_zero() && s.is_zero())) 
       return false;
     if(is_pos_inf() || s.is_neg_inf())
@@ -1235,20 +1249,20 @@ namespace scm_numeric {
   * LOGICAL SHIFT LEFT
   ******************************************************************************/
 
-  Scm_numeric Scm_numeric::operator<<(const Scm_numeric& rhs) const noexcept {
+  Snum Snum::operator<<(const Snum& rhs) const noexcept {
     // num << inf = num << NaN = num << <negative-or-inexect_t> = NaN
     if(stat != status::success || rhs.stat != status::success || 
       !rhs.is_integer() || rhs.is_neg()) {
-      Scm_numeric tmp; tmp.stat = status::nan; return tmp;
+      Snum tmp; tmp.stat = status::nan; return tmp;
     }
     // 0 << num = 0, num << 0 = num
     if(is_zero() || rhs.is_zero()) return *this;
     // pos-num << n = pos-num * 2^n
-    if(!is_neg()) return *this * Scm_numeric("2").expt(rhs);
+    if(!is_neg()) return *this * Snum("2").expt(rhs);
     // Extract binary string
     exact_t bin_str;
     if(!get_non_fraction_binary_string(*this,bin_str,true)){ // <<ing a negative
-      Scm_numeric tmp; tmp.stat = status::nan; return tmp;
+      Snum tmp; tmp.stat = status::nan; return tmp;
     }
     // Perform Logical Left Shift
     const auto shift_amount = (size_type)rhs.extract_inexact();
@@ -1264,14 +1278,14 @@ namespace scm_numeric {
       bin_str.append(shift_amount, '0');      // pad 0s
     }
     // Revert binary string to a decminal reresentation
-    return big_int_revert_BINARY_to_Scm_numeric(bin_str, bin_str[0] == '1');
+    return big_int_revert_BINARY_to_Snum(bin_str, bin_str[0] == '1');
   }
 
   /******************************************************************************
   * LOGICAL SHIFT RIGHT
   ******************************************************************************/
 
-  Scm_numeric Scm_numeric::operator>>(const Scm_numeric& rhs) const noexcept {
+  Snum Snum::operator>>(const Snum& rhs) const noexcept {
     return GENERIC_SHIFT_RIGHT<true>(rhs);
   }
 
@@ -1279,7 +1293,7 @@ namespace scm_numeric {
   * ARITHMETIC SHIFT RIGHT
   ******************************************************************************/
 
-  Scm_numeric Scm_numeric::asr(const Scm_numeric& rhs) const noexcept {
+  Snum Snum::asr(const Snum& rhs) const noexcept {
     return GENERIC_SHIFT_RIGHT<false>(rhs);
   }
 
@@ -1287,26 +1301,26 @@ namespace scm_numeric {
   * BITWISE NOT
   ******************************************************************************/
 
-  Scm_numeric Scm_numeric::operator~() const noexcept {
+  Snum Snum::operator~() const noexcept {
     // ~inf = ~NaN = NaN
     if(stat != status::success){
-      Scm_numeric tmp; tmp.stat = status::nan; return tmp;
+      Snum tmp; tmp.stat = status::nan; return tmp;
     }
     // ~0 = 1
-    if(is_zero()) return Scm_numeric("1");
+    if(is_zero()) return Snum("1");
     // ~(-1) = 0
-    if(is_negative_one()) return Scm_numeric(); 
+    if(is_negative_one()) return Snum(); 
     // Extract binary string
     exact_t bin_str;
     if(!get_non_fraction_binary_string(*this,bin_str,true)){ // "~" is ALWAYS a signed operation
-      Scm_numeric tmp; tmp.stat = status::nan; return tmp;
+      Snum tmp; tmp.stat = status::nan; return tmp;
     }
     // Perform Bitwise NOT
     exact_t bin_str_result(bin_str.size(), '0');
     for(auto i = bin_str.size();i-- > 0;)
       bin_str_result[i] = char(bin_str[i] == '0') + '0';
     // Revert binary string to a decminal reresentation
-    return big_int_revert_BINARY_to_Scm_numeric(bin_str_result, 
+    return big_int_revert_BINARY_to_Snum(bin_str_result, 
       bin_str_result[0] == '1');
   }
 
@@ -1314,13 +1328,13 @@ namespace scm_numeric {
   * BITWISE AND
   ******************************************************************************/
 
-  Scm_numeric Scm_numeric::operator&(const Scm_numeric& rhs) const noexcept {
+  Snum Snum::operator&(const Snum& rhs) const noexcept {
     // num & inf = num & NaN = NaN
     if(stat != status::success || rhs.stat != status::success) {
-      Scm_numeric tmp; tmp.stat = status::nan; return tmp;
+      Snum tmp; tmp.stat = status::nan; return tmp;
     }
     // num & 0 = 0
-    if(is_zero() || rhs.is_zero()) return Scm_numeric(); 
+    if(is_zero() || rhs.is_zero()) return Snum(); 
     // num & -1 = num & num = num
     if(is_negative_one()) return rhs; 
     if(rhs.is_negative_one() || *this == rhs) 
@@ -1328,14 +1342,14 @@ namespace scm_numeric {
     // Extract binary strings
     exact_t bin_str_lhs, bin_str_rhs;
     if(!get_non_fraction_binary_strings(*this,bin_str_lhs,rhs,bin_str_rhs)){
-      Scm_numeric tmp; tmp.stat = status::nan; return tmp;
+      Snum tmp; tmp.stat = status::nan; return tmp;
     }
     // Perform Bitwise AND
     exact_t bin_str_result(bin_str_lhs.size(), '0');
     for(auto i = bin_str_lhs.size(); i-- > 0;)
       bin_str_result[i] = char(bin_str_lhs[i] == '1' && bin_str_rhs[i] == '1') + '0';
     // Revert binary string to a decminal reresentation
-    return big_int_revert_BINARY_to_Scm_numeric(bin_str_result, 
+    return big_int_revert_BINARY_to_Snum(bin_str_result, 
       (is_neg() || rhs.is_neg()) && bin_str_result[0] == '1');
   }
 
@@ -1343,10 +1357,10 @@ namespace scm_numeric {
   * BITWISE OR
   ******************************************************************************/
 
-  Scm_numeric Scm_numeric::operator|(const Scm_numeric& rhs) const noexcept {
+  Snum Snum::operator|(const Snum& rhs) const noexcept {
     // num | inf = num | NaN = NaN
     if(stat != status::success || rhs.stat != status::success) {
-      Scm_numeric tmp; tmp.stat = status::nan; return tmp;
+      Snum tmp; tmp.stat = status::nan; return tmp;
     }
     // num | 0 = num | num = num
     if(is_zero()) return rhs;
@@ -1357,14 +1371,14 @@ namespace scm_numeric {
     // Extract binary strings
     exact_t bin_str_lhs, bin_str_rhs;
     if(!get_non_fraction_binary_strings(*this,bin_str_lhs,rhs,bin_str_rhs)){
-      Scm_numeric tmp; tmp.stat = status::nan; return tmp;
+      Snum tmp; tmp.stat = status::nan; return tmp;
     }
     // Perform Bitwise OR
     exact_t bin_str_result(bin_str_lhs.size(), '0');
     for(auto i = bin_str_lhs.size(); i-- > 0;)
       bin_str_result[i] = char(bin_str_lhs[i] == '1' || bin_str_rhs[i] == '1') + '0';
     // Revert binary string to a decminal reresentation
-    return big_int_revert_BINARY_to_Scm_numeric(bin_str_result, 
+    return big_int_revert_BINARY_to_Snum(bin_str_result, 
       (is_neg() || rhs.is_neg()) && bin_str_result[0] == '1');
   }
 
@@ -1372,30 +1386,30 @@ namespace scm_numeric {
   * BITWISE XOR
   ******************************************************************************/
 
-  Scm_numeric Scm_numeric::operator^(const Scm_numeric& rhs) const noexcept {
+  Snum Snum::operator^(const Snum& rhs) const noexcept {
     // num ^ inf = num ^ NaN = NaN
     if(stat != status::success || rhs.stat != status::success) {
-      Scm_numeric tmp; tmp.stat = status::nan; return tmp;
+      Snum tmp; tmp.stat = status::nan; return tmp;
     }
     // num ^ 0 = num
     if(is_zero())     return rhs;
     if(rhs.is_zero()) return *this;
     // num ^ num = 0
-    if(*this == rhs) return Scm_numeric();
+    if(*this == rhs) return Snum();
     // num ^ -1 = ~num
     if(is_negative_one()) return ~rhs; 
     if(rhs.is_negative_one()) return ~(*this);
     // Extract binary strings
     exact_t bin_str_lhs, bin_str_rhs;
     if(!get_non_fraction_binary_strings(*this,bin_str_lhs,rhs,bin_str_rhs)){
-      Scm_numeric tmp; tmp.stat = status::nan; return tmp;
+      Snum tmp; tmp.stat = status::nan; return tmp;
     }
     // Perform Bitwise XOR
     exact_t bin_str_result(bin_str_lhs.size(), '0');
     for(auto i = bin_str_lhs.size(); i-- > 0;)
       bin_str_result[i] = char((bin_str_lhs[i]=='1') ^ (bin_str_rhs[i]=='1')) + '0';
     // Revert binary string to a decminal reresentation
-    return big_int_revert_BINARY_to_Scm_numeric(bin_str_result, 
+    return big_int_revert_BINARY_to_Snum(bin_str_result, 
       (is_neg() || rhs.is_neg()) && bin_str_result[0] == '1');
   }
 
@@ -1403,7 +1417,7 @@ namespace scm_numeric {
   * PARITY CHECK
   ******************************************************************************/
 
-  bool Scm_numeric::is_even() const noexcept {
+  bool Snum::is_even() const noexcept {
     if(stat == status::nan)     return false;
     if(stat != status::success) return true; // +inf.0 & -inf.0 are even
     if(is_zero())               return true; // 0 is even
@@ -1420,7 +1434,7 @@ namespace scm_numeric {
   * RATIONALITY CHECK
   ******************************************************************************/
 
-  bool Scm_numeric::is_rational() const noexcept {
+  bool Snum::is_rational() const noexcept {
     if(stat != status::success) return false; // Inf & NaN are irrational
     if(!is_float)               return true;  // exact numbers are rational
     return std::abs(float_num) < RATIONALITY_LIMIT;
@@ -1431,33 +1445,35 @@ namespace scm_numeric {
   ******************************************************************************/
 
   // get current value as a string (for c-style I/O)
-  std::string Scm_numeric::cio_str() const noexcept {
+  std::string Snum::cio_str() const noexcept {
     // Return NaN/Inf as needed
-    if(stat != Scm_numeric::status::success) {
+    if(stat != Snum::status::success) {
       if(is_nan())     return "+nan.0";
       if(is_neg_inf()) return "-inf.0";
       return "+inf.0";
     }
-
-    // Prepend Negative Sign as Needed
-    const exact_t sign_prefix((is_neg() ? "-" : ""));
-
-    // Append Numeric Value
+    // Return Numeric Value as std::string
     if(is_float) {
       char str[64];
-      sprintf(str, LD_SPRINTF_FORMAT(LDBL_DIG), float_num);
-      if(float_num<Scm_numeric::RATIONALITY_LIMIT && is_integer()) 
-        return (sign_prefix + str) + ".0";
-      return sign_prefix + str;
-    } else if(denominator.size() == 1 && denominator[0] == '1') {
-      return sign_prefix + numerator;
+      str[0] = is_neg() * '-'; // Prepend Negative Sign as Needed
+      sprintf(str+is_neg(), LD_SPRINTF_FORMAT(LDBL_DIG), float_num);
+      if(float_num >= Snum::RATIONALITY_LIMIT || !is_integer())
+        return str;
+      char* p = str; // Print ".0" after flonums w/o a fractional
+      while(*(++p));
+      *p++ = '.'; *p++ = '0'; *p = 0;
+      return str;
+    } else if(EXACT_T_IS_1(denominator)) {
+      if(is_pos()) return numerator;
+      return "-" + numerator;
     } else {
-      return sign_prefix + numerator + '/' + denominator;
+      if(is_pos()) return numerator + '/' + denominator;;
+      return "-" + numerator + '/' + denominator;;
     }
   }
 
   // get current value as a string in 'base' radix form
-  std::string Scm_numeric::cio_str(const int& base) const noexcept {
+  std::string Snum::cio_str(const int& base) const noexcept {
     return convert_dec_to_base_N(base, *this);
   }
 
@@ -1466,14 +1482,14 @@ namespace scm_numeric {
   ******************************************************************************/
 
   // Fast comparison for whether *this == -1
-  bool Scm_numeric::is_negative_one() const noexcept {
+  bool Snum::is_negative_one() const noexcept {
     return stat == status::success && sign == signs::neg && 
       ((!is_float && EXACT_T_IS_1(numerator) && EXACT_T_IS_1(denominator)) ||
        (is_float && float_num == 1.0L));
   }
 
   // Performs 2's complement negation on binary string bin_str
-  void Scm_numeric::big_int_BINARY_2sCMPL_NEGATION(exact_t& bin_str) const noexcept {
+  void Snum::big_int_BINARY_2sCMPL_NEGATION(exact_t& bin_str) const noexcept {
     auto i = bin_str.size();
     for(;i-- > 0 && bin_str[i] != '1';); // seek the rightmost '1'
     if(i+1 == 0) return;
@@ -1483,7 +1499,7 @@ namespace scm_numeric {
 
   // Extend bit_str1 w/ b1 & bit_str2 w/ b2 so they have the same width
   // PRECONDITION: bit_str1 & bit_str2 MUST be NON-EMPTY!
-  void Scm_numeric::big_int_BINARY_extend(exact_t& bit_str1, exact_t& bit_str2, 
+  void Snum::big_int_BINARY_extend(exact_t& bit_str1, exact_t& bit_str2, 
                                           const char& b1,    const char& b2) const noexcept {
     if(bit_str1.size() > bit_str2.size()) {
       bit_str2.insert(0, exact_t(bit_str1.size() - bit_str2.size(), b2));
@@ -1495,31 +1511,31 @@ namespace scm_numeric {
   // Sign-extend bit_str1 & bit_str2 to match lengths
   // PRECONDITIONS: 1) bit_str1 & bit_str2 MUST be NON-EMPTY!
   //                2) sign bits MUST be present in BOTH bit_str1 & bit_str2
-  void Scm_numeric::signed_big_int_BINARY_extend(exact_t& bit_str1, 
+  void Snum::signed_big_int_BINARY_extend(exact_t& bit_str1, 
                                                  exact_t& bit_str2) const noexcept {
     big_int_BINARY_extend(bit_str1,bit_str2,bit_str1[0],bit_str2[0]);
   }
 
   // Unsigned-extend bit_str1 & bit_str2 to match lengths
   // PRECONDITION: bit_str1 & bit_str2 MUST be NON-EMPTY!
-  void Scm_numeric::unsigned_big_int_BINARY_extend(exact_t& bit_str1, 
+  void Snum::unsigned_big_int_BINARY_extend(exact_t& bit_str1, 
                                                    exact_t& bit_str2) const noexcept {
     big_int_BINARY_extend(bit_str1,bit_str2,'0','0');
   }
 
-  // Convert possibly-signed binary string to a Scm_numeric
-  Scm_numeric Scm_numeric::big_int_revert_BINARY_to_Scm_numeric(exact_t bin_str, 
+  // Convert possibly-signed binary string to a Snum
+  Snum Snum::big_int_revert_BINARY_to_Snum(exact_t bin_str, 
                                         const bool& is_negative_binary) const noexcept {
     if(is_negative_binary) {
       big_int_BINARY_2sCMPL_NEGATION(bin_str);
-      return -(Scm_numeric(bin_str,2));
+      return -(Snum(bin_str,2));
     }
-    return Scm_numeric(bin_str,2);
+    return Snum(bin_str,2);
   }
 
-  // Convert a Scm_numeric to a no-fraction binary string 
+  // Convert a Snum to a no-fraction binary string 
   //   (degrades fractions to inexact_t & returns success status)
-  bool Scm_numeric::get_non_fraction_binary_string(Scm_numeric n, exact_t& bit_str, 
+  bool Snum::get_non_fraction_binary_string(Snum n, exact_t& bit_str, 
                                                    const bool& is_signed) const noexcept {
     // Coerce fractions to inextact_t as needed
     if(n.stat == status::success && !n.is_float && !EXACT_T_IS_1(n.denominator)){
@@ -1537,10 +1553,10 @@ namespace scm_numeric {
     return true;
   }
 
-  // Convert 2 Scm_numerics to no-fraction binary strings 
+  // Convert 2 Snums to no-fraction binary strings 
   //   (degrades fractions to inexact_t & returns success status)
-  bool Scm_numeric::get_non_fraction_binary_strings(const Scm_numeric& n1, exact_t& bit_str1, 
-                                                    const Scm_numeric& n2, exact_t& bit_str2)const noexcept{
+  bool Snum::get_non_fraction_binary_strings(const Snum& n1, exact_t& bit_str1, 
+                                                    const Snum& n2, exact_t& bit_str2)const noexcept{
     const bool is_signed = n1.is_neg() || n2.is_neg();
     if(!get_non_fraction_binary_string(n1,bit_str1,is_signed) ||
        !get_non_fraction_binary_string(n2,bit_str2,is_signed)) {
@@ -1555,18 +1571,18 @@ namespace scm_numeric {
 
   // Template outlining structure of LSR & ASR (logical/arithmetic shift right)
   template<bool LOGIC_RIGHT_SHIFT>
-  Scm_numeric Scm_numeric::GENERIC_SHIFT_RIGHT(const Scm_numeric& rhs) const noexcept {
+  Snum Snum::GENERIC_SHIFT_RIGHT(const Snum& rhs) const noexcept {
     // num >> inf = num >> NaN = num >> <negative-or-inexect_t> = NaN
     if(stat != status::success || rhs.stat != status::success || 
       !rhs.is_integer() || rhs.is_neg()) {
-      Scm_numeric tmp; tmp.stat = status::nan; return tmp;
+      Snum tmp; tmp.stat = status::nan; return tmp;
     }
     // 0 >> num = 0, num >> 0 = num
     if(is_zero() || rhs.is_zero()) return *this;
     // Extract binary string
     exact_t bin_str;
     if(!get_non_fraction_binary_string(*this,bin_str,is_neg())){
-      Scm_numeric tmp; tmp.stat = status::nan; return tmp;
+      Snum tmp; tmp.stat = status::nan; return tmp;
     }
     // Perform Logical/Arithmetic Right Shift
     const auto shift_amount = (size_type)rhs.extract_inexact();
@@ -1585,7 +1601,7 @@ namespace scm_numeric {
     }
     bin_str.erase(bin_str.size()-shift_amount);
     // Revert binary string to a decminal reresentation
-    return big_int_revert_BINARY_to_Scm_numeric(bin_str, is_neg() && bin_str[0] == '1');
+    return big_int_revert_BINARY_to_Snum(bin_str, is_neg() && bin_str[0] == '1');
   }
 
   /******************************************************************************
@@ -1599,10 +1615,10 @@ namespace scm_numeric {
   //                inner pair's 2nd = remainder of numerator / SIZE_TYPE_MAX,
   //                success status contains the result of its attempted 
   //                        numerator coercions to floats
-  std::pair<std::pair<Scm_numeric::size_type,Scm_numeric::size_type>,Scm_numeric::status> 
-  Scm_numeric::decompose_int_into_SIZE_TYPE_MAX() const noexcept {
-    const Scm_numeric unum_Scm_numeric(SIZE_TYPE_MAX);
-    const auto div_res = (*this / unum_Scm_numeric), mod_res = (*this % unum_Scm_numeric);
+  std::pair<std::pair<Snum::size_type,Snum::size_type>,Snum::status> 
+  Snum::decompose_int_into_SIZE_TYPE_MAX() const noexcept {
+    const Snum unum_Snum(SIZE_TYPE_MAX);
+    const auto div_res = (*this / unum_Snum), mod_res = (*this % unum_Snum);
     inexact_t div_flt, mod_flt;
     // Coerce Division Result to a Float
     if(div_res.is_float) {
@@ -1632,9 +1648,9 @@ namespace scm_numeric {
 
 
   // Perform the repeated squares algorithm for polynomial-time exponentiation
-  Scm_numeric Scm_numeric::repeated_squares(const Scm_numeric& a, const size_type& b) const noexcept { // a^b
+  Snum Snum::repeated_squares(const Snum& a, const size_type& b) const noexcept { // a^b
     constexpr const int BITS_PER_BYTE = 8;
-    Scm_numeric f("1");
+    Snum f("1");
     // REPEATED SQUARING A9: for each b bit, from left to right
     for(int i = sizeof(size_type)*BITS_PER_BYTE-1; i >= 0; --i) {
       f *= f;
@@ -1648,10 +1664,10 @@ namespace scm_numeric {
   ******************************************************************************/
 
   // Generic rounding fcn template for ceil, floor, trunc, & round
-  Scm_numeric Scm_numeric::ROUNDING_GENERIC_FCN(const size_type ROUNDING_TYPE_ID) const noexcept {
+  Snum Snum::ROUNDING_GENERIC_FCN(const size_type ROUNDING_TYPE_ID) const noexcept {
     // nothing to round if not finite or an int (including 0)
     if(stat != status::success || is_integer()) return *this;
-    Scm_numeric tmp(*this);
+    Snum tmp(*this);
     // Coerce Fractional to Float as Needed
     inexact_t flt_val = 0;
     if(tmp.is_float)
@@ -1681,32 +1697,28 @@ namespace scm_numeric {
   ******************************************************************************/
 
   // Returns whether big-int a > big-int b
-  bool Scm_numeric::big_int_gt(const exact_t& a, const exact_t& b) const noexcept {
+  bool Snum::big_int_gt(const exact_t& a, const exact_t& b) const noexcept {
     return a.size() > b.size() || (a.size() == b.size() && a > b);
   }
   // Returns whether big-int a < big-int b
-  bool Scm_numeric::big_int_lt(const exact_t& a, const exact_t& b) const noexcept {
+  bool Snum::big_int_lt(const exact_t& a, const exact_t& b) const noexcept {
     return a.size() < b.size() || (a.size() == b.size() && a < b);
   }
 
   // Sums 2 strings of decimal digits into a single string
-  template<bool INVOKED_BY_MUL>
-  Scm_numeric::exact_t Scm_numeric::big_int_abs_val_sum(const exact_t& a, const exact_t& b) const noexcept{
+  Snum::exact_t Snum::big_int_abs_val_sum(const exact_t& a, const exact_t& b) const noexcept{
     if(EXACT_T_IS_0(a)) return b;
     if(EXACT_T_IS_0(b)) return a;
-    constexpr auto get_begin = [](const exact_t& n) {
-      if constexpr (INVOKED_BY_MUL) return n.begin(); else return n.rbegin();
-    };
-    constexpr auto get_end = [](const exact_t& n) {
-      if constexpr (INVOKED_BY_MUL) return n.end(); else return n.rend();
-    };
-    auto ch1 = get_begin(a), ch2 = get_begin(b);
-    const auto end1 = get_end(a), end2 = get_end(b);
-    exact_t sum = "";
+    // get iterators to traverse the string with
+    auto ch1 = a.rbegin(), ch2 = b.rbegin();
+    const auto end1 = a.rend(), end2 = b.rend();
+    exact_t sum; // reserve total possible digits in addition
+    if(a.size() > b.size()) sum.reserve(a.size() + 1);
+    else                    sum.reserve(b.size() + 1);
     char carry_over = 0;
     // add the 2 #s together
     for(; ch1 != end1 && ch2 != end2; ++ch1, ++ch2) {
-      const auto ch_sum = *ch1-'0' + *ch2-'0' + carry_over;
+      auto ch_sum = *ch1-'0' + *ch2-'0' + carry_over;
       carry_over = (ch_sum > 9);
       sum += ch_sum + '0' - 10 * carry_over;
     }
@@ -1715,78 +1727,113 @@ namespace scm_numeric {
     const auto& end_of_str = (ch1 != end1) ? end1 : end2;
     auto begin_of_str = (ch1 != end1) ? ch1 : ch2;
     while(begin_of_str != end_of_str) {
-      const auto ch_sum = *begin_of_str-'0' + carry_over;
+      auto ch_sum = *begin_of_str-'0' + carry_over;
       carry_over = (ch_sum > 9);
       sum += ch_sum + '0' - 10 * carry_over;
       ++begin_of_str;
     }
     // append the final "carry_over" bit, IF = 1
-    if(carry_over == 1) sum += '1'; 
+    if(carry_over == 1) sum += '1';
     // return the # in reverse (since appended addition 
     //   result starting from the 'ones' position)
-    if constexpr (INVOKED_BY_MUL) {
-      return sum;
-    } else {
-      return exact_t(sum.rbegin(), sum.rend());
-    }
+    return exact_t(sum.rbegin(), sum.rend());
   }
 
+
   // Multiplies 2 strings of decimal digits into a single string
-  Scm_numeric::exact_t Scm_numeric::big_int_abs_val_mul(const exact_t& a, const exact_t& b) const noexcept {
+  Snum::exact_t Snum::big_int_abs_val_mul(const exact_t& a, const exact_t& b) const noexcept {
     if(EXACT_T_IS_0(a) || EXACT_T_IS_0(b)) return "0";
     if(EXACT_T_IS_1(a))                    return b;
     if(EXACT_T_IS_1(b))                    return a;
     const bool a_is_gt_b = big_int_gt(a,b);
     const exact_t& big   = a_is_gt_b ? a : b;
     const exact_t& small = a_is_gt_b ? b : a;
-    // stores numbers to be added after having mul'ed each small# digit by the big#
-    exact_t* adders = new exact_t [small.size()];
+    exact_t product; product.reserve(a.size() + b.size()); product += '0'; // product of *
+    exact_t digit_mul_instance; digit_mul_instance.reserve(big.size()+1);
     char carry_over = 0;
     size_type i = 0;
     const auto &end1 = small.rend(), &end2 = big.rend();
     const auto& start2 = big.rbegin();
     // for each digit in the small#
     for(auto ch1 = small.rbegin(); ch1 != end1; ++ch1, ++i, carry_over=0) { 
-      adders[i] += exact_t(i, '0'); // pad i zeros
+      digit_mul_instance.clear(); // pad i zeros
+      for(size_type j = 0; j != i; ++j) digit_mul_instance += '0';
       for(auto ch2 = start2; ch2 != end2; ++ch2) { // for each digit in the big#
-        const char mulres = (*ch1-'0') * (*ch2-'0') + carry_over;
-        carry_over = mulres / 10;         // 10's digit is carried over
-        adders[i] += (mulres % 10) + '0'; // 1's digit is accounted for to be summed later
+        char mulres = (*ch1-'0') * (*ch2-'0') + carry_over;
+        carry_over = mulres / 10;                  // 10's digit is carried over
+        digit_mul_instance += (mulres % 10) + '0'; // 1's digit is accounted for to be summed later
       }
       // add carry_over if present
-      if(carry_over > 0) adders[i] += carry_over+'0'; 
+      if(carry_over > 0) digit_mul_instance += carry_over+'0';
+      // Add small#'s digit-multiplication w/ the big# to the product
+      big_int_abs_val_MUL_HELPER_sum(product,digit_mul_instance);
     }
-    // add the results of mul'ing each small# digit by the big#, & return their sum
-    exact_t product("0");
-    for(size_type i = 0, n = small.size(); i < n; ++i)
-      product = big_int_abs_val_sum<true>(product,adders[i]);
-    delete [] adders;
     return exact_t(product.rbegin(), product.rend());
+  }
+
+
+  // MUL '* HELPER: Sums 2 strings of decimal digits into a single string
+  void Snum::big_int_abs_val_MUL_HELPER_sum(exact_t& a, const exact_t& b) const noexcept{ // <a> = product
+    if(EXACT_T_IS_0(a)) {a.clear(); a += b; return;}
+    if(EXACT_T_IS_0(b)) return;
+    // get iterators to traverse the string with
+    auto ch1 = a.begin(), end1 = a.end();
+    auto ch2 = b.begin(), end2 = b.end();
+    char carry_over = 0;
+    // add the 2 #s together
+    for(; ch1 != end1 && ch2 != end2; ++ch2) {
+      char ch_sum = *ch1-'0' + *ch2-'0' + carry_over;
+      carry_over = (ch_sum > 9);
+      *ch1++ = ch_sum + '0' - 10 * carry_over;
+    }
+    // NOTE: only 1 (if any at all) of the below 2 while loops are ever invoked!
+    while(ch1 != end1) { // propogate the last 'carry_over' across the rest of a
+      char ch_sum = *ch1-'0' + carry_over;
+      carry_over = (ch_sum > 9);
+      *ch1++ = ch_sum + '0' - 10 * carry_over;
+    }
+    while(ch2 != end2) { // propogate the last 'carry_over' across the b into a
+      char ch_sum = *ch2-'0' + carry_over;
+      carry_over = (ch_sum > 9);
+      a += ch_sum + '0' - 10 * carry_over;
+      ++ch2;
+    }
+    if(carry_over == 1) a += '1'; // append the final "carry_over" bit, IF = 1
   }
 
 
   // Returns the absolute difference (in a single string) 
   //   of 2 strings of decimal digits
-  Scm_numeric::exact_t Scm_numeric::big_int_abs_val_diff(const exact_t& a, const exact_t& b) const noexcept {
+  Snum::exact_t Snum::big_int_abs_val_diff(const exact_t& a, const exact_t& b) const noexcept {
     if(EXACT_T_IS_0(a)) return b;
     if(EXACT_T_IS_0(b)) return a;
     if(a == b)          return "0";
     const bool a_is_gt_b = big_int_gt(a,b);
     const exact_t& big   = a_is_gt_b ? a : b;
-    exact_t small        = a_is_gt_b ? b : a;
-    
+    exact_t small; small.reserve(big.size());
     // pad the front of 'small' w/ 0's
-    if(small.size() < big.size()) // now small.size() = big.size()
-      small = exact_t(big.size()-small.size(),'0') + small;
-
-    exact_t diff = "";
+    if(a.size() != b.size()) {
+      if(a_is_gt_b) {
+        for(size_type i = 0, padding_length = a.size()-b.size(); i<padding_length; ++i) small += '0';
+        for(const auto& ch : b) small += ch; // now small.size() = big.size()
+      } else {
+        for(size_type i = 0, padding_length = b.size()-a.size(); i<padding_length; ++i) small += '0';
+        for(const auto& ch : a) small += ch; // now small.size() = big.size()
+      }
+    } else if(a_is_gt_b) {
+      small += b;
+    } else {
+      small += a;
+    }
+    // perform subtraction
+    exact_t diff; diff.reserve(big.size());
     char carry_over = 0;
     const auto& end1 = big.rend();
     auto ch1 = big.rbegin();
     for(auto ch2 = small.rbegin(); ch1 != end1; ++ch1, ++ch2) {
       // carry the one (or 0) as needed
-      const char small_digit = *ch2-'0' + carry_over; 
-      const char big_digit = *ch1-'0';
+      char small_digit = *ch2-'0' + carry_over; 
+      char big_digit = *ch1-'0';
       carry_over = (big_digit < small_digit);
       // add 10 to the big# digit if carrying over
       diff += ((big_digit + (carry_over * 10)) - small_digit) + '0'; 
@@ -1804,7 +1851,7 @@ namespace scm_numeric {
 
   // returns gcd of flt a & b
   // PRECONDITION: a > b
-  constexpr Scm_numeric::inexact_t Scm_numeric::inexact_t_GCD(const inexact_t a, const inexact_t b) const noexcept {
+  constexpr Snum::inexact_t Snum::inexact_t_GCD(const inexact_t a, const inexact_t b) const noexcept {
     if(b == 0) return a;
     return inexact_t_GCD(b,std::fmod(a,b));
   }
@@ -1814,8 +1861,8 @@ namespace scm_numeric {
   ******************************************************************************/
 
   // Generic cpp-fcn-invocation template
-  Scm_numeric Scm_numeric::UNDERLYING_CPP_GENERIC_FCN(const size_type CPP_FCN_TYPE_ID) const noexcept {
-    Scm_numeric tmp;
+  Snum Snum::UNDERLYING_CPP_GENERIC_FCN(const size_type CPP_FCN_TYPE_ID) const noexcept {
+    Snum tmp;
     constexpr size_type EXP_ID = 12;
     // Fcn (non-exp) of NaN or Inf is NaN
     if(stat == status::nan || (stat != status::success && CPP_FCN_TYPE_ID != EXP_ID)) {
@@ -1823,7 +1870,7 @@ namespace scm_numeric {
     } else if(CPP_FCN_TYPE_ID == EXP_ID && is_pos_inf()) { // e^+inf = +inf
       tmp.set_pinf(); return tmp;
     } else if(CPP_FCN_TYPE_ID == EXP_ID && is_neg_inf()) { // e^-inf = 0
-      return Scm_numeric();
+      return Snum();
     }
     // Coerce Fractional to Float as Needed
     inexact_t flt_val = 0;
@@ -1865,7 +1912,7 @@ namespace scm_numeric {
   ******************************************************************************/
 
   // rm whitespace from number string & trims padding 0's
-  void Scm_numeric::trim_data_string(exact_t& num_str) noexcept {
+  void Snum::trim_data_string(exact_t& num_str) noexcept {
     exact_t trimmed;
     for(const auto& ch : num_str) if(!isspace(ch)) trimmed += ch;
     if(trimmed.size()<2) {
@@ -1897,7 +1944,7 @@ namespace scm_numeric {
 
 
   // Confirm given string is a viable candidate to be a number
-  Scm_numeric::precisions Scm_numeric::confirm_valid_string(const exact_t& num_str) noexcept {
+  Snum::precisions Snum::confirm_valid_string(const exact_t& num_str) noexcept {
     exact_t str(num_str);
     trim_data_string(str);
     if(str.empty()) return precisions::invalid;
@@ -1951,7 +1998,7 @@ namespace scm_numeric {
   ******************************************************************************/
 
   // Direct ctor for <inexact_t>s (no indirection via <std::to_string> needed)
-  Scm_numeric::Scm_numeric(const inexact_t& data) noexcept {
+  Snum::Snum(const inexact_t& data) noexcept {
     if(data == 0) return;
     is_float = true, float_num = data;
     if(data < 0) {
@@ -1964,7 +2011,7 @@ namespace scm_numeric {
 
 
   // Parse the _confirmed_ valid number
-  void Scm_numeric::parse_integer(exact_t::iterator ch) noexcept {
+  void Snum::parse_integer(exact_t::iterator ch) noexcept {
     numerator = "";                                      // empty dflt value for numerator
     while(*ch == '0' && *(ch+1) && *(ch+1) != '/') ++ch; // rm padding lhs 0s
     while(*ch && *ch != '/')  {numerator += *ch; ++ch;}
@@ -1979,7 +2026,7 @@ namespace scm_numeric {
 
 
   // Assign NaN or Inf if given such as a string, and return whether did so
-  bool Scm_numeric::is_irrational(const exact_t& num_str) noexcept {
+  bool Snum::is_irrational(const exact_t& num_str) noexcept {
     if(num_str == "+inf.0") { set_pinf(); return true; }
     if(num_str == "-inf.0") { set_ninf(); return true; }
     if(num_str == "+nan.0" || num_str == "-nan.0") { 
@@ -1990,7 +2037,7 @@ namespace scm_numeric {
 
 
   // Construct number out of the given string
-  void Scm_numeric::construct_number(exact_t num_str) noexcept {
+  void Snum::construct_number(exact_t num_str) noexcept {
     // Check if NaN or Inf
     if(is_irrational(num_str)) return;
     // Confirm given valid number
@@ -2020,13 +2067,13 @@ namespace scm_numeric {
   ******************************************************************************/
 
   // Confirms <base> is w/in range of possible number systems
-  constexpr bool Scm_numeric::confirm_base_in_range(const int& base) const noexcept {
+  constexpr bool Snum::confirm_base_in_range(const int& base) const noexcept {
     return base > 1 && base < 37;
   }
 
 
   // Confirms <bnum> only contains digits in range of the <base> number system
-  bool Scm_numeric::confirm_valid_base_digits(const int& base, const exact_t& bnum) const noexcept {
+  bool Snum::confirm_valid_base_digits(const int& base, const exact_t& bnum) const noexcept {
     for(const auto& digit : bnum)
       if(!is_base_digit(digit,base))
         return false;
@@ -2035,7 +2082,7 @@ namespace scm_numeric {
 
 
   // Returns <digit>'s base-36 representation
-  const char * Scm_numeric::base_digit_conversion(const Scm_numeric& digit, const int& base) const noexcept {
+  const char * Snum::base_digit_conversion(const Snum& digit, const int& base) const noexcept {
     static constexpr const char * const base_36_digits[] = {
       "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", 
       "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", 
@@ -2047,9 +2094,9 @@ namespace scm_numeric {
 
 
   // Evaluates the numerator & denominator of a base-N # & divides their results
-  Scm_numeric Scm_numeric::form_decimal_fraction(const int& base,const size_type& i,const exact_t& bnum,const bool& is_neg)const noexcept{
+  Snum Snum::form_decimal_fraction(const int& base,const size_type& i,const exact_t& bnum,const bool& is_neg)const noexcept{
     if(i == 0) {
-      Scm_numeric tmp; tmp.stat = status::nan; return tmp; // Invalid Scm_numeric Given: Can't begin with '/'!
+      Snum tmp; tmp.stat = status::nan; return tmp; // Invalid Snum Given: Can't begin with '/'!
     }
     return convert_base_N_to_dec(base,bnum.substr(0,i)) 
             / convert_base_N_to_dec(base,bnum.substr(i+1, bnum.size()-i-1)) 
@@ -2058,31 +2105,31 @@ namespace scm_numeric {
 
 
   // Evaluates the integral & fractional of a base-N # & combines their results
-  Scm_numeric Scm_numeric::form_decimal_floating_pt(const int& base,const size_type& i,const exact_t& bnum,const bool& is_neg)const noexcept{
+  Snum Snum::form_decimal_floating_pt(const int& base,const size_type& i,const exact_t& bnum,const bool& is_neg)const noexcept{
     auto fractional = convert_base_N_decimal_to_dec(base,bnum.substr(i+1, bnum.size()-i-1));
-    if(fractional == "+nan.0") {Scm_numeric tmp; tmp.stat = status::nan; return tmp;}
-    if(i == 0) return Scm_numeric("0." + fractional) * (is_neg ? -1 : 1);
-    return (convert_base_N_to_dec(base,bnum.substr(0,i)) + Scm_numeric("0." + fractional)) * (is_neg ? -1 : 1);
+    if(fractional == "+nan.0") {Snum tmp; tmp.stat = status::nan; return tmp;}
+    if(i == 0) return Snum("0." + fractional) * (is_neg ? -1 : 1);
+    return (convert_base_N_to_dec(base,bnum.substr(0,i)) + Snum("0." + fractional)) * (is_neg ? -1 : 1);
   }
 
 
   // Evaluates the numerator & denominator of a decimal # & divides their results
-  Scm_numeric::exact_t Scm_numeric::form_base_N_fraction(const int& base,const Scm_numeric& dnum) const noexcept {
-    exact_t frac(dnum.is_neg() ? "-" : "");
+  Snum::exact_t Snum::form_base_N_fraction(const int& base,const Snum& dnum) const noexcept {
     auto numer = convert_dec_to_base_N(base,dnum.numerator);
     if(numer == "+nan.0") return numer;
-    frac += numer;
     if(!EXACT_T_IS_1(dnum.denominator)) {
       auto denom = convert_dec_to_base_N(base,dnum.denominator);
       if(denom == "+nan.0") return denom;
-      return frac + "/" + denom;
+      if(dnum.is_neg()) return '-' + numer + '/' + denom;
+      return numer + '/' + denom;
     }
-    return frac;
+    if(dnum.is_neg()) return '-' + numer;
+    return numer;
   }
 
 
   // Evaluates the integral & fractional of a decimal # & combines their results
-  Scm_numeric::exact_t Scm_numeric::form_base_N_floating_pt(const int& base, const Scm_numeric& dnum) const noexcept {
+  Snum::exact_t Snum::form_base_N_floating_pt(const int& base, const Snum& dnum) const noexcept {
     exact_t dnum_str = convert_numeric_to_str(dnum.float_num);
     size_type decimal_idx = dnum_str.find_first_of('.');
     if(decimal_idx == 1 && dnum_str[0] == '0') // only a fractional, no integral
@@ -2102,12 +2149,12 @@ namespace scm_numeric {
   * BASE CONVERSION INTEGER MAIN FCNS
   ******************************************************************************/
 
-  // Convert a base-n big int string into a decimal Scm_numeric
+  // Convert a base-n big int string into a decimal Snum
   // PRECONDITION: <bnum> must be an INTEGER
-  Scm_numeric Scm_numeric::convert_base_N_to_dec(const int& base, exact_t bnum) const noexcept {
+  Snum Snum::convert_base_N_to_dec(const int& base, exact_t bnum) const noexcept {
     if(!confirm_base_in_range(base)) {
-      // Invalid Scm_numeric Base Given, Must be in Range: [2,36]!
-      Scm_numeric tmp; tmp.stat = status::nan; return tmp; 
+      // Invalid Snum Base Given, Must be in Range: [2,36]!
+      Snum tmp; tmp.stat = status::nan; return tmp; 
     }
     if(base == 10 || EXACT_T_IS_0(bnum) || bnum == "0.0")
       return bnum; // return if nothing to convert
@@ -2126,7 +2173,7 @@ namespace scm_numeric {
 
     // Confirm valid digit use
     if(!confirm_valid_base_digits(base,bnum)){
-      Scm_numeric tmp; tmp.stat = status::nan; return tmp;
+      Snum tmp; tmp.stat = status::nan; return tmp;
     }
 
     // ------------------------------------------------------------------------------
@@ -2144,20 +2191,20 @@ namespace scm_numeric {
     // Start of base# substring to splice out, & current digit #
     size_type start = n > MAX_STOULL_LENGTH ? n-MAX_STOULL_LENGTH : n;
     size_type digit_count = 0;
-    Scm_numeric decimal_num;
+    Snum decimal_num;
 
     // While-Loop ONLY initially launches if must account for digits to the 
     //   right of <start>. If triggered, functionally becomes while(true)
     while(n > MAX_STOULL_LENGTH) {
       // perform "2)" from "APPROACH" above
-      decimal_num += std::stoull(bnum.substr(start,MAX_STOULL_LENGTH),nullptr,base) * (Scm_numeric(base).expt(digit_count));
+      decimal_num += std::stoull(bnum.substr(start,MAX_STOULL_LENGTH),nullptr,base) * (Snum(base).expt(digit_count));
       digit_count += MAX_STOULL_LENGTH;     // account for the current digit#
       if(start <= MAX_STOULL_LENGTH) break; // no more substrings, break
       start -= MAX_STOULL_LENGTH;           // shift <start> to the next substr
     }
 
     // Account for digits remaining to the left of <start>
-    decimal_num += std::stoull(bnum.substr(0, start),nullptr,base) * (Scm_numeric(base).expt(digit_count));
+    if(start) decimal_num += std::stoull(bnum.substr(0, start),nullptr,base) * (Snum(base).expt(digit_count));
     return (is_neg) ? (-1 * decimal_num) : decimal_num;
   }
 
@@ -2165,8 +2212,8 @@ namespace scm_numeric {
   // Converts the <dnum> decimal # into a <base> #
   //   => NOTE: approximates the conversion if dnum > INEXACT_PRECISION
   // PRECONDITION: <dnum> must be an INTEGER
-  Scm_numeric::exact_t Scm_numeric::convert_dec_to_base_N(const int& base, const Scm_numeric& dnum) const noexcept {
-    // return if invalid Scm_numeric base given, must be in range: [2,36]!
+  Snum::exact_t Snum::convert_dec_to_base_N(const int& base, const Snum& dnum) const noexcept {
+    // return if invalid Snum base given, must be in range: [2,36]!
     if(!confirm_base_in_range(base)) return "+nan.0"; 
     
     // Return self if inf or NaN
@@ -2182,7 +2229,7 @@ namespace scm_numeric {
     
     // Return if nothing to convert
     if(base == 10) return dnum.extract_exact();
-    Scm_numeric D = dnum.abs();
+    Snum D = dnum.abs();
     exact_t bnum;
     
     // From right to left, determine the next digit via %
@@ -2201,7 +2248,7 @@ namespace scm_numeric {
   ******************************************************************************/
 
   // Erases redundant RHS padding 0s, trimming fractionals
-  void Scm_numeric::reduce_redundant_RHS_0s(exact_t& fractional) const noexcept {
+  void Snum::reduce_redundant_RHS_0s(exact_t& fractional) const noexcept {
     if(fractional.empty()) return;
     auto last_non_zero = fractional.end()-1;
     while(last_non_zero != fractional.begin() && *last_non_zero == '0') 
@@ -2211,13 +2258,13 @@ namespace scm_numeric {
 
 
   // Pad 0 to the LHS of a <base> fractional as needed for improved accuracy
-  void Scm_numeric::pad_LHS_base_N_decimal_0s_as_needed(const int& base, const exact_t& dnum, exact_t& bnum) const noexcept {
-    const Scm_numeric scm_dnum("0."+dnum);
-    while(Scm_numeric("0."+convert_base_N_decimal_to_dec(base,'0'+bnum)) > scm_dnum)     // while padding a 0 = more accuracy
+  void Snum::pad_LHS_base_N_decimal_0s_as_needed(const int& base, const exact_t& dnum, exact_t& bnum) const noexcept {
+    const Snum scm_dnum("0."+dnum);
+    while(Snum("0."+convert_base_N_decimal_to_dec(base,'0'+bnum)) > scm_dnum)     // while padding a 0 = more accuracy
       bnum.insert(0,"0");                                                                // pad a 0
-    if((Scm_numeric("0."+convert_base_N_decimal_to_dec(base,'0'+bnum)) - scm_dnum).abs() // if padding an extra 0
+    if((Snum("0."+convert_base_N_decimal_to_dec(base,'0'+bnum)) - scm_dnum).abs() // if padding an extra 0
          <                                                                               // yields more accuracy than
-         (Scm_numeric("0."+convert_base_N_decimal_to_dec(base,bnum)) - scm_dnum).abs()){ // not padding an extra zero
+         (Snum("0."+convert_base_N_decimal_to_dec(base,bnum)) - scm_dnum).abs()){ // not padding an extra zero
       bnum.insert(0,"0");                                                                // pad an extra 0
     }
   }
@@ -2228,7 +2275,7 @@ namespace scm_numeric {
 
   // Converts the given <base> floating point fractional to the decimal # system
   // POSTCONDITION: RETURNS THE <base> FRACTIONAL AS A DECIMAL FRACTIONAL
-  Scm_numeric::exact_t Scm_numeric::convert_base_N_decimal_to_dec(const int& base, exact_t bnum) const noexcept {
+  Snum::exact_t Snum::convert_base_N_decimal_to_dec(const int& base, exact_t bnum) const noexcept {
     // Return if nothing to convert or given an invalid "base" string of digits
     if(base == 10 || EXACT_T_IS_0(bnum))      return bnum;
     if(!confirm_valid_base_digits(base,bnum)) return "+nan.0";
@@ -2246,7 +2293,7 @@ namespace scm_numeric {
     // only get precision up to INEXACT_PRECISION decimal points
     if(bnum.size() > INEXACT_PRECISION) bnum.erase(INEXACT_PRECISION);
     // perform the above algorithm
-    auto decimals = (convert_base_N_to_dec(base,bnum) / (Scm_numeric(base).expt(bnum.size()))).extract_inexact();
+    auto decimals = (convert_base_N_to_dec(base,bnum) / (Snum(base).expt(bnum.size()))).extract_inexact();
     auto decimal_fractional = convert_numeric_to_str(decimals);
     // both NaN and Inf are undefined for base-N -> decimal conversion
     if(decimal_fractional == "nan" || decimal_fractional == "inf") return "+nan.0"; 
@@ -2264,9 +2311,9 @@ namespace scm_numeric {
 
   // Converts the given decimal floating point fractional to the <base> # system
   // POSTCONDITION: RETURNS THE DECIMAL FRACTIONAL AS A <base> FRACTIONAL
-  Scm_numeric::exact_t Scm_numeric::convert_dec_decimal_to_base_N(const int& base, exact_t dnum) const noexcept {
+  Snum::exact_t Snum::convert_dec_decimal_to_base_N(const int& base, exact_t dnum) const noexcept {
     // Return if nothing to convert or given an invalid "base" string of digits
-    if(base == 10 || Scm_numeric(dnum).is_zero()) return dnum;
+    if(base == 10 || Snum(dnum).is_zero()) return dnum;
     if(!confirm_valid_base_digits(10,dnum))       return "+nan.0";
     // --------------------------------------------------------------------------------
     // Approach: 
@@ -2282,8 +2329,8 @@ namespace scm_numeric {
     // only get precision up to INEXACT_PRECISION decimal points
     if(dnum.size() > INEXACT_PRECISION) dnum.erase(INEXACT_PRECISION);
     // perform the above algorithm
-    auto base_fractional = convert_dec_to_base_N(base, (Scm_numeric("0."+dnum) * 
-                                                 (Scm_numeric(base).expt(INEXACT_PRECISION))).round());
+    auto base_fractional = convert_dec_to_base_N(base, (Snum("0."+dnum) * 
+                                                 (Snum(base).expt(INEXACT_PRECISION))).round());
     if(base_fractional == "+nan.0") return base_fractional;
     // the above algorithm has no way to account for 0s padding "b1 b2 b3...bN"'s
     //   LHS, hence continuously pad 0s & compare w/ its decimal form until the
@@ -2300,7 +2347,7 @@ namespace scm_numeric {
 
   // Coerce the given int string into float. Returns the success status, 
   // IE whether became a float as requested, OR resulted in +- inf.
-  Scm_numeric::status Scm_numeric::coerce_int_to_float(inexact_t& num, const exact_t& data_to_coerce, const bool data_is_neg) const noexcept {
+  Snum::status Snum::coerce_int_to_float(inexact_t& num, const exact_t& data_to_coerce, const bool data_is_neg) const noexcept {
     num = 0;
     try {                                   // try parsing out the floating point
       num = std::stold(data_to_coerce); 
@@ -2313,7 +2360,7 @@ namespace scm_numeric {
 
   // Coerce the given fraction string into float. Returns the success status, 
   // IE whether became a float as requested, OR resulted in +- inf.
-  Scm_numeric::status Scm_numeric::coerce_fraction_to_float(inexact_t& num,const exact_t& numer,const exact_t& denom,const bool data_is_neg)const noexcept{
+  Snum::status Snum::coerce_fraction_to_float(inexact_t& num,const exact_t& numer,const exact_t& denom,const bool data_is_neg)const noexcept{
     num = 0;
     if(EXACT_T_IS_0(denom)) return status::nan;     // n/0 = NaN
     if(EXACT_T_IS_0(numer)) return status::success; // 0/n = 0
@@ -2338,7 +2385,19 @@ namespace scm_numeric {
     if(data_is_neg) num *= -1;
     return status::success;
   }
-}
+} // End of namespace scm_numeric
+
+/******************************************************************************
+* "_n" LITERAL SUFFIX FOR SCHEME NUMERICS
+******************************************************************************/
+
+scm_numeric::Snum operator"" _n(unsigned long long int n)   {return scm_numeric::Snum(n);}
+scm_numeric::Snum operator"" _N(unsigned long long int n)   {return scm_numeric::Snum(n);}
+scm_numeric::Snum operator"" _n(long double n)              {return scm_numeric::Snum(n);}
+scm_numeric::Snum operator"" _N(long double n)              {return scm_numeric::Snum(n);}
+scm_numeric::Snum operator"" _n(const char* n, std::size_t) {return scm_numeric::Snum(n);}
+scm_numeric::Snum operator"" _N(const char* n, std::size_t) {return scm_numeric::Snum(n);}
+
 #undef EXACT_T_IS_1 // @END-OF-NUMERICS
 #undef EXACT_T_IS_0
 #undef LD_FIXED_SPRINTF_FORMAT_LOGIC

@@ -18,7 +18,7 @@ namespace heist_scm {
   // primitive "+" procedure
   data primitive_ADD(scm_list& args) {
     confirm_no_numeric_primitive_errors(args, "+", "(+ <num1> <num2> ...)");
-    num_type sum = 0;
+    num_type sum;
     for(size_type i = 0, n = args.size(); i < n; ++i)
       sum += args[i].num;
     return data(sum);
@@ -37,7 +37,7 @@ namespace heist_scm {
   // primitive "*" procedure:
   data primitive_MUL(scm_list& args) {
     confirm_no_numeric_primitive_errors(args, "*", "(* <num1> <num2> ...)");
-    num_type product = 1;
+    num_type product("1");
     for(size_type i = 0, n = args.size(); i < n; ++i)
       product *= args[i].num;
     return data(product);
@@ -131,7 +131,7 @@ namespace heist_scm {
 
   // primitive "gcd" procedure
   data primitive_GCD(scm_list& args) {
-    if(no_args_given(args)) return num_type(0);
+    if(no_args_given(args)) return num_type();
     confirm_no_numeric_primitive_errors(args, "gcd", "(gcd <num1> <num2> ...)");
     if(args.size() == 1) return args[0];
     // GCD is associative
@@ -143,7 +143,7 @@ namespace heist_scm {
 
   // primitive "lcm" procedure
   data primitive_LCM(scm_list& args) {
-    if(no_args_given(args)) return num_type(1);
+    if(no_args_given(args)) return num_type("1");
     confirm_no_numeric_primitive_errors(args, "lcm", "(lcm <num1> <num2> ...)");
     if(args.size() == 1) return args[0];
     // LCM is associative

@@ -6,20 +6,20 @@
 
 /***
  * COMPILE: 
- *   $ clang++ -std=c++17 -Os -o heist_main heist_main.cpp
+ *   $ clang++ -std=c++17 -O3 -o heist_main heist_main.cpp
  *
  * FLAG DESCRIPTIONS:
  *   0. "-std=c++17": [REQUIRED] compile using the C++17 standard
- *   1. "-Os": [RECOMMENDED FOR MOST BUILDS] optimizes for binary's size
- *             -> faster compile-time than -O3, smaller binary, & CLOSE runtime
- *   2. "-O3": [RECOMMENDED FOR _BEST_ RUNTIME] maximum optimization
- *             -> longer compile time than -Os, but SLIGHTLY faster execution
+ *   1. "-O3": [RECOMMENDED FOR FASTEST EXECUTION] maximum optimization
+ *             -> longest compile time, but fastest runtime
+ *   2. "-Os": [RECOMMENDED FOR MOST BUILDS] optimizes for binary's size
+ *             -> faster compile-time than -O3, smaller binary, & close runtime
  *
  * ON COMPILE TIME:
- *   0. -Os compilation takes about 20s. Generated binary is smaller than
- *      -O3's (as expected) & its runtime is _nearly_ as fast
- *   1. Full -O3 compilation takes about 30s. Be patient. Compilation
+ *   0. Full -O3 compilation takes about 30s. Be patient. Compilation
  *      time has been traded for FAST runtime.
+ *   1. -Os compilation takes about 20s. Generated binary is smaller than
+ *      -O3's (as expected) & its runtime is nearly as fast
  */
 
 /******************************************************************************

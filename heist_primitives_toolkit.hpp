@@ -1229,7 +1229,7 @@ namespace heist_scm {
       THROW_ERR('\''<<name<<" 1st arg "<<PROFILE(args[0])<<" isn't a non-negative integer count!"
         << format << "\n     <count> range: (0," << MAX_SIZE_TYPE << ']' 
         << FCN_ERR(name, args));
-    num_type start("0"), step("1");
+    auto start = 0_n, step = 1_n; // num_type literals
     if(args.size() > 1) {
       if(!args[1].is_type(types::num))
         THROW_ERR('\''<<name<<" 2nd arg "<<PROFILE(args[1])<<" isn't an number:"

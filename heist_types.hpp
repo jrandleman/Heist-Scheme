@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <functional>
-#include <iostream>
 #include <memory>
 #include <tuple>
 #include <vector>
@@ -160,7 +159,7 @@ namespace heist_scm {
 
   using exp_type = scm_list;                           // expression
   using par_type = std::shared_ptr<scm_pair>;          // pair
-  using num_type = scm_numeric::Scm_numeric;           // number (float/int/frac)
+  using num_type = scm_numeric::Snum;                  // number (float/int/frac)
   using str_type = std::shared_ptr<scm_string>;        // string
   using chr_type = int;                                // character
   using sym_type = scm_string;                         // symbol
