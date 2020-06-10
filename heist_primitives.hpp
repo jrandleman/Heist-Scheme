@@ -4432,11 +4432,22 @@ namespace heist_scm {
     primitive_LOAD,
   };
 
+#ifndef HEIST_CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
   constexpr bool primitive_requires_environment(const prm_type& prm)noexcept{
     for(const auto& p : ENV_REQUIRING_PRIMITIVES)
       if(p == prm) return true;
     return false;
   }
+#else // @EMBEDDED-IN-C++
+  std::vector<prm_type> USER_DEFINED_PRIMITIVES_REQUIRING_ENV;
+  bool primitive_requires_environment(const prm_type& prm)noexcept{
+    for(const auto& p : ENV_REQUIRING_PRIMITIVES)
+      if(p == prm) return true;
+    for(const auto& p : USER_DEFINED_PRIMITIVES_REQUIRING_ENV)
+      if(p == prm) return true;
+    return false;
+  }
+#endif
 
   /******************************************************************************
   * PRIMITIVE NAMES & OBJECTS AS FRAME VARS & VALS FOR THE GLOBAL ENVIRONMENT

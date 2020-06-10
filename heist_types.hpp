@@ -508,7 +508,6 @@ namespace heist_scm {
         case types::syn: syn.~syn_type(); return;
         default:                          return;
       }
-      type = types::undefined;
     }
   }; // End struct data
 

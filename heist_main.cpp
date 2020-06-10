@@ -2500,6 +2500,7 @@ namespace heist_scm {
 
 
 // Account for whether REPL should print a newline
+#ifndef HEIST_CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
 #ifndef HEIST_SCM_INTERPRETING_COMPILED_AST // @ONLY-INTERPRETER
 void print_repl_newline(const bool& printed_data)noexcept{ // after printing data
   if(!heist_scm::LAST_PRINTED_NEWLINE_TO_STDOUT&&(printed_data||heist_scm::LAST_PRINTED_TO_STDOUT))
@@ -2728,5 +2729,14 @@ int main() {
   heist_scm::close_port_registry();
   return 0;
 }
-#endif
+#endif // @ONLY-COMPILER
+#undef HEIST_DIRECTORY_FILE_PATH
+#undef ERR_HEADER
+#undef BAD_SYNTAX
+#undef EXP_ERR
+#undef FCN_ERR
+#undef PROFILE
+#undef PRINT_ERR
+#undef THROW_ERR
+#endif // @NOT-EMBEDDED-IN-C++
 #endif
