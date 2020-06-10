@@ -4,31 +4,6 @@
 #ifndef HEIST_MAIN_CPP_
 #define HEIST_MAIN_CPP_
 
-
-
-
-
-
-
-
-
-// [ ] => CONSIDER A WAY OF MAKING CHECKING THE NUMBER OF ARGS SMOOTHER (----IE ADDRESS no_args_given() USE-----)
-
-// [ ] => CLEAN UP / ORGANIZE THE GITHUB REPO MORE EFFECTIVELY, && SEE "TODO.md"
-
-
-// 0) ENABLE EMBEDDING HEIST IN REGULAR C++
-// 1) CONSIDER FIXING THE CHARACTER/STRING THING MENTIONED SOMEWHERE IN "TODO"
-// 1.5) __TEST STILL WORKS ON RPI4 && DOWNLOAD TO FLASH DRIVE TOO!!!__
-// 2) RE-UPLOAD TO GITHUB
-// 3) FINISH ___&& DOWNLOAD (TO THIS MACHINE, FLASH-DRIVE, & RPI4)___ README
-// 4) PROVIDE SAMPLE SCHEME FILES TO RUN IN THE INTERPRETER W/ ON GITHUB
-// 5) REVIEW "TODO" WRT RESUME STUFF, ETC !!!!!!!!!!!!!
-
-
-
-
-
 /***
  * COMPILE: 
  *   $ clang++ -std=c++17 -O3 -o heist_main heist_main.cpp
@@ -52,7 +27,7 @@
 * => HINT: JUST USE WHAT "$ pwd" (OR "$ cd" ON WINDOWS) PRINTS!
 ******************************************************************************/
 
-#define HEIST_DIRECTORY_FILE_PATH "/Users/jordanrandleman/Desktop/Rec_Coding/SCHEME"
+// #define HEIST_DIRECTORY_FILE_PATH "/Users/jordanrandleman/Desktop/Rec_Coding/SCHEME"
 
 /******************************************************************************
 * WARN USER IF COMPILING W/O AN ABSOLUTE FILE PATH
