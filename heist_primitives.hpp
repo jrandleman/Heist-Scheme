@@ -13,7 +13,7 @@
 * ARITHMETIC PRIMITIVES
 ******************************************************************************/
 
-namespace heist_scm {
+namespace heist {
 
   // primitive "+" procedure
   data primitive_ADD(scm_list& args) {
@@ -2601,7 +2601,7 @@ namespace heist_scm {
   ******************************************************************************/
 
   // primitive "void" procedure:
-  data primitive_VOID(scm_list& args)noexcept{return VOID_DATA_OBJECT;}
+  data primitive_VOID(scm_list&)noexcept{return VOID_DATA_OBJECT;}
 
   // primitive "void?" procedure:
   data primitive_VOIDP(scm_list& args) { 
@@ -2610,7 +2610,7 @@ namespace heist_scm {
   }
 
   // primitive "undefined" procedure:
-  data primitive_UNDEFINED(scm_list& args)noexcept{return data();}
+  data primitive_UNDEFINED(scm_list&)noexcept{return data();}
 
   // primitive "undefined?" procedure:
   data primitive_UNDEFINEDP(scm_list& args) { 
@@ -4225,7 +4225,7 @@ namespace heist_scm {
   * EXITING & ERROR HANDLING PRIMITIVES
   ******************************************************************************/
 
-  data primitive_EXIT(scm_list& args) {
+  data primitive_EXIT(scm_list&) {
     throw SCM_EXCEPT::EXIT; // regardless of args, 'exit' exits
     return data();
   }
@@ -4860,6 +4860,6 @@ namespace heist_scm {
       names[i] = primitive_procedure_declarations[i].second;
     return names;
   }
-} // End of namespace heist_scm
+} // End of namespace heist
 #undef VALID_SEQUENCE_INDEX_RANGE // Sequence bounds only tested by primitives (def in toolkit)
 #endif

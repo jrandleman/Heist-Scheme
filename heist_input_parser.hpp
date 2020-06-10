@@ -8,7 +8,7 @@
 * READER HELPER FUNCTIONS
 ******************************************************************************/
 
-namespace heist_scm {
+namespace heist {
 
   constexpr bool IS_OPEN_PAREN(const char& c)  noexcept {return c=='('||c=='['||c=='{';}
   constexpr bool IS_CLOSE_PAREN(const char& c) noexcept {return c==')'||c==']'||c=='}';}
@@ -493,5 +493,5 @@ namespace heist_scm {
     size_type start_index = 0;
     construct_abstract_syntax_tree(start_index,input,abstract_syntax_tree);
   }
-} // End of namespace heist_scm
+} // End of namespace heist
 #endif

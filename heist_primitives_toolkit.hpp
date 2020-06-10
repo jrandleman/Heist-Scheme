@@ -12,7 +12,7 @@
 #define VALID_SEQUENCE_INDEX_RANGE\
   "\n     <index> range: [0," << MAX_SIZE_TYPE << ']'
 
-namespace heist_scm {
+namespace heist {
 
   //         -- HELPER STATUS CODE ENUMERATIONS
   enum class list_status {ok, cyclic, no_null};
@@ -3522,13 +3522,13 @@ namespace heist_scm {
     for(size_type i = 0, n = expressions.size(); i < n; ++i) {
       switch(expressions[i].type) {
         case types::exp: // EXPRESSION
-          vector_assigns += assignment_chain+'['+std::to_string(i)+"] = heist_scm::exp_type("+
+          vector_assigns += assignment_chain+'['+std::to_string(i)+"] = heist::exp_type("+
             std::to_string(expressions[i].exp.size())+");\n";
           print_vector_data_assignment(expressions[i].exp,vector_assigns,
             assignment_chain+'['+std::to_string(i)+"].exp");
           break;
         case types::str: // STRING
-          vector_assigns += assignment_chain+'['+std::to_string(i)+"] = heist_scm::make_str(\""+ 
+          vector_assigns += assignment_chain+'['+std::to_string(i)+"] = heist::make_str(\""+ 
             *expressions[i].str +"\");\n"; 
           break;
         case types::sym: // SYMBOL
@@ -3536,11 +3536,11 @@ namespace heist_scm {
             expressions[i].sym+"\";\n"; 
           break;
         case types::chr: // CHARACTER
-          vector_assigns += assignment_chain+'['+std::to_string(i)+"] = heist_scm::chr_type('"+
+          vector_assigns += assignment_chain+'['+std::to_string(i)+"] = heist::chr_type('"+
             std::to_string((char)expressions[i].chr)+"');\n"; 
           break;
         default:         // NUMBER
-          vector_assigns += assignment_chain+'['+std::to_string(i)+"] = heist_scm::num_type("+
+          vector_assigns += assignment_chain+'['+std::to_string(i)+"] = heist::num_type("+
             expressions[i].num.cpp_str()+");\n";
       }
     }
@@ -3572,7 +3572,7 @@ namespace heist_scm {
   scm_string primitive_generate_precompiled_AST(scm_list& expressions)noexcept{
     // Generate Vector Assignments to explicitly lay out a predetermined AST
     expressions.pop_back(); // rm EOF character (not part of the source code)
-    scm_string ast_generator = "heist_scm::exp_type HEIST_PRECOMPILED_READ_AST_EXPS(" + 
+    scm_string ast_generator = "heist::exp_type HEIST_PRECOMPILED_READ_AST_EXPS(" + 
                                 std::to_string(expressions.size()) + ");\n"
                                 "void POPULATE_HEIST_PRECOMPILED_READ_AST_EXPS(){\n";
     print_vector_data_assignment(expressions,ast_generator,"HEIST_PRECOMPILED_READ_AST_EXPS");
@@ -3589,7 +3589,7 @@ namespace heist_scm {
         << FCN_ERR("compile",args));
     fprintf(outs, "// Heist-Scheme Compiled Source from \"%s\""
                   "\n#include \"%s%cheist_types.hpp\""
-                  "\n#define HEIST_SCM_INTERPRETING_COMPILED_AST"
+                  "\n#define HEIST_INTERPRETING_COMPILED_AST"
                   "\n%s"
                   "\n#include \"%s%cheist_main.cpp\"\n", 
                   args[0].str->c_str(), 
@@ -3662,5 +3662,5 @@ namespace heist_scm {
     fflush(CURRENT_OUTPUT_PORT);
     throw SCM_EXCEPT::EVAL;
   }
-} // End of namespace heist_scm
+} // End of namespace heist
 #endif

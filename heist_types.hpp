@@ -11,7 +11,7 @@
 #include <vector>
 #include "heist_numerics.hpp"
 
-namespace heist_scm {
+namespace heist {
 
   /******************************************************************************
   * ABSTRACT SYNTAX TREE & INTERNAL TYPE ALIASES
@@ -530,7 +530,7 @@ namespace heist_scm {
     delay_data(delay_data&& d)      noexcept {*this = std::move(d);}
     ~delay_data()                   noexcept {}
   };
-} // End of namespace heist_scm
+} // End of namespace heist
 
 /******************************************************************************
 * PRINTING HELPER FUNCTIONS

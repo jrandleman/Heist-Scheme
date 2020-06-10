@@ -2392,12 +2392,12 @@ namespace scm_numeric {
 * "_n" LITERAL SUFFIX FOR SCHEME NUMERICS
 ******************************************************************************/
 
-scm_numeric::Snum operator"" _n(unsigned long long int n)      {return scm_numeric::Snum(n);}
-scm_numeric::Snum operator"" _n(long double n)                 {return scm_numeric::Snum(n);}
-scm_numeric::Snum operator"" _n(const char* n, std::size_t s)  {return scm_numeric::Snum(n);}
-scm_numeric::Snum operator"" _n2(const char* n, std::size_t s) {return scm_numeric::Snum(n,2);} // Binary
-scm_numeric::Snum operator"" _n8(const char* n, std::size_t s) {return scm_numeric::Snum(n,8);} // Octal
-scm_numeric::Snum operator"" _n16(const char* n, std::size_t s){return scm_numeric::Snum(n,16);}// Hexadecimal
+scm_numeric::Snum operator"" _n(unsigned long long int n)    {return scm_numeric::Snum(n);}
+scm_numeric::Snum operator"" _n(long double n)               {return scm_numeric::Snum(n);}
+scm_numeric::Snum operator"" _n(const char* n, std::size_t)  {return scm_numeric::Snum(n);}
+scm_numeric::Snum operator"" _n2(const char* n, std::size_t) {return scm_numeric::Snum(n,2);} // Binary
+scm_numeric::Snum operator"" _n8(const char* n, std::size_t) {return scm_numeric::Snum(n,8);} // Octal
+scm_numeric::Snum operator"" _n16(const char* n, std::size_t){return scm_numeric::Snum(n,16);}// Hexadecimal
 
 #undef EXACT_T_IS_1 // @END-OF-NUMERICS
 #undef EXACT_T_IS_0

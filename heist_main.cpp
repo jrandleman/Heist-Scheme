@@ -4,6 +4,31 @@
 #ifndef HEIST_MAIN_CPP_
 #define HEIST_MAIN_CPP_
 
+
+
+
+
+
+
+
+
+// [ ] => CONSIDER A WAY OF MAKING CHECKING THE NUMBER OF ARGS SMOOTHER (----IE ADDRESS no_args_given() USE-----)
+
+// [ ] => CLEAN UP / ORGANIZE THE GITHUB REPO MORE EFFECTIVELY, && SEE "TODO.md"
+
+
+// 0) ENABLE EMBEDDING HEIST IN REGULAR C++
+// 1) CONSIDER FIXING THE CHARACTER/STRING THING MENTIONED SOMEWHERE IN "TODO"
+// 1.5) __TEST STILL WORKS ON RPI4 && DOWNLOAD TO FLASH DRIVE TOO!!!__
+// 2) RE-UPLOAD TO GITHUB
+// 3) FINISH ___&& DOWNLOAD (TO THIS MACHINE, FLASH-DRIVE, & RPI4)___ README
+// 4) PROVIDE SAMPLE SCHEME FILES TO RUN IN THE INTERPRETER W/ ON GITHUB
+// 5) REVIEW "TODO" WRT RESUME STUFF, ETC !!!!!!!!!!!!!
+
+
+
+
+
 /***
  * COMPILE: 
  *   $ clang++ -std=c++17 -O3 -o heist_main heist_main.cpp
@@ -27,7 +52,7 @@
 * => HINT: JUST USE WHAT "$ pwd" (OR "$ cd" ON WINDOWS) PRINTS!
 ******************************************************************************/
 
-// #define HEIST_DIRECTORY_FILE_PATH "/Users/jordanrandleman/Desktop/Rec_Coding/SCHEME"
+#define HEIST_DIRECTORY_FILE_PATH "/Users/jordanrandleman/Desktop/Rec_Coding/SCHEME"
 
 /******************************************************************************
 * WARN USER IF COMPILING W/O AN ABSOLUTE FILE PATH
@@ -146,7 +171,7 @@
 #include "heist_primitives.hpp"
 #include "heist_input_parser.hpp"
 
-namespace heist_scm {
+namespace heist {
 
   scm_list scm_eval(scm_list&& exp, env_type& env);
   exe_type scm_analyze(scm_list&& exp,const bool tail_call=false);
@@ -512,7 +537,7 @@ namespace heist_scm {
     const size_type n = and_exp.size();
     // (and) = #t
     if(n == 1 || data_is_the_SENTINEL_VAL(and_exp[1])) 
-      return [](env_type& env){return scm_list(1,TRUE_DATA_BOOLEAN);};
+      return [](env_type&){return scm_list(1,TRUE_DATA_BOOLEAN);};
     // Confirm all true
     return [n,and_exp=std::move(and_exp)](env_type& env){
       scm_list res;
@@ -531,7 +556,7 @@ namespace heist_scm {
     const size_type n = or_exp.size();
     // (or) = #f
     if(n == 1 || data_is_the_SENTINEL_VAL(or_exp[1])) 
-      return [](env_type& env){return scm_list(1,FALSE_DATA_BOOLEAN);};
+      return [](env_type&){return scm_list(1,FALSE_DATA_BOOLEAN);};
     // Confirm >= 1 true
     return [n,or_exp=std::move(or_exp)](env_type& env){
       for(size_type i = 1; i < n; ++i) // args start at idx=1
@@ -552,7 +577,7 @@ namespace heist_scm {
   //   sequentially invokes each expression's exec proc
   exe_type analyze_sequence(scm_list&& exps,const bool tail_call=false){ // used for 'begin' & lambda bodies
     if(exps.empty() || (exps.size()==1 && data_is_the_SENTINEL_VAL(exps[0])))
-      return [](env_type& env){return VOID_DATA_EXPRESSION;}; // void data
+      return [](env_type&){return VOID_DATA_EXPRESSION;}; // void data
     const size_type n = exps.size();
     std::vector<exe_type> sequence_exe_procs(exps.size());
     // Analyze each expression
@@ -705,7 +730,7 @@ namespace heist_scm {
 
   exe_type analyze_stream(scm_list& exp)noexcept{
     if(exp.size() == 1 || data_is_the_SENTINEL_VAL(exp[1]))
-      return [](env_type& env){return EMPTY_LIST_EXPRESSION;};
+      return [](env_type&){return EMPTY_LIST_EXPRESSION;};
     return [exp=std::move(exp)](env_type& env) mutable {
       return scm_list(1, primitive_STREAM_to_SCONS_constructor(exp.begin()+1,exp.end(),env));
     };
@@ -777,7 +802,7 @@ namespace heist_scm {
         << EXP_ERR(exp));
     // return an empty vector if given no args
     if(no_args_given(args)) 
-      return [](env_type& env){return scm_list(1,make_vec(scm_list()));};
+      return [](env_type&){return scm_list(1,make_vec(scm_list()));};
     // quote each item in the vector
     scm_list vector_literal(args.size()+1);
     vector_literal[0] = symconst::vector;
@@ -805,13 +830,13 @@ namespace heist_scm {
     
     // If quoted data is atomic, return as-is
     if(!quoted_data.is_type(types::exp))
-      return [quoted_data=std::move(quoted_data)](env_type& env){
+      return [quoted_data=std::move(quoted_data)](env_type&){
         return scm_list(1, quoted_data);
       };
     
     // If quoting an empty expression, return the empty list
     if(quoted_data.exp.empty())
-      return [](env_type& env){return EMPTY_LIST_EXPRESSION;};
+      return [](env_type&){return EMPTY_LIST_EXPRESSION;};
     
     // Confirm whether appending last item. 
     //   => NOTE: also rm's (.) if so, hence this must be done 
@@ -1680,12 +1705,12 @@ namespace heist_scm {
     
     // If quasiquoted data is atomic, return as-is
     if(!quoted_data.is_type(types::exp)) {
-      return [unquoted_exp=scm_list(1,quoted_data)](env_type& env){return unquoted_exp;};
+      return [unquoted_exp=scm_list(1,quoted_data)](env_type&){return unquoted_exp;};
     }
 
     // If quoting an empty expression, return the empty list
     if(quoted_data.exp.empty())
-      return [](env_type& env){return EMPTY_LIST_EXPRESSION;};
+      return [](env_type&){return EMPTY_LIST_EXPRESSION;};
 
     // If quasiquoted an unquote, unpack its data
     if(is_unquote(quoted_data.exp)) {
@@ -2137,7 +2162,7 @@ namespace heist_scm {
       // pass <1> to not hash 1st pattern symbol (not an arg)
       recursively_hygienically_hash_macro_pattern(mac.patterns[i],mac.templates[i],mac.keywords,1);
     }
-    return [syntax_rule=scm_list(1,std::move(mac))](env_type& env){return syntax_rule;};
+    return [syntax_rule=scm_list(1,std::move(mac))](env_type&){return syntax_rule;};
   }
 
   /******************************************************************************
@@ -2374,7 +2399,7 @@ namespace heist_scm {
 
   exe_type scm_analyze(scm_list&& exp,const bool tail_call) { // analyze expression
     if(exp.empty())                         THROW_ERR("Can't eval an empty expression!"<<EXP_ERR("()"));
-    else if(is_self_evaluating(exp)) return [exp=std::move(exp)](env_type& env){return exp;};
+    else if(is_self_evaluating(exp)) return [exp=std::move(exp)](env_type&){return exp;};
     else if(is_quoted(exp))          return analyze_quoted(exp);
     else if(is_assignment(exp))      return analyze_assignment(exp);
     else if(is_definition(exp))      return analyze_definition(exp);
@@ -2496,32 +2521,32 @@ namespace heist_scm {
     }
     return abstract_syntax_tree;
   }
-} // End of namespace heist_scm
+} // End of namespace heist
 
 
 // Account for whether REPL should print a newline
 #ifndef HEIST_CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
-#ifndef HEIST_SCM_INTERPRETING_COMPILED_AST // @ONLY-INTERPRETER
+#ifndef HEIST_INTERPRETING_COMPILED_AST // @ONLY-INTERPRETER
 void print_repl_newline(const bool& printed_data)noexcept{ // after printing data
-  if(!heist_scm::LAST_PRINTED_NEWLINE_TO_STDOUT&&(printed_data||heist_scm::LAST_PRINTED_TO_STDOUT))
+  if(!heist::LAST_PRINTED_NEWLINE_TO_STDOUT&&(printed_data||heist::LAST_PRINTED_TO_STDOUT))
     putchar('\n');
-  heist_scm::LAST_PRINTED_NEWLINE_TO_STDOUT = heist_scm::LAST_PRINTED_TO_STDOUT = false;
+  heist::LAST_PRINTED_NEWLINE_TO_STDOUT = heist::LAST_PRINTED_TO_STDOUT = false;
 }
 
 void print_repl_newline()noexcept{ // after printing an error
-  putchar('\n'), heist_scm::LAST_PRINTED_NEWLINE_TO_STDOUT=heist_scm::LAST_PRINTED_TO_STDOUT=false;
+  putchar('\n'), heist::LAST_PRINTED_NEWLINE_TO_STDOUT=heist::LAST_PRINTED_TO_STDOUT=false;
 }
 
-void account_for_whether_printed_data(const heist_scm::scm_list& val,bool& printed_data)noexcept{
-  printed_data = !val.empty() && !val[0].is_type(heist_scm::types::dne);
+void account_for_whether_printed_data(const heist::scm_list& val,bool& printed_data)noexcept{
+  printed_data = !val.empty() && !val[0].is_type(heist::types::dne);
 }
 
 
 // Print output object
-void user_print(FILE* outs, heist_scm::scm_list& object)noexcept{
-  if(heist_scm::is_compound_procedure(object) || heist_scm::is_primitive_procedure(object))
-    fprintf(outs, "#<procedure%s>", heist_scm::procedure_name(object).c_str());
-  else if(heist_scm::is_delay(object) && object.size() > 1)
+void user_print(FILE* outs, heist::scm_list& object)noexcept{
+  if(heist::is_compound_procedure(object) || heist::is_primitive_procedure(object))
+    fprintf(outs, "#<procedure%s>", heist::procedure_name(object).c_str());
+  else if(heist::is_delay(object) && object.size() > 1)
     fputs("#<delay>", outs);
   else
     fputs(object[0].cpp_str().c_str(), outs);
@@ -2533,17 +2558,17 @@ void driver_loop() {
   bool printed_data = true;
   print_repl_newline(printed_data);
   for(;;) {
-    heist_scm::announce_input(stdout);
-    auto AST = heist_scm::read_user_input(stdout,stdin); // AST = Abstract Syntax Tree
+    heist::announce_input(stdout);
+    auto AST = heist::read_user_input(stdout,stdin); // AST = Abstract Syntax Tree
     // Eval each expression given
     for(const auto& input : AST) {
       try {
-        auto value = heist_scm::scm_eval(heist_scm::scm_list_cast(input),heist_scm::GLOBAL_ENVIRONMENT_POINTER);
+        auto value = heist::scm_eval(heist::scm_list_cast(input),heist::GLOBAL_ENVIRONMENT_POINTER);
         account_for_whether_printed_data(value,printed_data);
         user_print(stdout, value);
         print_repl_newline(printed_data);
-      } catch(const heist_scm::SCM_EXCEPT& eval_throw) {
-        if(eval_throw == heist_scm::SCM_EXCEPT::EXIT) { puts("Adios!"); return; }
+      } catch(const heist::SCM_EXCEPT& eval_throw) {
+        if(eval_throw == heist::SCM_EXCEPT::EXIT) { puts("Adios!"); return; }
         print_repl_newline();
       } catch(...) {
         PRINT_ERR("Uncaught C++ Exception Detected! -:- BUG ALERT -:-"
@@ -2583,9 +2608,9 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
   // Parse input arguments
   for(int i = 1; i < argc; ++i) {
     if(std::string cmd_flag(argv[i]); cmd_flag == "-ci") {
-      heist_scm::USING_CASE_SENSITIVE_SYMBOLS = false;
+      heist::USING_CASE_SENSITIVE_SYMBOLS = false;
     } else if(cmd_flag == "-nansi") {
-      heist_scm::USING_ANSI_ESCAPE_SEQUENCES = false;
+      heist::USING_ANSI_ESCAPE_SEQUENCES = false;
     } else if(cmd_flag == "-script") {
       if(i == argc-1) {
         fprintf(stderr,"\n> \"-script\" wasn't followed by a file!%s",cmd_line_options);
@@ -2619,24 +2644,24 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
 
 int load_script(char *argv[], const int& script_pos){
   // Load the script & immediately exit
-  heist_scm::scm_list load_args(2); 
-  load_args[0] = heist_scm::make_str(argv[script_pos]);
-  load_args[1] = heist_scm::GLOBAL_ENVIRONMENT_POINTER;
+  heist::scm_list load_args(2); 
+  load_args[0] = heist::make_str(argv[script_pos]);
+  load_args[1] = heist::GLOBAL_ENVIRONMENT_POINTER;
   try {
-    heist_scm::primitive_LOAD(load_args);
-    heist_scm::close_port_registry();
-  } catch(const heist_scm::SCM_EXCEPT& eval_throw) {
+    heist::primitive_LOAD(load_args);
+    heist::close_port_registry();
+  } catch(const heist::SCM_EXCEPT& eval_throw) {
     /* catch errors already output to stdout */ 
     putchar('\n');
   } catch(...) {
     /* catch uncaught C++ exceptions -:- ANOMALY -:- */
-    PRINT_ERR(afmt(heist_scm::AFMT_1) << 
+    PRINT_ERR(afmt(heist::AFMT_1) << 
       "\nUncaught C++ Exception Detected! -:- BUG ALERT -:-"
       "\n  => While interpreting script \"" << argv[script_pos] << "\""
       "\n  => Please send your code to jrandleman@scu.edu to fix"
       "\n     the interpreter's bug!"
-      "\n  => Terminating Heist Scheme Interpretation.\n\n" << afmt(heist_scm::AFMT_0));
-    heist_scm::close_port_registry();
+      "\n  => Terminating Heist Scheme Interpretation.\n\n" << afmt(heist::AFMT_0));
+    heist::close_port_registry();
     return 1;
   }
   return 0;
@@ -2649,24 +2674,24 @@ int load_script(char *argv[], const int& script_pos){
 #ifdef HEIST_DIRECTORY_FILE_PATH // @GIVEN-COMPILE-PATH
 int compile_script(char *argv[], const int& compile_pos, std::string& compile_as){
   // Compile the script & immediately exit
-  heist_scm::scm_list compile_args(2);
-  compile_args[0] = heist_scm::make_str(argv[compile_pos]);
-  compile_args[1] = heist_scm::make_str(compile_as);
+  heist::scm_list compile_args(2);
+  compile_args[0] = heist::make_str(argv[compile_pos]);
+  compile_args[1] = heist::make_str(compile_as);
   try {
-    heist_scm::primitive_COMPILE(compile_args);
-    heist_scm::close_port_registry();
-  } catch(const heist_scm::SCM_EXCEPT& eval_throw) {
+    heist::primitive_COMPILE(compile_args);
+    heist::close_port_registry();
+  } catch(const heist::SCM_EXCEPT& eval_throw) {
     /* catch errors already output to stdout */ 
     putchar('\n');
   } catch(...) {
     /* catch uncaught C++ exceptions -:- ANOMALY -:- */
-    PRINT_ERR(afmt(heist_scm::AFMT_1) << 
+    PRINT_ERR(afmt(heist::AFMT_1) << 
       "\nUncaught C++ Exception Detected! -:- BUG ALERT -:-"
       "\n  => While Compiling script \"" << argv[compile_pos] << "\""
       "\n  => Please send your code to jrandleman@scu.edu to fix"
       "\n     the interpreter's bug!"
-      "\n  => Terminating Heist Scheme Interpretation.\n\n" << afmt(heist_scm::AFMT_0));
-    heist_scm::close_port_registry();
+      "\n  => Terminating Heist Scheme Interpretation.\n\n" << afmt(heist::AFMT_0));
+    heist::close_port_registry();
     return 1;
   }
   return 0;
@@ -2684,7 +2709,7 @@ int main(int argc, char *argv[]) {
   if(!confirm_valid_command_line_args(argc,argv,script_pos,compile_pos,compile_as)) 
     return 1;
   // Set up the environment (allocates & fills GLOBAL_ENVIRONMENT_POINTER)
-  heist_scm::set_default_global_environment();
+  heist::set_default_global_environment();
   // Interpret a Script (as needed)
   if(script_pos != -1) 
     return load_script(argv, script_pos);
@@ -2696,7 +2721,7 @@ int main(int argc, char *argv[]) {
   // Run the REPL
   puts("Heist Scheme Version 5.0");
   driver_loop();
-  heist_scm::close_port_registry();
+  heist::close_port_registry();
   return 0;
 }
 
@@ -2706,13 +2731,13 @@ int main(int argc, char *argv[]) {
 
 #else // @ONLY-COMPILER
 void interpret_premade_AST_code(){
-  heist_scm::set_default_global_environment();
+  heist::set_default_global_environment();
   POPULATE_HEIST_PRECOMPILED_READ_AST_EXPS();
   for(const auto& input : HEIST_PRECOMPILED_READ_AST_EXPS) {
     try {
-      heist_scm::scm_eval(heist_scm::scm_list_cast(input),heist_scm::GLOBAL_ENVIRONMENT_POINTER);
-    } catch(const heist_scm::SCM_EXCEPT& eval_throw) {
-      if(eval_throw == heist_scm::SCM_EXCEPT::EXIT) return;
+      heist::scm_eval(heist::scm_list_cast(input),heist::GLOBAL_ENVIRONMENT_POINTER);
+    } catch(const heist::SCM_EXCEPT& eval_throw) {
+      if(eval_throw == heist::SCM_EXCEPT::EXIT) return;
     } catch(...) {
       PRINT_ERR("Uncaught C++ Exception Detected! -:- BUG ALERT -:-"
            "\n     Triggered By: " << input << 
@@ -2726,7 +2751,7 @@ void interpret_premade_AST_code(){
 
 int main() {
   interpret_premade_AST_code(); 
-  heist_scm::close_port_registry();
+  heist::close_port_registry();
   return 0;
 }
 #endif // @ONLY-COMPILER

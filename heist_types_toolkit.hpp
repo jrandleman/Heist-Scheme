@@ -5,7 +5,7 @@
 #ifndef HEIST_TYPES_TOOLKIT_HPP_
 #define HEIST_TYPES_TOOLKIT_HPP_
 
-namespace heist_scm {
+namespace heist {
 
   /******************************************************************************
   * PRINTING HELPER FUNCTION PROTOTYPES
@@ -38,7 +38,7 @@ namespace heist_scm {
     "\x1b[35m", "\x1b[1m\x1b[31m", "\x1b[1m\x1b[35m", "\x1b[0m\x1b[1m",
   };
 
-  #define afmt(ansi_esc) heist_scm::ansi_formats[heist_scm::USING_ANSI_ESCAPE_SEQUENCES*ansi_esc]
+  #define afmt(ansi_esc) heist::ansi_formats[heist::USING_ANSI_ESCAPE_SEQUENCES*ansi_esc]
 
   /******************************************************************************
   * ERROR HANDLING CODE ENUMERATIONS
@@ -50,19 +50,19 @@ namespace heist_scm {
   * ERROR HANDLING PRINTER MACROS
   ******************************************************************************/
 
-  #define ERR_HEADER '\n' << afmt(heist_scm::AFMT_1) << __FILE__ << ':' << __func__ << \
-                     ':' << __LINE__ << ':' << afmt(heist_scm::AFMT_31) << \
-                     " ERROR: \n" << afmt(heist_scm::AFMT_01) << "  => "
+  #define ERR_HEADER '\n' << afmt(heist::AFMT_1) << __FILE__ << ':' << __func__ << \
+                     ':' << __LINE__ << ':' << afmt(heist::AFMT_31) << \
+                     " ERROR: \n" << afmt(heist::AFMT_01) << "  => "
 
-  #define BAD_SYNTAX '\n'<<afmt(heist_scm::AFMT_35)<<"  >> Invalid Syntax:"<<afmt(heist_scm::AFMT_01)<<' '
+  #define BAD_SYNTAX '\n'<<afmt(heist::AFMT_35)<<"  >> Invalid Syntax:"<<afmt(heist::AFMT_01)<<' '
 
   #define EXP_ERR(errExp)     BAD_SYNTAX << errExp
-  #define FCN_ERR(fName,fVal) BAD_SYNTAX << heist_scm::procedure_call_signature(fName,fVal)
+  #define FCN_ERR(fName,fVal) BAD_SYNTAX << heist::procedure_call_signature(fName,fVal)
 
   #define PROFILE(dataObj) dataObj<<" of type \""<<dataObj.type_name()<<'"'
 
-  #define PRINT_ERR(...) std::cerr<<ERR_HEADER<<__VA_ARGS__<<'\n'<<afmt(heist_scm::AFMT_0)
-  #define THROW_ERR(...) ({PRINT_ERR(__VA_ARGS__); throw heist_scm::SCM_EXCEPT::EVAL;})
+  #define PRINT_ERR(...) std::cerr<<ERR_HEADER<<__VA_ARGS__<<'\n'<<afmt(heist::AFMT_0)
+  #define THROW_ERR(...) ({PRINT_ERR(__VA_ARGS__); throw heist::SCM_EXCEPT::EVAL;})
 
   /******************************************************************************
   * LIST PRINTING HELPER FUNCTIONS
@@ -255,5 +255,5 @@ namespace heist_scm {
     cio_expr_str_rec(exp_object, exp_str);
     return '(' + exp_str + ')';
   }
-} // End of namespace heist_scm
+} // End of namespace heist
 #endif
