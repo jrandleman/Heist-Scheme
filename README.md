@@ -2,10 +2,12 @@
 Souped-Up Scheme Interpreter Written in C++!
 ---------------------
 # Using Heist Scheme:
-Compile: `$ clang++ -std=c++17 -O3 -o heist_main heist_main.cpp`</br>
+Compiling the Interpreter: `$ clang++ -std=c++17 -O3 -o heist_main heist_main.cpp`</br></br>
 REPL: `$ ./heist_main` (exit REPL via `(exit)` command)</br>
 Interpret Script: `$ ./heist_main -script <your-scripts-filename-here>`</br>
 Compile Script to C++: `$ ./heist_main -compile <your-scripts-filename-here> <optional-target-name>`</br>
+Embed Heist in C++: `#include` the `heist_cpp_interop.hpp` header into your code (read it for more details)!</br>
+* See `embedded_heist_demo.cpp` for an example of embedding Heist in action!
 
 ----------
 # Features:
