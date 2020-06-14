@@ -2245,7 +2245,7 @@ namespace scm_numeric {
 
   // Parse the _confirmed_ valid number
   void Snum::parse_integer(std::string& s) noexcept {
-    size_type frac_begin = s.find('.');
+    size_type frac_begin = s.find('/');
     if(frac_begin == std::string::npos) frac_begin = s.size();
     resize_numerator(frac_begin+1);
     auto ch = s.begin();
