@@ -2731,7 +2731,7 @@ namespace heist {
       if(isspace(ch)||ch == '('||ch == ')'||ch == '['||ch == ']'||ch == '{'||ch == '}'||
         ch == '`'||ch == '\''||ch == '"'||ch == ','||ch == ';'||ch == '\\'){
         char str[32];
-        sprintf(str, "\\x%X:", unsigned(ch));
+        snprintf(str, 32, "\\x%X:", unsigned(ch));
         symbol_str += str;
       } else {
         symbol_str += ch;

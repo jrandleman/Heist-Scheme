@@ -410,7 +410,7 @@ namespace heist {
               if(isprint(chr)) return scm_string("#\\") + char(chr);
               else {
                 char str[32];
-                sprintf(str, "#\\x%x", chr);
+                snprintf(str, 32, "#\\x%x", chr);
                 return scm_string(str);
               }
           }

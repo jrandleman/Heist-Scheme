@@ -1291,7 +1291,7 @@ namespace heist {
   // (do ((<var-name1> <init-val1> <val-manip1>) 
   //      ... 
   //      (<var-nameN> <init-valN> <val-manipN>))
-  //     ((<test>) <expression1> ... <expressionN>)
+  //     (<test> <expression1> ... <expressionN>)
   //     <body>)
 
   // (letrec ((<HEIST-DO-LETREC> 
