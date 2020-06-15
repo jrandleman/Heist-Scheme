@@ -27,7 +27,7 @@
 * => HINT: JUST USE WHAT "$ pwd" (OR "$ cd" ON WINDOWS) PRINTS!
 ******************************************************************************/
 
-// #define HEIST_DIRECTORY_FILE_PATH "/Users/jordanrandleman/Desktop/Rec_Coding/SCHEME"
+// #define HEIST_DIRECTORY_FILE_PATH "/Users/jordanrandleman/desktop/rec_coding/HEIST"
 
 /******************************************************************************
 * WARN USER IF COMPILING W/O AN ABSOLUTE FILE PATH
@@ -142,9 +142,9 @@
  *         * SEE "heist_primitives.hpp" FOR THE ALL PRIMITIVE IMPLEMENTATIONS
  */
 
-#include "heist_types.hpp"
-#include "heist_primitives.hpp"
-#include "heist_input_parser.hpp"
+#include "heist_interpreter_headers/heist_types.hpp"
+#include "heist_interpreter_headers/heist_primitives.hpp"
+#include "heist_interpreter_headers/heist_input_parser.hpp"
 
 namespace heist {
 
@@ -311,7 +311,7 @@ namespace heist {
   bool invalid_sentinel_arg_use(const frame_vars& vars,const frame_vals& vals)noexcept{
     return no_args_given(vals) &&
             !(vars.size()==1 && vars[0]==symconst::sentinel_arg) && 
-            !(vars.size()==2 && vars[0]==".");
+            !(vars.size()==2 && vars[0][0] == '.' && !vars[0][1]);
   }
 
 
@@ -2250,6 +2250,9 @@ namespace heist {
 
 
   scm_list apply_primitive_procedure(scm_list& proc,scm_list& args,env_type& env){
+    // Rm "sentinel-arg" value from args (if present from an argless application)
+    if(args.size()==1 && args[0].is_type(types::sym) && args[0].sym == symconst::sentinel_arg)
+      args.pop_back();
     // Provide the environment to primitives applying user-defined procedures
     if(primitive_requires_environment(proc[1].prm)) args.push_back(env);
     return scm_list_cast(proc[1].prm(args));
@@ -2544,6 +2547,9 @@ void driver_loop() {
         print_repl_newline(printed_data);
       } catch(const heist::SCM_EXCEPT& eval_throw) {
         if(eval_throw == heist::SCM_EXCEPT::EXIT) { puts("Adios!"); return; }
+        if(eval_throw == heist::SCM_EXCEPT::JUMP)
+          PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
+            << PROFILE(heist::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
         print_repl_newline();
       } catch(...) {
         PRINT_ERR("Uncaught C++ Exception Detected! -:- BUG ALERT -:-"
@@ -2626,6 +2632,9 @@ int load_script(char *argv[], const int& script_pos){
     heist::primitive_LOAD(load_args);
     heist::close_port_registry();
   } catch(const heist::SCM_EXCEPT& eval_throw) {
+    if(eval_throw == heist::SCM_EXCEPT::JUMP)
+      PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
+        << PROFILE(heist::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
     /* catch errors already output to stdout */ 
     putchar('\n');
   } catch(...) {
@@ -2656,6 +2665,9 @@ int compile_script(char *argv[], const int& compile_pos, std::string& compile_as
     heist::primitive_COMPILE(compile_args);
     heist::close_port_registry();
   } catch(const heist::SCM_EXCEPT& eval_throw) {
+    if(eval_throw == heist::SCM_EXCEPT::JUMP)
+      PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
+        << PROFILE(heist::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
     /* catch errors already output to stdout */ 
     putchar('\n');
   } catch(...) {
@@ -2713,6 +2725,9 @@ void interpret_premade_AST_code(){
       heist::scm_eval(heist::scm_list_cast(input),heist::GLOBAL_ENVIRONMENT_POINTER);
     } catch(const heist::SCM_EXCEPT& eval_throw) {
       if(eval_throw == heist::SCM_EXCEPT::EXIT) return;
+      if(eval_throw == heist::SCM_EXCEPT::JUMP)
+        PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
+          << PROFILE(heist::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
     } catch(...) {
       PRINT_ERR("Uncaught C++ Exception Detected! -:- BUG ALERT -:-"
            "\n     Triggered By: " << input << 

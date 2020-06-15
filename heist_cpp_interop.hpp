@@ -5,9 +5,9 @@
 #define HEIST_CPP_INTEROP_HPP_
 
 // Defines 4 Functions for C++ Interop w/ Heist:
-//   0) eval   // evaluate heist code string, same as _lisp literal (see below)
+//   0) eval   // evaluate heist code string, same as _heist literal (see below)
 //   1) apply  // apply args to Heist procedure
-//   2) defun  // define C++ Heist primitive (use "no_args_given" to check for 0 args)
+//   2) defun  // define C++ Heist primitive
 //   3) defvar // define a global Heist variable
 
 #include "heist_main.cpp"
@@ -26,6 +26,9 @@ namespace heist {
             return data_cast(scm_eval(scm_list_cast(abstract_syntax_tree[i]),GLOBAL_ENVIRONMENT_POINTER));
           scm_eval(scm_list_cast(abstract_syntax_tree[i]),GLOBAL_ENVIRONMENT_POINTER);
         } catch(const SCM_EXCEPT& eval_throw) {
+          if(eval_throw == heist::SCM_EXCEPT::JUMP)
+            PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
+              << PROFILE(heist::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
           fputs("\n",stderr);
           return data();
         } catch(...) {
@@ -82,13 +85,16 @@ namespace heist {
               scm_list_cast(lookup_variable_value(heist_procedure_name,GLOBAL_ENVIRONMENT_POINTER)),
               args, GLOBAL_ENVIRONMENT_POINTER));
     } catch(const SCM_EXCEPT& eval_throw) {
+      if(eval_throw == heist::SCM_EXCEPT::JUMP)
+        PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
+          << PROFILE(heist::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
       return data();
     }
   }
 } // End of namespace heist
 
 // Heist Scheme expression literal
-heist::data operator"" _heist(const char* exp, std::size_t s){return heist::eval(exp);}
+heist::data operator"" _heist(const char* exp, std::size_t){return heist::eval(exp);}
 
 #undef ERR_HEADER
 #undef BAD_SYNTAX
