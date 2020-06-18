@@ -3567,7 +3567,11 @@ namespace heist {
           break;
         case types::str: // STRING
           vector_assigns += assignment_chain+'['+std::to_string(i)+"] = heist::make_str(\""+ 
+<<<<<<< HEAD
             escape_chars(*expressions[i].str) +"\");\n";
+=======
+            escape_chars(*expressions[i].str) +"\");\n"; 
+>>>>>>> 15c50a66c351a12da69e08a8d193e085b8f7164e
           break;
         case types::sym: // SYMBOL
           vector_assigns += assignment_chain+'['+std::to_string(i)+"] = \""+
