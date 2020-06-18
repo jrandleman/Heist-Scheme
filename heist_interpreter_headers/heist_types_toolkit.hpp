@@ -50,7 +50,7 @@ namespace heist {
   * GLOBAL "JUMP!" PRIMITIVE ARGUMENT STORAGE
   ******************************************************************************/
 
-  data JUMP_GLOBAL_PRIMITIVE_ARGUMENT; // see setjmp & jump! primitives
+  data JUMP_GLOBAL_PRIMITIVE_ARGUMENT; // see set-jump & jump! primitives
 
   /******************************************************************************
   * ERROR HANDLING PRINTER MACROS
@@ -74,6 +74,11 @@ namespace heist {
   * LIST PRINTING HELPER FUNCTIONS
   ******************************************************************************/
 
+  // Prototype for printing helper function
+  template<DATA_PRINTER to_str>
+  void cio_list_str_recur(scm_string& list_str,const data& slow,
+                          const data& fast,par_type cycle_start)noexcept;
+
   // Confirm data is not the empty list
   bool is_not_THE_EMPTY_LIST(const data& pair_data)noexcept{
     return (!pair_data.is_type(types::sym) || pair_data.sym!=symconst::emptylist);
@@ -81,6 +86,7 @@ namespace heist {
 
 
   // Stringify list recursive helper, ONLY for once the lists is confirmed to be acyclic
+  template<DATA_PRINTER to_str>
   void cio_acyclic_list_str_recur(scm_string& list_str, const data& pair_object)noexcept{
     // store car
     if(pair_object.par->first.is_type(types::par)) {
@@ -88,28 +94,27 @@ namespace heist {
         list_str += "#<stream>";
       } else {
         list_str += '(';
-        void cio_list_str_recur(scm_string& list_str,const data& slow,
-                                const data& fast,par_type cycle_start)noexcept;
-        cio_list_str_recur(list_str, pair_object.par->first, pair_object.par->first, nullptr);
+        cio_list_str_recur<to_str>(list_str, pair_object.par->first, pair_object.par->first, nullptr);
         list_str += ')';
       }
     } else {
-      list_str += pair_object.par->first.cpp_str();
+      list_str += (pair_object.par->first.*to_str)();
     }
     // store space if not last item in list
     if(is_not_THE_EMPTY_LIST(pair_object.par->second)) list_str += ' ';
     // store cdr
     if(pair_object.par->second.is_type(types::par)) {
       // check for whether at a cycle
-      cio_acyclic_list_str_recur(list_str, pair_object.par->second);
+      cio_acyclic_list_str_recur<to_str>(list_str, pair_object.par->second);
     } else if(is_not_THE_EMPTY_LIST(pair_object.par->second)){// don't store last '()
       // store ' . ' since not a null-terminated list
-      list_str += ". " + pair_object.par->second.cpp_str();
+      list_str += ". " + (pair_object.par->second.*to_str)();
     }
   }
 
 
   // Stringify list recursive helper
+  template<DATA_PRINTER to_str>
   void cio_list_str_recur(scm_string& list_str, const data& slow, const data& fast, 
                                                 par_type cycle_start)noexcept{
     // Check if detected a cycle (simultaneously performs Floyd's Loop Detection algorithm)
@@ -127,11 +132,11 @@ namespace heist {
         list_str += "#<stream>";
       } else {
         list_str += '(';
-        cio_list_str_recur(list_str, slow.par->first, slow.par->first, nullptr);
+        cio_list_str_recur<to_str>(list_str, slow.par->first, slow.par->first, nullptr);
         list_str += ')';
       }
     } else {
-      list_str += slow.par->first.cpp_str();
+      list_str += (slow.par->first.*to_str)();
     }
     // store space if not last item in list
     if(is_not_THE_EMPTY_LIST(slow.par->second)) list_str += ' ';
@@ -141,21 +146,22 @@ namespace heist {
       if(slow.par->second.par == cycle_start)
         list_str += "<...cycle>";
       else if(fast.is_type(types::par) && fast.par->second.is_type(types::par))
-        cio_list_str_recur(list_str, slow.par->second, fast.par->second.par->second, cycle_start);
+        cio_list_str_recur<to_str>(list_str, slow.par->second, fast.par->second.par->second, cycle_start);
       else
-        cio_acyclic_list_str_recur(list_str, slow.par->second);
+        cio_acyclic_list_str_recur<to_str>(list_str, slow.par->second);
     } else if(is_not_THE_EMPTY_LIST(slow.par->second)){// don't store last '()
       // store ' . ' since not a null-terminated list
-      list_str += ". " + slow.par->second.cpp_str();
+      list_str += ". " + (slow.par->second.*to_str)();
     }
   }
 
 
   // Stringify list
+  template<DATA_PRINTER to_str>
   scm_string cio_list_str(const data& pair_object)noexcept{
     if(data_is_stream_pair(pair_object)) return "#<stream>";
     scm_string list_str;
-    cio_list_str_recur(list_str, pair_object.par, pair_object.par, nullptr);
+    cio_list_str_recur<to_str>(list_str, pair_object.par, pair_object.par, nullptr);
     return '(' + list_str + ')';
   }
 
@@ -164,13 +170,14 @@ namespace heist {
   ******************************************************************************/
 
   // Stringify vector
+  template<DATA_PRINTER to_str>
   scm_string cio_vect_str(const vec_type& vector_object)noexcept{
     scm_string vect_str("#(");
     for(size_type i = 0, n = vector_object->size(); i < n; ++i) {
       if(vector_object->operator[](i).is_type(types::vec))
-        vect_str += cio_vect_str(vector_object->operator[](i).vec);
+        vect_str += cio_vect_str<to_str>(vector_object->operator[](i).vec);
       else
-        vect_str += vector_object->operator[](i).cpp_str();
+        vect_str += (vector_object->operator[](i).*to_str)();
       if(i < n-1) vect_str +=  ' ';
     }
     return vect_str + ')';
@@ -234,6 +241,7 @@ namespace heist {
 
 
   // Stringify expression recursive helper
+  template<DATA_PRINTER to_str>
   void cio_expr_str_rec(const exp_type& exp_object, scm_string& exp_str)noexcept{
     if(no_args_given(exp_object)) return; // empty expression
     for(auto d = exp_object.begin(); d != exp_object.end(); ++d) {
@@ -243,11 +251,11 @@ namespace heist {
       // Recursively append expressions
       if(d->is_type(types::exp)) {
         exp_str += '(';
-        cio_expr_str_rec(d->exp, exp_str);
+        cio_expr_str_rec<to_str>(d->exp, exp_str);
         exp_str += ')';
       // Append atomic data
       } else {
-        exp_str += d->cpp_str();
+        exp_str += ((*d).*to_str)();
       }
       // Add a space if not at the end of the current expression
       if(d+1 != exp_object.end() && !data_is_the_SENTINEL_VAL(*(d+1))) 
@@ -257,6 +265,7 @@ namespace heist {
 
 
   // Stringify expression
+  template<DATA_PRINTER to_str>
   scm_string cio_expr_str(const exp_type& exp_object)noexcept{
     // Sentinel Values are exclusively used internally, hence are never printed
     if(no_args_given(exp_object)||data_is_the_SENTINEL_VAL(data(exp_object)))
@@ -267,7 +276,7 @@ namespace heist {
     if(is_compound_procedure(exp_object) || is_primitive_procedure(exp_object))
       return "#<procedure" + procedure_name(exp_object) + '>';
     scm_string exp_str;
-    cio_expr_str_rec(exp_object, exp_str);
+    cio_expr_str_rec<to_str>(exp_object, exp_str);
     return '(' + exp_str + ')';
   }
 } // End of namespace heist

@@ -231,14 +231,14 @@ namespace scm_numeric {
     // *********************** TO_STRING OUTPUT GENERATORS **********************
 
     // get current value as a std::string (for c-style I/O)
-    std::string cpp_str() const noexcept;
+    std::string str() const noexcept;
 
     // get current value as a string in 'base' radix form
-    std::string cpp_str(const int& base) const noexcept;
+    std::string str(const int& base) const noexcept;
 
     // puts operator for std::ostream
     friend std::ostream& operator<<(std::ostream& outs, const scm_numeric::Snum& n) noexcept {
-      outs << n.cpp_str();
+      outs << n.str();
       return outs;
     }
 
@@ -1331,8 +1331,10 @@ namespace scm_numeric {
     // "https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf"
     auto rem = *this % s;
     if(rem.stat != status::success) {rem.set_failed_status(); return rem;}
-    if(rem.is_neg())
-      rem = s.is_pos() ? rem + s : rem - s;
+    if(rem.is_neg()) {
+      if(s.is_pos()) return rem + s;
+      return rem - s;
+    }
     return rem;
   }
 
@@ -1361,7 +1363,6 @@ namespace scm_numeric {
       return true;
     if(sign != s.sign)
       return is_neg() || (is_zero() && s.is_pos());
-
     if(is_float && s.is_float)
       return float_num < s.float_num;
     else if(!is_float && !s.is_float) {
@@ -1385,7 +1386,6 @@ namespace scm_numeric {
       return true;
     if(sign != s.sign)
       return is_pos() || (is_zero() && s.is_neg());
-
     if(is_float && s.is_float)
       return float_num > s.float_num;
     else if(!is_float && !s.is_float) {
@@ -1603,7 +1603,7 @@ namespace scm_numeric {
   ******************************************************************************/
 
   // get current value as a string (for c-style I/O)
-  std::string Snum::cpp_str() const noexcept {
+  std::string Snum::str() const noexcept {
     // Return NaN/Inf as needed
     if(stat != Snum::status::success) {
       if(is_nan())     return "+nan.0";
@@ -1634,7 +1634,7 @@ namespace scm_numeric {
   }
 
   // get current value as a string in 'base' radix form
-  std::string Snum::cpp_str(const int& base) const noexcept {
+  std::string Snum::str(const int& base) const noexcept {
     return convert_dec_to_base_N(base, *this);
   }
 
@@ -1703,7 +1703,7 @@ namespace scm_numeric {
     }
     if(n.stat != status::success) return false;
     // Get number as unsigned binary string of its absolute value
-    bit_str = n.cpp_str(2);
+    bit_str = n.str(2);
     if(bit_str[0] == '-') bit_str.erase(0,1);
     // Account for sign
     if(is_signed) {
@@ -1867,9 +1867,9 @@ namespace scm_numeric {
   bool Snum::big_int_gt(const exact_t a, const size_type& a_len, const exact_t b, const size_type& b_len)const noexcept{
     if(a_len != b_len) return a_len > b_len;
     for(size_type i = 0; i < a_len; ++i) {
-      if(a[i] <= b[i]) return false;
+      if(a[i] != b[i]) return (a[i] > b[i]);
     }
-    return true;
+    return false; // a = b
   }
 
 
@@ -1877,9 +1877,9 @@ namespace scm_numeric {
   bool Snum::big_int_lt(const exact_t a, const size_type& a_len, const exact_t b, const size_type& b_len)const noexcept{
     if(a_len != b_len) return a_len < b_len;
     for(size_type i = 0; i < a_len; ++i) {
-      if(a[i] >= b[i]) return false;
+      if(a[i] != b[i]) return (a[i] < b[i]);
     }
-    return true;
+    return false; // a = b
   }
 
 

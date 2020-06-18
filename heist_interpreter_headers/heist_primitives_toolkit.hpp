@@ -30,7 +30,7 @@ namespace heist {
   scm_list make_delay(const scm_list& exp, env_type& env)noexcept;
   scm_list read_user_input(FILE* outs,FILE* ins,const bool& in_repl=true);
   scm_list scm_eval(scm_list&& exp, env_type& env);
-  scm_list execute_application(scm_list& procedure,scm_list& arguments,env_type& env,const bool tail_call=false);
+  scm_list execute_application(scm_list& procedure,scm_list& arguments,env_type& env,const bool tail_call=false,const bool inlined=false);
   scm_string get_heist_main_interpreter_filepath()noexcept;
   constexpr bool IS_END_OF_WORD(const char& c, const char& c2)noexcept;
   std::pair<chr_type,scm_string> data_is_named_char(const size_type& i,
@@ -147,7 +147,7 @@ namespace heist {
       return heist_sequence::lis;
     THROW_ERR('\''<<name<<" given arg "<<PROFILE(d)<<" isn't a proper sequence!" 
         << format << FCN_ERR(name,args)); // throws
-    return heist_sequence::nul; // never used, only to satisfy primtive type sig.
+    return heist_sequence::nul; // never used, only to satisfy primitive type sig.
   }
 
 
@@ -974,7 +974,7 @@ namespace heist {
 
 
   void primitive_confirm_proper_same_sized_lists(const scm_list& lists,const char* name,
-                                                 const char* format,   const int& first_arg_pos,
+                                                 const char* format,   const int first_arg_pos,
                                                                        const scm_list& args){
     num_type length0;
     for(size_type i = 0, n = lists.size(); i < n; ++i) {
@@ -1023,11 +1023,10 @@ namespace heist {
     primitive_MAP_list_constructor(curr_pairs, proc, mapped_list, env);
   }
 
-
   void primitive_MAP_BANG_list_constructor(scm_list& curr_pairs, scm_list& proc, 
                                                                  env_type& env){
     scm_list args(curr_pairs.size());
-    auto& map_to = curr_pairs[0];
+    auto map_to = curr_pairs[0];
     if(check_empty_list_else_acquire_cars_advance_cdrs(curr_pairs,args)) return;
     // Execute proc, store result, & recurse down the rest of the lists
     map_to.par->first = data_cast(execute_application(proc,args,env));
@@ -1256,7 +1255,7 @@ namespace heist {
 
 
   // ************************ "length" & "length+" helper ************************
-  data primtive_compute_seq_length(scm_list& args, const char* name, const char* format){
+  data primitive_compute_seq_length(scm_list& args, const char* name, const char* format){
     switch(is_proper_sequence(args[0],args,name,format)) {
       case heist_sequence::vec: return num_type(args[0].vec->size());
       case heist_sequence::str: return num_type(args[0].str->size());
@@ -1332,6 +1331,23 @@ namespace heist {
     new_pair.par->first = curr_pair.par->first;
     new_pair.par->second = primitive_list_copy_logic(curr_pair.par->second);
     return new_pair;
+  }
+
+
+  // ************************ "copy!" helper ************************
+  data primitive_generic_list_copy_bang_logic(data& dest_pair,data& source_pair)noexcept{
+    if(!dest_pair.is_type(types::par) || !source_pair.is_type(types::par)) 
+      return data(types::dne);
+    dest_pair.par->first = source_pair.par->first;
+    return primitive_generic_list_copy_bang_logic(dest_pair.par->second,
+                                                  source_pair.par->second);
+  }
+
+  template<typename SEQ_PTR>
+  data primitive_generic_STATIC_CONTAINER_copy_bang_logic(SEQ_PTR& s1, SEQ_PTR& s2)noexcept{
+    for(size_type i = 0, n = s1->size() < s2->size() ? s1->size() : s2->size(); i < n; ++i)
+      s1->operator[](i) = s2->operator[](i);
+    return data(types::dne);
   }
 
 
@@ -2364,7 +2380,7 @@ namespace heist {
   data force_data_delay(data& d) {
     if(!data_is_a_delay(d))
       THROW_ERR("'force "<<PROFILE(d)<<" isn't a delayed expression:\n     "
-        "(force <delayed-expression>)"<<EXP_ERR("(force "<<d.cpp_str()<<')'));
+        "(force <delayed-expression>)"<<EXP_ERR("(force "<<d.write()<<')'));
     auto delay = d.exp[1].del;
     if(!delay->already_forced) {
       delay->already_forced = true;
@@ -2409,7 +2425,7 @@ namespace heist {
     if(!data_is_stream_pair(d))
       THROW_ERR("'scar "<<PROFILE(d)<<" isn't a stream-pair:" 
         "\n     (scar <stream-pair>)" << 
-        EXP_ERR("(scar " << d.cpp_str() << ')'));
+        EXP_ERR("(scar " << d.write() << ')'));
     return force_data_delay(d.par->first);
   }
 
@@ -2417,12 +2433,12 @@ namespace heist {
   data get_stream_data_cdr(data& d) {
     if(!data_is_stream_pair(d))
       THROW_ERR("'scdr "<<PROFILE(d)<<" isn't a stream-pair:\n     "
-        "(scdr <stream-pair>)" << EXP_ERR("(scdr " << d.cpp_str() << ')'));
+        "(scdr <stream-pair>)" << EXP_ERR("(scdr " << d.write() << ')'));
     data cdr_promise = force_data_delay(d.par->second);
     if(!data_is_stream(cdr_promise))
       THROW_ERR("'scdr forced cdr " << PROFILE(cdr_promise)
         << " isn't a stream:\n     (scdr <stream-pair>)" 
-        << EXP_ERR("(scdr " << d.cpp_str() << ')'));
+        << EXP_ERR("(scdr " << d.write() << ')'));
     return cdr_promise;
   }
 
@@ -2434,7 +2450,7 @@ namespace heist {
     if(!data_is_stream_pair(d))
       THROW_ERR('\''<<name<<STREAM_SCXXXXR_ACCESSOR_NUMBER[nth_scar]
         <<" 'scar' "<<PROFILE(d)<<" isn't a stream-pair:" 
-        <<format<<EXP_ERR("(scar "<<d.cpp_str()<<')'));
+        <<format<<EXP_ERR("(scar "<<d.write()<<')'));
     return force_data_delay(d.par->first);
   }
 
@@ -2445,12 +2461,12 @@ namespace heist {
     if(!data_is_stream_pair(d))
       THROW_ERR('\''<<name<<STREAM_SCXXXXR_ACCESSOR_NUMBER[nth_scdr]
         <<" 'scdr' "<<PROFILE(d)<<" isn't a stream-pair:"
-        <<format<<EXP_ERR("(scdr "<<d.cpp_str()<<')'));
+        <<format<<EXP_ERR("(scdr "<<d.write()<<')'));
     data cdr_promise = force_data_delay(d.par->second);
     if(!data_is_stream(cdr_promise))
       THROW_ERR('\''<<name<<STREAM_SCXXXXR_ACCESSOR_NUMBER[nth_scdr]
         <<" 'scdr's forced cdr "<<PROFILE(cdr_promise)
-        <<" isn't a stream:"<<format<<EXP_ERR("(scdr "<<d.cpp_str()<<')'));
+        <<" isn't a stream:"<<format<<EXP_ERR("(scdr "<<d.write()<<')'));
     return cdr_promise;
   }
 
@@ -2927,8 +2943,8 @@ namespace heist {
   scm_string unescape_chars(const scm_string& str)noexcept{
     scm_string unescaped; 
     unescaped.reserve(str.size());
-    for(size_type i = 0; i+1 < str.size(); ++i) {
-      if(str[i] == '\\') {
+    for(size_type i = 0; i < str.size(); ++i) {
+      if(str[i] == '\\' && str[i+1]) {
         if(is_escapable_char(str[i+1])) {
           ++i;
           unescaped += special_char_variant(str[i]);
@@ -3013,18 +3029,10 @@ namespace heist {
     THROW_ERR('\''<<name<<" received incorrect # of args: "<<format<<FCN_ERR(name,args));
     return true;
   }
-
+  
 
   data primitive_display_string_logic(const data& obj, scm_string& write_to)noexcept{
-    if(obj.is_type(types::chr)) {
-      write_to += char(obj.chr);
-    } else if(obj.is_type(types::str)) {
-      if(!obj.str->empty()) {
-        write_to += *obj.str;
-      }
-    } else if(!obj.is_type(types::dne)) {
-      write_to += obj.cpp_str();
-    }
+    write_to += obj.display();
     return VOID_DATA_OBJECT;
   }
 
@@ -3041,7 +3049,7 @@ namespace heist {
           LAST_PRINTED_NEWLINE_TO_STDOUT = (outs == stdout);  
       }
     } else if(!obj.is_type(types::dne)) {
-      fputs(obj.cpp_str().c_str(), outs);
+      fputs(obj.display().c_str(), outs);
     }
     fflush(outs);
     LAST_PRINTED_TO_STDOUT = (outs == stdout);
@@ -3114,7 +3122,7 @@ namespace heist {
       size_type i = 0; // also trim prepending whitespace
       for(size_type n = outs_str.size(); i < n && isspace(outs_str[i]); ++i);
       outs_str.erase(0,i);
-      outs_str.erase(0,read_data[0].cpp_str().size());
+      outs_str.erase(0,read_data[0].write().size());
       // return the parsed AST
       scm_list quoted_read_data(2);
       quoted_read_data[0] = symconst::quote, quoted_read_data[1] = std::move(read_data[0]);
@@ -3559,7 +3567,7 @@ namespace heist {
           break;
         case types::str: // STRING
           vector_assigns += assignment_chain+'['+std::to_string(i)+"] = heist::make_str(\""+ 
-            *expressions[i].str +"\");\n"; 
+            escape_chars(*expressions[i].str) +"\");\n";
           break;
         case types::sym: // SYMBOL
           vector_assigns += assignment_chain+'['+std::to_string(i)+"] = \""+
@@ -3571,7 +3579,7 @@ namespace heist {
           break;
         default:         // NUMBER
           vector_assigns += assignment_chain+'['+std::to_string(i)+"] = heist::num_type("+
-            expressions[i].num.cpp_str()+");\n";
+            expressions[i].num.str()+");\n";
       }
     }
   }
@@ -3680,13 +3688,13 @@ namespace heist {
             args[0].sym.c_str(), error_str.c_str());
     // Check for irritants (if provided, these are optional)
     if(args.size() == 3)
-      fprintf(CURRENT_OUTPUT_PORT, " with irritant %s", args[2].cpp_str().c_str());
+      fprintf(CURRENT_OUTPUT_PORT, " with irritant %s", args[2].write().c_str());
     else if(args.size() > 3) {
       scm_list irritant_list(args.begin()+2, args.end());
       fprintf(CURRENT_OUTPUT_PORT, " with irritants %s", 
               primitive_LIST_to_CONS_constructor(irritant_list.begin(),
                                                  irritant_list.end()
-                                                ).cpp_str().c_str());
+                                                ).write().c_str());
     }
     fprintf(CURRENT_OUTPUT_PORT, "%s\n", afmt(AFMT_0));
     fflush(CURRENT_OUTPUT_PORT);

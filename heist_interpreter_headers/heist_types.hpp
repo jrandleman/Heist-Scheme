@@ -191,8 +191,12 @@ namespace heist {
   * DATA PRINTING HELPER FUNCTION PROTOTYPES
   ******************************************************************************/
 
+  using DATA_PRINTER = scm_string(data::*)()const noexcept;
+  template<DATA_PRINTER to_str>
   scm_string cio_list_str(const data& pair_object)       noexcept; // to print lists
+  template<DATA_PRINTER to_str>
   scm_string cio_vect_str(const vec_type& vector_object) noexcept; // to print vectors
+  template<DATA_PRINTER to_str>
   scm_string cio_expr_str(const exp_type& exp_object)    noexcept; // to print expressions
   scm_string escape_chars(const scm_string& str)         noexcept; // to escape string special characters
 
@@ -262,10 +266,12 @@ namespace heist {
     }
   };
 
-  // data_obj.type       => current type enum
-  // data_obj.type_name  => current type's name (string)
-  // data_obj.<T>        => current type <T> value
-  // data_obj.is_type(T) => data_obj.type == T
+  // data_obj.type        => current type enum
+  // data_obj.type_name() => current type's name (string)
+  // data_obj.<T>         => current type <T> value
+  // data_obj.is_type(T)  => data_obj.type == T
+  // data_obj.write()     => data_obj's value as a machine-readable string
+  // data_obj.display()   => data_obj's value as a human-readable string
   struct data {
     // current type & value held by data object
     types type = types::undefined;
@@ -342,7 +348,7 @@ namespace heist {
     // assignment operator
     void operator=(data&& d) noexcept {
       if(type == d.type) {
-        switch(type) {
+        switch(d.type) { // env,par,str,cal,del,vec,
           case types::sym: sym = std::move(d.sym); return;
           case types::exp: exp = std::move(d.exp); return;
           case types::par: par = std::move(d.par); return;
@@ -387,7 +393,7 @@ namespace heist {
     }
 
     // get current value as a string (for c-style I/O)
-    scm_string cpp_str() const noexcept {
+    scm_string write() const noexcept {
       switch(type) {
         case types::sym:
           if(sym==symconst::emptylist)             return "()";
@@ -415,11 +421,37 @@ namespace heist {
                 return scm_string(str);
               }
           }
-        case types::par: return cio_list_str(*this);
-        case types::vec: return cio_vect_str(vec);
-        case types::exp: return cio_expr_str(exp);
-        case types::num: return num.cpp_str();
+        case types::par: return cio_list_str<&data::write>(*this);
+        case types::vec: return cio_vect_str<&data::write>(vec);
+        case types::exp: return cio_expr_str<&data::write>(exp);
+        case types::num: return num.str();
         case types::str: return '"' + escape_chars(*str) + '"';
+        case types::bol: return (bol.val?"#t":"#f");
+        case types::env: return "#<environment>";
+        case types::del: return "#<delay>";
+        case types::prm: return "#<primitive>";
+        case types::exe: return "#<procedure-body>";
+        case types::cal: return "#<recursion-count>";
+        case types::fip: return "#<input-port>";
+        case types::fop: return "#<output-port>";
+        case types::dne: return "";
+        case types::syn: return "#<syntax-rules-object>";
+        default:         return "#<undefined>"; // types::undefined
+      }
+    }
+
+    scm_string display() const noexcept {
+      switch(type) {
+        case types::sym:
+          if(sym==symconst::emptylist)             return "()";
+          if(sym.find(symconst::mangle_prefix)==0) return "lambda";
+          return sym;
+        case types::chr: return scm_string(1,chr);
+        case types::par: return cio_list_str<&data::display>(*this);
+        case types::vec: return cio_vect_str<&data::display>(vec);
+        case types::exp: return cio_expr_str<&data::display>(exp);
+        case types::num: return num.str();
+        case types::str: return *str;
         case types::bol: return (bol.val?"#t":"#f");
         case types::env: return "#<environment>";
         case types::del: return "#<delay>";
@@ -436,7 +468,7 @@ namespace heist {
 
     // friend output function
     friend std::ostream& operator<<(std::ostream& outs, const data& d) noexcept {
-      outs << d.cpp_str();
+      outs << d.write();
       return outs;
     }
 
@@ -489,8 +521,8 @@ namespace heist {
     data(exp_type&& new_value) noexcept : type(types::exp), exp(std::move(new_value)) {}
     data(chr_type&& new_value) noexcept : type(types::chr), chr(std::move(new_value)) {}
 
-    data(const types& t) noexcept : type(t) {}            // to set 'dne
-    data(types&& t)      noexcept : type(std::move(t)) {} // to set 'dne
+    data(const types& t) noexcept : type(t) {} // to set 'dne
+    data(types&& t)      noexcept : type(t) {} // to set 'dne
     data(const data& d)  noexcept {*this = d;}
     data(data&& d)       noexcept {*this = std::move(d);}
     

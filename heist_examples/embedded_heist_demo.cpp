@@ -10,7 +10,7 @@ auto big_int_cpp_factorial_recur(const heist::num_type& n,const heist::num_type&
 }
 
 
-// Heist C++ primtive signature: heist::data(*)(std::vector<heist::data>&)
+// Heist C++ primitive signature: heist::data(*)(std::vector<heist::data>&)
 heist::data my_factorial(std::vector<heist::data>& args){ // C++ Hiest User-Defined Primitive
   if(args.size() != 1 || !args[0].is_type(heist::types::num)) {
     std::cerr << "Invalid Arguments given to '!: " << args << '\n';

@@ -27,7 +27,7 @@
 * => HINT: JUST USE WHAT "$ pwd" (OR "$ cd" ON WINDOWS) PRINTS!
 ******************************************************************************/
 
-// #define HEIST_DIRECTORY_FILE_PATH "/Users/jordanrandleman/desktop/rec_coding/HEIST"
+// #define HEIST_DIRECTORY_FILE_PATH "/Users/jordanrandleman/desktop/Heist-Scheme"
 
 /******************************************************************************
 * WARN USER IF COMPILING W/O AN ABSOLUTE FILE PATH
@@ -67,9 +67,10 @@
  * CHARS: USE ASCII ENCODING
  *
  * R4RS EXTENSIONS:
+ *   - OPT-IN DYNAMIC SCOPING  ; "INLINE" FUNCTION APPLICATIONS
  *   - NATIVE EVEN STREAMS     ; LISTS WITH DELAYED CAR & CDR
  *   - GENERIC ALGORITHMS      ; POLYMORPHIC ALGORITHM PRIMITIVES
- *   - SFRI PRIMTIVES          ; LIST, VECTOR, STRING, ETC.
+ *   - SFRI PRIMITIVES         ; LIST, VECTOR, STRING, ETC.
  *   - EVAL                    ; EVALUATE SYMBOLIC DATA AS CODE
  *   - HYGIENIC MACROS         ; MATCH SYMBOL-LIST PATTERNS TO TEMPLATES
  *     > SYNTAX-RULES
@@ -192,7 +193,7 @@ namespace heist {
   sym_type procedure_call_signature(const sym_type& name,const frame_vals& vals)noexcept{
     if(no_args_given(vals) || data_is_the_SENTINEL_VAL(data(vals)))
       return '(' + name + ')';
-    return '(' + name + ' ' + cio_expr_str(vals).substr(1);
+    return '(' + name + ' ' + cio_expr_str<&data::write>(vals).substr(1);
   }
 
 
@@ -667,7 +668,7 @@ namespace heist {
   exe_type analyze_delay(scm_list& exp) {
     if(exp.size() != 2 || data_is_the_SENTINEL_VAL(exp[1])) {
       exp[0].sym += ' '; // add space to tag, avoiding #<delay> degradation
-      auto delay_call = cio_expr_str(exp);
+      auto delay_call = cio_expr_str<&data::write>(exp);
       delay_call.erase(6,1);   // erase appended space
       THROW_ERR("'delay expects 1 argument: (delay <delay-expression>)" 
         << EXP_ERR(delay_call));
@@ -1607,13 +1608,10 @@ namespace heist {
   // Recursively unquotes/unquote-splices data as needed w/in quasiquote templates.
   // Also quotes each piece of data as needed.
   void unquote_quasiquote_template(scm_list& quote_val, scm_list& quoted_exp, env_type& env, 
-                                   const scm_list& exp, bool in_nested_template = false){
+                                   const scm_list& exp, const size_type& nested_level){
     // Account for whether splicing into a vector
     bool quoting_a_vector = (quote_val[0].sym == symconst::vector);
     
-    // May only unquote data of non-nested-template expressions
-    const bool NESTED_TEMPLATE = is_quasiquote(quoted_exp);
-
     // Wrap 'quote' around each obj in the expression, and expand unquote/unquote-splicing instances
     for(size_type i = 0, n = quoted_exp.size(); i < n; ++i) {
       // if quoting an empty expression, push the empty list 
@@ -1622,42 +1620,57 @@ namespace heist {
         quote_val.rbegin()->exp[0] = symconst::quote;
         quote_val.rbegin()->exp[1] = symconst::emptylist;
 
-      // if , add the data as-is
-      } else if(!in_nested_template && quoted_exp[i].is_type(types::exp) && is_unquote(quoted_exp[i].exp)) {
-        quote_val.push_back(quoted_exp[i].exp[1]);
-      
-      // if ,@ eval the expression & splice in the resulting list's elts
-      } else if(!in_nested_template && quoted_exp[i].is_type(types::exp) && is_unquote_splicing(quoted_exp[i].exp)) {
-        scm_list spliceable_data;
-        auto unsplice_stat = process_unquote_splicing(quoted_exp[i].exp, env, spliceable_data);
-        // If splicing the empty list, continue (does nothing)
-        if(unsplice_stat == unsplice_status::atom && data_is_the_AST_empty_list(spliceable_data[0]))
-          continue;
 
-        // If splicing in a list_star or atom
-        if(unsplice_stat == unsplice_status::list_star || unsplice_stat == unsplice_status::atom) {
-          quote_val = quasiquote_append_non_list(spliceable_data, quote_val, exp,
-                      (unsplice_stat == unsplice_status::list_star), quoting_a_vector, (i != n-1));
-          return;
-
-        // Otherwise (splicing a list), splice in data as-is
-        } else {
-          quote_val.insert(quote_val.end(), spliceable_data.begin(), spliceable_data.end());
+      // UNQUOTE
+      } else if(quoted_exp[i].is_type(types::exp) && is_unquote(quoted_exp[i].exp)) {
+        if(!nested_level) { // if , add the data as-is
+          quote_val.push_back(quoted_exp[i].exp[1]);
+        } else { // in a nested quasiquote, recursively parse the unquote expression 1 level removed
+          scm_list inner_exp;
+          tag_quote_val(quoted_exp[i].exp, inner_exp, exp);
+          unquote_quasiquote_template(inner_exp, quoted_exp[i].exp, env, exp, nested_level - 1);
+          quote_val.push_back(inner_exp);
         }
+      
+
+      // UNQUOTE-SPLICING      
+      } else if(quoted_exp[i].is_type(types::exp) && is_unquote_splicing(quoted_exp[i].exp)) {
+        if(!nested_level) { // if ,@ eval the expression & splice in the resulting list's elts
+          scm_list spliceable_data;
+          auto unsplice_stat = process_unquote_splicing(quoted_exp[i].exp, env, spliceable_data);
+          // If splicing the empty list, continue (does nothing)
+          if(unsplice_stat == unsplice_status::atom && data_is_the_AST_empty_list(spliceable_data[0]))
+            continue;
+          // If splicing in a list_star or atom
+          if(unsplice_stat == unsplice_status::list_star || unsplice_stat == unsplice_status::atom) {
+            quote_val = quasiquote_append_non_list(spliceable_data, quote_val, exp,
+                        (unsplice_stat == unsplice_status::list_star), quoting_a_vector, (i != n-1));
+            return;
+          // Otherwise (splicing a list), splice in data as-is
+          } else {
+            quote_val.insert(quote_val.end(), spliceable_data.begin(), spliceable_data.end());
+          }
+        } else { // in a nested quasiquote, recursively parse the unquote-splicing expression 1 level removed
+          scm_list inner_exp;
+          tag_quote_val(quoted_exp[i].exp, inner_exp, exp);
+          unquote_quasiquote_template(inner_exp, quoted_exp[i].exp, env, exp, nested_level - 1);
+          quote_val.push_back(inner_exp);
+        }
+        
         
       // else, quote the nested data
       } else {
         // if other expression, also recursively analyze for unquotes
         if(quoted_exp[i].is_type(types::exp)) {
           scm_list inner_exp;
-          
           // tag <inner_exp> as needed w/ either 'vector, 'list_star, or 'list
+          auto nested_expression_level = is_quasiquote(quoted_exp[i].exp) + nested_level;
           tag_quote_val(quoted_exp[i].exp, inner_exp, exp);
-          
           // propagate quotations throughout the sub-expression
-          unquote_quasiquote_template(inner_exp, quoted_exp[i].exp, env, exp, NESTED_TEMPLATE);
+          unquote_quasiquote_template(inner_exp, quoted_exp[i].exp, env, exp, nested_expression_level);
           quote_val.push_back(inner_exp);
         
+
         // if atomic, simply quote the atom
         } else {
           quote_val.push_back(scm_list(2));
@@ -1707,7 +1720,7 @@ namespace heist {
         // tag <quote_val> as needed w/ either 'vector, 'list_star, or 'list
         tag_quote_val(mutable_quoted_exp, quote_val, exp);
         // propagate quotations throughout the sub-expression
-        unquote_quasiquote_template(quote_val,mutable_quoted_exp,env,exp);
+        unquote_quasiquote_template(quote_val,mutable_quoted_exp,env,exp,0);
         return scm_eval(std::move(quote_val),env);
       };
   }
@@ -2267,7 +2280,7 @@ namespace heist {
 
   // -- APPLY
   // Applies the given procedure, & then reapplies iteratively if at a tail call
-  scm_list apply_compound_procedure(const exe_type& proc, env_type& extended_env) {
+  scm_list apply_compound_procedure(exe_type& proc, env_type& extended_env) {
     auto result = proc(extended_env);
   tail_call_recur:
     if(is_tagged_list(result,symconst::tail_call)) { // if tail call
@@ -2281,7 +2294,8 @@ namespace heist {
   // Analogue to "apply", except no need to analyze the body of compound 
   //   procedures (already done). Hence only calls the execution procedure 
   //   for the proc's body w/ the extended environment
-  scm_list execute_application(scm_list& procedure,scm_list& arguments,env_type& env,const bool tail_call){
+  scm_list execute_application(scm_list& procedure,scm_list& arguments,env_type& env,
+                                            const bool tail_call,const bool inlined){
     if(is_primitive_procedure(procedure)) // execute primitive procedure directly
       return apply_primitive_procedure(procedure,arguments,env);
     else if(is_compound_procedure(procedure)) {
@@ -2290,6 +2304,7 @@ namespace heist {
                                              arguments,
                                              procedure_environment(procedure),
                                              procedure_name(procedure));
+      if(inlined) extended_env->insert(extended_env->begin()+1, env->begin(), env->end());
       // confirm max recursive depth hasn't been exceeded
       auto& recursive_depth = procedure_recursive_depth(procedure);
       if(recursive_depth > MAX_RECURSION_DEPTH) {
@@ -2319,8 +2334,9 @@ namespace heist {
   }
 
   // R-value overload
-  scm_list execute_application(scm_list&& procedure,scm_list& arguments,env_type& env,const bool tail_call=false){
-    return execute_application(procedure,arguments,env,tail_call);
+  scm_list execute_application(scm_list&& procedure,scm_list& arguments,env_type& env,
+                               const bool tail_call=false,const bool inlined=false){
+    return execute_application(procedure,arguments,env,tail_call,inlined);
   }
 
 
@@ -2365,11 +2381,11 @@ namespace heist {
   // -- ANALYZE (SYNTAX)
   void throw_unknown_analysis_anomalous_error(const scm_list& exp) {
     scm_string err_str("ANALYZE: received unknown expression! -:- BUG ALERT -:-"
-                       "\n         Triggered By: " + cio_expr_str(exp) + 
+                       "\n         Triggered By: " + cio_expr_str<&data::write>(exp) + 
                        "\n         Profile of data in expression:");
     for(size_type i = 0, n = exp.size(); i < n; ++i)
       err_str += (("\n         " + std::to_string(i+1) + ". " + 
-                    exp[i].cpp_str() + " of type \"") + exp[i].type_name()) + '"';
+                    exp[i].write() + " of type \"") + exp[i].type_name()) + '"';
     THROW_ERR(err_str << "\n         => Please send your code to jrandleman@scu.edu to fix"
                          "\n            the interpreter's bug!");
   }
@@ -2434,7 +2450,7 @@ namespace heist {
     define_variable(symconst::null_env,     symconst::null_env,     GLOBAL_ENVIRONMENT_POINTER);
     define_variable(symconst::locl_env,     symconst::locl_env,     GLOBAL_ENVIRONMENT_POINTER);
     define_variable(symconst::sentinel_arg, symconst::sentinel_arg, GLOBAL_ENVIRONMENT_POINTER);
-    evaluate_primtives_written_in_heist_scheme(GLOBAL_ENVIRONMENT_POINTER);
+    evaluate_primitives_written_in_heist_scheme(GLOBAL_ENVIRONMENT_POINTER);
   }
 
   /******************************************************************************
@@ -2527,7 +2543,7 @@ void user_print(FILE* outs, heist::scm_list& object)noexcept{
   else if(heist::is_delay(object) && object.size() > 1)
     fputs("#<delay>", outs);
   else
-    fputs(object[0].cpp_str().c_str(), outs);
+    fputs(object[0].write().c_str(), outs);
   fflush(outs);
 }
 

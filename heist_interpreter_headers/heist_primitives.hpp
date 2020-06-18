@@ -153,7 +153,7 @@ namespace heist {
     return lcm_val;
   }
 
-  // primtive "modf" procedure
+  // primitive "modf" procedure
   // (define (modf num) (cons (truncate num) (remainder num (truncate num))))
   data primitive_MODF(scm_list& args) {
     confirm_unary_numeric(args, "modf", "(modf <num>)");
@@ -297,7 +297,7 @@ namespace heist {
     return data(args[0].num.extract_denominator());
   }
 
-  // primtive "make-log-base" procedure
+  // primitive "make-log-base" procedure
   // (define (make-log-base n) (lambda (num) (/ (log num) (log n))))
   data primitive_MAKE_LOG_BASE(scm_list& args) {
     auto env = args.rbegin()->env;
@@ -785,13 +785,13 @@ namespace heist {
   // primitive "string-unfold" procedure:
   data primitive_STRING_UNFOLD(scm_list& args) {
     return primitive_STRING_UNFOLD_template(args,false,"string-unfold",
-      "\n     (string-unfold <break-condition> <map-procdure> <successor-procedure> <seed>)");
+      "\n     (string-unfold <break-condition> <map-procedure> <successor-procedure> <seed>)");
   }
 
   // primitive "string-unfold-right" procedure:
   data primitive_STRING_UNFOLD_RIGHT(scm_list& args) {
     return primitive_STRING_UNFOLD_template(args,true,"string-unfold-right",
-      "\n     (string-unfold-right <break-condition> <map-procdure> <successor-procedure> <seed>)");
+      "\n     (string-unfold-right <break-condition> <map-procedure> <successor-procedure> <seed>)");
   }
 
   // primitive "string-pad" procedure:
@@ -1493,7 +1493,7 @@ namespace heist {
   data primitive_UNFOLD(scm_list& args) {
     scm_list unfolded;
     primitive_UNFOLD_template(args,unfolded,"unfold",
-      "\n     (unfold <break-condition> <map-procdure> <successor-procedure> <seed>)");
+      "\n     (unfold <break-condition> <map-procedure> <successor-procedure> <seed>)");
     return primitive_LIST_to_CONS_constructor(unfolded.begin(),unfolded.end());
   }
 
@@ -1501,7 +1501,7 @@ namespace heist {
   data primitive_UNFOLD_RIGHT(scm_list& args) {
     scm_list unfolded;
     primitive_UNFOLD_template(args,unfolded,"unfold-right",
-      "\n     (unfold-right <break-condition> <map-procdure> <successor-procedure> <seed>)");
+      "\n     (unfold-right <break-condition> <map-procedure> <successor-procedure> <seed>)");
     return primitive_LIST_to_CONS_constructor(unfolded.rbegin(),unfolded.rend());
   }
 
@@ -1594,7 +1594,7 @@ namespace heist {
         "\n     (vector-grow <vector> <size>)"
         "\n     <size> range: (0," << MAX_SIZE_TYPE << ']' << FCN_ERR("vector-grow", args));
     if(args[1].num < args[0].vec->size())
-      THROW_ERR("'vector-grow "<<args[1].num.cpp_str()<<" is too small to expand "
+      THROW_ERR("'vector-grow "<<args[1].num.str()<<" is too small to expand "
         << args[0] << " of size " << args[0].vec->size() << " with!"
         "\n     (vector-grow <vector> <size>)"
         "\n     <size> range: (0," << MAX_SIZE_TYPE << ']' << FCN_ERR("vector-grow", args));
@@ -1609,7 +1609,7 @@ namespace heist {
   data primitive_VECTOR_UNFOLD(scm_list& args) {
     scm_list unfolded;
     primitive_UNFOLD_template(args,unfolded,"vector-unfold",
-      "\n     (vector-unfold <break-condition> <map-procdure> <successor-procedure> <seed>)");
+      "\n     (vector-unfold <break-condition> <map-procedure> <successor-procedure> <seed>)");
     return make_vec(unfolded);
   }
 
@@ -1617,7 +1617,7 @@ namespace heist {
   data primitive_VECTOR_UNFOLD_RIGHT(scm_list& args) {
     scm_list unfolded;
     primitive_UNFOLD_template(args,unfolded,"vector-unfold-right",
-      "\n     (vector-unfold-right <break-condition> <map-procdure> <successor-procedure> <seed>)");
+      "\n     (vector-unfold-right <break-condition> <map-procedure> <successor-procedure> <seed>)");
     return make_vec(scm_list(unfolded.rbegin(),unfolded.rend()));
   }
 
@@ -1716,7 +1716,7 @@ namespace heist {
   // primitive "length" procedure:
   data primitive_LENGTH(scm_list& args) {
     confirm_given_one_sequence_arg(args,"length");
-    return primtive_compute_seq_length(args,"length",
+    return primitive_compute_seq_length(args,"length",
       "\n     (length <sequence>)" SEQUENCE_DESCRIPTION);
   }
 
@@ -1728,7 +1728,7 @@ namespace heist {
       primitive_list_is_acyclic_and_null_terminated(args[0]) == list_status::cyclic){
       return FALSE_DATA_BOOLEAN;
     }
-    return primtive_compute_seq_length(args,"length+",
+    return primitive_compute_seq_length(args,"length+",
       "\n     (length+ <sequence>)" SEQUENCE_DESCRIPTION);
   }
 
@@ -1916,6 +1916,26 @@ namespace heist {
       case heist_sequence::str: return make_str(*args[0].str);
       case heist_sequence::nul: return data(symconst::emptylist);
       default:                  return primitive_list_copy_logic(args[0]);
+    }
+  }
+
+  // primitive "copy!" procedure: 
+  // NOTE: Copies elts from <source> over <dest>'s elts. 
+  //       <dest>.size() is unaffected.
+  data primitive_COPY_BANG(scm_list& args) { // 
+    static constexpr const char * const format = 
+      "\n     (copy! <dest-sequence> <source-sequence>)" SEQUENCE_DESCRIPTION;
+    if(args.size() != 2)
+      THROW_ERR("'copy! received incorrect # of args (given " 
+        << args.size() << "):" << format << FCN_ERR("copy!",args));
+    if(args[0].type != args[1].type)
+      THROW_ERR("'copy! args have mismatched types!" 
+        << format << FCN_ERR("copy!",args));
+    switch(is_proper_sequence(args[0],args,"copy!",format)) {
+      case heist_sequence::vec: return primitive_generic_STATIC_CONTAINER_copy_bang_logic(args[0].vec,args[1].vec);
+      case heist_sequence::str: return primitive_generic_STATIC_CONTAINER_copy_bang_logic(args[0].str,args[1].str);
+      case heist_sequence::nul: return data(types::dne);
+      default:                  return primitive_generic_list_copy_bang_logic(args[0],args[1]);
     }
   }
 
@@ -2645,7 +2665,7 @@ namespace heist {
   // primitive "number?" procedure:
   data primitive_NUMBERP(scm_list& args) {
     confirm_given_one_arg(args, "number?");
-    return data(boolean(args[0].is_type(types::num)));
+    return data(boolean(args[0].is_type(types::num) && !args[0].num.is_nan()));
   }
 
   // primitive "real?" procedure:
@@ -3355,12 +3375,12 @@ namespace heist {
   (define (stream-map proc . streams)
     (if (not (procedure? proc))
         (syntax-error 'stream-map 
-                "1st arg isn't a procedure!\n               (stream-map <procedure> <stream1> <stream2> ...)\n              "
+                "1st arg isn't a procedure!\n               (stream-map <procedure> <stream1> <stream2> ...)\n               "
                 proc))
     (for-each (lambda (s) 
                 (if (not (stream? s)) 
                     (syntax-error 'stream-map
-                           "received a non stream!\n               (stream-map <procedure> <stream1> <stream2> ...)\n              " 
+                           "received a non stream!\n               (stream-map <procedure> <stream1> <stream2> ...)\n               " 
                            s)))
               streams)
 
@@ -3379,11 +3399,11 @@ namespace heist {
   (define (stream-filter pred? s)
     (if (not (procedure? pred?))
         (syntax-error 'stream-filter 
-               "1st arg isn't a procedure!\n               (stream-filter <predicate> <stream>)\n              " 
+               "1st arg isn't a procedure!\n               (stream-filter <predicate> <stream>)\n               " 
                pred?))
     (if (not (stream? s)) 
         (syntax-error 'stream-filter 
-               "2nd arg isn't a stream!\n               (stream-filter <predicate> <stream>)\n              " 
+               "2nd arg isn't a stream!\n               (stream-filter <predicate> <stream>)\n               " 
                s))
 
     (define (stream-filter s)
@@ -3398,29 +3418,26 @@ namespace heist {
 
   // primitive "stream-from" procedure:
   constexpr const char * const primitive_HEIST_STREAM_FROM = R"(
-  (define (stream-from first . step)
-    (define suc-proc 0)
-    (if (not (number? first))
+  (define (stream-from first . optional-step)
+    (define (stream-from-iter n suc-proc)
+      (scons n (stream-from-iter (suc-proc n) suc-proc)))
+    (define step 
+      (if (null? optional-step)
+          1
+          (if (null? (cdr optional-step))
+              (if (number? (car optional-step))
+                  (car optional-step)
+                  (syntax-error 'stream-from 
+                     "2nd arg isn't a number!\n               (stream-from <seed-number> <optional-step>)\n               " 
+                     (car optional-step)))
+              (syntax-error 'stream-from 
+                 "received more than 1 step!\n               (stream-from <seed-number> <optional-step>)\n               " 
+                 step))))
+    (if (number? first)
+        (stream-from-iter first (lambda (num) (+ num step)))
         (syntax-error 'stream-from 
-               "1st arg isn't a number!\n               (stream-from <seed-number> <optional-step>)\n              " 
-               first))
-    (if (> (length step) 1)
-        (syntax-error 'stream-from 
-               "received more than 1 step!\n               (stream-from <seed-number> <optional-step>)\n              " 
-               step))
-    (if (null? step)
-        (set! suc-proc (lambda (n) (+ n 1)))
-        (if (number? (car step))
-            (begin (define step-val (car step)) 
-                   (set! suc-proc (lambda (n) (+ n step-val))))
-            (syntax-error 'stream-from 
-                   "Step (2nd arg) isn't a number!\n               (stream-from <seed-number> <optional-step>)\n              " 
-                   (car step))))
-
-    (define (stream-from n)
-      (scons n (stream-from (suc-proc n))))
-
-    (stream-from first))
+           "1st arg isn't a number!\n               (stream-from <seed-number> <optional-step>)\n               " 
+           first)))
   )";
 
   // primitive "stream-unfold" procedure:
@@ -3428,15 +3445,15 @@ namespace heist {
   (define (stream-unfold break-cond map-proc suc-proc seed)
     (if (not (procedure? break-cond))
         (syntax-error 'stream-unfold 
-               "1st arg isn't a procedure!\n               (stream-unfold <break-condition> <map-procdure> <successor-procedure> <seed>)\n              " 
+               "1st arg isn't a procedure!\n               (stream-unfold <break-condition> <map-procedure> <successor-procedure> <seed>)\n               " 
                break-cond))
     (if (not (procedure? map-proc))
         (syntax-error 'stream-unfold 
-               "2nd arg isn't a procedure!\n               (stream-unfold <break-condition> <map-procdure> <successor-procedure> <seed>)\n              " 
+               "2nd arg isn't a procedure!\n               (stream-unfold <break-condition> <map-procedure> <successor-procedure> <seed>)\n               " 
                map-proc))
     (if (not (procedure? suc-proc))
         (syntax-error 'stream-unfold 
-               "3rd arg isn't a procedure!\n               (stream-unfold <break-condition> <map-procdure> <successor-procedure> <seed>)\n              " 
+               "3rd arg isn't a procedure!\n               (stream-unfold <break-condition> <map-procedure> <successor-procedure> <seed>)\n               " 
                suc-proc))
     
     (define (stream-unfold seed)
@@ -3453,7 +3470,7 @@ namespace heist {
   (define (stream-iterate suc-proc seed)
     (if (not (procedure? suc-proc))
         (syntax-error 'stream-iterate 
-               "1st arg isn't a procedure!\n               (stream-iterate <successor-procedure> <seed>)\n              " 
+               "1st arg isn't a procedure!\n               (stream-iterate <successor-procedure> <seed>)\n               " 
                suc-proc))
     
     (define (stream-iterate seed)
@@ -3468,7 +3485,7 @@ namespace heist {
     (for-each (lambda (s) 
                 (if (not (stream? s)) 
                     (syntax-error 'stream-zip 
-                           "received a non stream!\n               (stream-zip <stream1> <stream2> ...)\n              " 
+                           "received a non stream!\n               (stream-zip <stream1> <stream2> ...)\n               " 
                            s)))
               streams)
     
@@ -3494,7 +3511,7 @@ namespace heist {
     (for-each (lambda (s) 
                 (if (not (stream? s)) 
                     (syntax-error 'stream-append 
-                           "received a non stream!\n               (stream-append <stream1> <stream2> ...)\n              " 
+                           "received a non stream!\n               (stream-append <stream1> <stream2> ...)\n               " 
                            s)))
               (cons s streams))
 
@@ -3515,11 +3532,11 @@ namespace heist {
   (define (stream-interleave stream1 stream2)
     (if (not (stream? stream1))
         (syntax-error 'stream-interleave 
-               "1st arg isn't a stream!\n               (stream-interleave <stream1> <stream2>)\n              " 
+               "1st arg isn't a stream!\n               (stream-interleave <stream1> <stream2>)\n               " 
                stream1))
     (if (not (stream? stream2))
         (syntax-error 'stream-interleave 
-               "2nd arg isn't a stream!\n               (stream-interleave <stream2> <stream2>)\n              " 
+               "2nd arg isn't a stream!\n               (stream-interleave <stream2> <stream2>)\n               " 
                stream2))
     
     (define (stream-interleave stream1 stream2)
@@ -3579,9 +3596,9 @@ namespace heist {
           "\n     (number->string <number> <optional-numeric-radix>)"
           << FCN_ERR("number->string", args));
       if(radix != 10)
-        return make_str(args[0].num.cpp_str(radix));
+        return make_str(args[0].num.str(radix));
     }
-    return make_str(args[0].num.cpp_str());
+    return make_str(args[0].num.str());
   }
 
   // primitive "string->number" procedure:
@@ -3708,10 +3725,10 @@ namespace heist {
                     "\n     (write <obj> <optional-open-output-port-or-string>)");
     if(!args[0].is_type(types::dne)) {
       if(is_port) {
-        fputs(args[0].cpp_str().c_str(), outs);
+        fputs(args[0].write().c_str(), outs);
         fflush(outs);
       } else {
-        *args[1].str += args[0].cpp_str();
+        *args[1].str += args[0].write();
       }
     }
     LAST_PRINTED_TO_STDOUT = (outs == stdout && is_port);
@@ -3788,8 +3805,8 @@ namespace heist {
     if(!confirm_valid_input_args_and_non_EOF(args, ins, "read-string", reading_stdin, reading_string)) 
       return make_str("");
     if(reading_string)
-      return make_str(primitive_read_from_string_logic(*args[0].str,env).cpp_str());
-    return make_str(primitive_read_from_input_port_logic(outs,ins,reading_stdin,env).cpp_str());
+      return make_str(primitive_read_from_string_logic(*args[0].str,env).write());
+    return make_str(primitive_read_from_input_port_logic(outs,ins,reading_stdin,env).write());
   }
 
   data primitive_READ_LINE(scm_list& args) {
@@ -4145,7 +4162,7 @@ namespace heist {
       // Search Variable-Value List Pair In Frame
       for(size_type j = 0, total_vars = var_list.size(); j < total_vars; ++j)
         if(var == var_list[j] && !val_list[j].is_type(types::undefined))
-          return make_str(val_list[j].cpp_str());
+          return make_str(val_list[j].write());
     }
     return FALSE_DATA_BOOLEAN;
   }
@@ -4230,7 +4247,7 @@ namespace heist {
   }
 
   /******************************************************************************
-  * EXITING, ERROR HANDLING, & JUMPING PRIMITIVES
+  * CONTROL-FLOW PRIMITIVES: EXITING, ERROR HANDLING, INLINING, & JUMPING
   ******************************************************************************/
 
   data primitive_EXIT(scm_list&) {
@@ -4248,6 +4265,20 @@ namespace heist {
     return data();
   }
 
+  // Invoke <proc> w/ args in the current environment, ie w/ Dynamic Scope!
+  data primitive_INLINE(scm_list& args) {
+    auto env = args.rbegin()->env;
+    args.pop_back();
+    if(args.empty())
+      THROW_ERR("'inline recieved incorrect # of args!"
+        "\n     (inline <proc> <arg1> ... <argN>)" << FCN_ERR("inline",args));
+    primitive_confirm_data_is_a_procedure(args[0], "inline", 
+      "\n     (inline <proc> <arg1> ... <argN>)", args);
+    scm_list inline_args(args.begin()+1,args.end());
+    if(inline_args.empty()) inline_args.push_back(symconst::sentinel_arg);
+    return data_cast(execute_application(args[0].exp,inline_args,env,false,true));
+  }
+
   data primitive_JUMP_BANG(scm_list& args) {
     if(args.size() > 1)
       THROW_ERR("'jump! recieved incorrect # of args!"
@@ -4260,22 +4291,23 @@ namespace heist {
     return data();
   }
 
-  data primitive_SETJMP(scm_list& args) {
+  data primitive_SET_JUMP(scm_list& args) {
     // extract the local environment
     auto env = args.rbegin()->env;
     args.pop_back();
     if(args.empty())
-      THROW_ERR("'setjmp recieved incorrect # of args!"
-        "\n     (setjmp <proc> <arg1> ... <argN>)" << FCN_ERR("setjmp",args));
-    primitive_confirm_data_is_a_procedure(args[0], "setjmp", 
-      "\n     (setjmp <proc> <arg1> ... <argN>)", args);
-    scm_list setjmp_args(args.begin()+1,args.end());
+      THROW_ERR("'set-jump recieved incorrect # of args!"
+        "\n     (set-jump <proc> <arg1> ... <argN>)" << FCN_ERR("set-jump",args));
+    primitive_confirm_data_is_a_procedure(args[0], "set-jump", 
+      "\n     (set-jump <proc> <arg1> ... <argN>)", args);
+    scm_list set_jump_args(args.begin()+1,args.end());
+    if(set_jump_args.empty()) set_jump_args.push_back(symconst::sentinel_arg);
     try {
-      return data_cast(execute_application(args[0].exp,setjmp_args,env));
-    } catch(const SCM_EXCEPT& setjmp_error) {
-      if(setjmp_error == SCM_EXCEPT::JUMP)
+      return data_cast(execute_application(args[0].exp,set_jump_args,env));
+    } catch(const SCM_EXCEPT& set_jump_error) {
+      if(set_jump_error == SCM_EXCEPT::JUMP)
         return JUMP_GLOBAL_PRIMITIVE_ARGUMENT;
-      throw setjmp_error;
+      throw set_jump_error;
     }
     return data();
   }
@@ -4377,18 +4409,18 @@ namespace heist {
   (define (__HEIST-make-curry args-list body-list)
     (define (make-curry-ctor args-list)
       (if (null? (cdr args-list))
-          `(lambda (,(car args-list)) ,@body-list)
-          `(lambda (,(car args-list)) 
-              (define curried-lambdas ;; Curried inner lambdas
-                ,(make-curry-ctor (cdr args-list)))
-              (lambda (x . xs) ;; Return Curried Lambda Applicator
+          (cons 'lambda (cons (list (car args-list)) body-list))
+          (list 'lambda (list (car args-list)) 
+              (list 'define 'curried-lambdas ;; Curried inner lambdas
+                (make-curry-ctor (cdr args-list)))
+              '(lambda (x . xs) ;; Return Curried Lambda Applicator
                 (fold (lambda (f a) (f a)) 
                       (lambda (a) a)
                       (cons curried-lambdas (cons x xs)))))))
     (define curried-lambdas ;; Curried inner lambdas
       (if (null? args-list)
-          (eval `(lambda () ,@body-list))
-          (eval (make-curry-ctor args-list))))
+          (eval (cons 'lambda (cons '() body-list)) 'local-environment)
+          (eval (make-curry-ctor args-list) 'local-environment)))
     (if (null? args-list)
         curried-lambdas
         (lambda (x . xs) ;; Return Curried Lambda Applicator
@@ -4402,7 +4434,7 @@ namespace heist {
   (define-syntax curry 
     (syntax-rules ()
       ((curry curry-args-list curry-body ...) 
-       (__HEIST-make-curry 'curry-args-list '(curry-body ...)))))
+       (inline __HEIST-make-curry 'curry-args-list '(curry-body ...)))))
 
   ;;;; IDENTITY PRIMITIVE PROCEDURE
   (define (id a) a)
@@ -4420,7 +4452,7 @@ namespace heist {
     primitive_HEIST_STREAM_INTERLEAVE, 
   };
 
-  void evaluate_primtives_written_in_heist_scheme(env_type& env) {
+  void evaluate_primitives_written_in_heist_scheme(env_type& env) {
     // Process individual heist scheme primitive procedures
     for(const auto& heist_prim : PRIMITIVES_DEFINED_IN_HEIST_SCHEME) {
       scm_list heist_scheme_prim;
@@ -4469,7 +4501,8 @@ namespace heist {
     primitive_CALL_WITH_INPUT_FILE, primitive_CALL_WITH_OUTPUT_FILE,
     primitive_WITH_INPUT_FROM_FILE, primitive_WITH_OUTPUT_TO_FILE,
     primitive_OPEN_INPUT_FILE,      primitive_OPEN_OUTPUT_FILE,
-    primitive_LOAD,                 primitive_SETJMP, 
+    primitive_LOAD,                 primitive_SET_JUMP, 
+    primitive_INLINE, 
   };
 
 #ifndef HEIST_CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
@@ -4702,6 +4735,7 @@ namespace heist {
     std::make_pair(primitive_MAP_BANG,          "map!"),
     std::make_pair(primitive_FOR_EACH,          "for-each"),
     std::make_pair(primitive_COPY,              "copy"),
+    std::make_pair(primitive_COPY_BANG,         "copy!"),
     std::make_pair(primitive_COUNT,             "count"),
     std::make_pair(primitive_REF,               "ref"),
     std::make_pair(primitive_SLICE,             "slice"),
@@ -4877,8 +4911,9 @@ namespace heist {
     std::make_pair(primitive_EXIT,            "exit"),
     std::make_pair(primitive_ERROR,           "error"),
     std::make_pair(primitive_SYNTAX_ERROR,    "syntax-error"),
+    std::make_pair(primitive_INLINE,          "inline"),
     std::make_pair(primitive_JUMP_BANG,       "jump!"),
-    std::make_pair(primitive_SETJMP,          "setjmp"),
+    std::make_pair(primitive_SET_JUMP,        "set-jump"),
   };
 
   frame_vals primitive_procedure_objects()noexcept{

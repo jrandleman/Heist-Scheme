@@ -1,5 +1,5 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- heist_cpp_interop.hpp
-// => Wrapper around Hiest Interpreter to set up C++ interop
+// => Wrapper around Heist Interpreter to set up C++ interop
 
 #ifndef HEIST_CPP_INTEROP_HPP_
 #define HEIST_CPP_INTEROP_HPP_
@@ -33,7 +33,7 @@ namespace heist {
           return data();
         } catch(...) {
           PRINT_ERR("Uncaught C++ Exception Detected! -:- BUG ALERT -:-"
-               "\n     Triggered By: " << abstract_syntax_tree[i].cpp_str() << 
+               "\n     Triggered By: " << abstract_syntax_tree[i].write() << 
                "\n  => Please send your code to jrandleman@scu.edu to fix"
                "\n     the interpreter's bug!"
                "\n  => Terminating Heist Scheme Interpretation.\n");
@@ -80,6 +80,7 @@ namespace heist {
   // Apply Heist Scheme Procedure
   data apply(const std::string& heist_procedure_name, scm_list args) noexcept {
     if(!GLOBAL_ENVIRONMENT_POINTER) set_default_global_environment();
+    if(args.empty()) args.push_back(symconst::sentinel_arg);
     try {
       return data_cast(execute_application(
               scm_list_cast(lookup_variable_value(heist_procedure_name,GLOBAL_ENVIRONMENT_POINTER)),
