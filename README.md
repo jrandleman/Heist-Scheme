@@ -11,8 +11,9 @@ Embed Heist in C++: `#include` the `heist_cpp_interop.hpp` header into your code
 
 ----------
 # Features:
-1) Hygienic Macros
-2) Tail-Call Optimization
+0) Hygienic Macros
+1) Tail-Call Optimization
+2) Opt-In Dynamic Scoping (see the `inline` application primitive)
 3) Native Even Streams (Lists w/ Delayed Car & Cdr)
 4) Generic Algorithms (Polymorphic Algorithm Primitives)
 5) SFRI Primitives (List, Vector, String, etc.)
