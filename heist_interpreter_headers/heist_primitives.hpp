@@ -4403,40 +4403,32 @@ namespace heist {
   ******************************************************************************/
 
   constexpr const char* const HEIST_CURRIED_LAMBDA_AND_ID_DEFINITION = R"(
-  ;;;; CURRIED LAMBDAS via Macro & Ctor Procedure
-  ;;;;   => NOTE: It is UNDEFINED BEHAVIOR to have a VARIADIC CURRIED lambda
-  ;;;;            IE: (define f (curry (x . xs) x)) ;; INVALID!
-  (define (__HEIST-make-curry args-list body-list)
-    (define (make-curry-ctor args-list)
-      (if (null? (cdr args-list))
-          (cons 'lambda (cons (list (car args-list)) body-list))
-          (list 'lambda (list (car args-list)) 
-              (list 'define 'curried-lambdas ;; Curried inner lambdas
-                (make-curry-ctor (cdr args-list)))
-              '(lambda (x . xs) ;; Return Curried Lambda Applicator
-                (fold (lambda (f a) (f a)) 
-                      (lambda (a) a)
-                      (cons curried-lambdas (cons x xs)))))))
-    (define curried-lambdas ;; Curried inner lambdas
-      (if (null? args-list)
-          (eval (cons 'lambda (cons '() body-list)) 'local-environment)
-          (eval (make-curry-ctor args-list) 'local-environment)))
-    (if (null? args-list)
-        curried-lambdas
-        (lambda (x . xs) ;; Return Curried Lambda Applicator
-          (fold (lambda (f a) (f a)) 
-                (lambda (a) a)
-                (cons curried-lambdas (cons x xs))))))
-
-  ; 'lambda alternative that will curry its arguments
-  ;   => IE (define K (curry (a b) a)) => (define K (lambda (a) (lambda (b) a)))
-  ;         ((K 1) 2) = (K 1 2) ;; BOTH OF THESE MEANS OF APPLICATION WORK IDENTICALLY!
+  ; CURRIED LAMBDAS via Macro
+  ;   => NOTE: It is UNDEFINED BEHAVIOR to have a VARIADIC CURRIED lambda
+  ;            IE: (define f (curry (x . xs) x)) ;; INVALID!
+  ;   => 'lambda alternative that will curry its arguments
+  ;      => IE (define K (curry (a b) a)) => (define K (lambda (a) (lambda (b) a)))
+  ;            ((K 1) 2) = (K 1 2) ;; BOTH OF THESE MEANS OF APPLICATION WORK IDENTICALLY!
   (define-syntax curry 
     (syntax-rules ()
-      ((curry curry-args-list curry-body ...) 
-       (inline __HEIST-make-curry 'curry-args-list '(curry-body ...)))))
+      ((_ () body ...)
+        (lambda () body ...))
+      ((_ (arg) body ...) 
+        (lambda (x . xs)
+          (fold (lambda (f a) (f a)) 
+                (lambda (a) a)
+                (cons (lambda (arg) body ...)
+                      (cons x xs)))))
+      ((_ (arg rest-args ...) body ...)
+        (lambda (x . xs)
+          (define curried-lambdas
+            (lambda (arg) (curry (rest-args ...) body ...)))
+          (fold (lambda (f a) (f a)) 
+                (lambda (a) a)
+                (cons curried-lambdas
+                      (cons x xs)))))))
 
-  ;;;; IDENTITY PRIMITIVE PROCEDURE
+  ; IDENTITY PRIMITIVE PROCEDURE
   (define (id a) a)
   )";
 
