@@ -1726,7 +1726,7 @@ namespace heist {
   }
 
   /******************************************************************************
-  * REPRESENTING MACRO SYNTACTIC EXTENSIONS -- PATTERN MATCHING HELPER FUNCTIONS
+  * REPRESENTING MACRO SYNTACTIC EXTENSIONS -- GENERAL PARSING HELPER FUNCTIONS
   ******************************************************************************/
 
   // (define-syntax <label>
@@ -1756,11 +1756,8 @@ namespace heist {
   //       ((multiply-all a) a)
   //       ((multiply-all a b ...) (* a (multiply-all b ...)))))
 
-  // Fcn prototypes for pattern-subexpression comparisons
-  bool mismatched_subexpressions(const data& pat_elt,    const data& arg_elt,
-                                 const sym_type& label,  const frame_vars& keywords,
-                                 const size_type& pat_No,const scm_list& exp);
-  bool duplicate_pattern_object_name_instance(const sym_type& obj1_name,const data& obj2)noexcept;
+  using MACRO_ID_TABLE = std::vector<std::pair<sym_type,scm_list>>;
+
 
   // Confirm whether the given word is a keyword
   bool is_keyword(const sym_type& word, const frame_vars& keywords)noexcept{
@@ -1768,11 +1765,8 @@ namespace heist {
   }
 
 
-  // Determine whether only the par's elt OR only the arg's elt is a keyword
-  bool mismatched_keywords(const data& pat_elt, const data& arg_elt, const frame_vars& keywords)noexcept{
-    const bool pat_is_key = pat_elt.is_type(types::sym) && is_keyword(pat_elt.sym,keywords);
-    const bool arg_is_key = arg_elt.is_type(types::sym) && is_keyword(arg_elt.sym,keywords);
-    return pat_is_key ^ arg_is_key;
+  bool data_is_ellipsis(const data& d) noexcept {
+    return d.is_type(types::sym) && d.sym == symconst::ellipsis;
   }
 
 
@@ -1781,6 +1775,63 @@ namespace heist {
     return obj.is_type(types::sym) && (obj.sym == symconst::true_t || 
                                        obj.sym == symconst::false_t || 
                                        obj.sym == symconst::emptylist);
+  }
+
+
+  // Confirm <pat_entity> is a potential macro identifier
+  // => WARNING: Doesn't check for whether is a keyword (used _only_ in expansion)!
+  bool is_symbolic_macro_identifier(const data& pat_entity)noexcept{
+    return pat_entity.is_type(types::sym) && !is_primitive_symbolic_literal(pat_entity) &&
+      pat_entity.sym != symconst::ellipsis && pat_entity.sym != symconst::sentinel_arg;
+  }
+
+
+  // Confirm <pat_entity> is a macro argument (non-keyword) name
+  bool is_macro_argument_label(const data& pat_entity, const frame_vars& keywords)noexcept{
+    return is_symbolic_macro_identifier(pat_entity) && !is_keyword(pat_entity.sym, keywords);
+  }
+
+
+  // Confirm whether 'pattern' is argless but was given 'args' (or vise versa)
+  bool incompatible_void_arg_use(const scm_list& pattern, const scm_list& args)noexcept{
+    bool pattern_is_argless = pattern.size() == 2 && 
+                              pattern[1].is_type(types::sym) && 
+                              pattern[1].sym==symconst::sentinel_arg;
+    bool args_is_argless    = args.size()==1 && data_is_the_SENTINEL_VAL(args[0]);
+    return pattern_is_argless ^ args_is_argless;
+  }
+
+
+  // Associate a pattern's macro identifier to the objects it will expand into
+  void register_macro_identifier_expansion_values(MACRO_ID_TABLE& ID_TO_VAL_MAP,const sym_type& id_name, 
+                                                                    scm_list&& expansion_values)noexcept{
+    for(auto& id : ID_TO_VAL_MAP)
+      if(id.first == id_name) {
+        id.second.insert(id.second.end(), expansion_values.begin(), expansion_values.end());
+        return;
+      }
+    ID_TO_VAL_MAP.push_back(std::make_pair(id_name,expansion_values));
+  }
+
+
+  // Get idx of <id_name> in <ID_TO_VAL_MAP>. Returns <MAX_SIZE_TYPE> if not found.
+  size_type find_macro_identifier_index(MACRO_ID_TABLE& ID_TO_VAL_MAP,const sym_type& id_name)noexcept{
+    for(size_type i = 0, n = ID_TO_VAL_MAP.size(); i < n; ++i)
+      if(ID_TO_VAL_MAP[i].first == id_name) return i;
+    return MAX_SIZE_TYPE;
+  }
+
+  /******************************************************************************
+  * REPRESENTING MACRO SYNTACTIC EXTENSIONS -- PATTERN MATCHING HELPER FUNCTIONS
+  ******************************************************************************/
+
+  bool compare_pattern_args_exp_match(const scm_list&,const scm_list&,const frame_vars&,MACRO_ID_TABLE&,const size_type&)noexcept;
+  
+
+  // Determine whether only the par's elt OR only the arg's elt is a keyword
+  bool mismatched_keywords(const data& pat_elt, const data& arg_elt, const frame_vars& keywords)noexcept{
+    return (pat_elt.is_type(types::sym) && is_keyword(pat_elt.sym,keywords)) ^
+           (arg_elt.is_type(types::sym) && is_keyword(arg_elt.sym,keywords));
   }
 
 
@@ -1799,158 +1850,109 @@ namespace heist {
   }
 
 
-  // Confirm whether 'pattern' is argless but was given 'args' (or vise versa)
-  bool incompatible_void_arg_use(const scm_list& pattern, const scm_list& args)noexcept{
-    const bool pattern_is_argless = pattern.size() == 2 && 
-                                    pattern[1].is_type(types::sym) && 
-                                    pattern[1].sym==symconst::sentinel_arg;
-    const bool args_is_argless    = args.size()==1 && data_is_the_SENTINEL_VAL(args[0]);
-    return pattern_is_argless ^ args_is_argless;
+  // Confirm the 2 given pattern/arg elts are mismatched subexpressions
+  bool mismatched_subexpressions(const data& pat_elt,        const data& arg_elt, 
+                                 const frame_vars& keywords, MACRO_ID_TABLE& ID_TO_VAL_MAP)noexcept{
+    if(!pat_elt.is_type(types::exp) || !arg_elt.is_type(types::exp)) return true;
+    if(pat_elt.exp.empty()) return !arg_elt.exp.empty();
+    return !compare_pattern_args_exp_match(pat_elt.exp,arg_elt.exp,keywords,ID_TO_VAL_MAP,0);
   }
 
 
-  // Check whether enough args to match against the current pattern
-  bool incompatible_sizes(const scm_list& pattern, const scm_list& args)noexcept{
-    const bool ends_in_ellipsis = !pattern.empty() && 
-                                  pattern.rbegin()->is_type(types::sym) && 
-                                  pattern.rbegin()->sym=="...";
-    return pattern.empty() ||                                       // no pattern
-            args.size() < (pattern.size()-1-ends_in_ellipsis) ||    // not enough args (for possible variadic)
-            (!ends_in_ellipsis && args.size() != pattern.size()-1); // not exact args (for non-variadic)
-  }
-
-
-  // Confirms pattern sub-expression does not contain an object with the same name as 'existing_pat_obj'
-  bool pattern_sub_expression_has_duplicate(const sym_type& existing_pat_obj,const scm_list& pattern)noexcept{
-    for(const auto& pat : pattern) {
-      if(!pat.is_type(types::sym) && !pat.is_type(types::exp)) continue; // naught to compare
-      if(duplicate_pattern_object_name_instance(existing_pat_obj, pat)) return true;
+  // Handle '...' pattern analysis
+  bool account_for_pattern_ellipsis_and_return_whether_no_match(const scm_list& args_exp, const size_type& args_size, size_type& args_idx,
+                                                      const data& pat_obj_prior_ellipsis, const size_type& number_args_left_after_variadic,
+                                                                                          const frame_vars& keywords, MACRO_ID_TABLE& ID_TO_VAL_MAP)noexcept{
+    // Start associating objs based on the first obj prior "..."'s position
+    --args_idx;
+    // Confirm enough room in <args_exp> for the variadic
+    if(number_args_left_after_variadic + args_idx > args_size) return true;
+    const auto va_objs_end = args_size - number_args_left_after_variadic;
+    // Confirm each variadic obj in <args_exp> matches the layout of <pat_obj_prior_ellipsis>
+    // Symbol Identifiers may expand to _any_ form
+    if(pat_obj_prior_ellipsis.is_type(types::sym)) {
+      register_macro_identifier_expansion_values(ID_TO_VAL_MAP,pat_obj_prior_ellipsis.sym,
+                                                               scm_list(args_exp.begin() + args_idx, 
+                                                                        args_exp.begin() + va_objs_end));
+      const auto number_of_va_objs_in_args = va_objs_end - args_idx;
+      args_idx += number_of_va_objs_in_args - 1; // advance <args_idx> to the last va obj associated
+    // Expression Identifiers _may only_ expand into expressions of the same form
+    } else {
+      for(; args_idx < va_objs_end; ++args_idx)
+        if(mismatched_subexpressions(pat_obj_prior_ellipsis,args_exp[args_idx],keywords,ID_TO_VAL_MAP))
+          return true;
+      --args_idx; // move back to the last associated obj (accounts for '++' in loop returning to)
     }
     return false;
-  }
-
-
-  // Confirms whether the obj1 & obj2 share a duplicate name instance
-  bool duplicate_pattern_object_name_instance(const sym_type& obj1_name, const data& obj2)noexcept{
-    return (!is_primitive_symbolic_literal(obj2) && obj2.is_type(types::sym) && obj2.sym == obj1_name) ||
-           (obj2.is_type(types::exp) && pattern_sub_expression_has_duplicate(obj1_name,obj2.exp));
-  }
-
-
-  // Confirm each pattern object only appears once in the pattern
-  void confirm_no_duplicate_pattern_objects(const sym_type& label,  const scm_list& pattern,
-                                            const size_type& pat_No,const scm_list& exp) {
-    for(size_type i=0, n=pattern.size(); i < n; ++i) {
-      if(!pattern[i].is_type(types::sym)) continue; // nothing to compare against
-      for(size_type j = i+1; j < n; ++j)
-        if(duplicate_pattern_object_name_instance(pattern[i].sym, pattern[j]))
-          THROW_ERR("Invalid syntax \""<<label<<"\", pattern #"<<pat_No<<", identifier \"" 
-            << pattern[i].sym << "\" appeared more than once!\n     ((<pattern>) <template>)"
-            << EXP_ERR(exp));
-    }
-  }
-
-
-  // Check whether '...' was used prior the 3rd pattern object
-  bool uses_Ellipsis_prematurely(const scm_list& pattern)noexcept{
-    const size_type n = pattern.size();
-    return (pattern[0].is_type(types::sym) && pattern[0].sym == "...") ||
-           (n > 1 && pattern[1].is_type(types::sym) && pattern[1].sym == "...") || 
-           (n > 2 && pattern[2].is_type(types::sym) && pattern[2].sym == "...");
   }
 
 
   // Confirm whether the pattern sub-expression matches the 'args' sub-expression
   bool compare_pattern_args_exp_match(const scm_list& pat_exp,const scm_list& args_exp,
-                                      const sym_type& label,  const frame_vars& keywords,
-                                      const size_type& pat_No,const scm_list& exp){
-    if(pat_exp.empty() && args_exp.empty()) return true;
-    // Check whether enough args to match against the current pattern sub-expression
-    if(pat_exp.empty() || args_exp.size() < pat_exp.size()) return false;
-    // Confirm whether pattern & label-args combo match one another
-    for(size_type i=0, j=0, n=pat_exp.size(); i < n; ++i, ++j){
-      // Check for proper "..." use in the pattern definition
-      if(pat_exp[i].is_type(types::sym) && pat_exp[i].sym == "...")
-        THROW_ERR("Invalid syntax \"" << label << "\", '...' wasn't the last identifier in pattern #" 
-          << pat_No << "!\n     ((<pattern>) <template>)" << EXP_ERR(exp));
-      if(mismatched_atomics(pat_exp[i], args_exp[j])) return false;
-      // Check for a missing keyword
-      if(mismatched_keywords(pat_exp[i], args_exp[j], keywords)) return false;
-      // Check for a missing expr
-      if(mismatched_subexpressions(pat_exp[i],args_exp[j],label,keywords,pat_No,exp)) return false;
-    }
-    return true; // not improper use is proper use
-  }
-
-
-  // Confirm the 2 given pattern/arg elts are mismatched subexpressions
-  bool mismatched_subexpressions(const data& pat_elt,    const data& arg_elt, 
-                                 const sym_type& label,  const frame_vars& keywords, 
-                                 const size_type& pat_No,const scm_list& exp){
-    return pat_elt.is_type(types::exp) && 
-        (!arg_elt.is_type(types::exp) || 
-         !compare_pattern_args_exp_match(pat_elt.exp,arg_elt.exp,
-                                         label,keywords,pat_No,exp));
-  }
-
-
-  // Wraps various helper fcns above, confirming whether or not a pattern was incompatible
-  bool incompatible_pattern(const sym_type& label,     const scm_list& args,
-                            const frame_vars& keywords,const scm_list& pattern,
-                            const size_type& pat_No,   const scm_list& exp) {
-    // Check whether enough args to match against the current pattern
-    if(incompatible_void_arg_use(pattern,args) || incompatible_sizes(pattern,args)) return true;
-    // Confirm valid first symbol in pattern is a non-keyword symbol
-    if(!pattern[0].is_type(types::sym) || is_keyword(pattern[0].sym,keywords))
-      THROW_ERR("Invalid syntax \""<< label <<"\", pattern #" << pat_No <<", first identifier in pattern "
-        "wasn't a non-keyword symbol\n     ((<pattern>) <template>) ; <pattern> = (<non-keyword-symbol> <body>)"
-        << EXP_ERR(exp));
-    // Confirm valid use of '...'
-    if(is_keyword("...", keywords))
-      THROW_ERR("Invalid syntax \"" << label <<"\", identifier '...' may never be a keyword!" << EXP_ERR(exp));
-    if(uses_Ellipsis_prematurely(pattern))
-      THROW_ERR("Invalid syntax \"" << label <<"\", pattern #" 
-        << pat_No <<", identifier '...' must follow at least 2 other identifiers!" << EXP_ERR(exp));
-    // Confirm unique pattern names were used
-    confirm_no_duplicate_pattern_objects(label, pattern, pat_No, exp);
-    return false;
-  }
-
-
-  // Confirm the given label-arg combo matches the given pattern (in terms of layout)
-  bool is_pattern_match(const sym_type& label,     const scm_list& args, 
-                        const frame_vars& keywords,const scm_list& pattern,
-                        const size_type& pat_No,   const scm_list& exp) {
-    // Confirm pattern is a viable candidate for matching
-    if(incompatible_pattern(label,args,keywords,pattern,pat_No,exp)) return false;
-    // Confirm whether pattern & label-args combo match one another
-    for(size_type i=1, j=0, n=pattern.size(); i < n; ++i, ++j) {
-      // Check for proper "..." use in the pattern definition
-      if(pattern[i].is_type(types::sym) && pattern[i].sym == "...") {
-        if(i != n-1) THROW_ERR("Invalid syntax \"" << label 
-          << "\", '...' wasn't the last identifier in pattern #" << pat_No << "!"
-          << EXP_ERR(exp));
-        return true;
+                                      const frame_vars& keywords,MACRO_ID_TABLE& ID_TO_VAL_MAP,
+                                      const size_type& pat_idx_start)noexcept{
+    // Confirm whether <pat_exp> & <args_exp> match one another
+    size_type pat_idx = pat_idx_start, args_idx = 0, args_size = args_exp.size(), pat_size = pat_exp.size();
+    for(; pat_idx < pat_size && args_idx < args_size; ++pat_idx, ++args_idx){
+      // Check for proper "..." use in the pat_exp definition
+      if(data_is_ellipsis(pat_exp[pat_idx])) { // Guarenteed pat_idx > 0 by syntax-rules analysis
+        if(account_for_pattern_ellipsis_and_return_whether_no_match(args_exp, args_size, args_idx,
+                                                                    pat_exp[pat_idx-1], pat_size-pat_idx-1,
+                                                                    keywords, ID_TO_VAL_MAP)) {
+          return false;
+        }
+      // Register the pat_exp's identifier & associated expansion value
+      } else if(is_macro_argument_label(pat_exp[pat_idx],keywords)) {
+        if(pat_idx+1 == pat_size || !data_is_ellipsis(pat_exp[pat_idx+1]))
+          register_macro_identifier_expansion_values(ID_TO_VAL_MAP,pat_exp[pat_idx].sym,scm_list(1,args_exp[args_idx]));
+      // Verify matching subexpressions
+      } else if(pat_exp[pat_idx].is_type(types::exp)) {
+        if(!args_exp[args_idx].is_type(types::exp) || 
+          ((pat_idx+1 == pat_size || !data_is_ellipsis(pat_exp[pat_idx+1])) &&
+            mismatched_subexpressions(pat_exp[pat_idx],args_exp[args_idx],keywords,ID_TO_VAL_MAP))) {
+          return false;
+        }
+      // Verify literal & keyword use are aligned
+      } else if(mismatched_atomics(pat_exp[pat_idx],args_exp[args_idx]) || 
+                mismatched_keywords(pat_exp[pat_idx],args_exp[args_idx],keywords)){
+        return false;
       }
-      if(mismatched_atomics(pattern[i], args[j])) return false;
-      // Check for a missing keyword
-      if(mismatched_keywords(pattern[i], args[j], keywords)) return false;
-      // Check for a missing expr
-      if(mismatched_subexpressions(pattern[i],args[j],label,keywords,pat_No,exp)) return false;
     }
-    return true; // not improper use is proper use
+    // Register the last identifier if variadic portion of expansion @ the end of the pattern & empty in args
+    if(pat_idx+1 == pat_size && data_is_ellipsis(pat_exp[pat_idx]) && args_idx == args_size) {
+      if(is_macro_argument_label(pat_exp[pat_idx-1],keywords)) {
+        register_macro_identifier_expansion_values(ID_TO_VAL_MAP,pat_exp[pat_idx-1].sym,scm_list(1,args_exp[args_idx-1]));
+        return true;
+      } 
+      return !account_for_pattern_ellipsis_and_return_whether_no_match(args_exp, args_size, args_idx, pat_exp[pat_idx-1], 
+                                                                       pat_size-pat_idx-1, keywords, ID_TO_VAL_MAP);
+    }
+    // Verify both <pat_exp> & <arg_exp> have been fully iterated
+    return pat_idx == pat_size && args_idx == args_size;
   }
 
 
-  // Returns whether the given label & args correspond to the given macro
-  bool is_macro_match(const sym_type& label, const scm_list& args, 
-                      const frame_mac& mac,  size_type& match_idx,
-                      const scm_list& exp) {
-    for(size_type i = 0, n = mac.patterns.size(); i < n; ++i)
-      if(is_pattern_match(label, args, mac.keywords, mac.patterns[i], i+1, exp)) {
+  // Confirm the given arg combo matches the given pattern (in terms of layout)
+  bool is_pattern_match(const scm_list& args, const frame_vars& keywords,
+                        const scm_list& pattern, MACRO_ID_TABLE& ID_TO_VAL_MAP)noexcept{
+    if(incompatible_void_arg_use(pattern,args)) return false;
+    if(!compare_pattern_args_exp_match(pattern,args,keywords,ID_TO_VAL_MAP,1)) {
+      ID_TO_VAL_MAP.clear();
+      return false;
+    }
+    return true;
+  }
+
+
+  // Returns whether the given args correspond to the given macro
+  bool is_macro_match(const scm_list& args, const frame_mac& mac, 
+                      size_type& match_idx, MACRO_ID_TABLE& ID_TO_VAL_MAP)noexcept{
+    for(size_type i = 0, n = mac.patterns.size(); i < n; ++i) {
+      if(is_pattern_match(args, mac.keywords, mac.patterns[i], ID_TO_VAL_MAP)) {
         match_idx = i;
         return true;
       }
+    }
     return false;
   }
 
@@ -1958,50 +1960,121 @@ namespace heist {
   * MACRO SYNTACTIC EXTENSIONS -- EXPANSION HELPER FUNCTIONS
   ******************************************************************************/
 
-  // Splice in 'obj' for every instance of 'macro_arg_name' in 'expanded_exp'
-  void splice_object_throughout_macro(const data& obj, const sym_type& macro_arg_name, 
-                                                       scm_list& expanded_exp)noexcept{
-    for(auto& e : expanded_exp) {
-      if(e.is_type(types::sym) && e.sym == macro_arg_name)
-        e = obj;
-      else if(e.is_type(types::exp))
-        splice_object_throughout_macro(obj, macro_arg_name, e.exp);
-    }
-  }
-
-
-  // Splice in the 'remaining_body' for every instance of '...' in 'expanded_exp'
-  void splice_remaining_body_throughout_macro(const scm_list& remaining_body, 
-                                                    scm_list& expanded_exp)noexcept{
-    for(size_type i = 0; i < expanded_exp.size(); ++i) {
-      if(expanded_exp[i].is_type(types::sym) && expanded_exp[i].sym == "...") {
-        // erase the "..." arg & splicing in the 'remaining body'
-        expanded_exp.erase(expanded_exp.begin()+i); 
-        expanded_exp.insert(expanded_exp.begin()+i, remaining_body.begin(), remaining_body.end());
+  // Get the idx-th variadic expansion instance of the <expanded_exp> variadic expression
+  void get_macro_variadic_exp_expansion_object(scm_list& expanded_exp,
+                                               MACRO_ID_TABLE& ID_TO_VAL_MAP, 
+                                               const size_type& idx)noexcept{
+    for(size_type i = 0, n = expanded_exp.size(); i < n; ++i) {
+      if(expanded_exp[i].is_type(types::exp)) {
+        get_macro_variadic_exp_expansion_object(expanded_exp[i].exp,ID_TO_VAL_MAP,idx);
+      } else if(is_symbolic_macro_identifier(expanded_exp[i])) {
+        auto val_idx = find_macro_identifier_index(ID_TO_VAL_MAP,expanded_exp[i].sym);
+        if(val_idx != MAX_SIZE_TYPE)
+          expanded_exp[i] = ID_TO_VAL_MAP[val_idx].second[idx];
       }
-      else if(expanded_exp[i].is_type(types::exp))
-        splice_remaining_body_throughout_macro(remaining_body, expanded_exp[i].exp);
     }
   }
 
 
-  // Expands the args (as per the pattern & template) into expanded_exp
-  // NOTE: "skip_pattern_name" = true iff at the 1st (non-recursive) call 
-  void expand_macro(const scm_list& args, const scm_list& pattern, 
-                    const frame_vars& keywords, scm_list& expanded_exp, 
-                    const bool& skip_pattern_name = false)noexcept{
-    for(size_type i = size_type(skip_pattern_name), j = 0, n = pattern.size(); i < n; ++i, ++j){
-      if(pattern[i].is_type(types::sym) && is_keyword(pattern[i].sym, keywords)) continue;
-      // Expand args nested w/in expressions
-      if(pattern[i].is_type(types::exp))
-        expand_macro(args[j].exp, pattern[i].exp, keywords, expanded_exp);
-      // Expand symbols
-      else if(pattern[i].is_type(types::sym) && pattern[i].sym != "...")
-        splice_object_throughout_macro(args[j], pattern[i].sym, expanded_exp);
-      // Expand "..."
-      else if(pattern[i].is_type(types::sym) && pattern[i].sym == "...")
-        splice_remaining_body_throughout_macro(scm_list(args.begin()+j,args.end()), expanded_exp);
+  // Get the first variadic expansion instance of the <expanded_exp> variadic expression
+  void get_first_macro_variadic_exp_expansion_object(const scm_list& args,   const sym_type& name,
+                                                     scm_list& expanded_exp, MACRO_ID_TABLE& ID_TO_VAL_MAP,
+                                                                             size_type& len) {
+    for(size_type i = 0, n = expanded_exp.size(); i < n; ++i) {
+      // Recursively create expansion object down subexpressions
+      if(expanded_exp[i].is_type(types::exp)) {
+        get_first_macro_variadic_exp_expansion_object(args,name,expanded_exp[i].exp,ID_TO_VAL_MAP,len);
+      } else if(is_symbolic_macro_identifier(expanded_exp[i])) {
+        auto val_idx = find_macro_identifier_index(ID_TO_VAL_MAP,expanded_exp[i].sym);
+        if(val_idx == MAX_SIZE_TYPE) continue;
+        if(!len) { // 1st identifier found
+          len = ID_TO_VAL_MAP[val_idx].second.size();
+        } else if(len != ID_TO_VAL_MAP[val_idx].second.size()) {
+          THROW_ERR("'syntax-rules Mismatched variadic expression identifier amounts:\n     " 
+            << expanded_exp << FCN_ERR(name,args));
+        }
+        expanded_exp[i] = ID_TO_VAL_MAP[val_idx].second[0];
+      }
     }
+  }
+
+
+  // Get variadic expansion of the <expanded_exp> variadic expression
+  void get_macro_exp_variadic_expansion(const scm_list& args,    const sym_type& name,
+                                         scm_list& expanded_exp, MACRO_ID_TABLE& ID_TO_VAL_MAP,
+                                                                 scm_list& expansions) {
+    auto obj = expanded_exp;
+    size_type len = 0;
+    get_first_macro_variadic_exp_expansion_object(args,name,obj,ID_TO_VAL_MAP,len);
+    if(len) expansions.reserve(len);
+    expansions.push_back(obj);
+    if(!len) return; // object either expanded by <expand_macro_symbols>, or <scm_eval> will trigger error
+    for(size_type i = 1; i < len; ++i) {
+      expansions.push_back(expanded_exp);
+      get_macro_variadic_exp_expansion_object(expansions[i].exp,ID_TO_VAL_MAP,i);
+    }
+  }
+
+
+  void expand_macro_variadic_exps(const scm_list& args,   const sym_type& name,
+                                  scm_list& expanded_exp, MACRO_ID_TABLE& ID_TO_VAL_MAP){
+    for(size_type i = 0; i < expanded_exp.size(); ++i) {
+      if(!expanded_exp[i].is_type(types::exp)) continue;
+      // we recusively expand most nested exp's first, & work our way "up-and-out"
+      expand_macro_variadic_exps(args,name,expanded_exp[i].exp,ID_TO_VAL_MAP);
+      if(i+1 == expanded_exp.size() || !data_is_ellipsis(expanded_exp[i+1])) continue;
+      scm_list expansions;
+      get_macro_exp_variadic_expansion(args,name,expanded_exp[i].exp,ID_TO_VAL_MAP,expansions);
+      // erase the identifier & "...", then insert the variadic expansion values
+      expanded_exp.erase(expanded_exp.begin()+i,expanded_exp.begin()+i+2);
+      expanded_exp.insert(expanded_exp.begin()+1,expansions.begin(),expansions.end());
+      i += expansions.size() - 1; // -1 accounts for loop's "++i"
+    }
+  }
+
+
+  void expand_macro_symbols(const scm_list& args,   const sym_type& name,
+                            scm_list& expanded_exp, MACRO_ID_TABLE& ID_TO_VAL_MAP){
+    for(size_type i = 0; i < expanded_exp.size(); ++i) {
+      if(is_symbolic_macro_identifier(expanded_exp[i])) {
+        // Expand non-variadic identifiers
+        auto val_idx = find_macro_identifier_index(ID_TO_VAL_MAP,expanded_exp[i].sym);
+        if(i+1 == expanded_exp.size() || !data_is_ellipsis(expanded_exp[i+1])) {
+          if(val_idx != MAX_SIZE_TYPE && ID_TO_VAL_MAP[val_idx].second.size() == 1)
+            expanded_exp[i] = ID_TO_VAL_MAP[val_idx].second[0];
+        // Expand variadic identifiers
+        } else if(val_idx != MAX_SIZE_TYPE) {
+          // erase the identifier & "...", then insert the variadic expansion values
+          expanded_exp.erase(expanded_exp.begin()+i,expanded_exp.begin()+i+2);
+          expanded_exp.insert(expanded_exp.begin()+i,ID_TO_VAL_MAP[val_idx].second.begin(),
+                                                     ID_TO_VAL_MAP[val_idx].second.end());
+          i += ID_TO_VAL_MAP[val_idx].second.size() - 1; // -1 accounts for loop's "++i"
+        } else {
+          THROW_ERR("'syntax-rules Misplaced \"...\" after non-variadic identifier [ " 
+            << expanded_exp[i].sym << " ]\n     in [ " << expanded_exp << " ]" << FCN_ERR(name,args));
+        }
+      } else if(expanded_exp[i].is_type(types::exp)) {
+        // Recursively expand symbolic identifiers
+        expand_macro_symbols(args,name,expanded_exp[i].exp,ID_TO_VAL_MAP);
+        // Skip past variadics after expressions (handled in <expand_macro_variadic_exps>)
+        if(i+1 != expanded_exp.size() && data_is_ellipsis(expanded_exp[i+1])) ++i;
+      } else if(data_is_ellipsis(expanded_exp[i])) {
+        if(i) {
+          THROW_ERR("'syntax-rules Misplaced \"...\" after non-variadic identifier [ " 
+            << expanded_exp[i-1].sym << " ]\n     in [ " << expanded_exp << " ]" << FCN_ERR(name,args));
+        } else {
+          THROW_ERR("'syntax-rules Misplaced \"...\" at front of a template expression!" 
+            << expanded_exp << FCN_ERR(name,args));
+        }
+      }
+    }
+  }
+
+
+  void expand_macro(const scm_list& args,   const sym_type& name, 
+                    scm_list& expanded_exp, MACRO_ID_TABLE& ID_TO_VAL_MAP){
+    expand_macro_symbols(args,name,expanded_exp,ID_TO_VAL_MAP);
+    expand_macro_variadic_exps(args,name,expanded_exp,ID_TO_VAL_MAP);
   }
 
   /******************************************************************************
@@ -2021,14 +2094,15 @@ namespace heist {
   // Returns whether the given label & args form a macro found in 'macs'.
   // If true, it also transforms the macro by expanding it into 'expanded_exp'
   bool handle_macro_transformation(const sym_type& label,const scm_list& args, 
-                                   const frame_macs& macs,scm_list& expanded_exp,
-                                   const scm_list& exp) {
+                                   const frame_macs& macs,scm_list& expanded_exp){
+    //  Map of pattern identifier & expansion value pairs
+    MACRO_ID_TABLE ID_TO_VAL_MAP;
     // search for macro matches
     for(const auto& mac : macs) {
       size_type match_idx = 0; // idx of the pattern & template w/in 'mac' that the label & args match
-      if(label == mac.label && is_macro_match(label, args, mac, match_idx, exp)) {
+      if(label == mac.label && is_macro_match(args, mac, match_idx, ID_TO_VAL_MAP)) {
         expanded_exp = mac.templates[match_idx];    // prefilled, then has contents expanded into it
-        expand_macro(args, mac.patterns[match_idx], mac.keywords, expanded_exp, true);
+        expand_macro(args, mac.label, expanded_exp, ID_TO_VAL_MAP);
         expanded_exp = scm_list_cast(expanded_exp); // if only 1 sub-expression, degrade to the sub-expression
         return true;
       }
@@ -2040,16 +2114,131 @@ namespace heist {
   // Returns whether the given label & args form a macro found in 'env'.
   // If true, it also transforms the macro by expanding it into 'expanded_exp'
   bool expand_macro_if_in_env(const sym_type& label,const scm_list& args, 
-                              env_type& env,scm_list& expanded_exp,
-                              const scm_list& exp) {
+                              env_type& env,scm_list& expanded_exp){
     // Search Each Environment Frame
     for(auto& frame : *env) {
       // Get Macro List of the current frame & search 
       //   for a match with the current label & args
-      if(handle_macro_transformation(label,args,frame_macros(*frame),expanded_exp,exp)) 
+      if(handle_macro_transformation(label,args,frame_macros(*frame),expanded_exp)) 
         return true;
     }
     return false;
+  }
+
+  /******************************************************************************
+  * MACRO SYNTAX-RULES ANALYSIS VALIDATION HELPER FUNCTIONS:
+  ******************************************************************************/
+
+  // Confirm data is an unexpandable syntax-rules macro token
+  bool data_is_literal_or_keyword(const data& pat_entity, const frame_vars& keywords)noexcept{
+    return !pat_entity.is_type(types::exp) && !is_macro_argument_label(pat_entity,keywords);
+  }
+
+
+  // PRECONDITION: is_macro_argument_label(pattern[i],keywords) = true
+  void confirm_unique_syntax_rules_pattern_identifier(const scm_list& pattern,const size_type& i,
+                                                      const scm_list& exp, frame_vars& identifiers) {
+    static constexpr const char * const format = 
+      "\n     (syntax-rules (<keyword-list>) <pattern-template-clauses>)"
+      "\n     <pattern-template-clause> = ((<pattern>) <template>)";
+    // Confirm each pattern identifier only appears once
+    if(std::find(identifiers.begin(),identifiers.end(),pattern[i].sym) != identifiers.end())
+      THROW_ERR("'syntax-rules " << pattern[i].sym << " identifier found twice!"
+        "\n     Each syntax-rules pattern identifier MUST be unique!\n     " 
+        << cio_expr_str<&data::write>(pattern) << format << EXP_ERR(exp));
+    identifiers.push_back(pattern[i].sym);
+  }
+
+
+  void confirm_proper_syntax_rules_pattern_layout(const scm_list& pattern,const scm_list& exp,
+                                                  const frame_vars& keywords, frame_vars& identifiers){
+    static constexpr const char * const format = 
+      "\n     (syntax-rules (<keyword-list>) <pattern-template-clauses>)"
+      "\n     <pattern-template-clause> = ((<pattern>) <template>)";
+    // Confirm pattern subexpression doesn't begin w/ '...'
+    if(pattern.empty()) return; // guarenteed to be part of a recursive call (topmost pattern asserted non-empty)
+    if(!pattern.empty() && data_is_ellipsis(pattern[0]))
+      THROW_ERR("'syntax-rules \"...\" may NEVER begin a pattern subexpression!"
+        "\n     " << cio_expr_str<&data::write>(pattern) << format <<EXP_ERR(exp));
+    if(is_macro_argument_label(pattern[0],keywords))
+      confirm_unique_syntax_rules_pattern_identifier(pattern,0,exp,identifiers);
+    bool seen_ellipses = false;
+    for(size_type i = 1, n = pattern.size(); i < n; ++i) {
+      if(data_is_ellipsis(pattern[i])) {
+        // Confirm each subexpression has at most 1 '...'
+        if(seen_ellipses){
+          THROW_ERR("'syntax-rules \"...\" may only appear ONCE per pattern subexpression!"
+            "\n     " << cio_expr_str<&data::write>(pattern) <<
+            "\n     -> IE: (a ... (b ...)) => VALID: 1 '...' PER EXPRESSION!"
+            "\n            (a ... b ...)   => INVALID: 2 '...' IN A SINGLE EXPRESSION!"
+            << format <<EXP_ERR(exp));
+        } 
+        // Confirm '...' doesn't follow a literal or keyword in the pattern
+        if(data_is_literal_or_keyword(pattern[i-1],keywords)){
+          THROW_ERR("'syntax-rules \"...\" may only be preceded by a non-literal-non-keyword"
+            "\n     symbol or expression!\n     " << cio_expr_str<&data::write>(pattern) 
+            << format <<EXP_ERR(exp));
+        }
+        seen_ellipses = true;
+      } else if(pattern[i].is_type(types::exp)) {
+        confirm_proper_syntax_rules_pattern_layout(pattern[i].exp,exp,keywords,identifiers);
+      } else if(is_macro_argument_label(pattern[i],keywords)) {
+        confirm_unique_syntax_rules_pattern_identifier(pattern,i,exp,identifiers);
+      }
+    }
+  }
+
+
+  // Confirm proper '...' use & that each pattern identifier only appears once
+  void confirm_proper_syntax_rules_pattern_template_clauses(const scm_list& exp,const syn_type& mac,const char* format){
+    //   IE: ((a) ... (b ...)) is fine,     1 '...' per subexpression "depth"
+    //       ((a) ... b ...)   is NOT fine, 2 '...' at a single "depth"
+    //       (... a)         is NOT fine, '...' begins the subexpression/depth
+    for(size_type i = 2, n = exp.size(); i < n; ++i) {
+      // Confirm pattern-template clause begins w/ a non-empty pattern expression
+      if(!exp[i].is_type(types::exp) || exp[i].exp.size() < 2 || 
+         !exp[i].exp[0].is_type(types::exp) || exp[i].exp[0].exp.empty())
+        THROW_ERR("'syntax-rules " << PROFILE(exp[i])
+          << " is an invalid ((<pattern>) <template>) clause!" << format << EXP_ERR(exp));
+      // Confirm pattern begins w/ a symbol
+      if(!exp[i].exp[0].exp[0].is_type(types::sym))
+        THROW_ERR("'syntax-rules patterns MUST begin with a symbol!"
+          "\n     " << cio_expr_str<&data::write>(exp[i].exp[0].exp) << format << EXP_ERR(exp));
+      // Confirm pattern's topmost subexpression depth doesn't start w/ '...'
+      if(exp[i].exp[0].exp.size() > 1 && data_is_ellipsis(exp[i].exp[0].exp[1]))
+        THROW_ERR("'syntax-rules pattern '...' identifier must be preceded"
+          " by a symbol or expression identifier!\n     " 
+          << cio_expr_str<&data::write>(exp[i].exp[0].exp) << format << EXP_ERR(exp));
+      // Confirm each pattern identifier only appears once
+      frame_vars identifiers;
+      confirm_proper_syntax_rules_pattern_layout(exp[i].exp[0].exp,exp,mac.keywords,identifiers);
+    }
+  }
+
+
+  // Confirm syntax-rules keywords list is valid, and extract it if so
+  void extract_syntax_rules_keywords(const scm_list& exp,syn_type& mac,const char* format) {
+    if(!exp[1].is_type(types::exp))
+      THROW_ERR("'syntax-rules 1st arg "<<PROFILE(exp[1])<<" isn't a list of keyword symbols:"
+        <<format<<EXP_ERR(exp));
+    for(const auto& e : exp[1].exp) {
+      if(!e.is_type(types::sym))
+        THROW_ERR("'syntax-rules keyword "<<PROFILE(e)<<" must be a symbol!"<<format<<EXP_ERR(exp));
+      if(e.sym == symconst::ellipsis)
+        THROW_ERR("'syntax-rules \"...\" identifier may never be a keyword!"<<format<<EXP_ERR(exp));
+      mac.keywords.push_back(e.sym); // Extract keywords
+    }
+  }
+
+
+  void confirm_valid_syntax_rules_and_extract_keywords(const scm_list& exp, syn_type& mac) {
+    static constexpr const char * const format = 
+      "\n     (syntax-rules (<keyword-list>) <pattern-template-clauses>)"
+      "\n     <pattern-template-clause> = ((<pattern>) <template>)";
+    if(exp.size() < 3) // Confirm correct # of arguments
+      THROW_ERR("'syntax-rules received incorrect # of arguments!"<<format<<EXP_ERR(exp));
+    extract_syntax_rules_keywords(exp,mac,format);
+    confirm_proper_syntax_rules_pattern_template_clauses(exp,mac,format);
   }
 
   /******************************************************************************
@@ -2061,42 +2250,16 @@ namespace heist {
   }
 
 
-  void confirm_valid_syntax_rules(const scm_list& exp) {
-    static constexpr const char * const format = 
-      "\n     (syntax-rules (<keyword-list>) <pattern-template-clauses>)";
-    if(exp.size() < 3)
-      THROW_ERR("'syntax-rules received incorrect # of arguments!"<<format<<EXP_ERR(exp));
-    if(!exp[1].is_type(types::exp))
-      THROW_ERR("'syntax-rules 1st arg "<<PROFILE(exp[1])<<" isn't a list of keyword symbols:"<<format<<EXP_ERR(exp));
-    for(const auto& e : exp[1].exp)
-      if(!e.is_type(types::sym))
-        THROW_ERR("'syntax-rules keyword "<<PROFILE(e)<<" must be a symbol!"<<format<<EXP_ERR(exp));
-    for(size_type i = 2, n = exp.size(); i < n; ++i)
-      if(!exp[i].is_type(types::exp) || exp[i].exp.size() < 2 || 
-         !exp[i].exp[0].is_type(types::exp))
-        THROW_ERR("'syntax-rules "<<PROFILE(exp[i])<<" is an invalid ((<pattern>) <template>) clause!"
-          <<format<< "\n     <pattern-template-clause> = ((<pattern>) <template>)" << EXP_ERR(exp));
-  }
-
-
   // Generate a unique hashed (hygienic!) variant of the given macro arg name
   // NOTE: Max Unique Hashes = (expt 18446744073709551615 18446744073709551615)
   scm_string hygienically_hashed_macro_arg(const scm_string& label)noexcept{
     if(MACRO_HASH_IDX_1 != MAX_SIZE_TYPE)
-      return "__HEIST-" + label + "-" 
-        + std::to_string(MACRO_HASH_IDX_2) + "-" 
+      return "__HEIST-" + label + '-' 
+        + std::to_string(MACRO_HASH_IDX_2) + '-' 
         + std::to_string(MACRO_HASH_IDX_1++);
-    return "__HEIST-" + label + "-" 
-      + std::to_string(++MACRO_HASH_IDX_2) + "-" 
+    return "__HEIST-" + label + '-' 
+      + std::to_string(++MACRO_HASH_IDX_2) + '-' 
       + std::to_string(MACRO_HASH_IDX_1++);
-  }
-
-
-  // Confirm <pat_entity> is a macro argument name
-  bool is_macro_argument_label(const data& pat_entity, const frame_vars& keywords)noexcept{
-    return pat_entity.is_type(types::sym) && !is_primitive_symbolic_literal(pat_entity) &&
-      pat_entity.sym != symconst::ellipsis && pat_entity.sym != symconst::sentinel_arg 
-      && !is_keyword(pat_entity.sym, keywords);
   }
 
 
@@ -2127,11 +2290,8 @@ namespace heist {
 
 
   exe_type analyze_syntax_rules(scm_list& exp) {
-    confirm_valid_syntax_rules(exp);
     syn_type mac("");
-    // Extract keywords
-    for(const auto& keyword : exp[1].exp)
-      mac.keywords.push_back(keyword.sym);
+    confirm_valid_syntax_rules_and_extract_keywords(exp, mac);
     // Extract pattern-template clauses
     for(size_type i = 2, n = exp.size(); i < n; ++i) {
       mac.patterns.push_back(exp[i].exp[0].exp);
@@ -2367,7 +2527,7 @@ namespace heist {
             tail_call=std::move(tail_call)](env_type& env){
       // check for a possible macro instance, & expand/eval it if so
       scm_list expanded;
-      if(expand_macro_if_in_env(op_name, arg_exps, env, expanded, exp))
+      if(expand_macro_if_in_env(op_name, arg_exps, env, expanded))
         return scm_eval(std::move(expanded),env);
       // eval each arg's exec proc to obtain the actual arg values
       scm_list arg_vals(arg_exps.size());

@@ -66,7 +66,7 @@ namespace heist {
   // primitive "expt" procedure
   data primitive_EXPT(scm_list& args) {
     confirm_no_numeric_primitive_errors(args, "expt", "(expt <num1> <num2>)");
-    confirm_n_args(2, args, "expt", "(expt <num1> <num2>)");
+    confirm_2_args(args, "expt", "(expt <num1> <num2>)");
     return data((args[0].num.expt(args[1].num)));
   }
 
@@ -93,21 +93,21 @@ namespace heist {
   // primitive "quotient" procedure
   data primitive_QUOTIENT(scm_list& args) {
     confirm_no_numeric_primitive_errors(args, "quotient", "(quotient <num1> <num2>)");
-    confirm_n_args(2, args, "quotient", "(quotient <num1> <num2>)");
+    confirm_2_args(args, "quotient", "(quotient <num1> <num2>)");
     return data(args[0].num.quotient(args[1].num));
   }
 
   // primitive "remainder" procedure
   data primitive_REMAINDER(scm_list& args) {
     confirm_no_numeric_primitive_errors(args, "remainder", "(remainder <num1> <num2>)");
-    confirm_n_args(2, args, "remainder", "(remainder <num1> <num2>)");
+    confirm_2_args(args, "remainder", "(remainder <num1> <num2>)");
     return data((args[0].num % args[1].num));
   }
 
   // primitive "modulo" procedure
   data primitive_MODULO(scm_list& args) {
     confirm_no_numeric_primitive_errors(args, "modulo", "(modulo <num1> <num2>)");
-    confirm_n_args(2, args, "modulo", "(modulo <num1> <num2>)");
+    confirm_2_args(args, "modulo", "(modulo <num1> <num2>)");
     return data(args[0].num.modulo(args[1].num));
   }
 
@@ -400,21 +400,21 @@ namespace heist {
   // primitive "logand" procedure
   data primitive_LOGAND(scm_list& args) {
     confirm_no_numeric_primitive_errors(args, "logand", "(logand <num1> <num2>)");
-    confirm_n_args(2, args, "logand", "(logand <num1> <num2>)");
+    confirm_2_args(args, "logand", "(logand <num1> <num2>)");
     return data(args[0].num & args[1].num);
   }
 
   // primitive "logor" procedure
   data primitive_LOGOR(scm_list& args) {
     confirm_no_numeric_primitive_errors(args, "logor", "(logor <num1> <num2>)");
-    confirm_n_args(2, args, "logor", "(logor <num1> <num2>)");
+    confirm_2_args(args, "logor", "(logor <num1> <num2>)");
     return data(args[0].num | args[1].num);
   }
 
   // primitive "logxor" procedure
   data primitive_LOGXOR(scm_list& args) {
     confirm_no_numeric_primitive_errors(args, "logxor", "(logxor <num1> <num2>)");
-    confirm_n_args(2, args, "logxor", "(logxor <num1> <num2>)");
+    confirm_2_args(args, "logxor", "(logxor <num1> <num2>)");
     return data(args[0].num ^ args[1].num);
   }
 
@@ -427,49 +427,49 @@ namespace heist {
   // primitive "loglsl" procedure
   data primitive_LOGLSL(scm_list& args) {
     confirm_no_numeric_primitive_errors(args, "loglsl", "(loglsl <num> <shift-amount>)");
-    confirm_n_args(2, args, "loglsl", "(loglsl <num> <shift-amount>)");
+    confirm_2_args(args, "loglsl", "(loglsl <num> <shift-amount>)");
     return data(args[0].num << args[1].num);
   }
 
   // primitive "loglsr" procedure
   data primitive_LOGLSR(scm_list& args) {
     confirm_no_numeric_primitive_errors(args, "loglsr", "(loglsr <num> <shift-amount>)");
-    confirm_n_args(2, args, "loglsr", "(loglsr <num> <shift-amount>)");
+    confirm_2_args(args, "loglsr", "(loglsr <num> <shift-amount>)");
     return data(args[0].num >> args[1].num);
   }
 
   // primitive "logasr" procedure
   data primitive_LOGASR(scm_list& args) {
     confirm_no_numeric_primitive_errors(args, "logasr", "(logasr <num> <shift-amount>)");
-    confirm_n_args(2, args, "logasr", "(logasr <num> <shift-amount>)");
+    confirm_2_args(args, "logasr", "(logasr <num> <shift-amount>)");
     return data(args[0].num.asr(args[1].num));
   }
 
   // primitive "logbit?" procedure
   data primitive_LOGBITP(scm_list& args) {
     confirm_no_numeric_primitive_errors(args, "logbit?", "(logbit? <num> <bit-No>)");
-    confirm_n_args(2, args, "logbit?", "(logbit? <num> <bit-No>)");
+    confirm_2_args(args, "logbit?", "(logbit? <num> <bit-No>)");
     return data((args[0].num >> args[1].num) & 1);
   }
 
   // primitive "logbit1" procedure
   data primitive_LOGBIT1(scm_list& args) {
     confirm_no_numeric_primitive_errors(args, "logbit1", "(logbit1 <num> <bit-No>)");
-    confirm_n_args(2, args, "logbit1", "(logbit1 <num> <bit-No>)");
+    confirm_2_args(args, "logbit1", "(logbit1 <num> <bit-No>)");
     return data(args[0].num | (1 << args[1].num));
   }
 
   // primitive "logbit0" procedure
   data primitive_LOGBIT0(scm_list& args) {
     confirm_no_numeric_primitive_errors(args, "logbit0", "(logbit0 <num> <bit-No>)");
-    confirm_n_args(2, args, "logbit0", "(logbit0 <num> <bit-No>)");
+    confirm_2_args(args, "logbit0", "(logbit0 <num> <bit-No>)");
     return data(args[0].num & ~(1 << args[1].num));
   }
 
   // primitive "logbit~" procedure
   data primitive_LOGBIT_CMPL(scm_list& args) {
     confirm_no_numeric_primitive_errors(args, "logbit~", "(logbit~ <num> <bit-No>)");
-    confirm_n_args(2, args, "logbit~", "(logbit~ <num> <bit-No>)");
+    confirm_2_args(args, "logbit~", "(logbit~ <num> <bit-No>)");
     return data(args[0].num ^ (1 << args[1].num));
   }
 
@@ -4291,23 +4291,23 @@ namespace heist {
     return data();
   }
 
-  data primitive_SET_JUMP(scm_list& args) {
+  data primitive_CATCH_JUMP(scm_list& args) {
     // extract the local environment
     auto env = args.rbegin()->env;
     args.pop_back();
     if(args.empty())
-      THROW_ERR("'set-jump recieved incorrect # of args!"
-        "\n     (set-jump <proc> <arg1> ... <argN>)" << FCN_ERR("set-jump",args));
-    primitive_confirm_data_is_a_procedure(args[0], "set-jump", 
-      "\n     (set-jump <proc> <arg1> ... <argN>)", args);
-    scm_list set_jump_args(args.begin()+1,args.end());
-    if(set_jump_args.empty()) set_jump_args.push_back(symconst::sentinel_arg);
+      THROW_ERR("'catch-jump recieved incorrect # of args!"
+        "\n     (catch-jump <proc> <arg1> ... <argN>)" << FCN_ERR("catch-jump",args));
+    primitive_confirm_data_is_a_procedure(args[0], "catch-jump", 
+      "\n     (catch-jump <proc> <arg1> ... <argN>)", args);
+    scm_list catch_jump_args(args.begin()+1,args.end());
+    if(catch_jump_args.empty()) catch_jump_args.push_back(symconst::sentinel_arg);
     try {
-      return data_cast(execute_application(args[0].exp,set_jump_args,env));
-    } catch(const SCM_EXCEPT& set_jump_error) {
-      if(set_jump_error == SCM_EXCEPT::JUMP)
+      return data_cast(execute_application(args[0].exp,catch_jump_args,env));
+    } catch(const SCM_EXCEPT& jump_error) {
+      if(jump_error == SCM_EXCEPT::JUMP)
         return JUMP_GLOBAL_PRIMITIVE_ARGUMENT;
-      throw set_jump_error;
+      throw jump_error;
     }
     return data();
   }
@@ -4501,7 +4501,7 @@ namespace heist {
     primitive_CALL_WITH_INPUT_FILE, primitive_CALL_WITH_OUTPUT_FILE,
     primitive_WITH_INPUT_FROM_FILE, primitive_WITH_OUTPUT_TO_FILE,
     primitive_OPEN_INPUT_FILE,      primitive_OPEN_OUTPUT_FILE,
-    primitive_LOAD,                 primitive_SET_JUMP, 
+    primitive_LOAD,                 primitive_CATCH_JUMP, 
     primitive_INLINE, 
   };
 
@@ -4913,7 +4913,7 @@ namespace heist {
     std::make_pair(primitive_SYNTAX_ERROR,    "syntax-error"),
     std::make_pair(primitive_INLINE,          "inline"),
     std::make_pair(primitive_JUMP_BANG,       "jump!"),
-    std::make_pair(primitive_SET_JUMP,        "set-jump"),
+    std::make_pair(primitive_CATCH_JUMP,      "catch-jump"),
   };
 
   frame_vals primitive_procedure_objects()noexcept{

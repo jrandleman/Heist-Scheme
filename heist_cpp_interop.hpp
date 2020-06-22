@@ -55,7 +55,7 @@ namespace heist {
   }
 
 
-  // Define Heist Scheme Primitive
+  // Define C++ Primitive for Heist Scheme
   //  => NOTE: "append_env_to_args" is used by higher-order procedures to apply
   //           heist procedures recieved as arguments
   void defun(const std::string& heist_primitive_name, prm_type cpp_function, bool append_env_to_args=false) noexcept {

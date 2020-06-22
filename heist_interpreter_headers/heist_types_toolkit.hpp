@@ -16,7 +16,6 @@ namespace heist {
   bool      is_primitive_procedure  (const scm_list& p)noexcept;
   bool      is_compound_procedure   (const scm_list& p)noexcept;
   bool      is_delay                (const scm_list& exp)noexcept;
-  bool      no_args_given           (const scm_list& args)noexcept;
   bool      data_is_stream_pair     (const data& d)noexcept;
 
   /******************************************************************************
@@ -50,7 +49,7 @@ namespace heist {
   * GLOBAL "JUMP!" PRIMITIVE ARGUMENT STORAGE
   ******************************************************************************/
 
-  data JUMP_GLOBAL_PRIMITIVE_ARGUMENT; // see set-jump & jump! primitives
+  data JUMP_GLOBAL_PRIMITIVE_ARGUMENT; // see catch-jump & jump! primitives
 
   /******************************************************************************
   * ERROR HANDLING PRINTER MACROS

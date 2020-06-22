@@ -31,7 +31,6 @@ namespace heist {
   scm_list read_user_input(FILE* outs,FILE* ins,const bool& in_repl=true);
   scm_list scm_eval(scm_list&& exp, env_type& env);
   scm_list execute_application(scm_list& procedure,scm_list& arguments,env_type& env,const bool tail_call=false,const bool inlined=false);
-  scm_string get_heist_main_interpreter_filepath()noexcept;
   constexpr bool IS_END_OF_WORD(const char& c, const char& c2)noexcept;
   std::pair<chr_type,scm_string> data_is_named_char(const size_type& i,
                                                     const scm_string& input)noexcept;
@@ -175,15 +174,10 @@ namespace heist {
   }
 
 
-  void confirm_n_args(const size_type n,          const scm_list& args, 
-                      const char* primitive_name, const char* format) {
-    if(args.size() != n && n != 1)
-      THROW_ERR('\'' << primitive_name << " didn't receive "<< n
-        << " arguments (given " << args.size() << ")!\n     " << format
-        << FCN_ERR(primitive_name,args));
-    if(args.size() != n) 
-        THROW_ERR('\'' << primitive_name << " didn't receive 1 argument (given "
-          <<args.size()<<")!\n     "<<format<<FCN_ERR(primitive_name,args));
+  void confirm_2_args(const scm_list& args, const char* primitive_name, const char* format){
+    if(args.size() != 2)
+      THROW_ERR('\'' << primitive_name << " didn't receive two arguments (given"
+        << args.size() << ")!\n     " << format << FCN_ERR(primitive_name,args));
   }
 
 
@@ -191,7 +185,9 @@ namespace heist {
   void confirm_unary_numeric(const scm_list& args, const char* primitive_name, 
                                                    const char* format){
     confirm_no_numeric_primitive_errors(args, primitive_name, format);
-    confirm_n_args(1, args, primitive_name, format);
+    if(args.size() != 1) 
+        THROW_ERR('\'' << primitive_name << " didn't receive 1 argument (given "
+          <<args.size()<<")!\n     "<<format<<FCN_ERR(primitive_name,args));
   }
 
   /******************************************************************************
@@ -3237,16 +3233,16 @@ namespace heist {
     bool possible_multi_line_comment=false,     in_a_multi_line_comment=false;
     size_type paren_count = 0;
     fflush(outs);
-
     // parse the input port's scheme code
     while((ch = fgetc(ins)) != EOF) {
-
       // don't include text of a multi-line comment
       if(possible_multi_line_comment) {
         possible_multi_line_comment = false;
         if(ch == '|') {
+          possible_vect = possible_char = false; // confirmed neither char nor vector (@ a comment)
           in_a_multi_line_comment = true;
-          input.erase(input.end()-1); // erase opening '#' of "#|"
+          input.erase(input.end()-1);
+          found_nonquote_data = !input.empty(); // if found non-quote data
           continue;
         }
       }
@@ -3263,17 +3259,17 @@ namespace heist {
       }
 
       // don't include text of a single-line comment
-      if(!in_a_string && !confirmed_char && ch == ';') {
-        in_a_single_line_comment = true;
-        continue;
-      }
       if(in_a_single_line_comment) {
         in_a_single_line_comment = (ch != '\n');
         continue;
       }
+      if(!in_a_string && !confirmed_char && ch == ';') {
+        in_a_single_line_comment = true;
+        continue;
+      }
 
       // check for whether at a potential multi-line comment
-      possible_multi_line_comment = (ch == '#');
+      possible_multi_line_comment = (!in_a_string && ch == '#');
 
       // don't include prefixing whitespace
       if(input.empty() && isspace(ch)) continue;
@@ -3300,7 +3296,7 @@ namespace heist {
       // check whether at a char
       if(possible_char && ch != '\\') possible_char = false;
       // check whether at a vector
-      if(possible_vect && !IS_OPEN_PAREN(ch))  possible_vect = false;
+      if(possible_vect && !IS_OPEN_PAREN(ch)) possible_vect = false;
 
       // check if at a string
       if(ch == '"' && (in_a_string || paren_count || !found_nonquote_data)) {
@@ -3312,10 +3308,10 @@ namespace heist {
         }
       }
 
-      // check if at an expression or vector
+      // check if at an expression or vector => PARSES BOTH!
       else if(read_port::is_valid_open_exp(input,paren_count,possible_vect,
                                                        found_nonquote_data))
-       possible_vect = false, ++paren_count;
+        possible_vect = false, ++paren_count;
       // check if at a closing expression
       else if(read_port::is_valid_close_exp(input)) {
         if(!paren_count) {
@@ -3350,7 +3346,7 @@ namespace heist {
         break;
       }
 
-      found_nonquote_data = true; // found non-quote data
+      found_nonquote_data = !input.empty(); // if found non-quote data
     } // -- End of parsing loop
 
 
