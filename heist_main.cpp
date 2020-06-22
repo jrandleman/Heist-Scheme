@@ -2027,7 +2027,7 @@ namespace heist {
       get_macro_exp_variadic_expansion(args,name,expanded_exp[i].exp,ID_TO_VAL_MAP,expansions);
       // erase the identifier & "...", then insert the variadic expansion values
       expanded_exp.erase(expanded_exp.begin()+i,expanded_exp.begin()+i+2);
-      expanded_exp.insert(expanded_exp.begin()+1,expansions.begin(),expansions.end());
+      expanded_exp.insert(expanded_exp.begin()+i,expansions.begin(),expansions.end());
       i += expansions.size() - 1; // -1 accounts for loop's "++i"
     }
   }
