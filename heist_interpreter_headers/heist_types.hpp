@@ -6,10 +6,10 @@
 
 #include <algorithm>
 #include <functional>
-#include <memory>
 #include <tuple>
 #include <vector>
 #include "heist_numerics.hpp"
+#include "heist_garbage_collector.hpp"
 
 namespace heist {
 
@@ -23,60 +23,90 @@ namespace heist {
   using scm_string = std::string;                       // string type
   using size_type  = std::size_t;                       // numeric type, idxs etc
 
-  /******************************************************************************
-  * MAX NUMBER OF RECURSIVE CALLS
-  ******************************************************************************/
+  namespace G {
 
-  size_type MAX_RECURSION_DEPTH = 1000; // see set-max-recursion-depth! primitive
+    /******************************************************************************
+    * MAX NUMBER OF RECURSIVE CALLS
+    ******************************************************************************/
 
-  /******************************************************************************
-  * WHETHER TO USE ANSI ESCAPE SEQUENCES TO FORMAT OUTPUT
-  ******************************************************************************/
+    size_type MAX_RECURSION_DEPTH = 1000; // see set-max-recursion-depth! primitive
 
-  bool USING_ANSI_ESCAPE_SEQUENCES = true; // see set-nansi! primitive
+    /******************************************************************************
+    * PRETTY-PRINTER'S MAX COLUMN WIDTH
+    ******************************************************************************/
 
-  /******************************************************************************
-  * WHETHER SYMBOLS ARE CASE-SENSITIVE
-  ******************************************************************************/
+    size_type PPRINT_MAX_COLUMN_WIDTH = 80;
 
-  bool USING_CASE_SENSITIVE_SYMBOLS = true; // see set-ci! primitive
+    /******************************************************************************
+    * WHETHER TO USE ANSI ESCAPE SEQUENCES TO FORMAT OUTPUT
+    ******************************************************************************/
 
-  /******************************************************************************
-  * REPL PROMPT VARIABLES
-  ******************************************************************************/
+    bool USING_ANSI_ESCAPE_SEQUENCES = true; // see set-nansi! primitive
 
-  scm_string REPL_PROMPT = "> "; // see set-repl-prompt! primitive
-  scm_string REPL_TAB    = "  ";
+    /******************************************************************************
+    * WHETHER SYMBOLS ARE CASE-SENSITIVE
+    ******************************************************************************/
 
-  /******************************************************************************
-  * REPL FORMATTING TRACKER VARIABLES
-  ******************************************************************************/
+    bool USING_CASE_SENSITIVE_SYMBOLS = true; // see set-ci! primitive
 
-  bool LAST_PRINTED_NEWLINE_TO_STDOUT = false;
-  bool LAST_PRINTED_TO_STDOUT         = false;
+    /******************************************************************************
+    * WHETHER "INLINE" MODE IS ACTIVE
+    ******************************************************************************/
 
-  /******************************************************************************
-  * CURRENT DEFAULT INPUT & OUTPUT PORTS + THE GLOBAL PORT REGISTRY
-  ******************************************************************************/
+    bool USING_INLINE_INVOCATIONS = false; // see inline cps-load cps-eval prim's
 
-  FILE* CURRENT_INPUT_PORT  = stdin;
-  FILE* CURRENT_OUTPUT_PORT = stdout;
+    /******************************************************************************
+    * WHETHER TRACING ALL FUNCTION CALLS (DEBUGGING HELPER)
+    ******************************************************************************/
 
-  std::vector<FILE*> PORT_REGISTRY({stdin,stdout});
+    bool TRACING_ALL_FUNCTION_CALLS = false; // see set-trace-calls! primitive
 
-  /******************************************************************************
-  * THE GLOBAL MACRO LABEL REGISTRY & HYGIENIC HASH INDICES
-  ******************************************************************************/
+    /******************************************************************************
+    * NAME OF CURRENT TRACED FUNCTION (EMPTY = NO TRACE)
+    ******************************************************************************/
 
-  std::vector<scm_string> MACRO_LABEL_REGISTRY; // optimizes procedure analysis
+    scm_string TRACED_FUNCTION_NAME = ""; // see trace primitive
 
-  size_type MACRO_HASH_IDX_1 = 0, MACRO_HASH_IDX_2 = 0;
+    /******************************************************************************
+    * REPL PROMPT VARIABLES
+    ******************************************************************************/
 
-  /******************************************************************************
-  * MAX VALUE FOR SIZE_TYPE
-  ******************************************************************************/
+    scm_string REPL_PROMPT = "> "; // see set-repl-prompt! primitive
+    scm_string REPL_TAB    = "  ";
 
-  constexpr const auto MAX_SIZE_TYPE = std::numeric_limits<size_type>::max();
+    /******************************************************************************
+    * REPL FORMATTING TRACKER VARIABLES
+    ******************************************************************************/
+
+    bool LAST_PRINTED_NEWLINE_TO_STDOUT = false;
+    bool LAST_PRINTED_TO_STDOUT         = false;
+
+    /******************************************************************************
+    * CURRENT DEFAULT INPUT & OUTPUT PORTS + THE GLOBAL PORT REGISTRY
+    ******************************************************************************/
+
+    FILE* CURRENT_INPUT_PORT  = stdin;
+    FILE* CURRENT_OUTPUT_PORT = stdout;
+
+    std::vector<FILE*> PORT_REGISTRY({stdin,stdout});
+
+    /******************************************************************************
+    * THE GLOBAL MACRO LABEL REGISTRY & HYGIENIC-MACROS/CPS HASH INDICES
+    ******************************************************************************/
+
+    std::vector<scm_string> MACRO_LABEL_REGISTRY; // optimizes procedure analysis
+
+    size_type MACRO_HASH_IDX_1 = 0, MACRO_HASH_IDX_2 = 0;
+
+    size_type CPS_HASH_IDX_1 = 0, CPS_HASH_IDX_2 = 0;
+
+    /******************************************************************************
+    * MAX VALUE FOR SIZE_TYPE
+    ******************************************************************************/
+
+    constexpr const auto MAX_SIZE_TYPE = std::numeric_limits<size_type>::max();
+
+  } // End of namespace G
 
   /******************************************************************************
   * PREMADE SYMBOLIC CONSTANTS
@@ -85,52 +115,57 @@ namespace heist {
   // NOTE: ***ALL SYMBOL NAMES BEGINNING WITH "__HEIST-" ARE RESERVED!!!***
 
   namespace symconst {
-    constexpr const char * const emptylist    = "";
-    constexpr const char * const sentinel_arg = "__HEIST-NIL-ARG";
-    constexpr const char * const do_label     = "__HEIST-DO-LETREC";
-    constexpr const char * const primitive    = "__HEIST-PRIMITIVE";
-    constexpr const char * const procedure    = "__HEIST-PROCEDURE";
-    constexpr const char * const tail_call    = "__HEIST-TAIL-CALL";
-    constexpr const char * const null_env     = "null-environment";
-    constexpr const char * const locl_env     = "local-environment";
-    constexpr const char * const lambda       = "lambda";
-    constexpr const char * const stream       = "stream";
-    constexpr const char * const scons        = "scons";
-    constexpr const char * const vec_literal  = "vector-literal";
-    constexpr const char * const delay        = "delay";
-    constexpr const char * const quote        = "quote";
-    constexpr const char * const quasiquote   = "quasiquote";
-    constexpr const char * const unquote      = "unquote";
-    constexpr const char * const unquo_splice = "unquote-splicing";
-    constexpr const char * const let          = "let";
-    constexpr const char * const let_star     = "let*";
-    constexpr const char * const letrec       = "letrec";
-    constexpr const char * const set          = "set!";
-    constexpr const char * const defn_syn     = "define-syntax";
-    constexpr const char * const let_syn      = "let-syntax";
-    constexpr const char * const letrec_syn   = "letrec-syntax";
-    constexpr const char * const syn_rules    = "syntax-rules";
-    constexpr const char * const define       = "define";
-    constexpr const char * const begin        = "begin";
-    constexpr const char * const if_t         = "if";
-    constexpr const char * const else_t       = "else";
-    constexpr const char * const cond         = "cond";
-    constexpr const char * const case_t       = "case";
-    constexpr const char * const do_t         = "do";
-    constexpr const char * const and_t        = "and";
-    constexpr const char * const or_t         = "or";
-    constexpr const char * const ellipsis     = "...";
-    constexpr const char * const period       = ".";
-    constexpr const char * const true_t       = "#t";
-    constexpr const char * const false_t      = "#f";
-    constexpr const char * const memv         = "memv";
-    constexpr const char * const equalp       = "equal?";
-    constexpr const char * const append       = "append";
-    constexpr const char * const cons         = "cons";
-    constexpr const char * const list         = "list";
-    constexpr const char * const list_star    = "list*";
-    constexpr const char * const vector       = "vector";
-    constexpr const char   mangle_prefix[]    = "__HEIST-MLAMBDA-";
+    constexpr const char * const emptylist         = "";
+    constexpr const char * const sentinel_arg      = "__HEIST-NIL-ARG";
+    constexpr const char * const do_label          = "__HEIST-DO-LETREC";
+    constexpr const char * const primitive         = "__HEIST-PRIMITIVE";
+    constexpr const char * const procedure         = "__HEIST-PROCEDURE";
+    constexpr const char * const tail_call         = "__HEIST-TAIL-CALL";
+    constexpr const char * const continuation      = "__HEIST-CPS-";               // hashed continuation arg name prefix
+    constexpr const char * const pass_continuation = "__HEIST-PASS-CONTINUATION-"; // denotes to treat proc as if defn'd in a scm->cps block
+    constexpr const char * const cps_app_tag       = "__HEIST-APP-CPS";
+    constexpr const char * const scm_cps           = "scm->cps";
+    constexpr const char * const cps_quote         = "cps-quote";
+    constexpr const char * const null_env          = "null-environment";
+    constexpr const char * const local_env         = "local-environment";
+    constexpr const char * const global_env        = "global-environment";
+    constexpr const char * const lambda            = "lambda";
+    constexpr const char * const stream            = "stream";
+    constexpr const char * const scons             = "scons";
+    constexpr const char * const vec_literal       = "vector-literal";
+    constexpr const char * const delay             = "delay";
+    constexpr const char * const quote             = "quote";
+    constexpr const char * const quasiquote        = "quasiquote";
+    constexpr const char * const unquote           = "unquote";
+    constexpr const char * const unquo_splice      = "unquote-splicing";
+    constexpr const char * const let               = "let";
+    constexpr const char * const let_star          = "let*";
+    constexpr const char * const letrec            = "letrec";
+    constexpr const char * const set               = "set!";
+    constexpr const char * const defn_syn          = "define-syntax";
+    constexpr const char * const let_syn           = "let-syntax";
+    constexpr const char * const letrec_syn        = "letrec-syntax";
+    constexpr const char * const syn_rules         = "syntax-rules";
+    constexpr const char * const define            = "define";
+    constexpr const char * const begin             = "begin";
+    constexpr const char * const if_t              = "if";
+    constexpr const char * const else_t            = "else";
+    constexpr const char * const cond              = "cond";
+    constexpr const char * const case_t            = "case";
+    constexpr const char * const do_t              = "do";
+    constexpr const char * const and_t             = "and";
+    constexpr const char * const or_t              = "or";
+    constexpr const char * const ellipsis          = "...";
+    constexpr const char * const period            = ".";
+    constexpr const char * const true_t            = "#t";
+    constexpr const char * const false_t           = "#f";
+    constexpr const char * const memv              = "memv";
+    constexpr const char * const equalp            = "equal?";
+    constexpr const char * const append            = "append";
+    constexpr const char * const cons              = "cons";
+    constexpr const char * const list              = "list";
+    constexpr const char * const list_star         = "list*";
+    constexpr const char * const vector            = "vector";
   } // End namespace symconst
 
   /******************************************************************************
@@ -147,45 +182,35 @@ namespace heist {
   using frame_vals  = std::vector<frame_val>;
   using frame_macs  = std::vector<frame_mac>;
   using frame_t     = std::tuple<frame_vars,frame_vals,frame_macs>;
-  using frame_ptr   = std::shared_ptr<frame_t>;
+  using frame_ptr   = tgc_ptr<frame_t>;
   using environment = std::vector<frame_ptr>;
-
-  // FRAME CONSTRUCTOR
-  auto make_frame = std::make_shared<frame_t,frame_t>;
 
   /******************************************************************************
   * DATA TYPE ALIASES & CONSTRUCTORS
   ******************************************************************************/
 
   using exp_type = scm_list;                           // expression
-  using par_type = std::shared_ptr<scm_pair>;          // pair
+  using par_type = tgc_ptr<scm_pair>;                  // pair
   using num_type = scm_numeric::Snum;                  // number (float/int/frac)
-  using str_type = std::shared_ptr<scm_string>;        // string
+  using str_type = tgc_ptr<scm_string>;                // string
   using chr_type = int;                                // character
   using sym_type = scm_string;                         // symbol
-  using vec_type = std::shared_ptr<scm_list>;          // vector
+  using vec_type = tgc_ptr<scm_list>;                  // vector
   using bol_type = struct boolean;                     // boolean
-  using env_type = std::shared_ptr<environment>;       // evironment
-  using del_type = std::shared_ptr<struct delay_data>; // delay
+  using env_type = tgc_ptr<environment>;               // evironment
+  using del_type = tgc_ptr<struct delay_data>;         // delay
   using prm_type = struct data(*)(scm_list&);          // primitive procedure ptr
   using exe_type = std::function<scm_list(env_type&)>; // fcn execution procedure
-  using cal_type = std::shared_ptr<size_type>;         // recursive call counter
+  using cal_type = tgc_ptr<size_type>;                 // recursive call counter
   using fip_type = struct iport;                       // file input port
   using fop_type = struct oport;                       // file output port
   using syn_type = struct scm_macro;                   // syntax-rules object
-
-  auto make_par = std::make_shared<scm_pair>;
-  auto make_str = std::make_shared<scm_string,const scm_string&>;
-  auto make_vec = std::make_shared<scm_list,const scm_list&>;
-  auto make_env = std::make_shared<environment>;
-  auto make_del = std::make_shared<struct delay_data,const scm_list&,const env_type&>;
-  auto make_cal = std::make_shared<size_type,size_type>;
 
   /******************************************************************************
   * GLOBAL ENVIRONMENT POINTER
   ******************************************************************************/
 
-  env_type GLOBAL_ENVIRONMENT_POINTER = nullptr;
+  namespace G { env_type GLOBAL_ENVIRONMENT_POINTER = nullptr; }
 
   /******************************************************************************
   * DATA PRINTING HELPER FUNCTION PROTOTYPES
@@ -199,6 +224,7 @@ namespace heist {
   template<DATA_PRINTER to_str>
   scm_string cio_expr_str(const exp_type& exp_object)    noexcept; // to print expressions
   scm_string escape_chars(const scm_string& str)         noexcept; // to escape string special characters
+  scm_string pretty_print(const data& d)                 noexcept; // pretty-printer
 
   /******************************************************************************
   * DATA TYPE STRUCTS
@@ -230,8 +256,8 @@ namespace heist {
     ~iport()                          noexcept = default;
     iport& operator=(const iport& ip) noexcept = default;
     iport& operator=(iport&& ip)      noexcept = default;
-    bool is_open() const noexcept {return PORT_REGISTRY[port_idx] != nullptr;}
-    FILE*& port()  const noexcept {return PORT_REGISTRY[port_idx];}
+    bool is_open() const noexcept {return G::PORT_REGISTRY[port_idx] != nullptr;}
+    FILE*& port()  const noexcept {return G::PORT_REGISTRY[port_idx];}
   };
 
   // output port struct (differentiates from 'iport')
@@ -243,8 +269,8 @@ namespace heist {
     ~oport()                          noexcept = default;
     oport& operator=(const oport& ip) noexcept = default;
     oport& operator=(oport&& ip)      noexcept = default;
-    bool is_open() const noexcept {return PORT_REGISTRY[port_idx] != nullptr;}
-    FILE*& port()  const noexcept {return PORT_REGISTRY[port_idx];}
+    bool is_open() const noexcept {return G::PORT_REGISTRY[port_idx] != nullptr;}
+    FILE*& port()  const noexcept {return G::PORT_REGISTRY[port_idx];}
   };
 
   // macro data structure
@@ -257,10 +283,12 @@ namespace heist {
     scm_macro(scm_macro&& m)          noexcept {*this = std::move(m);}
     ~scm_macro()                      noexcept {}
     void operator=(const scm_macro& m)noexcept {
+      if(this == &m) return;
       label     = m.label,    keywords  = m.keywords;
       patterns  = m.patterns, templates = m.templates;
     }
     void operator=(scm_macro&& m) noexcept {
+      if(this == &m) return;
       label     = std::move(m.label),    keywords  = std::move(m.keywords);
       patterns  = std::move(m.patterns), templates = std::move(m.templates);
     }
@@ -300,6 +328,7 @@ namespace heist {
 
     // assignment operator
     void operator=(const data& d) noexcept {
+      if(this == &d) return;
       if(type == d.type) {
         switch(type) {
           case types::sym: sym = d.sym; return;
@@ -347,6 +376,7 @@ namespace heist {
 
     // assignment operator
     void operator=(data&& d) noexcept {
+      if(this == &d) return;
       if(type == d.type) {
         switch(d.type) { // env,par,str,cal,del,vec,
           case types::sym: sym = std::move(d.sym); return;
@@ -396,8 +426,7 @@ namespace heist {
     scm_string write() const noexcept {
       switch(type) {
         case types::sym:
-          if(sym==symconst::emptylist)             return "()";
-          if(sym.find(symconst::mangle_prefix)==0) return "lambda";
+          if(sym==symconst::emptylist) return "()";
           return sym;
         case types::chr: 
           switch(chr) {
@@ -426,7 +455,7 @@ namespace heist {
         case types::exp: return cio_expr_str<&data::write>(exp);
         case types::num: return num.str();
         case types::str: return '"' + escape_chars(*str) + '"';
-        case types::bol: return (bol.val?"#t":"#f");
+        case types::bol: if(bol.val) return "#t"; return "#f";
         case types::env: return "#<environment>";
         case types::del: return "#<delay>";
         case types::prm: return "#<primitive>";
@@ -443,8 +472,7 @@ namespace heist {
     scm_string display() const noexcept {
       switch(type) {
         case types::sym:
-          if(sym==symconst::emptylist)             return "()";
-          if(sym.find(symconst::mangle_prefix)==0) return "lambda";
+          if(sym==symconst::emptylist) return "()";
           return sym;
         case types::chr: return scm_string(1,chr);
         case types::par: return cio_list_str<&data::display>(*this);
@@ -452,7 +480,7 @@ namespace heist {
         case types::exp: return cio_expr_str<&data::display>(exp);
         case types::num: return num.str();
         case types::str: return *str;
-        case types::bol: return (bol.val?"#t":"#f");
+        case types::bol: if(bol.val) return "#t"; return "#f";
         case types::env: return "#<environment>";
         case types::del: return "#<delay>";
         case types::prm: return "#<primitive>";
@@ -463,6 +491,15 @@ namespace heist {
         case types::dne: return "";
         case types::syn: return "#<syntax-rules-object>";
         default:         return "#<undefined>"; // types::undefined
+      }
+    }
+
+    scm_string pprint() const noexcept { // pretty-print
+      switch(type) {
+        case types::par: return pretty_print(*this);
+        case types::vec: return cio_vect_str<&data::pprint>(vec);
+        case types::exp: return cio_expr_str<&data::pprint>(exp);
+        default:         return write();
       }
     }
 
@@ -530,14 +567,14 @@ namespace heist {
       switch(type) {
         case types::sym: sym.~sym_type(); return;
         case types::exp: exp.~exp_type(); return;
-        case types::par: par.~par_type(); return;
         case types::num: num.~num_type(); return;
+        case types::par: par.~par_type(); return;
         case types::str: str.~str_type(); return;
         case types::vec: vec.~vec_type(); return;
         case types::env: env.~env_type(); return;
         case types::del: del.~del_type(); return;
-        case types::exe: exe.~exe_type(); return;
         case types::cal: cal.~cal_type(); return;
+        case types::exe: exe.~exe_type(); return;
         case types::syn: syn.~syn_type(); return;
         default:                          return;
       }
@@ -553,9 +590,11 @@ namespace heist {
     delay_data(const scm_list& delayed_exp = scm_list(), env_type delay_env = nullptr) noexcept
       : exp(delayed_exp), env(delay_env), already_forced(false), result(boolean(false)) {}
     void operator=(const delay_data& d) noexcept {
+      if(this == &d) return;
       exp=d.exp, env=d.env, already_forced=d.already_forced, result=d.result;
     }
     void operator=(delay_data&& d) noexcept {
+      if(this == &d) return;
       exp=std::move(d.exp), env=std::move(d.env);
       already_forced=std::move(d.already_forced), result=std::move(d.result);
     }
@@ -563,6 +602,19 @@ namespace heist {
     delay_data(delay_data&& d)      noexcept {*this = std::move(d);}
     ~delay_data()                   noexcept {}
   };
+
+  /******************************************************************************
+  * DATA TYPE GC CONSTRUCTORS
+  ******************************************************************************/
+
+  frame_ptr make_frame(const frame_t& o)                noexcept{return frame_ptr(o);}
+  str_type make_str(const scm_string& o)                noexcept{return str_type(o);}
+  vec_type make_vec(const scm_list& o)                  noexcept{return vec_type(o);}
+  del_type make_del(const scm_list& l,const env_type& e)noexcept{return del_type(delay_data(l,e));}
+  cal_type make_cal(const size_type& o)                 noexcept{return cal_type(o);}
+  par_type make_par()                                   noexcept{return par_type(scm_pair());}
+  env_type make_env()                                   noexcept{return env_type(environment());}
+
 } // End of namespace heist
 
 /******************************************************************************

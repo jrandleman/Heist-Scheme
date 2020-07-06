@@ -541,19 +541,20 @@ namespace scm_numeric {
   Snum Snum::random(Snum seed) noexcept {
     inexact_t seed_flt = 0;
     // Coerce seed to float as needed
-    if(seed.is_float) {
-      seed_flt = seed.float_num;
-    } else if(auto tmp = seed.to_inexact(); tmp.stat != status::success) {
-      // Float conversion failed: chop off numerator's 1st INEXACT_PRECISION/2 digits
-      // & denominator to be used as a substitute seed
-      if(seed.nlen > INEXACT_PRECISION/2) seed.nlen = INEXACT_PRECISION/2;
-      if(seed.dlen > INEXACT_PRECISION/2) seed.dlen = INEXACT_PRECISION/2;
-      seed_flt = seed.exact_to_ld(seed.numerator, seed.nlen) + 
-                 seed.exact_to_ld(seed.denominator, seed.dlen);
-    } else {
-      seed_flt = tmp.float_num;
+    if(!seed.is_zero()) {
+      if(seed.is_float) {
+        seed_flt = seed.float_num;
+      } else if(auto tmp = seed.to_inexact(); tmp.stat != status::success) {
+        // Float conversion failed: chop off numerator's 1st INEXACT_PRECISION/2 digits
+        // & denominator to be used as a substitute seed
+        if(seed.nlen > INEXACT_PRECISION/2) seed.nlen = INEXACT_PRECISION/2;
+        if(seed.dlen > INEXACT_PRECISION/2) seed.dlen = INEXACT_PRECISION/2;
+        seed_flt = seed.exact_to_ld(seed.numerator, seed.nlen) + 
+                   seed.exact_to_ld(seed.denominator, seed.dlen);
+      } else {
+        seed_flt = tmp.float_num;
+      }
     }
-    
     // initialize the random #'s generator & invariants
     std::string rand_vals;
     auto rand_gen = std::minstd_rand0((size_type)seed_flt);
@@ -585,7 +586,7 @@ namespace scm_numeric {
 
 
   Snum Snum::to_inexact() const noexcept {
-    if(stat != status::success || is_float) return *this;
+    if(stat != status::success || is_float || is_zero()) return *this;
     Snum tmp;
     tmp.stat = coerce_fraction_to_float(tmp.float_num,numerator,nlen,denominator,dlen,is_neg());
     if(tmp.stat != status::success) {
@@ -641,6 +642,7 @@ namespace scm_numeric {
 
   Snum Snum::extract_denominator() const noexcept {
     auto tmp = to_exact().abs();
+    if(tmp.is_zero()) return Snum("1");
     if(tmp.stat != status::success || tmp.is_float) {
       tmp.set_failed_status(); return tmp;
     }
@@ -658,6 +660,7 @@ namespace scm_numeric {
   ******************************************************************************/
 
   Snum::inexact_t Snum::extract_inexact() const noexcept {
+    if(is_zero()) return 0.0L;
     if(auto tmp = to_inexact(); tmp.stat != status::success) {
       if(tmp.is_nan())     return INEXACT_NAN;
       if(tmp.is_pos_inf()) return INEXACT_INF;
@@ -670,6 +673,7 @@ namespace scm_numeric {
   }
 
   std::string Snum::extract_exact() const noexcept {
+    if(is_zero()) return "0";
     auto tmp = to_exact();
     if(tmp.stat != status::success) {
       if(tmp.is_nan())     return "+nan.0";

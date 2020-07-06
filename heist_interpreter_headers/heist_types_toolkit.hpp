@@ -17,6 +17,7 @@ namespace heist {
   bool      is_compound_procedure   (const scm_list& p)noexcept;
   bool      is_delay                (const scm_list& exp)noexcept;
   bool      data_is_stream_pair     (const data& d)noexcept;
+  bool      data_is_proper_list     (const data& d)noexcept;
 
   /******************************************************************************
   * ANSI ESCAPE SEQUENCE FORMATS & MACRO
@@ -30,14 +31,16 @@ namespace heist {
     AFMT_131,   // bold red
     AFMT_135,   // bold magenta
     AFMT_01,    // clear bold
+    AFMT_32,    // green
   };
 
   constexpr const char * const ansi_formats[] = {
     "",         "\x1b[0m",         "\x1b[1m",         "\x1b[31m",
     "\x1b[35m", "\x1b[1m\x1b[31m", "\x1b[1m\x1b[35m", "\x1b[0m\x1b[1m",
+    "\x1b[32m", 
   };
 
-  #define afmt(ansi_esc) heist::ansi_formats[heist::USING_ANSI_ESCAPE_SEQUENCES*ansi_esc]
+  #define afmt(ansi_esc) heist::ansi_formats[heist::G::USING_ANSI_ESCAPE_SEQUENCES*ansi_esc]
 
   /******************************************************************************
   * ERROR HANDLING CODE ENUMERATIONS
@@ -49,7 +52,7 @@ namespace heist {
   * GLOBAL "JUMP!" PRIMITIVE ARGUMENT STORAGE
   ******************************************************************************/
 
-  data JUMP_GLOBAL_PRIMITIVE_ARGUMENT; // see catch-jump & jump! primitives
+  namespace G { data JUMP_GLOBAL_PRIMITIVE_ARGUMENT; } // see catch-jump & jump!
 
   /******************************************************************************
   * ERROR HANDLING PRINTER MACROS
@@ -277,6 +280,142 @@ namespace heist {
     scm_string exp_str;
     cio_expr_str_rec<to_str>(exp_object, exp_str);
     return '(' + exp_str + ')';
+  }
+
+  /******************************************************************************
+  * PRETTY PRINTING HELPER FUNCTIONS
+  ******************************************************************************/
+
+  using pprint_data = std::vector<struct pprint_datum>;
+
+  // pprint Datum Storing Stringified Data & Length of Stringified Data
+  struct pprint_datum {
+    // <output_len> Denotes length of <exp> or <datum_str> once ouput
+    size_type output_len = 0;
+    bool is_exp = false;
+    // Either a datum_str non-proper-list-pair or and <exp> of <pprint_datum>
+    scm_string datum_str;
+    pprint_data exp;
+    pprint_datum()                      = default;
+    pprint_datum(const pprint_datum& p) = default;
+    pprint_datum(pprint_datum&& p)      = default;
+    pprint_datum(scm_string&& str) : output_len(str.size()),datum_str(std::move(str)) {}
+    pprint_datum(const pprint_data& e,const size_type& len) : output_len(len),is_exp(true),exp(e) {}
+  };
+
+
+  // Gets the length of <list_as_strs> once output
+  void get_pprint_data_ouput_length(const pprint_data& list_as_strs,size_type& output_length)noexcept{
+      // initial value accounts for outputting both parens & spaces between elts
+      output_length = 2 + list_as_strs.size()-1;
+      for(const auto& e : list_as_strs) output_length += e.output_len;
+  }
+
+
+  // Converts Scheme lists of data to an AST list of those data as strings
+  // NOTE: the <size_type> of the pair denotes the length of the <data> once output 
+  void stringify_list_data(pprint_data& list_as_strs, size_type& length, const par_type& p)noexcept{
+    // Strify car
+    if(!p->first.is_type(types::par)) {
+      list_as_strs.push_back(p->first.pprint());
+    } else if(!data_is_proper_list(p->first)) {
+      list_as_strs.push_back(p->first.write());
+    } else {
+      pprint_data sub_exp;
+      size_type sub_exp_len = 0;
+      stringify_list_data(sub_exp,sub_exp_len,p->first.par);
+      list_as_strs.push_back(pprint_datum(sub_exp,sub_exp_len));
+    }
+    // Strify cdr
+    if(p->second.is_type(types::sym) && p->second.sym == symconst::emptylist) {
+      get_pprint_data_ouput_length(list_as_strs,length); // get length of this stringified list as output
+      return; // end of list
+    }
+    if(!p->second.is_type(types::par))
+      list_as_strs.push_back(p->second.pprint());
+    else if(!data_is_proper_list(p->second))
+      list_as_strs.push_back(p->second.write());
+    else
+      stringify_list_data(list_as_strs,length,p->second.par);
+  }
+
+
+  // Stringifies <list_as_strs> w/o any tabs
+  void print_pprint_data_as_is(const pprint_data& list_as_strs, scm_string& buffer)noexcept{
+    buffer += '(';
+    for(size_type i = 0, n = list_as_strs.size(); i < n; ++i) {
+      if(list_as_strs[i].is_exp)
+        print_pprint_data_as_is(list_as_strs[i].exp,buffer);
+      else
+        buffer += std::move(list_as_strs[i].datum_str);
+      if(i+1 != n) buffer += ' ';
+    }
+    buffer += ')';
+  }
+
+
+  // Show info on the parsed stringified data
+  void pretty_print_pprint_data(const pprint_data& list_as_strs, const size_type& len,
+                                                size_type depth, scm_string& buffer)noexcept{
+    // Print as is if possible
+    if(len + 2*depth <= G::PPRINT_MAX_COLUMN_WIDTH || len < 2) {
+      print_pprint_data_as_is(list_as_strs,buffer);
+      return;
+    }
+    // Get tab (2 spaces per tab) width as per the depth
+    char* tabs = new char [2*depth+2];
+    for(size_type i = 0, tabs_len = 2*depth+2; i < tabs_len; ++i) tabs[i] = ' ';
+    tabs[2*depth+2] = 0;
+    // Open paren
+    buffer += '(';
+    // If 1st elt is a list, hence special printing case for such applications
+    const size_type n = list_as_strs.size();
+    size_type i = 1;
+    if(list_as_strs[0].is_exp) {
+      pretty_print_pprint_data(list_as_strs[0].exp,list_as_strs[0].output_len,depth+1,buffer);
+    } else {
+      buffer += std::move(list_as_strs[0].datum_str) + ' ';
+      // If 2nd elt printable on the current line (another special case)
+      if(list_as_strs[1].output_len + list_as_strs[0].output_len + 2*depth < G::PPRINT_MAX_COLUMN_WIDTH){
+        i = 2;
+        if(list_as_strs[1].is_exp)
+          print_pprint_data_as_is(list_as_strs[1].exp,buffer);
+        else
+          buffer += std::move(list_as_strs[1].datum_str);
+      }
+    }
+    if(i < n) buffer += '\n';
+    // Print body of the list
+    for(; i < n; ++i) {
+      buffer += tabs;
+      if(list_as_strs[i].is_exp)
+        pretty_print_pprint_data(list_as_strs[i].exp,list_as_strs[i].output_len,depth+1,buffer);
+      else
+        buffer += std::move(list_as_strs[i].datum_str);
+      if(i+1 != n) buffer += '\n';
+    }
+    // Free <tabs> & add the closing paren
+    delete [] tabs;
+    buffer += ')';
+  }
+
+
+  // Pretty printer
+  scm_string pretty_print(const data& d)noexcept{
+    // If non-proper-list-pair, print as-is
+    if(!data_is_proper_list(d)) return d.write();
+    // Else check if pair as string is of valid length
+    auto as_string = d.write();
+    if(as_string.size() <= G::PPRINT_MAX_COLUMN_WIDTH)
+      return as_string;
+    // Otherwise get list as string-ified objects
+    pprint_data list_as_strs;
+    size_type output_length = 0;
+    stringify_list_data(list_as_strs,output_length,d.par);
+    // Print the list w/ indents
+    scm_string buffer;
+    pretty_print_pprint_data(list_as_strs,output_length,0,buffer);
+    return buffer;
   }
 } // End of namespace heist
 #endif

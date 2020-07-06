@@ -27,7 +27,7 @@
 * => HINT: JUST USE WHAT "$ pwd" (OR "$ cd" ON WINDOWS) PRINTS!
 ******************************************************************************/
 
-// #define HEIST_DIRECTORY_FILE_PATH "/Users/jordanrandleman/desktop/Heist-Scheme"
+#define HEIST_DIRECTORY_FILE_PATH "/Users/jordanrandleman/desktop/rec_coding/HEIST"
 
 /******************************************************************************
 * WARN USER IF COMPILING W/O AN ABSOLUTE FILE PATH
@@ -52,22 +52,19 @@
 // +-----------------------------------------------------------------------+
 
 /***
- * WARNING: NO CALL/CC & TRANSCRIPTS
- *
  * NUMBER SYSTEM:
  *   - EXACT INTERGERS (UNBOUND)
  *   - EXACT FRACTIONS (> LDBL_DIG <cfloat> DIGITS = COLLAPSE TO INEXACT FLOAT)
  *   - INEXACT FLOATS  (LONG DOUBLE)
  *   - UNSUPPORTED NUMERICS:
- *     > NUMBER::RECTANGULAR
- *     > NUMBER::POLAR
- *     > NUMBER::COMPLEX
+ *     > NUMBER::RECTANGULAR, NUMBER::POLAR, NUMBER::COMPLEX
  *     > S F D L INEXACT PRECISIONS (ALWAYS LDBL_DIG DIGITS)
  *
  * CHARS: USE ASCII ENCODING
  *
  * R4RS EXTENSIONS:
- *   - OPT-IN DYNAMIC SCOPING  ; "INLINE" FUNCTION APPLICATIONS
+ *   - OPT-IN DYNAMIC SCOPING  ; call/ce & inline FUNCTION APPLICATIONS
+ *   - OPT-IN CONTINUATIONS    ; "scm->cps" SPECIAL FORM W/ call/cc
  *   - NATIVE EVEN STREAMS     ; LISTS WITH DELAYED CAR & CDR
  *   - GENERIC ALGORITHMS      ; POLYMORPHIC ALGORITHM PRIMITIVES
  *   - SFRI PRIMITIVES         ; LIST, VECTOR, STRING, ETC.
@@ -128,18 +125,21 @@
  *         * scons            ; STREAM-PAIR CONSTRUCTION
  *         * stream           ; STREAM CONSTRUCTION
  *         * vector-literal   ; LONGHAND OF #( PREFIX
+ *         * cps-quote        ; RETURNS DATA AS CPS-EXPANDED QUOTED LIST
+ *         * scm->cps         ; SCOPED CPS TRANSFORMATION
  *
  *    (C) PRIMITIVES:
  *       - DEFINITION: C++ FUNCTIONS DEFINED IN THE HEIST GLOBAL ENVIRONMENT
  *       - PROPERTIES: 1) ***MAY BE REDEFINED BY USER AT RUN TIME***
  *                     2) MAY BE TREATED AS IF ANY OTHER HEIST PROCEDURE
  *       - EXAMPLES: 
- *         * (exit)            ; TERMINATE THE INTERPRETER
- *         * #t                ; TRUE BOOLEAN VALUE
- *         * #f                ; FALSE BOOLEAN VALUE
- *         * stream-null       ; EMPTY STREAM OBJECT
- *         * null-environment  ; eval IN DISJOINT GLOBAL ENVIRONMENT (FOR eval)
- *         * local-environment ; eval IN LOCAL SCOPE (FOR eval)
+ *         * (exit)             ; TERMINATE THE INTERPRETER
+ *         * #t                 ; TRUE BOOLEAN VALUE
+ *         * #f                 ; FALSE BOOLEAN VALUE
+ *         * stream-null        ; EMPTY STREAM OBJECT
+ *         * null-environment   ; eval IN DISJOINT GLOBAL ENVIRONMENT (FOR eval/load)
+ *         * local-environment  ; eval IN LOCAL SCOPE (FOR eval/load)
+ *         * global-environment ; eval IN GLOBAL SCOPE (FOR eval/load)
  *         * SEE "heist_primitives.hpp" FOR THE ALL PRIMITIVE IMPLEMENTATIONS
  */
 
@@ -150,7 +150,8 @@
 namespace heist {
 
   scm_list scm_eval(scm_list&& exp, env_type& env);
-  exe_type scm_analyze(scm_list&& exp,const bool tail_call=false);
+  exe_type scm_analyze(scm_list&& exp,const bool tail_call,const bool cps_block);
+  scm_string generate_unique_cps_hash()noexcept;
 
   /******************************************************************************
   * AST-ANALYSIS HELPER FUNCTIONS
@@ -224,14 +225,17 @@ namespace heist {
   void confirm_valid_procedure_parameters(const scm_list& vars,const scm_list& exp){
     const size_type n = vars.size();
     // variadic (.) arg must have a label afterwards
-    if(n != 0 && vars[n-1].sym == ".")
+    if(n != 0 && vars[n-1].sym == symconst::period)
       THROW_ERR("Expected one item after variadic dot (.)! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
     // Search the vars list of the fcn's args for improper (.) use & duplicate arg names
     for(size_type i = 0; i < n; ++i) {
       if(!vars[i].is_type(types::sym)) // args must be symbols
         THROW_ERR("Non-Symbolic parameter [ "<<vars[i]<<" ] is an invalid arg name! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
-      if(i+2 != n && vars[i].sym == ".") // variadic (.) must come just prior the last arg
+      if(i+2 != n && vars[i].sym == symconst::period) { // variadic (.) must come just prior the last arg
+        if(i+3 == n && vars[i+2].sym.find(symconst::continuation) == 0)
+          continue; // allow continuations after variadic
         THROW_ERR("More than one item found after variadic dot (.)! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+      }
       for(size_type j = i+1; j < n; ++j)
         if(vars[i].sym == vars[j].sym) // duplicate arg name detected
           THROW_ERR("Duplicate arg name \""<<vars[i]<<"\" supplied! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
@@ -294,17 +298,18 @@ namespace heist {
   //   => ((lambda (. l) l) <arg1> <arg2> ... <argN>)      [ BECOMES -> ]
   //      ((lambda (l) l) (list <arg1> <arg2> ... <argN>))
   void transform_variadic_vals_into_a_list(frame_vars& vars,frame_vals& vals)noexcept{
-    const size_type va_arg_idx = vars.size()-2;
+    const size_type continuation_offset = vars.rbegin()->find(symconst::continuation)==0;
+    const size_type va_arg_idx = vars.size()-2-continuation_offset;
     // Transform the arg names & vals as needed
     vars[va_arg_idx] = vars[va_arg_idx+1]; // shift up variadic arg name (erasing '.')
-    vars.erase(vars.end()-1, vars.end());  // erase the now-duplicate var-arg name
+    vars.erase(vars.begin()+va_arg_idx+1); // erase the now-duplicate var-arg name
     data list_of_vals;
     if(no_args_given(vals))
       list_of_vals = symconst::emptylist;
     else
-      list_of_vals = primitive_LIST_to_CONS_constructor(vals.begin()+va_arg_idx, vals.end());
-    vals.erase(vals.begin()+va_arg_idx, vals.end()); // erase individual arg instances
-    vals.push_back(list_of_vals);                    // reinsert args as a list
+      list_of_vals = primitive_LIST_to_CONS_constructor(vals.begin()+va_arg_idx, vals.end()-continuation_offset);
+    vals.erase(vals.begin()+va_arg_idx, vals.end()-continuation_offset); // erase individual arg instances
+    vals.insert(vals.end()-continuation_offset, list_of_vals); // reinsert args as a list
   }
 
 
@@ -322,6 +327,14 @@ namespace heist {
   }
 
 
+  // Determine whether proc takes variadic args
+  bool variadic_arg_declaration(const frame_vars& vars) {
+    return (vars.size() > 1 && vars[vars.size()-2] == symconst::period) || 
+           (vars.size() > 2 && vars[vars.size()-1].find(symconst::continuation) == 0
+                            && vars[vars.size()-3] == symconst::period);
+  }
+
+
   // Wrapper composing the above helpers
   bool confirm_valid_environment_extension(frame_vars& vars, frame_vals& vals, 
                                                        const sym_type& name){
@@ -333,7 +346,7 @@ namespace heist {
       THROW_ERR("Too many arguments supplied! -- EXTEND_ENVIRONMENT" 
         << improper_call_alert(name,vals,vars));
     // Transform variadic arg's corresponding values into a list (if present)
-    if(vars.size() > 1 && vars[vars.size()-2] == ".") 
+    if(variadic_arg_declaration(vars))
       transform_variadic_vals_into_a_list(vars,vals);
     return vars.size() == vals.size();
   }
@@ -391,6 +404,14 @@ namespace heist {
   }
 
 
+  // -- NAME MANGLING
+  // defining/set!ing an anonymous lambda generates a named procedure
+  void mangle_bound_anonymous_procedure_name(const frame_var& var, frame_val& val)noexcept{
+    if(val.is_type(types::exp) && is_tagged_list(val.exp,symconst::procedure) && val.exp[5].sym.empty())
+      val.exp[5].sym = ' ' + var;
+  }
+
+
   // -- VARIABLE SETTING: (set! <var> <val>)
   bool is_single_self_evaluating_object_in_list(frame_val& val)noexcept{
     return val.is_type(types::exp) && val.exp.size()==1;
@@ -404,6 +425,7 @@ namespace heist {
       // Search Variable Bindings List of the Frame, Assign New Val if Found
       for(size_type j = 0, total_vars = var_list.size(); j < total_vars; ++j)
         if(var == var_list[j]) {
+          mangle_bound_anonymous_procedure_name(var,val);
           val_list[j] = val; // var found, change val
           return;
         }
@@ -423,6 +445,7 @@ namespace heist {
     // Get Variables & Values Lists of the foremost frame
     auto& [var_list, val_list, mac_list] = *env->operator[](0);
     // Search Variable Bindings List of the Frame, Assign New Val if Found
+    mangle_bound_anonymous_procedure_name(var,val);
     for(size_type j = 0, total_vars = var_list.size(); j < total_vars; ++j)
       if(var == var_list[j]) {
         val_list[j] = val; // var found, change val
@@ -461,7 +484,7 @@ namespace heist {
 
   scm_list if_alternative(scm_list& exp)noexcept{
     if(exp.size() == 4) return scm_list_cast(exp[3]); // if has an <alternative>
-    return VOID_DATA_EXPRESSION; // w/o <alternative> return VOID
+    return G::VOID_DATA_EXPRESSION; // w/o <alternative> return VOID
   }
 
   scm_list make_if(const scm_list& predicate, const scm_list& consequent, 
@@ -483,9 +506,7 @@ namespace heist {
 
 
   // -- ANALYSIS
-  // Returns lambda so that if true, only eval consequent: 
-  //   else, only eval alternative
-  exe_type analyze_if(scm_list& exp,const bool tail_call=false) { 
+  void confirm_valid_if(const scm_list& exp) {
     if(exp.size() < 3) 
       THROW_ERR("IF didn't receive enough args:"
         "\n     (if <predicate> <consequent> <optional-alternative>)"
@@ -494,9 +515,15 @@ namespace heist {
       THROW_ERR("IF received too many args:"
         "\n     (if <predicate> <consequent> <optional-alternative>)"
         << EXP_ERR(exp));
-    auto pproc = scm_analyze(if_predicate(exp));
-    auto cproc = scm_analyze(if_consequent(exp),tail_call);
-    auto aproc = scm_analyze(if_alternative(exp),tail_call);
+  }
+
+  // Returns lambda so that if true, only eval consequent: 
+  //   else, only eval alternative
+  exe_type analyze_if(scm_list& exp,const bool tail_call=false,const bool cps_block=false) { 
+    confirm_valid_if(exp);
+    auto pproc = scm_analyze(if_predicate(exp),false,cps_block);
+    auto cproc = scm_analyze(if_consequent(exp),tail_call,cps_block);
+    auto aproc = scm_analyze(if_alternative(exp),tail_call,cps_block);
     return [pproc=std::move(pproc),cproc=std::move(cproc),
             aproc=std::move(aproc)](env_type& env){
       if(is_true(pproc(env))) 
@@ -505,41 +532,98 @@ namespace heist {
     };
   }
 
+  /******************************************************************************
+  * REPRESENTING COMPOUND BOOLEANS: (and <val1> ...) (or <val1> ...)
+  ******************************************************************************/
+
+  bool is_and(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::and_t);}
+  bool is_or(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::or_t);}
+
+
+  // -- GENERATING CPS-STYLE VALUE EVALUATION (for unary 'and 'or in scm->cps blocks)
+  exe_type generate_unary_cps_value_expansion(const data& d, const bool tail_call){
+    scm_list cps_val(3);
+    cps_val[0] = symconst::lambda;
+    cps_val[1] = scm_list(1,generate_unique_cps_hash()); // "k"
+    cps_val[2] = scm_list(2);
+    cps_val[2].exp[0] = cps_val[1].exp[0];
+    cps_val[2].exp[1] = d;
+    return scm_analyze(std::move(cps_val),tail_call,true);
+  }
+
+
+  // GENERATING and AND or IN TERMS OF if
+  void recursive_and_expansion_constructor(const scm_node& start,const scm_node& end,scm_list& expanded_and)noexcept{
+    expanded_and[0] = symconst::if_t;
+    expanded_and[1] = *start;
+    expanded_and[3] = G::FALSE_DATA_BOOLEAN;
+    if(start+2 != end) {
+      expanded_and[2] = scm_list(4);
+      recursive_and_expansion_constructor(start+1,end,expanded_and[2].exp);
+    } else {
+      expanded_and[2] = *(start+1);
+    }
+  }
+
+  void recursive_or_expansion_constructor(const scm_node& start,const scm_node& end,scm_list& expanded_and)noexcept{
+    expanded_and[1] = *start;
+    expanded_and[0] = scm_list(3);
+    expanded_and[0].exp[0] = symconst::lambda;
+    expanded_and[0].exp[1] = scm_list(1,"test");
+    expanded_and[0].exp[2] = scm_list(4);
+    expanded_and[0].exp[2].exp[0] = symconst::if_t;
+    expanded_and[0].exp[2].exp[1] = "test";
+    expanded_and[0].exp[2].exp[2] = "test";
+    if(start+2 != end) {
+      expanded_and[0].exp[2].exp[3] = scm_list(2);
+      recursive_or_expansion_constructor(start+1,end,expanded_and[0].exp[2].exp[3].exp);
+    } else {
+      expanded_and[0].exp[2].exp[3] = *(start+1);
+    }
+  }
+
 
   // -- AND: (and <condition1> <condition2> ...)
-  bool is_and(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::and_t);}
   // Returns an exec proc to confirm whether all exp's are true
-  exe_type analyze_and(scm_list& and_exp) {
+  exe_type analyze_and(scm_list& and_exp,const bool tail_call=false,const bool cps_block=false) {
     const size_type n = and_exp.size();
     // (and) = #t
-    if(n == 1 || data_is_the_SENTINEL_VAL(and_exp[1])) 
-      return [](env_type&){return scm_list(1,TRUE_DATA_BOOLEAN);};
-    // Confirm all true
-    return [n,and_exp=std::move(and_exp)](env_type& env){
-      scm_list res;
-      for(size_type i = 1; i < n; ++i) // args start at idx=1
-        if(res = scm_eval(scm_list_cast(and_exp[i]),env); is_false(res))
-          return scm_list(1,FALSE_DATA_BOOLEAN);
-      return res;
-    };
+    if(n == 1 || data_is_the_SENTINEL_VAL(and_exp[1])) {
+      if(cps_block) return generate_unary_cps_value_expansion(G::TRUE_DATA_BOOLEAN,tail_call);
+      return [](env_type&){return scm_list(1,G::TRUE_DATA_BOOLEAN);};
+    }
+    // (and <obj>) = <obj>
+    if(n == 2) {
+      if(cps_block) return generate_unary_cps_value_expansion(and_exp[1],tail_call);
+      return [res=and_exp[1]](env_type&){return scm_list(1,res);};
+    }
+    // (and <o1> <o2> ...) = (if <o1> (and <o2> ...) #f)
+    data expanded_and(scm_list(4));
+    recursive_and_expansion_constructor(and_exp.begin()+1,and_exp.end(),expanded_and.exp);
+    if(cps_block) return scm_analyze(generate_fundamental_form_cps(expanded_and),tail_call,true);
+    return scm_analyze(std::move(expanded_and.exp),tail_call,false);
   }
 
 
   // -- OR: (or <condition1> <condition2> ...)
-  bool is_or(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::or_t);}
   // Returns an exec proc to confirm whether >= 1 exp is true
-  exe_type analyze_or(scm_list& or_exp) {
+  exe_type analyze_or(scm_list& or_exp,const bool tail_call=false,const bool cps_block=false) {
     const size_type n = or_exp.size();
     // (or) = #f
-    if(n == 1 || data_is_the_SENTINEL_VAL(or_exp[1])) 
-      return [](env_type&){return scm_list(1,FALSE_DATA_BOOLEAN);};
-    // Confirm >= 1 true
-    return [n,or_exp=std::move(or_exp)](env_type& env){
-      for(size_type i = 1; i < n; ++i) // args start at idx=1
-        if(auto res = scm_eval(scm_list_cast(or_exp[i]),env); is_true(res))
-          return res;
-      return scm_list(1,FALSE_DATA_BOOLEAN);
-    };
+    if(n == 1 || data_is_the_SENTINEL_VAL(or_exp[1])) {
+      if(cps_block) return generate_unary_cps_value_expansion(G::FALSE_DATA_BOOLEAN,tail_call);
+      return [](env_type&){return scm_list(1,G::FALSE_DATA_BOOLEAN);};
+    }
+    // (or <obj>) = <obj>
+    if(n == 2) {
+      if(cps_block) return generate_unary_cps_value_expansion(or_exp[1],tail_call);
+      return [res=or_exp[1]](env_type&){return scm_list(1,res);};
+    }
+    // (or <o1> <o2> ...) = ((lambda (test) (if test test (or <o2> ...))) <o1>)
+    data expanded_or(scm_list(2));
+    recursive_or_expansion_constructor(or_exp.begin()+1,or_exp.end(),expanded_or.exp);
+    if(cps_block) return scm_analyze(generate_fundamental_form_cps(expanded_or),tail_call,true);
+    return scm_analyze(std::move(expanded_or.exp),tail_call,false);
   }
 
   /******************************************************************************
@@ -551,14 +635,14 @@ namespace heist {
 
   // Analyzes each expression, then returns an exec proc which 
   //   sequentially invokes each expression's exec proc
-  exe_type analyze_sequence(scm_list&& exps,const bool tail_call=false){ // used for 'begin' & lambda bodies
+  exe_type analyze_sequence(scm_list&& exps,const bool tail_call=false,const bool cps_block=false){ // used for 'begin' & lambda bodies
     if(exps.empty() || (exps.size()==1 && data_is_the_SENTINEL_VAL(exps[0])))
-      return [](env_type&){return VOID_DATA_EXPRESSION;}; // void data
+      return [](env_type&){return G::VOID_DATA_EXPRESSION;}; // void data
     const size_type n = exps.size();
     std::vector<exe_type> sequence_exe_procs(exps.size());
     // Analyze each expression
     for(size_type i = 0, n = exps.size(); i < n; ++i)
-      sequence_exe_procs[i] = scm_analyze(scm_list_cast(exps[i]),(i+1==n)&&tail_call);
+      sequence_exe_procs[i] = scm_analyze(scm_list_cast(exps[i]),(i+1==n)&&tail_call,cps_block);
     // Return a lambda sequentially invoking each exec procedure
     return [n=std::move(n),sequence_exe_procs=std::move(sequence_exe_procs)]
     (env_type& env){
@@ -586,34 +670,14 @@ namespace heist {
 
   // Analyzes value being assigned, & returns an execution procedure 
   //   to install it as the variable in the designated env
-  exe_type analyze_assignment(scm_list& exp) { 
+  exe_type analyze_assignment(scm_list& exp,const bool cps_block=false) { 
     confirm_valid_assignment(exp);
     auto& var       = assignment_variable(exp);
-    auto value_proc = scm_analyze(assignment_value(exp));
+    auto value_proc = scm_analyze(assignment_value(exp),false,cps_block);
     return [var=std::move(var),value_proc=std::move(value_proc)](env_type& env){
       set_variable_value(var,data_cast(value_proc(env)),env);
-      return VOID_DATA_EXPRESSION; // return is undefined
+      return G::VOID_DATA_EXPRESSION; // return is undefined
     };
-  }
-
-  /******************************************************************************
-  * MANGLING PROCEDURE NAMES: EMBEDDING A PROCEDURE'S NAME WITHIN ITS LAMBDA TAG
-  ******************************************************************************/
-
-  frame_var mangled_lambda_name_tag(const frame_var& proc_name)noexcept{
-    return symconst::mangle_prefix + proc_name;
-  }
-
-  bool is_mangled_lambda_tag(const data& d)noexcept{
-    return d.is_type(types::sym) && d.sym.find(symconst::mangle_prefix)==0;
-  }
-
-  frame_var demangled_lambda_tag(const data& tag)noexcept{
-    static constexpr const size_type mangled_length = 
-      sizeof(symconst::mangle_prefix)/sizeof(char)-1;
-    if(is_mangled_lambda_tag(tag))
-      return ' ' + tag.sym.substr(mangled_length);
-    return ""; // anonymous procedure
   }
 
   /******************************************************************************
@@ -622,8 +686,7 @@ namespace heist {
 
   bool is_definition(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::define);}
   scm_list make_lambda(scm_list parameters, // Lambda ctor
-                       scm_list body, 
-                       const frame_var& lambda_tag = symconst::lambda)noexcept; 
+                       scm_list body)noexcept; 
 
   frame_var& definition_variable(scm_list& exp)noexcept{
     // if defining a variable, else defining a procedure
@@ -631,23 +694,23 @@ namespace heist {
     return exp[1].exp[0].sym;
   }
 
-  scm_list definition_value(scm_list& exp,const frame_var& var_name)noexcept{
+  scm_list definition_value(scm_list& exp)noexcept{
     // if defining a variable, else defining a procedure
     if(exp[1].is_type(types::sym)) return scm_list_cast(exp[2]); 
     scm_list args(exp[1].exp.begin()+1,exp[1].exp.end());
     scm_list body(exp.begin()+2,exp.end());
-    return make_lambda(args,body,mangled_lambda_name_tag(var_name));
+    return make_lambda(args,body);
   }
 
   // Analyzes value being defined, & returns an execution procedure 
   //   to install it as the variable in the designated env
-  exe_type analyze_definition(scm_list& exp) { 
+  exe_type analyze_definition(scm_list& exp,const bool cps_block=false) { 
     confirm_valid_definition(exp);
     auto& var       = definition_variable(exp);
-    auto value_proc = scm_analyze(definition_value(exp,var));
+    auto value_proc = scm_analyze(definition_value(exp),false,cps_block);
     return [var=std::move(var),value_proc=std::move(value_proc)](env_type& env){
       define_variable(var,data_cast(value_proc(env)),env);
-      return VOID_DATA_EXPRESSION; // return is undefined
+      return G::VOID_DATA_EXPRESSION; // return is undefined
     };
   }
 
@@ -665,7 +728,7 @@ namespace heist {
   }
 
   // Extracts the delayed expression and returns an exec proc ctor'ing a promise
-  exe_type analyze_delay(scm_list& exp) {
+  exe_type analyze_delay(scm_list& exp,const bool cps_block=false) {
     if(exp.size() != 2 || data_is_the_SENTINEL_VAL(exp[1])) {
       exp[0].sym += ' '; // add space to tag, avoiding #<delay> degradation
       auto delay_call = cio_expr_str<&data::write>(exp);
@@ -673,7 +736,18 @@ namespace heist {
       THROW_ERR("'delay expects 1 argument: (delay <delay-expression>)" 
         << EXP_ERR(delay_call));
     }
-    auto delay_list = scm_list_cast(exp[1]);
+    if(!cps_block) {
+      auto delay_list = scm_list_cast(exp[1]);
+      return [delay_list=std::move(delay_list)](env_type& env){
+        return make_delay(delay_list,env);
+      };
+    }
+    // Bind delayed CPS expressions to always have 'id as the topmost continuation,
+    //   since FORCE is defined outside a scm->cps block, would have its arg bound 
+    //   to such regardless if implemented directly in heist scheme as well.
+    scm_list delay_list(2); // cast to & from scm_list to apply the NIL-ARG as needed
+    delay_list[0] = generate_fundamental_form_cps(data_cast(scm_list_cast(exp[1])));
+    delay_list[1] = "id";
     return [delay_list=std::move(delay_list)](env_type& env){
       return make_delay(delay_list,env);
     };
@@ -686,7 +760,7 @@ namespace heist {
   // -- scons: (scons <arg1> <arg2>) = (cons (delay <arg1>) (delay <arg2>))
   bool is_scons(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::scons);}
 
-  exe_type analyze_scons(scm_list& exp) {
+  exe_type analyze_scons(scm_list& exp,const bool cps_block=false) {
     if(exp.size() != 3)
       THROW_ERR("'scons expects 2 arguments: (scons <car> <cdr>)"<<EXP_ERR(exp));
     scm_list scons_exp(3); 
@@ -697,19 +771,38 @@ namespace heist {
     scons_exp[2] = scm_list(2);
     scons_exp[2].exp[0] = symconst::delay;
     scons_exp[2].exp[1] = exp[2];
-    return scm_analyze(std::move(scons_exp));
+    return scm_analyze(std::move(scons_exp),false,cps_block);
   }
 
 
   // -- stream: (stream <a> <b> ...) = (scons <a> (scons <b> ...))
   bool is_stream(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::stream);}
 
-  exe_type analyze_stream(scm_list& exp)noexcept{
-    if(exp.size() == 1 || data_is_the_SENTINEL_VAL(exp[1]))
-      return [](env_type&){return EMPTY_LIST_EXPRESSION;};
-    return [exp=std::move(exp)](env_type& env) mutable {
-      return scm_list(1, primitive_STREAM_to_SCONS_constructor(exp.begin()+1,exp.end(),env));
-    };
+  void recursively_expand_stream_into_delayed_cons(const scm_node& start,const scm_node& end,scm_list& expanded)noexcept{
+    expanded[0] = symconst::cons;
+    expanded[1] = scm_list(2);
+    expanded[1].exp[0] = symconst::delay;
+    expanded[1].exp[1] = *start;
+    if(start+1 != end) {
+      expanded[2] = scm_list(3);
+      recursively_expand_stream_into_delayed_cons(start+1,end,expanded[2].exp);
+    } else {
+      expanded[2] = symconst::emptylist;
+    }
+  }
+
+  exe_type analyze_stream(scm_list& exp,const bool cps_block=false)noexcept{
+    if(exp.size() == 1 || data_is_the_SENTINEL_VAL(exp[1])) {
+      if(cps_block) return generate_unary_cps_value_expansion(symconst::emptylist,false);
+      return [](env_type&){return G::EMPTY_LIST_EXPRESSION;};
+    }
+    if(!cps_block) // no need to expand AST _unless_ in a cps block (direct stream ctor)
+      return [exp=std::move(exp)](env_type& env) mutable {
+        return scm_list(1, primitive_STREAM_to_SCONS_constructor(exp.begin()+1,exp.end(),env));
+      };
+    scm_list expanded_stream(3);
+    recursively_expand_stream_into_delayed_cons(exp.begin()+1,exp.end(),expanded_stream);
+    return scm_analyze(std::move(expanded_stream),false,cps_block);    
   }
 
   /******************************************************************************
@@ -731,7 +824,7 @@ namespace heist {
 
   // Returns whether data is the (.) symbol
   bool data_is_dot_operator(const data& d)noexcept{
-    return d.is_type(types::sym) && d.sym == ".";
+    return d.is_type(types::sym) && d.sym == symconst::period;
   }
 
   // Returns quoted data's contents
@@ -812,7 +905,7 @@ namespace heist {
     
     // If quoting an empty expression, return the empty list
     if(quoted_data.exp.empty())
-      return [](env_type&){return EMPTY_LIST_EXPRESSION;};
+      return [](env_type&){return G::EMPTY_LIST_EXPRESSION;};
     
     // Confirm whether appending last item. 
     //   => NOTE: also rm's (.) if so, hence this must be done 
@@ -867,10 +960,11 @@ namespace heist {
   // PROCEDURE CONSTRUCTION
   scm_list make_procedure(const scm_list& parameters, const exe_type& body_proc,
                           env_type& env, const frame_var& name)noexcept{
-    scm_list procedure_exp(6);
+    scm_list procedure_exp(7);
     procedure_exp[0] = symconst::procedure, procedure_exp[1] = parameters;
     procedure_exp[2] = body_proc,           procedure_exp[3] = env;
     procedure_exp[4] = make_cal(0),         procedure_exp[5] = name;
+    procedure_exp[6] = boolean(false); // inline-invocation? (SEE cps-load & cps-eval)
     return procedure_exp;
   }
 
@@ -878,11 +972,19 @@ namespace heist {
   exe_type& procedure_body(scm_list& p)            noexcept{return p[2].exe;}
   env_type& procedure_environment(scm_list& p)     noexcept{return p[3].env;}
   size_type& procedure_recursive_depth(scm_list& p)noexcept{return *p[4].cal;}
+  bool procedure_inlines_call(scm_list& p)         noexcept{return p[6].bol.val;}
 
   frame_var procedure_name(const scm_list& p)noexcept{
     if(is_compound_procedure(p)) // compound procedure name
       return p[5].sym;
     return ' ' + p[2].sym; // primitive procedure name
+  }
+
+  frame_var printable_procedure_name(const scm_list& p)noexcept{
+    auto name = procedure_name(p);
+    if(name.empty()) return "#<procedure>"; // lambda
+    name.erase(0,1); // rm prefixing ' '
+    return name;
   }
 
   frame_vars procedure_parameters(scm_list& p)noexcept{
@@ -894,18 +996,14 @@ namespace heist {
 
 
   // -- LAMBDAS: (lambda (<parameters>) <body>)
-  bool is_lambda(const scm_list& exp)       noexcept{return is_tagged_list(exp,symconst::lambda) || 
-                                                            is_mangled_lambda_tag(exp[0]);}
-  scm_list  lambda_parameters(scm_list& exp)noexcept{return exp[1].exp;}
-  scm_list  lambda_body(scm_list& exp)      noexcept{return scm_list(exp.begin()+2,exp.end());}
-  frame_var lambda_name(scm_list& exp)      noexcept{return demangled_lambda_tag(exp[0]);}
+  bool     is_lambda(const scm_list& exp)  noexcept{return is_tagged_list(exp,symconst::lambda);}
+  scm_list lambda_parameters(scm_list& exp)noexcept{return exp[1].exp;}
+  scm_list lambda_body(scm_list& exp)      noexcept{return scm_list(exp.begin()+2,exp.end());}
 
   // Ctor for lambdas
-  //   => NOTE: "lambda_tag" != "lambda" iff ctoring the value of a procedural
-  //            definition, wherein the tag is also mangled w/ the procedure name
-  scm_list make_lambda(scm_list parameters,scm_list body,const frame_var& lambda_tag)noexcept{
+  scm_list make_lambda(scm_list parameters,scm_list body)noexcept{
     scm_list new_lambda(body.size()+2); 
-    new_lambda[0] = lambda_tag, new_lambda[1] = std::move(parameters);
+    new_lambda[0] = symconst::lambda, new_lambda[1] = std::move(parameters);
     if(new_lambda[1].exp.empty()) // add the sentinel arg as needed
       new_lambda[1].exp.push_back(symconst::sentinel_arg);
     std::move(body.begin(), body.end(), new_lambda.begin()+2);
@@ -913,24 +1011,23 @@ namespace heist {
   }
 
   // Returns an exec proc to mk a lambda w/ the analyzed parameter list & body
-  exe_type analyze_lambda(scm_list& exp) {
+  exe_type analyze_lambda(scm_list& exp,const bool cps_block=false) {
     confirm_valid_lambda(exp);
     auto vars = lambda_parameters(exp);
-    confirm_valid_procedure_parameters(vars,exp);            // validate parameters
-    if(vars.empty()) vars.push_back(symconst::sentinel_arg); // add sentinel-arg
-    auto body_proc = analyze_sequence(lambda_body(exp),true);// analyze body syntax
-    auto name      = lambda_name(exp);
-    return [vars=std::move(vars),body_proc=std::move(body_proc),name=std::move(name)]
+    confirm_valid_procedure_parameters(vars,exp);                      // validate parameters
+    if(vars.empty()) vars.push_back(symconst::sentinel_arg);           // add sentinel-arg
+    auto body_proc = analyze_sequence(lambda_body(exp),true,cps_block);// analyze body syntax
+    return [vars=std::move(vars),body_proc=std::move(body_proc)]
       (env_type& env){
-        return make_procedure(vars, body_proc, env, name);
+        return make_procedure(vars, body_proc, env, ""); // empty "" name by default (anon proc)
       };
   }
 
 
   // -- PROCEDURAL APPLICATION
-  bool is_application(const scm_list& exp)noexcept{return exp.size()>1;}
-  scm_list operator_of(scm_list& exp)     noexcept{return scm_list_cast(exp[0]);}
-  scm_list operands(scm_list& exp)        noexcept{return scm_list(exp.begin()+1, exp.end());}
+  bool is_application(const scm_list& exp) noexcept{return exp.size()>1;}
+  scm_list operator_of(const scm_list& exp)noexcept{return scm_list_cast(exp[0]);}
+  scm_list operands(const scm_list& exp)   noexcept{return scm_list(exp.begin()+1, exp.end());}
 
   /******************************************************************************
   * DERIVING COND: (cond <clause1> ... <clauseN>)
@@ -994,7 +1091,7 @@ namespace heist {
     // no else clause -- return is now implementation-dependant, I've chosen VOID
     if(current_clause == end_clauses) {
       scm_list void_exp(2); 
-      void_exp[0] = symconst::and_t, void_exp[1] = VOID_DATA_OBJECT;
+      void_exp[0] = symconst::and_t, void_exp[1] = G::VOID_DATA_OBJECT;
       return void_exp;
     }
     confirm_valid_clause(current_clause,exp);
@@ -1029,7 +1126,7 @@ namespace heist {
 
 
   // Expands 'cond into a series of nested 'if
-  scm_list convert_cond_if(scm_list& exp) {
+  scm_list convert_cond_if(scm_list& exp,const bool cps_block=false) {
     if(exp.size() < 2 || data_is_the_SENTINEL_VAL(exp[1]))
       THROW_ERR("Invalid COND expression, NO CLAUSES GIVEN:"
         "\n     (cond <clause1> <clause2> ...)"
@@ -1037,27 +1134,53 @@ namespace heist {
         << EXP_ERR(exp));
     scm_node start_of_clauses = exp.begin()+1;
     const scm_node end_of_clauses = exp.end();
-    return expand_clauses(start_of_clauses,end_of_clauses,exp);
+    if(!cps_block)
+      return expand_clauses(start_of_clauses,end_of_clauses,exp);
+    return generate_fundamental_form_cps(expand_clauses(start_of_clauses,end_of_clauses,exp));
   }
 
   /******************************************************************************
   * DERIVING LET: (let ((<var1> <val1>) ... (<varN> <valN>)) <body>)
   ******************************************************************************/
 
-  // (let ((<var1> <val1>) ... (<varN> <valN>)) <body>)
-
+  // (let ((<var1> <val1>) ... (<varN> <valN>)) <body>) =>
   // ((lambda (<var1> ... <varN>) <body>) <val1> ... <valN>)
 
   bool     is_let(const scm_list& exp)        noexcept{return is_tagged_list(exp,symconst::let);}
   bool     is_named_let(const scm_list& exp)  noexcept{return exp[1].is_type(types::sym);}
   sym_type named_let_name(const scm_list& exp)noexcept{return exp[1].sym;}
-  scm_list let_parameters(scm_list& exp)      noexcept{return exp[1].exp;}
-  scm_list named_let_parameters(scm_list& exp)noexcept{return exp[2].exp;}
   scm_list let_body(scm_list& exp)            noexcept{return scm_list(exp.begin()+2,exp.end());}
   scm_list named_let_body(scm_list& exp)      noexcept{return scm_list(exp.begin()+3,exp.end());}
 
 
   // PARAMETERS = (<varN> <valN>) OF 'let
+  void validate_let_parameters(const data& params, const scm_list& exp) {
+    static constexpr const char * const format = 
+      "\n     (let (<var-bindings>) <body>)"
+      "\n     <var-binding> = (<name> <value>)";
+    if(!params.is_type(types::exp))
+      THROW_ERR("Invalid LET expression, parameters "<<PROFILE(params)<<
+        " aren't a list of bindings:" << format << EXP_ERR(exp));
+    for(size_type i = 0, n = params.exp.size(); i < n; ++i) {
+      if(!params.exp[i].is_type(types::exp))
+        THROW_ERR("Invalid LET expression, binding #"<<i+1<<PROFILE(params.exp[i])<<
+          " isn't binding list:" << format << EXP_ERR(exp));
+      if(params.exp[i].exp.size() != 2)
+        THROW_ERR("Invalid LET expression, binding #"<<i+1<<PROFILE(params.exp[i])<<
+          " isn't binding list of length 2:" << format << EXP_ERR(exp));
+    }
+  }
+
+  scm_list let_parameters(scm_list& exp) {
+    validate_let_parameters(exp[1],exp); 
+    return exp[1].exp;
+  }
+
+  scm_list named_let_parameters(scm_list& exp) {
+    validate_let_parameters(exp[2],exp); 
+    return exp[2].exp;
+  }
+
   // Return list of parameter <var> names
   scm_list let_variables(const scm_list& parameters)noexcept{
     scm_list vars(parameters.size()); // return var names
@@ -1077,7 +1200,7 @@ namespace heist {
 
 
   // Convert 'let to a 'lambda
-  scm_list convert_let_combination(scm_list exp) {
+  scm_list convert_let_combination(scm_list exp,const bool cps_block=false) {
     if(exp.size() < 3)
       THROW_ERR("Invalid LET expression, didn't received 2 args:"
         "\n     (let (<var-bindings>) <body>)"
@@ -1118,14 +1241,16 @@ namespace heist {
       // bind lambda to name & immediately invoke
       scm_list let_exp(2); 
       let_exp[0] = std::move(lambda_defn), let_exp[1] = std::move(self_invocation);
-      return convert_sequence_exp(let_exp); 
+      if(!cps_block) return convert_sequence_exp(let_exp);
+      return generate_fundamental_form_cps(convert_sequence_exp(let_exp));
     } else {
       scm_list nameless_self_invoke(exprs.size()+1);
       nameless_self_invoke[0] = std::move(let_lambda_object);
       // push back each expression as an arg for the self-invoked-lambda call
       std::move(exprs.begin(), exprs.end(), nameless_self_invoke.begin()+1);
       // immediately invoke lambda w/ exps for vars
-      return nameless_self_invoke; 
+      if(!cps_block) return nameless_self_invoke; 
+      return generate_fundamental_form_cps(nameless_self_invoke);
     }
   }
 
@@ -1143,26 +1268,27 @@ namespace heist {
   }
 
   // Recursively nest lets, each containing one of let*'s parameters
-  scm_list nest_lets(scm_node param, const scm_node& empty_param, scm_list& exp) {
+  scm_list nest_lets(scm_node param, const scm_node& empty_param, scm_list& exp,const bool cps_block=false){
     if(param == empty_param)
       return convert_sequence_exp(let_body(exp));
     else {
       return convert_let_combination( // transform into combination immediately
-              make_let(scm_list(1,*param), nest_lets(param+1,empty_param,exp))
+              make_let(scm_list(1,*param), nest_lets(param+1,empty_param,exp,cps_block)),
+              cps_block
             );
     }
   }
 
   // Convert let* into a series of nested let's
-  scm_list convert_let_star_nested_lets(scm_list& exp) {
+  scm_list convert_let_star_nested_lets(scm_list& exp,const bool cps_block=false) {
     if(exp.size() < 3)
       THROW_ERR("Invalid LET* expression, didn't received 2 args:"
         "\n     (let* (<var-bindings>) <body>)"
         "\n     <var-binding> = (<name> <value>)" << EXP_ERR(exp));
     scm_list params = let_parameters(exp);
     if(params.empty()) 
-      return convert_let_combination(exp);
-    return nest_lets(params.begin(),params.end(),exp);
+      return convert_let_combination(exp,cps_block);
+    return nest_lets(params.begin(),params.end(),exp,cps_block);
   }
 
   /******************************************************************************
@@ -1176,14 +1302,14 @@ namespace heist {
   //               -> LOOKING UP AN <undefined> VARIABLE THROWS AN ERROR!
   bool is_letrec(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::letrec);}
 
-  scm_list convert_letrec_let(scm_list& exp) {
+  scm_list convert_letrec_let(scm_list& exp,const bool cps_block=false) {
     if(exp.size() < 3)
       THROW_ERR("Invalid LETREC expression, didn't received 2 args:"
         "\n     (letrec (<var-bindings>) <body>)"
         "\n     <var-binding> = (<name> <value>)" << EXP_ERR(exp));
     scm_list params = let_parameters(exp);
     // We convert a paramterless letrec directly into a let
-    if(params.empty()) return convert_let_combination(exp);
+    if(params.empty()) return convert_let_combination(exp,cps_block);
     scm_list body = let_body(exp);
     scm_list vars = let_variables(params);
     scm_list vals = let_expressions(params);
@@ -1206,7 +1332,7 @@ namespace heist {
     }
     // Append elts in the body, now post-assignment
     std::move(body.begin(), body.end(), unrec_let.begin()+vars.size()+2);
-    return convert_let_combination(unrec_let);
+    return convert_let_combination(unrec_let,cps_block);
   }
 
   /******************************************************************************
@@ -1435,7 +1561,7 @@ namespace heist {
       break_exps.insert(break_exps.end(), break_test_exps.begin()+1, break_test_exps.end());
     // if NOT given the optional exps, return <void>
     } else {
-      conditioned_body.push_back(VOID_DATA_OBJECT); 
+      conditioned_body.push_back(G::VOID_DATA_OBJECT); 
     }
     // if break !condition, evaluate the body & reset values
     conditioned_body.push_back(body);
@@ -1685,7 +1811,7 @@ namespace heist {
   // Works similarly to 'analyze_quoted', except that quoted 'unquote's are
   //   (wait for it) unquoted (BAYUM), and quoted 'unquote-splicing's are both
   //   unquoted & expanded.
-  exe_type analyze_quasiquote(scm_list& exp) {
+  exe_type analyze_quasiquote(scm_list& exp,const bool cps_block=false) {
     if(exp.size() != 2 || data_is_the_SENTINEL_VAL(exp[1]))
       THROW_ERR("'quasiquote expects one argument: (quasiquote <expression>)"<<EXP_ERR(exp));
     // Get quasiquoted data
@@ -1693,27 +1819,31 @@ namespace heist {
     
     // If quasiquoted data is atomic, return as-is
     if(!quoted_data.is_type(types::exp)) {
+      if(cps_block) return [unquoted_exp=generate_fundamental_form_cps(quoted_data)](env_type&){return unquoted_exp;};
       return [unquoted_exp=scm_list(1,quoted_data)](env_type&){return unquoted_exp;};
     }
 
     // If quoting an empty expression, return the empty list
-    if(quoted_data.exp.empty())
-      return [](env_type&){return EMPTY_LIST_EXPRESSION;};
+    if(quoted_data.exp.empty()) {
+      if(cps_block) return [](env_type&){return generate_fundamental_form_cps(symconst::emptylist);};
+      return [](env_type&){return G::EMPTY_LIST_EXPRESSION;};
+    }
 
     // If quasiquoted an unquote, unpack its data
     if(is_unquote(quoted_data.exp)) {
       data unquoted_data = process_unquoted(quoted_data.exp);
       // If an expression, return the exec proc of the analyzed expression
-      if(unquoted_data.is_type(types::exp))
+      if(unquoted_data.is_type(types::exp)) {
+        if(cps_block) scm_analyze(generate_fundamental_form_cps(unquoted_data),false,cps_block);
         return scm_analyze(std::move(unquoted_data.exp));
+      }
       // If an atomic, return the exec proc of its evaluation (in case a variable or some such)
-      return [unquoted_exp=scm_list(1, unquoted_data)](env_type& env)mutable{
-        return scm_eval(std::move(unquoted_exp),env);
-      };
+      if(cps_block) scm_analyze(generate_fundamental_form_cps(unquoted_data),false,cps_block);
+      return scm_analyze(scm_list(1,unquoted_data));
     }
 
     // If quasiquoted an expression, expand such into a list/list_star of quoted data
-    return [quoted_exp=std::move(quoted_data.exp),exp=std::move(exp)]
+    return [quoted_exp=std::move(quoted_data.exp),exp=std::move(exp),cps_block=std::move(cps_block)]
       (env_type& env) {
         // Unquote/Splice-In data as needed throughout the quasiquote template
         scm_list quote_val, mutable_quoted_exp = quoted_exp;
@@ -1721,8 +1851,771 @@ namespace heist {
         tag_quote_val(mutable_quoted_exp, quote_val, exp);
         // propagate quotations throughout the sub-expression
         unquote_quasiquote_template(quote_val,mutable_quoted_exp,env,exp,0);
+        if(cps_block) return scm_analyze(generate_fundamental_form_cps(quote_val),false,true)(env);
         return scm_eval(std::move(quote_val),env);
       };
+  }
+
+  /******************************************************************************
+  * CONTINUATION-PASSING-STYLE EXPANSION OPTIMIZATION -- PASS 1
+  ******************************************************************************/
+
+  // Whether <cps_exp> contains <sym>
+  bool CPS_exp_contains_symbol(const scm_list& cps_exp,const sym_type& sym)noexcept{
+    for(size_type i = 0, n = cps_exp.size(); i < n; ++i)
+      if((cps_exp[i].is_type(types::exp) && CPS_exp_contains_symbol(cps_exp[i].exp,sym)) ||
+         (cps_exp[i].is_type(types::sym) && cps_exp[i].sym == sym))
+        return true;
+    return false;
+  }
+
+
+  // Is a lambda of 1 arg
+  bool is_unary_arg_lambda_cps_exp(const scm_list& cps_exp)noexcept{
+    return cps_exp.size() > 2 && is_tagged_list(cps_exp,symconst::lambda) && 
+           cps_exp[1].is_type(types::exp) && cps_exp[1].exp.size() == 1 && 
+           cps_exp[1].exp[0].is_type(types::sym);
+  }
+
+
+  // Optimizable (pass 1) CPS lambda
+  bool is_optimizable_CPS_pass_1_exp(const scm_list& cps_exp)noexcept{
+    return cps_exp.size() == 3 && is_unary_arg_lambda_cps_exp(cps_exp) && 
+           cps_exp[2].is_type(types::exp) && cps_exp[2].exp.size() == 2 &&
+           cps_exp[2].exp[0].is_type(types::exp) && cps_exp[2].exp[1].is_type(types::sym) &&
+           cps_exp[2].exp[1].sym == cps_exp[1].exp[0].sym &&
+           !CPS_exp_contains_symbol(cps_exp[2].exp[0].exp,cps_exp[2].exp[1].sym);
+  }
+
+
+  // (lambda (a) (<expression-w/o-a> a)) => <expression-w/o-a>
+  void CPS_lambda_unwrapping_optimization_pass_1(scm_list& cps_exp)noexcept{
+    if(is_optimizable_CPS_pass_1_exp(cps_exp)) {
+      auto temp = cps_exp[2].exp[0].exp;
+      cps_exp = temp;
+      CPS_lambda_unwrapping_optimization_pass_1(cps_exp);
+    } else {
+      for(size_type i = 0, n = cps_exp.size(); i < n; ++i)
+        if(cps_exp[i].is_type(types::exp))
+          CPS_lambda_unwrapping_optimization_pass_1(cps_exp[i].exp);
+    }
+  }
+
+  /******************************************************************************
+  * CONTINUATION-PASSING-STYLE EXPANSION OPTIMIZATION -- PASS 2
+  ******************************************************************************/
+
+  bool data_is_continuation_parameter(const data&)noexcept;
+
+  void replace_all_instances_of_symB_with_symA(scm_list& cps_exp,const sym_type& symA,
+                                                                 const sym_type& symB)noexcept{
+    for(size_type i = 0, n = cps_exp.size(); i < n; ++i) {
+      if(cps_exp[i].is_type(types::exp))
+        replace_all_instances_of_symB_with_symA(cps_exp[i].exp,symA,symB);
+      else if(cps_exp[i].is_type(types::sym) && cps_exp[i].sym == symB)
+        cps_exp[i].sym = symA;
+    }
+  }
+
+
+  // Optimizable (pass 2) CPS lambda
+  bool is_optimizable_CPS_pass_2_exp(const scm_list& cps_exp)noexcept{
+    return cps_exp.size() == 2 && cps_exp[0].is_type(types::exp) && 
+           data_is_continuation_parameter(cps_exp[1]) && 
+           is_unary_arg_lambda_cps_exp(cps_exp[0].exp) && cps_exp[0].exp.size() == 3 &&
+           cps_exp[0].exp[2].is_type(types::exp) &&
+           data_is_continuation_parameter(cps_exp[0].exp[1].exp[0]) &&
+           !CPS_exp_contains_symbol(cps_exp[0].exp,cps_exp[1].sym);
+  }
+
+
+  // ((lambda (b) <exp-w/o-a>) a) => <exp-w/o-a>,
+  // 1. With each reference to <b> replaced by <a>
+  // 2. Iff both <a> & <b> are continuations
+  void CPS_lambda_unwrapping_optimization_pass_2(scm_list& cps_exp)noexcept{
+    if(is_optimizable_CPS_pass_2_exp(cps_exp)) {
+      const auto a_param = cps_exp[1].sym, b_param = cps_exp[0].exp[1].exp[0].sym;
+      auto temp = cps_exp[0].exp[2].exp;
+      cps_exp = temp;
+      replace_all_instances_of_symB_with_symA(cps_exp,a_param,b_param);
+      CPS_lambda_unwrapping_optimization_pass_2(cps_exp);
+    } else {
+      for(size_type i = 0, n = cps_exp.size(); i < n; ++i)
+        if(cps_exp[i].is_type(types::exp))
+          CPS_lambda_unwrapping_optimization_pass_2(cps_exp[i].exp);
+    }
+  }
+
+  /******************************************************************************
+  * CONTINUATION-PASSING-STYLE EXPANSION OPTIMIZATION -- PASS 3
+  ******************************************************************************/
+
+  // Replaces the 1 instance of <symB> w/ <objA>
+  bool replace_instance_of_symB_with_objA(scm_list& cps_exp,const data& objA,
+                                                            const sym_type& symB)noexcept{
+    for(size_type i = 0, n = cps_exp.size(); i < n; ++i)
+      if(cps_exp[i].is_type(types::exp) && replace_instance_of_symB_with_objA(cps_exp[i].exp,objA,symB)) {
+        return true;
+      } else if(cps_exp[i].is_type(types::sym) && cps_exp[i].sym == symB) {
+        cps_exp[i] = objA;
+        return true;
+      }
+    return false;
+  }
+
+
+  // counts instances of <sym> w/in <cps_exp>
+  void CPS_exp_count_instances_of_symbol(const scm_list& cps_exp,const sym_type& sym,size_type& count)noexcept{
+    for(size_type i = 0, n = cps_exp.size(); i < n; ++i)
+      if(cps_exp[i].is_type(types::exp)) {
+        CPS_exp_count_instances_of_symbol(cps_exp[i].exp,sym,count);
+        if(count > 2) return;
+      } else if(cps_exp[i].is_type(types::sym) && cps_exp[i].sym == sym) {
+        if(++count > 2) return;
+      }
+  }
+
+
+  // Optimizable (pass 3) CPS lambda
+  bool is_optimizable_CPS_pass_3_exp(const scm_list& cps_exp)noexcept{
+    if(cps_exp.size() == 2 && cps_exp[0].is_type(types::exp) && 
+      is_unary_arg_lambda_cps_exp(cps_exp[0].exp) && cps_exp[0].exp.size() == 3 &&
+      cps_exp[0].exp[2].is_type(types::exp) && data_is_continuation_parameter(cps_exp[0].exp[1].exp[0])) {
+        size_type count = 0;
+        CPS_exp_count_instances_of_symbol(cps_exp[0].exp[2].exp,cps_exp[0].exp[1].exp[0].sym,count);
+        return count < 2;
+      }
+    return false;
+  }
+
+
+  // ((lambda (k) <exp-w/-only-1-instance-of-k>) <obj>) => <exp-w/-only-1-instance-of-k> 
+  // 1. <k> is a continuation
+  // 2. That 1 instance of <k> is replaced w/ <obj>
+  void CPS_lambda_unwrapping_optimization_pass_3(scm_list& cps_exp)noexcept{
+    if(is_optimizable_CPS_pass_3_exp(cps_exp)) {
+      const data a_obj = cps_exp[1];
+      const auto b_param = cps_exp[0].exp[1].exp[0].sym;
+      auto temp = cps_exp[0].exp[2].exp;
+      cps_exp = temp;
+      replace_instance_of_symB_with_objA(cps_exp,a_obj,b_param);
+      CPS_lambda_unwrapping_optimization_pass_3(cps_exp);
+    } else {
+      for(size_type i = 0, n = cps_exp.size(); i < n; ++i)
+        if(cps_exp[i].is_type(types::exp))
+          CPS_lambda_unwrapping_optimization_pass_3(cps_exp[i].exp);
+    }
+  }
+
+  /******************************************************************************
+  * CONTINUATION-PASSING-STYLE EXPANSION OPTIMIZATION -- PASS 4
+  ******************************************************************************/
+
+  // Expand the "ignore" lambda application
+  void expand_CPS_lambda_pass_4_application(scm_list& cps_exp,const size_type& i)noexcept{
+    scm_list unwrapped_exp(cps_exp[i].exp[0].exp.size()-1);
+    unwrapped_exp[0] = cps_exp[i].exp[1];
+    std::move(cps_exp[i].exp[0].exp.begin()+2,cps_exp[i].exp[0].exp.end(),unwrapped_exp.begin()+1);
+    cps_exp.erase(cps_exp.begin()+i); // erase optimized lambda application
+    cps_exp.insert(cps_exp.begin()+i, // insert expanded application
+                   std::make_move_iterator(unwrapped_exp.begin()),
+                   std::make_move_iterator(unwrapped_exp.end())); 
+  }
+
+
+  // Optimizable (pass 4) CPS lambda
+  bool is_optimizable_CPS_pass_4_exp(const scm_list& cps_exp)noexcept{
+    return cps_exp.size() == 2 && cps_exp[0].is_type(types::exp) &&
+           is_unary_arg_lambda_cps_exp(cps_exp[0].exp) &&
+           cps_exp[0].exp[1].exp[0].is_type(types::sym) &&
+           cps_exp[0].exp[1].exp[0].sym == "ignore";
+  }
+
+
+  // ((lambda (ignore) <exp> ...) <obj>) => <obj> <exp> ...
+  void CPS_lambda_unwrapping_optimization_pass_4(scm_list& cps_exp)noexcept{
+    for(size_type i = 0, n = cps_exp.size(); i < n; ++i) {
+      if(cps_exp[i].is_type(types::exp)) {
+        if(is_optimizable_CPS_pass_4_exp(cps_exp[i].exp)) {
+          expand_CPS_lambda_pass_4_application(cps_exp,i);
+          CPS_lambda_unwrapping_optimization_pass_4(cps_exp);
+          return;
+        }
+        CPS_lambda_unwrapping_optimization_pass_4(cps_exp[i].exp);
+      }
+    }
+  }
+
+  /******************************************************************************
+  * CONTINUATION-PASSING-STYLE EXPANSION OPTIMIZATION -- PASS 5
+  ******************************************************************************/
+
+  // Revert the "lambda-set!" definition transformation
+  void expand_CPS_lambda_pass_5_definition(scm_list& cps_exp,const size_type& i)noexcept{
+    scm_list unwrapped_exp(cps_exp[i].exp[0].exp.size()-2);
+    std::move(cps_exp[i].exp[0].exp.begin()+2,cps_exp[i].exp[0].exp.end(),unwrapped_exp.begin());
+    unwrapped_exp[0].exp[0].sym = symconst::define;
+    cps_exp.erase(cps_exp.begin()+i); // erase optimized lambda application
+    cps_exp.insert(cps_exp.begin()+i, // insert expanded application
+                   std::make_move_iterator(unwrapped_exp.begin()),
+                   std::make_move_iterator(unwrapped_exp.end()));
+  }
+
+
+  // Optimizable (pass 5) CPS lambda
+  bool is_optimizable_CPS_pass_5_exp(const scm_list& cps_exp)noexcept{
+    return cps_exp.size() == 2 && cps_exp[0].is_type(types::exp) &&
+           is_unary_arg_lambda_cps_exp(cps_exp[0].exp) &&
+           ((cps_exp[1].is_type(types::bol) && !cps_exp[1].bol.val) || 
+            (cps_exp[1].is_type(types::sym) && cps_exp[1].sym == symconst::false_t)) && 
+           cps_exp[0].exp[2].is_type(types::exp) && cps_exp[0].exp[2].exp.size() == 3 && 
+           cps_exp[0].exp[2].exp[0].is_type(types::sym) && cps_exp[0].exp[2].exp[0].sym == symconst::set;
+  }
+
+
+  // Pass 5: Reifying Definitions
+  // ((lambda (<name>) (set! <name> <val>) <exp> ...) #f) => (define <name> <val>) <exp> ...
+  void CPS_lambda_unwrapping_optimization_pass_5(scm_list& cps_exp)noexcept{
+    for(size_type i = 0, n = cps_exp.size(); i < n; ++i) {
+      if(cps_exp[i].is_type(types::exp)) {
+        if(is_optimizable_CPS_pass_5_exp(cps_exp[i].exp)) {
+          expand_CPS_lambda_pass_5_definition(cps_exp,i);
+          CPS_lambda_unwrapping_optimization_pass_5(cps_exp);
+          return;
+        }
+        CPS_lambda_unwrapping_optimization_pass_5(cps_exp[i].exp);
+      }
+    }
+  }
+
+  /******************************************************************************
+  * CONTINUATION-PASSING-STYLE EXPANSION OPTIMIZATION -- DISPATCH
+  ******************************************************************************/
+
+  // Perform several optimization passes on the generated CPS to reduce lambda count 
+  // NOTE: CPS atomics are already optimized @expansion-time
+  void optimize_CPS_code_generation(scm_list& cps_exp)noexcept{
+    CPS_lambda_unwrapping_optimization_pass_1(cps_exp);
+    CPS_lambda_unwrapping_optimization_pass_2(cps_exp);
+    CPS_lambda_unwrapping_optimization_pass_3(cps_exp);
+    CPS_lambda_unwrapping_optimization_pass_4(cps_exp);
+    CPS_lambda_unwrapping_optimization_pass_5(cps_exp);
+  }
+
+  /******************************************************************************
+  * CONTINUATION-PASSING-STYLE EXPANSION
+  ******************************************************************************/
+
+  void confirm_valid_define_syntax(const scm_list&);
+
+  bool is_scm_cps(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::scm_cps);}
+  bool is_cps_quote(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::cps_quote);}
+  bool is_cps_application(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::cps_app_tag);}
+
+  // Heist-specific checker to not prefix C++ derived special forms w/ application tag
+  bool is_HEIST_cpp_derived_special_form(const sym_type& app)noexcept{
+    return app == symconst::cps_quote || app == symconst::scm_cps    ||
+           app == symconst::and_t     || app == symconst::or_t       || app == symconst::scons        ||
+           app == symconst::stream    || app == symconst::delay      || app == symconst::cond         ||
+           app == symconst::case_t    || app == symconst::let        || app == symconst::let_star     ||
+           app == symconst::letrec    || app == symconst::do_t       || app == symconst::quasiquote   ||
+           app == symconst::let_syn   || app == symconst::letrec_syn || app == symconst::vec_literal  ||
+           app == symconst::unquote   || app == symconst::unquo_splice;
+  }
+
+
+  // Generate a unique hashed variant of a cps identifier name
+  // NOTE: Max Unique Hashes = (expt 18446744073709551615 18446744073709551615)
+  scm_string generate_unique_cps_hash()noexcept{
+    if(G::CPS_HASH_IDX_1 != G::MAX_SIZE_TYPE)
+      return symconst::continuation
+        + std::to_string(G::CPS_HASH_IDX_2) + '_' + std::to_string(G::CPS_HASH_IDX_1++);
+    return symconst::continuation
+      + std::to_string(++G::CPS_HASH_IDX_2) + '_' + std::to_string(G::CPS_HASH_IDX_1++);
+  }
+
+
+  // CPS atomics may be returned as is: (cps <cps-atomic>) -> <cps-atomic>
+  bool data_is_cps_atomic(const data& d)noexcept{
+    return !d.is_type(types::exp) || 
+           is_tagged_list(d.exp,symconst::syn_rules) || 
+           is_tagged_list(d.exp,symconst::quote);
+  }
+
+
+  scm_list cps_expand_application(const scm_list& application) {
+    const auto app_len = application.size();
+    scm_list cps_app(app_len+2), cps_exp(3);
+    cps_exp[0] = symconst::lambda;
+    cps_exp[1] = scm_list(1,generate_unique_cps_hash()); // "k"
+    cps_exp[2] = scm_list(2);
+    auto iter = cps_exp.begin()+2;
+    for(size_type i = 0; i < app_len; ++i) {
+      if(data_is_cps_atomic(application[i])) {
+        cps_app[i+1] = application[i];
+      } else {
+        iter->exp[0] = generate_fundamental_form_cps(application[i]);
+        iter->exp[1] = scm_list(3);
+        iter->exp[1].exp[0] = symconst::lambda;
+        iter->exp[1].exp[1] = scm_list(1,generate_unique_cps_hash()); // "arg"
+        cps_app[i+1] = iter->exp[1].exp[1].exp[0];
+        iter->exp[1].exp[2] = scm_list(2);
+        iter = iter->exp[1].exp.begin()+2;
+      }
+    }
+    cps_app[0] = symconst::cps_app_tag; // Add the cps-application prefix
+    cps_app[app_len+1] = cps_exp[1].exp[0];
+    iter->exp = std::move(cps_app);
+    return cps_exp;
+  }
+
+
+  // Generates the procedure to set <var> to <val> after binding <var> as a lambda arg
+  scm_list get_cps_defn_set_procedure(const data& continuation,const data& var,const data& val){
+    scm_list set_exp(2);
+    // Set atomic values and pass to the continuation
+    if(data_is_cps_atomic(val)) {
+      set_exp[0] = continuation;
+      set_exp[1] = scm_list(3);
+      set_exp[1].exp[0] = symconst::set;
+      set_exp[1].exp[1] = var;
+      set_exp[1].exp[2] = val;
+    // Cps-ify non-atomic values, passing a lambda as a continuation that in 
+    //   turn sets the recieved value & passes such to the continuation given here as an arg
+    } else {
+      set_exp[0] = generate_fundamental_form_cps(val,false);
+      set_exp[1] = scm_list(3);
+      set_exp[1].exp[0] = symconst::lambda;
+      set_exp[1].exp[1] = scm_list(1,generate_unique_cps_hash()); // "defn-val"
+      set_exp[1].exp[2] = scm_list(2);
+      set_exp[1].exp[2].exp[0] = continuation;
+      set_exp[1].exp[2].exp[1] = scm_list(3);
+      set_exp[1].exp[2].exp[1].exp[0] = symconst::set;
+      set_exp[1].exp[2].exp[1].exp[1] = var;
+      set_exp[1].exp[2].exp[1].exp[2] = set_exp[1].exp[1].exp[0]; // defn-val
+    }
+    return set_exp;
+  }
+
+
+  // Generates a CPS definition in the middle of a BEGIN or LAMBDA BODY sequence, w/ <rest_exp>
+  //   being the remaining expressions AFTER this definition in the sequence
+  // PRECONDITION: !rest_exp.empty()
+  scm_list generate_mid_seq_cps_var_defn(const scm_list& defn_exp, const data& rest_exp){
+    scm_list cps_defn(3);
+    cps_defn[0] = symconst::lambda;
+    cps_defn[1] = scm_list(1,generate_unique_cps_hash()); // topmost continuation "k"
+    cps_defn[2] = scm_list(2);
+
+    cps_defn[2].exp[1] = G::FALSE_DATA_BOOLEAN; // initially bind defined symbol to #f
+    cps_defn[2].exp[0] = scm_list(3);
+    cps_defn[2].exp[0].exp[0] = symconst::lambda;
+    cps_defn[2].exp[0].exp[1] = scm_list(1,defn_exp[1]); // defined symbol as an argument
+    cps_defn[2].exp[0].exp[2] = scm_list(2);
+
+    // Bind Var to Value
+    cps_defn[2].exp[0].exp[2].exp[0] = scm_list(3);
+    cps_defn[2].exp[0].exp[2].exp[0].exp[0] = symconst::lambda;
+    cps_defn[2].exp[0].exp[2].exp[0].exp[1] = scm_list(1,generate_unique_cps_hash()); // continuation "k1" of set!
+    cps_defn[2].exp[0].exp[2].exp[0].exp[2] = get_cps_defn_set_procedure(cps_defn[2].exp[0].exp[2].exp[0].exp[1].exp[0],
+                                                                         defn_exp[1],defn_exp[2]);
+
+    // Continue w/ expression after binding [THIS IS THE "k1" CONTINUATION OF THE EXPRESSION ABOVE]
+    cps_defn[2].exp[0].exp[2].exp[1] = scm_list(3);
+    cps_defn[2].exp[0].exp[2].exp[1].exp[0] = symconst::lambda;
+    cps_defn[2].exp[0].exp[2].exp[1].exp[1] = scm_list(1,"ignore"); // result of set!
+    cps_defn[2].exp[0].exp[2].exp[1].exp[2] = scm_list(2);
+
+    // Pass <rest_exp> of expression to the topmost continuation if CPS-ATOMIC
+    if(data_is_cps_atomic(rest_exp)) {
+      cps_defn[2].exp[0].exp[2].exp[1].exp[2].exp[0] = cps_defn[1].exp[0];
+      cps_defn[2].exp[0].exp[2].exp[1].exp[2].exp[1] = rest_exp;
+    // Else CPS-ify <rest_exp> of expression & pass it the topmost continuation
+    } else {
+      cps_defn[2].exp[0].exp[2].exp[1].exp[2].exp[0] = generate_fundamental_form_cps(rest_exp,false);
+      cps_defn[2].exp[0].exp[2].exp[1].exp[2].exp[1] = cps_defn[1].exp[0];
+    }
+    return cps_defn;
+  }
+
+
+  // Generates the CPS expression needed to evaluate <rest_exp> after defining new syntax
+  scm_list generate_fundamental_form_cps_syn_defn_REST_EXP_continuation(const data& continuation,const data& rest_exp){
+    scm_list rest_cont(2);
+    // Pass <rest_exp> of expression to the topmost continuation if CPS-ATOMIC
+    if(data_is_cps_atomic(rest_exp)) {
+      rest_cont[0] = continuation;
+      rest_cont[1] = rest_exp;
+    // Else CPS-ify <rest_exp> of expression & pass it the topmost continuation
+    } else {
+      rest_cont[0] = generate_fundamental_form_cps(rest_exp,false);
+      rest_cont[1] = continuation;
+    }
+    return rest_cont;
+  }
+
+
+  // Generates a CPS syntax definition in the middle of a BEGIN or LAMBDA BODY sequence, w/ <rest_exp>
+  //   being the remaining expressions AFTER this syntax definition in the sequence
+  // PRECONDITION: !rest_exp.empty()
+  scm_list generate_mid_seq_cps_syn_defn(const scm_list& defn_exp, const data& rest_exp){
+    const bool atomic_syntax_rules = data_is_cps_atomic(defn_exp[2]);
+    scm_list cps_defn(3 + atomic_syntax_rules);
+    cps_defn[0] = symconst::lambda;
+    cps_defn[1] = scm_list(1,generate_unique_cps_hash()); // topmost continuation "k"
+    // Atomic Syntax-Rules reduces # of lambdas needed by 1
+    if(atomic_syntax_rules) {
+      cps_defn[2] = scm_list(3);
+      cps_defn[2].exp[0] = symconst::defn_syn;
+      cps_defn[2].exp[1] = defn_exp[1];
+      cps_defn[2].exp[2] = defn_exp[2];
+      cps_defn[3] = generate_fundamental_form_cps_syn_defn_REST_EXP_continuation(cps_defn[1].exp[0],rest_exp);
+      return cps_defn;
+    }
+    cps_defn[2] = scm_list(2);
+    cps_defn[2].exp[0] = generate_fundamental_form_cps(defn_exp[2],false);
+    cps_defn[2].exp[1] = scm_list(4);
+    cps_defn[2].exp[1].exp[0] = symconst::lambda;
+    cps_defn[2].exp[1].exp[1] = scm_list(1,generate_unique_cps_hash()); // "syntax-object"
+
+    cps_defn[2].exp[1].exp[2] = scm_list(3);
+    cps_defn[2].exp[1].exp[2].exp[0] = symconst::defn_syn;
+    cps_defn[2].exp[1].exp[2].exp[1] = defn_exp[1];
+    cps_defn[2].exp[1].exp[2].exp[2] = cps_defn[2].exp[1].exp[1].exp[0];
+    cps_defn[2].exp[1].exp[3] = generate_fundamental_form_cps_syn_defn_REST_EXP_continuation(cps_defn[1].exp[0],rest_exp);
+    return cps_defn;
+  }
+
+
+  template<scm_list(*generate_begin_defn)(const scm_list&,const data&)>
+  scm_list generate_begin_mid_seq_defn(const scm_list& defn_exp,const data& begin){
+    if(begin.exp.size() == 3 && data_is_cps_atomic(begin.exp[2])) {
+      return generate_begin_defn(defn_exp,begin.exp[2]);
+    } else {
+      scm_list begin_tail(begin.exp.size()-1);
+      begin_tail[0] = symconst::begin;
+      std::copy(begin.exp.begin()+2,begin.exp.end(),begin_tail.begin()+1);
+      return generate_begin_defn(defn_exp,begin_tail);
+    }
+  }
+
+
+  scm_list convert_proc_defn_to_lambda_defn(const scm_list& defn_exp)noexcept{
+    scm_list lambda_defn(3);
+    lambda_defn[0] = symconst::define;
+    lambda_defn[1] = defn_exp[1].exp[0]; // proc name
+    lambda_defn[2] = scm_list(defn_exp.size());
+    lambda_defn[2].exp[0] = symconst::lambda;
+    lambda_defn[2].exp[1] = scm_list(defn_exp[1].exp.begin()+1,defn_exp[1].exp.end()); // args
+    std::copy(defn_exp.begin()+2,defn_exp.end(),lambda_defn[2].exp.begin()+2); // append body to lambda
+    return lambda_defn;
+  }
+
+
+  void get_cps_lambda_body(const scm_list& lambda_exp, scm_list& lambda_cps){
+    lambda_cps[2] = scm_list(2); // lambda body
+    // If single-expression body, NO NEED FOR "BEGIN"
+    if(lambda_exp.size() == 3) { 
+      if(data_is_cps_atomic(lambda_exp[2])) {
+        lambda_cps[2].exp[0] = *lambda_cps[1].exp.rbegin(); // DYNAMIC CONTINUATION
+        lambda_cps[2].exp[1] = lambda_exp[2];
+      } else {
+        lambda_cps[2].exp[0] = generate_fundamental_form_cps(lambda_exp[2],false);
+        lambda_cps[2].exp[1] = *lambda_cps[1].exp.rbegin(); // DYNAMIC CONTINUATION
+      }
+    // If multi-expression body, WRAP W/ "BEGIN"
+    } else {
+      scm_list begin_recur(lambda_exp.size()-1);
+      begin_recur[0] = symconst::begin;
+      std::copy(lambda_exp.begin()+2,lambda_exp.end(),begin_recur.begin()+1);
+      lambda_cps[2] = scm_list(2);
+      lambda_cps[2].exp[0] = generate_fundamental_form_cps(begin_recur,false);
+      lambda_cps[2].exp[1] = *lambda_cps[1].exp.rbegin();
+    }
+  }
+
+
+  scm_list get_cps_IF_consequent(const data& code, const data& continuation){
+    scm_list consequent(2);
+    if(data_is_cps_atomic(code.exp[2])) { // (k <atomic-consequent>)
+      consequent[0] = continuation;
+      consequent[1] = code.exp[2];
+    } else { // ((cps <consequent>) k)
+      consequent[0] = generate_fundamental_form_cps(code.exp[2],false);
+      consequent[1] = continuation;
+    }
+    return consequent;
+  }
+
+
+  // PRECONDITION: Assumes IF alternative exists
+  scm_list get_cps_IF_alternative(const data& code, const data& continuation){
+    scm_list alternative(2);
+    if(data_is_cps_atomic(code.exp[3])) { // (k <atomic-alternative>)
+      alternative[0] = continuation;
+      alternative[1] = code.exp[3];
+    } else { // ((cps <alternative>) k)
+      alternative[0] = generate_fundamental_form_cps(code.exp[3],false);
+      alternative[1] = continuation;
+    }
+    return alternative;
+  }
+
+
+  // NOTE: <topmost_call> signals to optimize the result prior returning
+  scm_list generate_fundamental_form_cps(const data& code,const bool topmost_call){
+    // ATOMIC / SYNTAX-RULES / QUOTE
+    if(data_is_cps_atomic(code)) {
+      scm_list lambda(3);
+      lambda[0] = symconst::lambda;
+      lambda[1] = scm_list(1,generate_unique_cps_hash()); // "k"
+      lambda[2] = scm_list(2);
+      lambda[2].exp[0] = lambda[1].exp[0];
+      lambda[2].exp[1] = code;
+      return lambda;
+
+    // DEFINE-SYNTAX
+    } else if(is_tagged_list(code.exp,symconst::defn_syn)) {
+      confirm_valid_define_syntax(code.exp);
+      scm_list cps_defn_syn(3);
+      cps_defn_syn[0] = symconst::lambda;
+      cps_defn_syn[1] = scm_list(1,generate_unique_cps_hash()); // "k"
+      cps_defn_syn[2] = scm_list(2);
+      if(data_is_cps_atomic(code.exp[2])) {
+        cps_defn_syn[2].exp[0] = cps_defn_syn[1].exp[0];
+        cps_defn_syn[2].exp[1] = scm_list(3);
+        cps_defn_syn[2].exp[1].exp[0] = symconst::defn_syn;
+        cps_defn_syn[2].exp[1].exp[1] = code.exp[1];
+        cps_defn_syn[2].exp[1].exp[2] = code.exp[2];
+        return cps_defn_syn;
+      }
+      cps_defn_syn[2].exp[0] = generate_fundamental_form_cps(code.exp[2],false);
+      cps_defn_syn[2].exp[1] = scm_list(3);
+      cps_defn_syn[2].exp[1].exp[0] = symconst::lambda;
+      cps_defn_syn[2].exp[1].exp[1] = scm_list(1,generate_unique_cps_hash()); // "syntax-object"
+
+      cps_defn_syn[2].exp[1].exp[2] = scm_list(2);
+      cps_defn_syn[2].exp[1].exp[2].exp[0] = cps_defn_syn[1].exp[0];
+      cps_defn_syn[2].exp[1].exp[2].exp[1] = scm_list(3);
+      cps_defn_syn[2].exp[1].exp[2].exp[1].exp[0] = symconst::defn_syn;
+      cps_defn_syn[2].exp[1].exp[2].exp[1].exp[1] = code.exp[1];
+      cps_defn_syn[2].exp[1].exp[2].exp[1].exp[2] = cps_defn_syn[2].exp[1].exp[1].exp[0];
+      if(topmost_call) optimize_CPS_code_generation(cps_defn_syn);
+      return cps_defn_syn;
+
+    // SET!
+    } else if(is_tagged_list(code.exp,symconst::set)) {
+      confirm_valid_assignment(code.exp);
+      scm_list lambda(3);
+      lambda[0] = symconst::lambda;
+      lambda[1] = scm_list(1,generate_unique_cps_hash()); // "k"
+      lambda[2] = scm_list(2);
+      if(data_is_cps_atomic(code.exp[2])) {
+        lambda[2].exp[0] = lambda[1].exp[0];
+        lambda[2].exp[1] = code.exp;
+        return lambda;
+      }
+      lambda[2].exp[0] = generate_fundamental_form_cps(code.exp[2],false);
+      lambda[2].exp[1] = scm_list(3);
+      lambda[2].exp[1].exp[0] = symconst::lambda;
+      lambda[2].exp[1].exp[1] = scm_list(1,generate_unique_cps_hash()); // "value"
+      lambda[2].exp[1].exp[2] = scm_list(2);
+      lambda[2].exp[1].exp[2].exp[0] = lambda[1].exp[0];
+      lambda[2].exp[1].exp[2].exp[1] = scm_list(3);
+      lambda[2].exp[1].exp[2].exp[1].exp[0] = symconst::set;
+      lambda[2].exp[1].exp[2].exp[1].exp[1] = code.exp[1];
+      lambda[2].exp[1].exp[2].exp[1].exp[2] = lambda[2].exp[1].exp[1].exp[0];
+      if(topmost_call) optimize_CPS_code_generation(lambda);
+      return lambda;
+
+    // BEGIN
+    } else if(is_tagged_list(code.exp,symconst::begin)) {
+      scm_list lambda(3);
+      lambda[0] = symconst::lambda;
+      lambda[1] = scm_list(1,generate_unique_cps_hash()); // "k"
+      lambda[2] = scm_list(2);
+      // 0 Args
+      if(code.exp.size() == 1) {
+        lambda[2].exp[0] = lambda[1].exp[0];
+        lambda[2].exp[1] = scm_list(1,"void");
+      // 1 Arg
+      } else if(code.exp.size() == 2) {
+        if(data_is_cps_atomic(code.exp[1])) {
+          lambda[2].exp[0] = lambda[1].exp[0];
+          lambda[2].exp[1] = code.exp[1];
+        } else {
+          lambda[2].exp[0] = generate_fundamental_form_cps(code.exp[1],false);
+          lambda[2].exp[1] = lambda[1].exp[0];
+        }
+      // N Args
+      } else {
+        bool rec_idx = !data_is_cps_atomic(code.exp[1]);
+        if(rec_idx) {
+          if(is_tagged_list(code.exp[1].exp,symconst::define)) {
+            if(code.exp[1].exp[1].is_type(types::exp)) // Convert procedure definition to a lambda defn
+              lambda[2].exp[0] = generate_begin_mid_seq_defn<generate_mid_seq_cps_var_defn>(
+                                                             convert_proc_defn_to_lambda_defn(code.exp[1].exp),code.exp);
+            else
+              lambda[2].exp[0] = generate_begin_mid_seq_defn<generate_mid_seq_cps_var_defn>(code.exp[1].exp,code.exp);
+            lambda[2].exp[1] = lambda[1].exp[0];
+            if(topmost_call) optimize_CPS_code_generation(lambda);
+            return lambda;
+          } else if(is_tagged_list(code.exp[1].exp,symconst::defn_syn)) {
+            lambda[2].exp[0] = generate_begin_mid_seq_defn<generate_mid_seq_cps_syn_defn>(code.exp[1].exp,code.exp);
+            lambda[2].exp[1] = lambda[1].exp[0];
+            if(topmost_call) optimize_CPS_code_generation(lambda);
+            return lambda;
+          } else {
+            lambda[2].exp[0] = generate_fundamental_form_cps(code.exp[1],false);
+          }
+        } else {
+          lambda[2].exp[1] = code.exp[1];
+        }
+        lambda[2].exp[rec_idx] = scm_list(3);
+        lambda[2].exp[rec_idx].exp[0] = symconst::lambda;
+        lambda[2].exp[rec_idx].exp[1] = scm_list(1,"ignore");
+        lambda[2].exp[rec_idx].exp[2] = scm_list(2);
+        if(code.exp.size() == 3 && data_is_cps_atomic(code.exp[2])) { // 2 ARGS, THE LAST BEING CPS-ATOMIC
+          lambda[2].exp[rec_idx].exp[2].exp[0] = lambda[1].exp[0];
+          lambda[2].exp[rec_idx].exp[2].exp[1] = code.exp[2];
+        } else { // 2+ ARGS, IF 2, 2ND != CPS-ATOMIC
+          data begin_recur(scm_list(code.exp.size()-1));
+          begin_recur.exp[0] = symconst::begin;
+          std::copy(code.exp.begin()+2, code.exp.end(), begin_recur.exp.begin()+1);
+          lambda[2].exp[rec_idx].exp[2].exp[0] = generate_fundamental_form_cps(begin_recur,false);
+          lambda[2].exp[rec_idx].exp[2].exp[1] = lambda[1].exp[0];
+        }
+      }
+      if(topmost_call) optimize_CPS_code_generation(lambda);
+      return lambda;
+
+    // LAMBDA
+    } else if(is_tagged_list(code.exp,symconst::lambda)) {
+      confirm_valid_lambda(code.exp);
+      scm_list lambda(3);
+      lambda[0] = symconst::lambda;
+      lambda[1] = scm_list(1,generate_unique_cps_hash()); // "k"
+      lambda[2] = scm_list(2);
+      lambda[2].exp[0] = lambda[1].exp[0];
+
+      lambda[2].exp[1] = scm_list(3);
+      lambda[2].exp[1].exp[0] = symconst::lambda;
+      if(code.exp[1].exp.empty()) { // ARGLESS
+        lambda[2].exp[1].exp[1] = scm_list(2);
+        lambda[2].exp[1].exp[1].exp[0] = symconst::sentinel_arg;
+        lambda[2].exp[1].exp[1].exp[1] = generate_unique_cps_hash(); // "dyn-k"
+      } else { // N ARGS
+        const auto param_len = code.exp[1].exp.size();
+        lambda[2].exp[1].exp[1] = scm_list(param_len+1);
+        std::copy(code.exp[1].exp.begin(),code.exp[1].exp.end(),lambda[2].exp[1].exp[1].exp.begin());
+        lambda[2].exp[1].exp[1].exp[param_len] = generate_unique_cps_hash(); // "dyn-k"
+      }
+      get_cps_lambda_body(code.exp,lambda[2].exp[1].exp);
+      if(topmost_call) optimize_CPS_code_generation(lambda);
+      return lambda;
+
+    // IF
+    } else if(is_tagged_list(code.exp,symconst::if_t)) {
+      confirm_valid_if(code.exp);
+      scm_list lambda(3);
+      lambda[0] = symconst::lambda;
+      lambda[1] = scm_list(1,generate_unique_cps_hash()); // "k"
+      // Atomic IF test
+      if(data_is_cps_atomic(code.exp[1])) { 
+        lambda[2] = scm_list(code.exp.size());
+        lambda[2].exp[0] = symconst::if_t;
+        lambda[2].exp[1] = code.exp[1];
+        lambda[2].exp[2] = get_cps_IF_consequent(code,lambda[1].exp[0]);
+        if(code.exp.size() > 3) // Has IF alternative
+          lambda[2].exp[3] = get_cps_IF_alternative(code,lambda[1].exp[0]);
+        if(topmost_call) optimize_CPS_code_generation(lambda);
+        return lambda;
+      }
+      // Non-Atomic IF test
+      lambda[2] = scm_list(2);
+      lambda[2].exp[0] = generate_fundamental_form_cps(code.exp[1],false);
+      lambda[2].exp[1] = scm_list(3);
+      lambda[2].exp[1].exp[0] = symconst::lambda;
+      lambda[2].exp[1].exp[1] = scm_list(1,generate_unique_cps_hash()); // "test-result"
+      lambda[2].exp[1].exp[2] = scm_list(code.exp.size());
+      lambda[2].exp[1].exp[2].exp[0] = symconst::if_t;
+      lambda[2].exp[1].exp[2].exp[1] = lambda[2].exp[1].exp[1].exp[0];
+      lambda[2].exp[1].exp[2].exp[2] = get_cps_IF_consequent(code,lambda[1].exp[0]);
+      if(code.exp.size() > 3) // Has IF alternative
+        lambda[2].exp[1].exp[2].exp[3] = get_cps_IF_alternative(code,lambda[1].exp[0]);
+      if(topmost_call) optimize_CPS_code_generation(lambda);
+      return lambda;
+
+    // DEFINE
+    } else if(is_tagged_list(code.exp,symconst::define)) {
+      confirm_valid_definition(code.exp);
+      if(!code.exp[1].is_type(types::exp)) { // DEFINING VARIABLE
+        scm_list cps_defn(3);
+        cps_defn[0] = symconst::lambda;
+        cps_defn[1] = scm_list(1,generate_unique_cps_hash()); // topmost continuation "k"
+        cps_defn[2] = scm_list(2);
+        cps_defn[2].exp[1] = G::FALSE_DATA_BOOLEAN; // initially bind defined symbol to #f
+        cps_defn[2].exp[0] = scm_list(3);
+        cps_defn[2].exp[0].exp[0] = symconst::lambda;
+        cps_defn[2].exp[0].exp[1] = scm_list(1,code.exp[1]); // defined symbol as an argument, and bind via set! (below)
+        cps_defn[2].exp[0].exp[2] = get_cps_defn_set_procedure(cps_defn[1].exp[0],code.exp[1],code.exp[2]);
+        if(topmost_call) optimize_CPS_code_generation(cps_defn);
+        return cps_defn;
+      } else { // DEFINING PROCEDURE
+        auto cps_defn = generate_fundamental_form_cps(convert_proc_defn_to_lambda_defn(code.exp),false); // cps lambda defn
+        if(topmost_call) optimize_CPS_code_generation(cps_defn);
+        return cps_defn;
+      }
+
+    // APPLICATION
+    } else {
+      if(code.exp.empty())
+        THROW_ERR("'scm->cps CAN'T EVAL AN EMPTY EXPRESSION!" << EXP_ERR(code.exp));
+      // Applications are expanded @eval-time (accounts for expanding macros 
+      //   & handling non-cps fcn applications in scm->cps blocks)
+      if(code.exp[0].is_type(types::sym) && is_HEIST_cpp_derived_special_form(code.exp[0].sym))
+        return code.exp; // Don't tag applications of HEIST's C++ derived forms
+      // Tag any other application
+      bool no_tag = !is_cps_application(code.exp);
+      scm_list app(code.exp.size()+no_tag);
+      if(no_tag) app[0] = symconst::cps_app_tag;
+      std::copy(code.exp.begin(),code.exp.end(),app.begin()+no_tag);
+      return app;
+    }
+  }
+
+
+  // Process convert & eval exp in CPS (Continuation Passing Style)
+  exe_type analyze_scm_cps(scm_list& exp) {
+    if(exp.size() == 1)
+      THROW_ERR("'scm->cps expects at least 1 expression: (scm->cps <exp-1> ... <exp-N>)"<<EXP_ERR(exp));
+    if(exp.size() == 2) {
+      return scm_analyze(generate_fundamental_form_cps(exp[1]),false,true);
+    } else { // Wrap multi-statement transforms in a BEGIN
+      scm_list begin(exp.size());
+      begin[0] = symconst::begin;
+      std::copy(exp.begin()+1,exp.end(),begin.begin()+1);
+      return scm_analyze(generate_fundamental_form_cps(begin),false,true);
+    }
+  }
+
+
+  // Returns the generated CPS form of exp as a quoted list of data
+  exe_type analyze_cps_quote(scm_list& exp,const bool cps_block) {
+    if(exp.size() == 1)
+      THROW_ERR("'cps-quote expects at least 1 expression: (cps-quote <exp-1> ... <exp-N>)"<<EXP_ERR(exp));
+    scm_list quoted_cps(2);
+    quoted_cps[0] = symconst::quote;
+    if(exp.size() == 2) {
+      quoted_cps[1] = generate_fundamental_form_cps(exp[1]);
+    } else { // Wrap multi-statement transforms in a BEGIN
+      scm_list begin(exp.size());
+      begin[0] = symconst::begin;
+      std::copy(exp.begin()+1,exp.end(),begin.begin()+1);
+      quoted_cps[1] = generate_fundamental_form_cps(begin);
+    }
+    if(cps_block) return scm_analyze(generate_fundamental_form_cps(quoted_cps),false,true);
+    return scm_analyze(std::move(quoted_cps));
   }
 
   /******************************************************************************
@@ -1814,11 +2707,11 @@ namespace heist {
   }
 
 
-  // Get idx of <id_name> in <ID_TO_VAL_MAP>. Returns <MAX_SIZE_TYPE> if not found.
+  // Get idx of <id_name> in <ID_TO_VAL_MAP>. Returns <G::MAX_SIZE_TYPE> if not found.
   size_type find_macro_identifier_index(MACRO_ID_TABLE& ID_TO_VAL_MAP,const sym_type& id_name)noexcept{
     for(size_type i = 0, n = ID_TO_VAL_MAP.size(); i < n; ++i)
       if(ID_TO_VAL_MAP[i].first == id_name) return i;
-    return MAX_SIZE_TYPE;
+    return G::MAX_SIZE_TYPE;
   }
 
   /******************************************************************************
@@ -1862,7 +2755,7 @@ namespace heist {
   // Handle '...' pattern analysis
   bool account_for_pattern_ellipsis_and_return_whether_no_match(const scm_list& args_exp, const size_type& args_size, size_type& args_idx,
                                                       const data& pat_obj_prior_ellipsis, const size_type& number_args_left_after_variadic,
-                                                                                          const frame_vars& keywords, MACRO_ID_TABLE& ID_TO_VAL_MAP)noexcept{
+                                                      const frame_vars& keywords,         MACRO_ID_TABLE& ID_TO_VAL_MAP)noexcept{
     // Start associating objs based on the first obj prior "..."'s position
     --args_idx;
     // Confirm enough room in <args_exp> for the variadic
@@ -1969,7 +2862,7 @@ namespace heist {
         get_macro_variadic_exp_expansion_object(expanded_exp[i].exp,ID_TO_VAL_MAP,idx);
       } else if(is_symbolic_macro_identifier(expanded_exp[i])) {
         auto val_idx = find_macro_identifier_index(ID_TO_VAL_MAP,expanded_exp[i].sym);
-        if(val_idx != MAX_SIZE_TYPE)
+        if(val_idx != G::MAX_SIZE_TYPE)
           expanded_exp[i] = ID_TO_VAL_MAP[val_idx].second[idx];
       }
     }
@@ -1986,7 +2879,7 @@ namespace heist {
         get_first_macro_variadic_exp_expansion_object(args,name,expanded_exp[i].exp,ID_TO_VAL_MAP,len);
       } else if(is_symbolic_macro_identifier(expanded_exp[i])) {
         auto val_idx = find_macro_identifier_index(ID_TO_VAL_MAP,expanded_exp[i].sym);
-        if(val_idx == MAX_SIZE_TYPE) continue;
+        if(val_idx == G::MAX_SIZE_TYPE) continue;
         if(!len) { // 1st identifier found
           len = ID_TO_VAL_MAP[val_idx].second.size();
         } else if(len != ID_TO_VAL_MAP[val_idx].second.size()) {
@@ -2040,10 +2933,10 @@ namespace heist {
         // Expand non-variadic identifiers
         auto val_idx = find_macro_identifier_index(ID_TO_VAL_MAP,expanded_exp[i].sym);
         if(i+1 == expanded_exp.size() || !data_is_ellipsis(expanded_exp[i+1])) {
-          if(val_idx != MAX_SIZE_TYPE && ID_TO_VAL_MAP[val_idx].second.size() == 1)
+          if(val_idx != G::MAX_SIZE_TYPE && ID_TO_VAL_MAP[val_idx].second.size() == 1)
             expanded_exp[i] = ID_TO_VAL_MAP[val_idx].second[0];
         // Expand variadic identifiers
-        } else if(val_idx != MAX_SIZE_TYPE) {
+        } else if(val_idx != G::MAX_SIZE_TYPE) {
           // erase the identifier & "...", then insert the variadic expansion values
           expanded_exp.erase(expanded_exp.begin()+i,expanded_exp.begin()+i+2);
           expanded_exp.insert(expanded_exp.begin()+i,ID_TO_VAL_MAP[val_idx].second.begin(),
@@ -2084,7 +2977,7 @@ namespace heist {
   // Confirm whether 'application_label' is a potential macro label
   bool application_is_a_potential_macro(const scm_string& application_label)noexcept{
     if(application_label.empty()) return false;
-    for(const auto& label : MACRO_LABEL_REGISTRY)
+    for(const auto& label : G::MACRO_LABEL_REGISTRY)
       if(label == application_label)
         return true;
     return false;
@@ -2253,13 +3146,13 @@ namespace heist {
   // Generate a unique hashed (hygienic!) variant of the given macro arg name
   // NOTE: Max Unique Hashes = (expt 18446744073709551615 18446744073709551615)
   scm_string hygienically_hashed_macro_arg(const scm_string& label)noexcept{
-    if(MACRO_HASH_IDX_1 != MAX_SIZE_TYPE)
+    if(G::MACRO_HASH_IDX_1 != G::MAX_SIZE_TYPE)
       return "__HEIST-" + label + '-' 
-        + std::to_string(MACRO_HASH_IDX_2) + '-' 
-        + std::to_string(MACRO_HASH_IDX_1++);
+        + std::to_string(G::MACRO_HASH_IDX_2) + '-' 
+        + std::to_string(G::MACRO_HASH_IDX_1++);
     return "__HEIST-" + label + '-' 
-      + std::to_string(++MACRO_HASH_IDX_2) + '-' 
-      + std::to_string(MACRO_HASH_IDX_1++);
+      + std::to_string(++G::MACRO_HASH_IDX_2) + '-' 
+      + std::to_string(G::MACRO_HASH_IDX_1++);
   }
 
 
@@ -2322,13 +3215,18 @@ namespace heist {
   bool is_letrec_syntax(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::letrec_syn);}
 
 
-  bool must_evaluate_2nd_arg_for_syntax_rules_object(scm_list& exp) {
+  void confirm_valid_define_syntax(const scm_list& exp) {
     if(exp.size() != 3)
       THROW_ERR("'define-syntax expects 2 arguments:"
         "\n     (define-syntax <label> <syntax-rules-object>)"<<EXP_ERR(exp));
     if(!exp[1].is_type(types::sym))
       THROW_ERR("'define-syntax 1st arg "<<PROFILE(exp[1])
         <<" isn't a symbolic label:" << EXP_ERR(exp));
+  }
+
+
+  bool must_evaluate_2nd_arg_for_syntax_rules_object(scm_list& exp) {
+    confirm_valid_define_syntax(exp);
     // If given a syntax-rules expression, immediately evaluate (no need for environment)
     if(exp[2].is_type(types::exp) && !exp[2].exp.empty() && 
       is_tagged_list(exp[2].exp,symconst::syn_rules)) {
@@ -2359,7 +3257,8 @@ namespace heist {
 
 
   // Template for 'let-syntax' & 'letrec-syntax' special forms (letrec style is default)
-  exe_type let_syntactic_extension_binding_template(scm_list& exp, const char* name){
+  exe_type let_syntactic_extension_binding_template(scm_list& exp,const char* name,
+                            const bool tail_call=false,const bool cps_block=false){
     // Convert let-syntax/letrec-syntax to an argless let defining syntax in its body
     confirm_valid_let_macro(exp,name);
     scm_list let_exp(exp[1].exp.size()+exp.size());
@@ -2374,13 +3273,14 @@ namespace heist {
     // Add let body
     std::copy(exp.begin()+2,exp.end(),let_exp.begin()+exp[1].exp.size()+2);
     // Analyze let of syntax defns
-    return scm_analyze(std::move(let_exp)); 
+    if(!cps_block) return scm_analyze(std::move(let_exp),tail_call);
+    return scm_analyze(generate_fundamental_form_cps(let_exp),tail_call,true);
   }
 
 
-  exe_type analyze_define_syntax(scm_list& exp) {
+  exe_type analyze_define_syntax(scm_list& exp,const bool cps_block=false) {
     if(must_evaluate_2nd_arg_for_syntax_rules_object(exp)) { 
-      auto syntax_rules_obj_proc = scm_analyze(scm_list_cast(exp[2]));
+      auto syntax_rules_obj_proc = scm_analyze(scm_list_cast(exp[2]),false,cps_block);
       return [syntax_rules_obj_proc=std::move(syntax_rules_obj_proc),
         exp=std::move(exp)](env_type& env)mutable{
         data mac = data_cast(syntax_rules_obj_proc(env));
@@ -2389,31 +3289,101 @@ namespace heist {
             <<" isn't a syntax-rules object:\n     (define-syntax "
               "<label> <syntax-rules-object>)"<<EXP_ERR(exp));
         mac.syn.label = exp[1].sym;     // assign macro label
-        MACRO_LABEL_REGISTRY.push_back(exp[1].sym);
+        G::MACRO_LABEL_REGISTRY.push_back(exp[1].sym);
         define_syntax_extension(mac.syn,env); // establish in environment
-        return VOID_DATA_EXPRESSION;
+        return G::VOID_DATA_EXPRESSION;
       };
     }
     exp[2].syn.label = exp[1].sym; // assign macro label
-    MACRO_LABEL_REGISTRY.push_back(exp[1].sym);
+    G::MACRO_LABEL_REGISTRY.push_back(exp[1].sym);
     return [mac = std::move(exp[2].syn)](env_type& env){
       define_syntax_extension(mac,env); // establish in environment
-      return VOID_DATA_EXPRESSION;
+      return G::VOID_DATA_EXPRESSION;
     };
   }
 
 
-  exe_type analyze_let_syntax(scm_list& exp) {
-    return let_syntactic_extension_binding_template(exp,symconst::let_syn);
+  exe_type analyze_let_syntax(scm_list& exp,const bool tail_call=false,const bool cps_block=false){
+    return let_syntactic_extension_binding_template(exp,symconst::let_syn,tail_call,cps_block);
   }
 
 
-  exe_type analyze_letrec_syntax(scm_list& exp) {
-    return let_syntactic_extension_binding_template(exp,symconst::letrec_syn);
+  exe_type analyze_letrec_syntax(scm_list& exp,const bool tail_call=false,const bool cps_block=false){
+    return let_syntactic_extension_binding_template(exp,symconst::letrec_syn,tail_call,cps_block);
   }
 
   /******************************************************************************
-  * ANALYSIS, EVALUATION, & APPLICATION
+  * TRACING PROCEDURE CALLS
+  ******************************************************************************/
+
+  // Prints Debugging Call Trace (see <set-trace-calls!> primitive)
+  void output_debug_call_trace(const scm_list& procedure,const scm_list& arguments,
+                               const bool tail_call,     const bool callceing)noexcept{
+    if(!primitive_data_is_a_procedure(procedure)) return;
+    // Generate the call signature & Application-Affecting Call States
+    auto call_signature = procedure_call_signature(printable_procedure_name(procedure),arguments);
+    const char* in_tail_call = tail_call ? "#t" : "#f";
+    const char* using_callce = callceing ? "#t" : "#f";
+    const char* using_inline = G::USING_INLINE_INVOCATIONS ? "#t" : "#f";
+    // Generate colors for truth-values (Green=#t, Red=#f) of Call States
+    const auto tail_c_color = tail_call ? AFMT_32 : AFMT_31;
+    const auto callce_color = callceing ? AFMT_32 : AFMT_31;
+    const auto inline_color = G::USING_INLINE_INVOCATIONS ? AFMT_32 : AFMT_31;
+    // Output Trace Data
+    fprintf(G::CURRENT_OUTPUT_PORT,
+            "\n%s-----------------------------------------------------"
+            "\n%s#<CALL-TRACE>:%s Tail-Call: %s%s%s, Call/ce: %s%s%s, Inline: %s%s%s"
+            "\n%s"
+            "\n-----------------------------------------------------%s\n",
+            afmt(AFMT_01), afmt(AFMT_35), afmt(AFMT_01), 
+            afmt(tail_c_color), in_tail_call, afmt(AFMT_01), 
+            afmt(callce_color), using_callce, afmt(AFMT_01), 
+            afmt(inline_color), using_inline, afmt(AFMT_01), 
+            call_signature.c_str(), afmt(AFMT_0));
+    fflush(G::CURRENT_OUTPUT_PORT);
+  }
+
+
+  // Prints Call Trace (see <trace> primitive)
+  void print_call_trace_depth_indentation(const scm_list& procedure,const bool tail_call=false)noexcept{
+    size_type recursive_depth = 0; // default to 0 (level for all prims)
+    if(is_compound_procedure(procedure)) {
+      recursive_depth = *procedure[4].cal;
+      if(recursive_depth && tail_call) --recursive_depth;
+    }
+    for(size_type i = 0; i <= recursive_depth; ++i) {
+      if(i & 1) fputc(' ',G::CURRENT_OUTPUT_PORT);
+      else      fputc('|',G::CURRENT_OUTPUT_PORT);
+    }
+    fflush(G::CURRENT_OUTPUT_PORT);
+  }
+
+
+  // Print the current recursive depth as indentation, and the current invocation signature
+  void output_call_trace_invocation(const scm_list& procedure, const scm_list& arguments,const bool tail_call=false)noexcept{
+    if(!primitive_data_is_a_procedure(procedure)) return;
+    auto call_signature = procedure_call_signature(printable_procedure_name(procedure),arguments);
+    print_call_trace_depth_indentation(procedure,tail_call);
+    fprintf(G::CURRENT_OUTPUT_PORT, "%s\n", call_signature.c_str());
+    fflush(G::CURRENT_OUTPUT_PORT);
+  }
+
+
+  // Print the current recursive depth as indentation, and the result string
+  void output_call_trace_result(const scm_list& procedure, const data& result)noexcept{
+    if(!primitive_data_is_a_procedure(procedure)) return;
+    print_call_trace_depth_indentation(procedure);
+    fprintf(G::CURRENT_OUTPUT_PORT, "%s\n", result.write().c_str());
+    fflush(G::CURRENT_OUTPUT_PORT);
+  }
+
+
+  bool tracing_procedure(const scm_string& name)noexcept{
+    return !G::TRACED_FUNCTION_NAME.empty() && G::TRACED_FUNCTION_NAME == name;
+  }
+
+  /******************************************************************************
+  * APPLICATION
   ******************************************************************************/
 
   // -- PRIMITIVE PROCEDURES: identification & application
@@ -2421,20 +3391,20 @@ namespace heist {
     return is_tagged_list(p,symconst::primitive);
   }
 
-
   scm_list apply_primitive_procedure(scm_list& proc,scm_list& args,env_type& env){
     // Rm "sentinel-arg" value from args (if present from an argless application)
     if(args.size()==1 && args[0].is_type(types::sym) && args[0].sym == symconst::sentinel_arg)
       args.pop_back();
+    // Output tracing information as needed
+    auto tracing_proc = tracing_procedure(proc[2].sym);
+    if(tracing_proc) output_call_trace_invocation(proc,args);
     // Provide the environment to primitives applying user-defined procedures
     if(primitive_requires_environment(proc[1].prm)) args.push_back(env);
-    return scm_list_cast(proc[1].prm(args));
-  }
-
-
-  // -- EVAL 
-  scm_list scm_eval(scm_list&& exp, env_type& env) { // evaluate expression environment
-    return scm_analyze(std::move(exp))(env);
+    if(!tracing_proc) return scm_list_cast(proc[1].prm(args));
+    // Output result's trace as needed
+    auto result = scm_list_cast(proc[1].prm(args));
+    output_call_trace_result(proc,data_cast(result));
+    return result;
   }
 
 
@@ -2450,13 +3420,16 @@ namespace heist {
     return result;
   }
 
-
   // Analogue to "apply", except no need to analyze the body of compound 
   //   procedures (already done). Hence only calls the execution procedure 
   //   for the proc's body w/ the extended environment
   scm_list execute_application(scm_list& procedure,scm_list& arguments,env_type& env,
-                                            const bool tail_call,const bool inlined){
-    if(is_primitive_procedure(procedure)) // execute primitive procedure directly
+                                            const bool tail_call,const bool callceing){
+    // output debugger call trace as needed
+    if(G::TRACING_ALL_FUNCTION_CALLS)
+      output_debug_call_trace(procedure,arguments,tail_call,callceing);
+    // execute primitive procedure directly
+    if(is_primitive_procedure(procedure))
       return apply_primitive_procedure(procedure,arguments,env);
     else if(is_compound_procedure(procedure)) {
       // create the procedure body's extended environment frame
@@ -2464,19 +3437,26 @@ namespace heist {
                                              arguments,
                                              procedure_environment(procedure),
                                              procedure_name(procedure));
-      if(inlined) extended_env->insert(extended_env->begin()+1, env->begin(), env->end());
+      // determine whether to inline call
+      const bool inline_call = !G::USING_INLINE_INVOCATIONS && procedure_inlines_call(procedure);
+      if(inline_call) G::USING_INLINE_INVOCATIONS = true;
+      // splice in current env for dynamic scope as needed
+      if(callceing || G::USING_INLINE_INVOCATIONS)
+        extended_env->insert(extended_env->begin()+1, env->begin(), env->end());
       // confirm max recursive depth hasn't been exceeded
       auto& recursive_depth = procedure_recursive_depth(procedure);
-      if(recursive_depth > MAX_RECURSION_DEPTH) {
-        auto name = procedure_name(procedure);
-        if(name.empty()) name = "#<procedure>"; // lambda
-        else             name.erase(0,1);       // rm prefixing ' '
+      if(recursive_depth > G::MAX_RECURSION_DEPTH) {
+        if(inline_call) G::USING_INLINE_INVOCATIONS = false;
         recursive_depth = 0;
-        THROW_ERR("Maximum recursion depth of "<<MAX_RECURSION_DEPTH<<" exceeded!"
-          << FCN_ERR(name, arguments));
+        THROW_ERR("Maximum recursion depth of "<<G::MAX_RECURSION_DEPTH<<" exceeded!"
+          << FCN_ERR(printable_procedure_name(procedure), arguments));
       }
+      // output tracing information as needed
+      auto tracing_proc = tracing_procedure(procedure[5].sym);
+      if(tracing_proc) output_call_trace_invocation(procedure,arguments,tail_call);
       // store application data & return such back up to the last call if in a tail call
       if(tail_call) {
+        if(inline_call) G::USING_INLINE_INVOCATIONS = false;
         scm_list tail_call_signature(3); // {tail-call-tag, proc-body, extended-env}
         tail_call_signature[0] = symconst::tail_call;
         tail_call_signature[1] = procedure_body(procedure);
@@ -2486,25 +3466,146 @@ namespace heist {
       ++recursive_depth;
       auto result = apply_compound_procedure(procedure_body(procedure),extended_env);
       --recursive_depth;
+      // output result's trace as needed
+      if(tracing_proc) output_call_trace_result(procedure,data_cast(result));
+      if(inline_call) G::USING_INLINE_INVOCATIONS = false;
       return result;
     }
     if(procedure.empty())
       THROW_ERR("Invalid application of unknown procedure type NULL (received an empty expression)!");
-    THROW_ERR("Invalid application of unknown procedure "<<procedure[0]<<"! "<<EXP_ERR(procedure));
+    THROW_ERR("Invalid application of unknown procedure "<<PROFILE(procedure[0])<<"! "<<EXP_ERR(procedure));
   }
 
   // R-value overload
   scm_list execute_application(scm_list&& procedure,scm_list& arguments,env_type& env,
-                               const bool tail_call=false,const bool inlined=false){
-    return execute_application(procedure,arguments,env,tail_call,inlined);
+                                             const bool tail_call,const bool callceing){
+    return execute_application(procedure,arguments,env,tail_call,callceing);
+  }
+
+  /******************************************************************************
+  * CPS-BLOCK APPLICATION HELPER FUNCTIONS
+  ******************************************************************************/
+
+  bool data_is_continuation_parameter(const data& d)noexcept{
+    return d.is_type(types::sym) && d.sym.find(symconst::continuation) == 0;
+  }
+
+  bool procedure_defined_outside_of_CPS_block(const scm_list& p)noexcept{
+    return is_primitive_procedure(p) || 
+      (is_compound_procedure(p) && (p[1].exp.empty() || 
+        !data_is_continuation_parameter(*p[1].exp.rbegin())));
+  }
+
+  bool procedure_requires_continuation(const scm_list& p)noexcept{
+    // '1' for compound procs accounts for ' ' prefix from name mangling
+    return (is_compound_procedure(p) && p[5].sym.find(symconst::pass_continuation) == 1) ||
+           (is_primitive_procedure(p) && p[2].sym.find(symconst::pass_continuation) == 0);
+  }
+
+  /******************************************************************************
+  * CPS-BLOCK APPLICATION
+  ******************************************************************************/
+
+  void eval_application_arg_procs(const std::vector<exe_type>& arg_procs,scm_list& arg_vals,env_type& env){
+    for(size_type i = 0, n = arg_procs.size(); i < n; ++i)
+      arg_vals[i] = data_cast(arg_procs[i](env));
+  }
+
+
+  // Application of CPS-block defined procedure in a CPS block
+  exe_type analyze_CPS_block_application_of_CPS_proc(scm_list& exp,const bool tail_call){
+    auto op_proc  = scm_analyze(operator_of(exp),false,true);
+    auto arg_exps = operands(exp);
+    std::vector<exe_type> arg_procs(arg_exps.size());
+    for(size_type i = 0, n = arg_exps.size(); i < n; ++i)
+      arg_procs[i] = scm_analyze(scm_list_cast(arg_exps[i]),false,true);
+    return [op_proc=std::move(op_proc),arg_procs=std::move(arg_procs),
+            tail_call=std::move(tail_call)](env_type& env)mutable{
+      auto proc = op_proc(env);
+      // Pass the result of the proc to the current continuation IFF
+      //   proc was defined OUTSIDE of a scm->cps block
+      if(procedure_defined_outside_of_CPS_block(proc)) {
+        // Extract the continuation form the parameter list as needed
+        auto continuation = (*arg_procs.rbegin())(env);
+        bool passing_continuation = procedure_requires_continuation(proc);
+        if(!passing_continuation) arg_procs.pop_back();
+        scm_list arg_vals(arg_procs.size());
+        // Eval each arg's exec proc to obtain the actual arg values
+        if(!passing_continuation) {
+          eval_application_arg_procs(arg_procs,arg_vals,env);
+          // Pass the result of the proc to the continuation
+          auto result_arg = scm_list(1,data_cast(execute_application(proc,arg_vals,env)));
+          // Pass the result of the proc to the continuation
+          return execute_application(continuation,result_arg,env,tail_call);
+        }
+        // Apply the proc w/ the continuation
+        size_type i = 0, n = arg_procs.size()-1;
+        for(; i < n; ++i) arg_vals[i] = data_cast(arg_procs[i](env));
+        arg_vals[n] = data_cast(continuation); // don't re-eval the continuation
+        return execute_application(proc,arg_vals,env);
+      // Else, apply the proc defined IN the CPS block as-is
+      } else {
+        scm_list arg_vals(arg_procs.size());
+        eval_application_arg_procs(arg_procs,arg_vals,env);
+        return execute_application(proc,arg_vals,env,tail_call);
+      }
+    };
+  }
+
+
+  // Application of a macro OR non-CPS-block defined procedure entity in a CPS block
+  exe_type analyze_CPS_block_application_of_non_CPS_proc(scm_list& exp,const bool tail_call){
+    auto arg_exps = operands(exp);
+    // Add sentinel value as needed (signals possible empty macro application)
+    if(arg_exps.empty()) {
+      arg_exps.push_back(scm_list(2));
+      arg_exps[0].exp[0] = symconst::quote, arg_exps[0].exp[1] = symconst::sentinel_arg;
+    }
+    // Save name of invoking entity (iff a symbol) to check for a possible macro
+    sym_type op_name = exp[0].is_type(types::sym) ? exp[0].sym : "";
+    // If possible macro, expand the application if so, else analyze args at eval
+    return [arg_exps=std::move(arg_exps),op_name=std::move(op_name),exp=std::move(exp),
+            tail_call=std::move(tail_call)](env_type& env)mutable{
+      // check for a possible macro instance, & expand/cps/eval it if so
+      if(scm_list expanded; expand_macro_if_in_env(op_name, arg_exps, env, expanded))
+        return scm_analyze(generate_fundamental_form_cps(expanded),tail_call,true)(env);
+      // else convert the function application to CPS & eval it
+      if(exp.size() == 1) exp.push_back(symconst::sentinel_arg); // add sentinel arg as needed
+      return scm_analyze(cps_expand_application(exp),tail_call,true)(env);
+    };
+  }
+
+
+  // Macro/procedure application in a CPS block
+  exe_type analyze_CPS_block_application(scm_list& exp,const bool tail_call=false){
+    // If application is already expanded (given a continuation as last arg),
+    //   GUARANTEED such is applying to a function and NOT a macro
+    if(data_is_continuation_parameter(*exp.rbegin()))
+      return analyze_CPS_block_application_of_CPS_proc(exp,tail_call);
+    // If application is NOT already expanded
+    return analyze_CPS_block_application_of_non_CPS_proc(exp,tail_call);
+  }
+
+  /******************************************************************************
+  * ANALYSIS & EVALUATION
+  ******************************************************************************/
+
+  // -- EVAL 
+  scm_list scm_eval(scm_list&& exp, env_type& env) { // evaluate expression environment
+    return scm_analyze(std::move(exp))(env);
   }
 
 
   // Analyzes the operator & operands, then returns an exec proc passing 
   //   both the operator/operand proc exec's to 'execute-application'
   //   (after having checked for macro use as well)
-  exe_type analyze_application(scm_list& exp,const bool tail_call=false) {
-    auto op_proc  = scm_analyze(operator_of(exp));
+  exe_type analyze_application(scm_list& exp,const bool tail_call=false,const bool cps_block=false){
+    // If in a scm->cps block
+    if(cps_block && is_cps_application(exp)) {
+      exp.erase(exp.begin()); // Rm the cps-application prefix
+      return analyze_CPS_block_application(exp,tail_call);
+    }
+    auto op_proc  = scm_analyze(operator_of(exp),false,cps_block);
     auto arg_exps = operands(exp);
     // Save name of invoking entity (iff a symbol) to check for a possible macro
     sym_type op_name = exp[0].is_type(types::sym) ? exp[0].sym : "";
@@ -2512,27 +3613,25 @@ namespace heist {
     if(!application_is_a_potential_macro(op_name)) {
       std::vector<exe_type> arg_procs(arg_exps.size());
       for(size_type i = 0, n = arg_exps.size(); i < n; ++i)
-        arg_procs[i] = scm_analyze(scm_list_cast(arg_exps[i]));
+        arg_procs[i] = scm_analyze(scm_list_cast(arg_exps[i]),false,cps_block);
       return [op_proc=std::move(op_proc),arg_procs=std::move(arg_procs),
               tail_call=std::move(tail_call)](env_type& env){
         scm_list arg_vals(arg_procs.size());
-        for(size_type i = 0, n = arg_procs.size(); i < n; ++i)
-          arg_vals[i] = data_cast(arg_procs[i](env));
+        eval_application_arg_procs(arg_procs,arg_vals,env);
         return execute_application(op_proc(env),arg_vals,env,tail_call);
       };
     }
     // If possible macro, expand the application if so, else analyze args at eval
     return [op_proc=std::move(op_proc),arg_exps=std::move(arg_exps),
-            op_name=std::move(op_name),exp=std::move(exp),
-            tail_call=std::move(tail_call)](env_type& env){
+            op_name=std::move(op_name),tail_call=std::move(tail_call),
+            cps_block=std::move(cps_block)](env_type& env){
       // check for a possible macro instance, & expand/eval it if so
-      scm_list expanded;
-      if(expand_macro_if_in_env(op_name, arg_exps, env, expanded))
-        return scm_eval(std::move(expanded),env);
+      if(scm_list expanded; expand_macro_if_in_env(op_name, arg_exps, env, expanded))
+        return scm_analyze(std::move(expanded),false,cps_block)(env);
       // eval each arg's exec proc to obtain the actual arg values
       scm_list arg_vals(arg_exps.size());
       for(size_type i = 0, n = arg_exps.size(); i < n; ++i)
-        arg_vals[i] = data_cast(scm_eval(scm_list_cast(arg_exps[i]),env));
+        arg_vals[i] = data_cast(scm_analyze(scm_list_cast(arg_exps[i]),false,cps_block)(env));
       return execute_application(op_proc(env),arg_vals,env,tail_call);
     };
   }
@@ -2551,35 +3650,37 @@ namespace heist {
   }
 
 
-  exe_type scm_analyze(scm_list&& exp,const bool tail_call) { // analyze expression
+  exe_type scm_analyze(scm_list&& exp,const bool tail_call,const bool cps_block) { // analyze expression
     if(exp.empty())                         THROW_ERR("Can't eval an empty expression!"<<EXP_ERR("()"));
     else if(is_self_evaluating(exp)) return [exp=std::move(exp)](env_type&){return exp;};
+    else if(is_scm_cps(exp))         return analyze_scm_cps(exp);
+    else if(is_cps_quote(exp))       return analyze_cps_quote(exp,cps_block);
     else if(is_quoted(exp))          return analyze_quoted(exp);
-    else if(is_assignment(exp))      return analyze_assignment(exp);
-    else if(is_definition(exp))      return analyze_definition(exp);
-    else if(is_if(exp))              return analyze_if(exp,tail_call);
-    else if(is_and(exp))             return analyze_and(exp);
-    else if(is_or(exp))              return analyze_or(exp);
-    else if(is_lambda(exp))          return analyze_lambda(exp);
-    else if(is_begin(exp))           return analyze_sequence(begin_actions(exp),tail_call);
-    else if(is_scons(exp))           return analyze_scons(exp);
-    else if(is_stream(exp))          return analyze_stream(exp);
-    else if(is_delay(exp))           return analyze_delay(exp);
-    else if(is_cond(exp))            return scm_analyze(convert_cond_if(exp));
-    else if(is_case(exp))            return scm_analyze(convert_case_cond(exp));
-    else if(is_let(exp))             return scm_analyze(convert_let_combination(exp));
-    else if(is_let_star(exp))        return scm_analyze(convert_let_star_nested_lets(exp));
-    else if(is_letrec(exp))          return scm_analyze(convert_letrec_let(exp));
-    else if(is_do(exp))              return scm_analyze(convert_do_letrec(exp));
-    else if(is_quasiquote(exp))      return analyze_quasiquote(exp);
-    else if(is_define_syntax(exp))   return analyze_define_syntax(exp);
-    else if(is_let_syntax(exp))      return analyze_let_syntax(exp);
-    else if(is_letrec_syntax(exp))   return analyze_letrec_syntax(exp);
+    else if(is_assignment(exp))      return analyze_assignment(exp,cps_block);
+    else if(is_definition(exp))      return analyze_definition(exp,cps_block);
+    else if(is_if(exp))              return analyze_if(exp,tail_call,cps_block);
+    else if(is_and(exp))             return analyze_and(exp,tail_call,cps_block);
+    else if(is_or(exp))              return analyze_or(exp,tail_call,cps_block);
+    else if(is_lambda(exp))          return analyze_lambda(exp,cps_block);
+    else if(is_begin(exp))           return analyze_sequence(begin_actions(exp),tail_call,cps_block);
+    else if(is_scons(exp))           return analyze_scons(exp,cps_block);
+    else if(is_stream(exp))          return analyze_stream(exp,cps_block);
+    else if(is_delay(exp))           return analyze_delay(exp,cps_block);
+    else if(is_cond(exp))            return scm_analyze(convert_cond_if(exp,cps_block),tail_call,cps_block);
+    else if(is_case(exp))            return scm_analyze(convert_case_cond(exp),tail_call,cps_block);
+    else if(is_let(exp))             return scm_analyze(convert_let_combination(exp,cps_block),tail_call,cps_block);
+    else if(is_let_star(exp))        return scm_analyze(convert_let_star_nested_lets(exp,cps_block),tail_call,cps_block);
+    else if(is_letrec(exp))          return scm_analyze(convert_letrec_let(exp,cps_block),tail_call,cps_block);
+    else if(is_do(exp))              return scm_analyze(convert_do_letrec(exp),tail_call,cps_block);
+    else if(is_quasiquote(exp))      return analyze_quasiquote(exp,cps_block);
+    else if(is_define_syntax(exp))   return analyze_define_syntax(exp,cps_block);
+    else if(is_let_syntax(exp))      return analyze_let_syntax(exp,tail_call,cps_block);
+    else if(is_letrec_syntax(exp))   return analyze_letrec_syntax(exp,tail_call,cps_block);
     else if(is_syntax_rules(exp))    return analyze_syntax_rules(exp);
     else if(is_vector_literal(exp))         THROW_ERR("Misplaced keyword 'vector-literal outside of a quotation! -- ANALYZE"   <<EXP_ERR(exp));
     else if(is_unquote(exp))                THROW_ERR("Misplaced keyword 'unquote outside of 'quasiquote ! -- ANALYZE"         <<EXP_ERR(exp));
     else if(is_unquote_splicing(exp))       THROW_ERR("Misplaced keyword 'unquote-splicing outside of 'quasiquote ! -- ANALYZE"<<EXP_ERR(exp));
-    else if(is_application(exp))     return analyze_application(exp,tail_call);
+    else if(is_application(exp))     return analyze_application(exp,tail_call,cps_block);
     else if(is_variable(exp)){
       return [exp=std::move(exp)](env_type& env){
         return scm_list_cast(lookup_variable_value(exp[0].sym,env));
@@ -2594,23 +3695,24 @@ namespace heist {
   ******************************************************************************/
 
   void set_default_global_environment() {
-    GLOBAL_ENVIRONMENT_POINTER = make_env();
-    GLOBAL_ENVIRONMENT_POINTER = extend_environment(
+    G::GLOBAL_ENVIRONMENT_POINTER = make_env();
+    G::GLOBAL_ENVIRONMENT_POINTER = extend_environment(
       primitive_procedure_names(),
       primitive_procedure_objects(),
-      GLOBAL_ENVIRONMENT_POINTER
+      G::GLOBAL_ENVIRONMENT_POINTER
     );
-    define_variable(symconst::true_t,  TRUE_DATA_BOOLEAN,  GLOBAL_ENVIRONMENT_POINTER);
-    define_variable(symconst::false_t, FALSE_DATA_BOOLEAN, GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("fl-precision", num_type(num_type::INEXACT_PRECISION), GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("fl-max",       num_type(num_type::INEXACT_MAX),       GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("fl-min",       num_type(num_type::INEXACT_MIN),       GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("fl-epsilon",   num_type(num_type::INEXACT_EPSILON),   GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("stream-null",          symconst::emptylist,    GLOBAL_ENVIRONMENT_POINTER);
-    define_variable(symconst::null_env,     symconst::null_env,     GLOBAL_ENVIRONMENT_POINTER);
-    define_variable(symconst::locl_env,     symconst::locl_env,     GLOBAL_ENVIRONMENT_POINTER);
-    define_variable(symconst::sentinel_arg, symconst::sentinel_arg, GLOBAL_ENVIRONMENT_POINTER);
-    evaluate_primitives_written_in_heist_scheme(GLOBAL_ENVIRONMENT_POINTER);
+    define_variable(symconst::true_t,  G::TRUE_DATA_BOOLEAN,  G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable(symconst::false_t, G::FALSE_DATA_BOOLEAN, G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("fl-precision", num_type(num_type::INEXACT_PRECISION), G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("fl-max",       num_type(num_type::INEXACT_MAX),       G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("fl-min",       num_type(num_type::INEXACT_MIN),       G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("fl-epsilon",   num_type(num_type::INEXACT_EPSILON),   G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("stream-null",          symconst::emptylist,    G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable(symconst::null_env,     symconst::null_env,     G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable(symconst::local_env,    symconst::local_env,    G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable(symconst::global_env,   symconst::global_env,   G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable(symconst::sentinel_arg, symconst::sentinel_arg, G::GLOBAL_ENVIRONMENT_POINTER);
+    evaluate_primitives_written_in_heist_scheme(G::GLOBAL_ENVIRONMENT_POINTER);
   }
 
   /******************************************************************************
@@ -2618,12 +3720,12 @@ namespace heist {
   ******************************************************************************/
 
   void close_port_registry()noexcept{
-    for(size_type i = 2, n = PORT_REGISTRY.size(); i < n; ++i)
-      if(PORT_REGISTRY[i] && 
-         PORT_REGISTRY[i]!=stdout && PORT_REGISTRY[i]!=stderr &&
-         PORT_REGISTRY[i]!=stdin){
-        fclose(PORT_REGISTRY[i]);
-        PORT_REGISTRY[i] = nullptr;
+    for(size_type i = 2, n = G::PORT_REGISTRY.size(); i < n; ++i)
+      if(G::PORT_REGISTRY[i] && 
+         G::PORT_REGISTRY[i]!=stdout && G::PORT_REGISTRY[i]!=stderr &&
+         G::PORT_REGISTRY[i]!=stdin){
+        fclose(G::PORT_REGISTRY[i]);
+        G::PORT_REGISTRY[i] = nullptr;
       }
   }
 
@@ -2631,8 +3733,8 @@ namespace heist {
   * REPL DRIVER LOOP
   ******************************************************************************/
 
-  void announce_input(FILE* outs)noexcept{fputs(REPL_PROMPT.c_str(), outs);}
-  void indent_input(FILE* outs)  noexcept{fputs(REPL_TAB.c_str(), outs);}
+  void announce_input(FILE* outs)noexcept{fputs(G::REPL_PROMPT.c_str(), outs);}
+  void indent_input(FILE* outs)  noexcept{fputs(G::REPL_TAB.c_str(), outs);}
 
 
   // Read & parse user expressions
@@ -2682,13 +3784,13 @@ namespace heist {
 #ifndef HEIST_CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
 #ifndef HEIST_INTERPRETING_COMPILED_AST // @ONLY-INTERPRETER
 void print_repl_newline(const bool& printed_data)noexcept{ // after printing data
-  if(!heist::LAST_PRINTED_NEWLINE_TO_STDOUT&&(printed_data||heist::LAST_PRINTED_TO_STDOUT))
+  if(!heist::G::LAST_PRINTED_NEWLINE_TO_STDOUT&&(printed_data||heist::G::LAST_PRINTED_TO_STDOUT))
     putchar('\n');
-  heist::LAST_PRINTED_NEWLINE_TO_STDOUT = heist::LAST_PRINTED_TO_STDOUT = false;
+  heist::G::LAST_PRINTED_NEWLINE_TO_STDOUT = heist::G::LAST_PRINTED_TO_STDOUT = false;
 }
 
 void print_repl_newline()noexcept{ // after printing an error
-  putchar('\n'), heist::LAST_PRINTED_NEWLINE_TO_STDOUT=heist::LAST_PRINTED_TO_STDOUT=false;
+  putchar('\n'), heist::G::LAST_PRINTED_NEWLINE_TO_STDOUT=heist::G::LAST_PRINTED_TO_STDOUT=false;
 }
 
 void account_for_whether_printed_data(const heist::scm_list& val,bool& printed_data)noexcept{
@@ -2703,7 +3805,7 @@ void user_print(FILE* outs, heist::scm_list& object)noexcept{
   else if(heist::is_delay(object) && object.size() > 1)
     fputs("#<delay>", outs);
   else
-    fputs(object[0].write().c_str(), outs);
+    fputs(object[0].pprint().c_str(), outs);
   fflush(outs);
 }
 
@@ -2717,7 +3819,7 @@ void driver_loop() {
     // Eval each expression given
     for(const auto& input : AST) {
       try {
-        auto value = heist::scm_eval(heist::scm_list_cast(input),heist::GLOBAL_ENVIRONMENT_POINTER);
+        auto value = heist::scm_eval(heist::scm_list_cast(input),heist::G::GLOBAL_ENVIRONMENT_POINTER);
         account_for_whether_printed_data(value,printed_data);
         user_print(stdout, value);
         print_repl_newline(printed_data);
@@ -2725,7 +3827,7 @@ void driver_loop() {
         if(eval_throw == heist::SCM_EXCEPT::EXIT) { puts("Adios!"); return; }
         if(eval_throw == heist::SCM_EXCEPT::JUMP)
           PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
-            << PROFILE(heist::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
+            << PROFILE(heist::G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
         print_repl_newline();
       } catch(...) {
         PRINT_ERR("Uncaught C++ Exception Detected! -:- BUG ALERT -:-"
@@ -2765,9 +3867,9 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
   // Parse input arguments
   for(int i = 1; i < argc; ++i) {
     if(std::string cmd_flag(argv[i]); cmd_flag == "-ci") {
-      heist::USING_CASE_SENSITIVE_SYMBOLS = false;
+      heist::G::USING_CASE_SENSITIVE_SYMBOLS = false;
     } else if(cmd_flag == "-nansi") {
-      heist::USING_ANSI_ESCAPE_SEQUENCES = false;
+      heist::G::USING_ANSI_ESCAPE_SEQUENCES = false;
     } else if(cmd_flag == "-script") {
       if(i == argc-1) {
         fprintf(stderr,"\n> \"-script\" wasn't followed by a file!%s",cmd_line_options);
@@ -2803,14 +3905,13 @@ int load_script(char *argv[], const int& script_pos){
   // Load the script & immediately exit
   heist::scm_list load_args(2); 
   load_args[0] = heist::make_str(argv[script_pos]);
-  load_args[1] = heist::GLOBAL_ENVIRONMENT_POINTER;
+  load_args[1] = heist::G::GLOBAL_ENVIRONMENT_POINTER;
   try {
     heist::primitive_LOAD(load_args);
-    heist::close_port_registry();
   } catch(const heist::SCM_EXCEPT& eval_throw) {
     if(eval_throw == heist::SCM_EXCEPT::JUMP)
       PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
-        << PROFILE(heist::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
+        << PROFILE(heist::G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
     /* catch errors already output to stdout */ 
     putchar('\n');
   } catch(...) {
@@ -2824,6 +3925,7 @@ int load_script(char *argv[], const int& script_pos){
     heist::close_port_registry();
     return 1;
   }
+  heist::close_port_registry();
   return 0;
 }
 
@@ -2839,11 +3941,10 @@ int compile_script(char *argv[], const int& compile_pos, std::string& compile_as
   compile_args[1] = heist::make_str(compile_as);
   try {
     heist::primitive_COMPILE(compile_args);
-    heist::close_port_registry();
   } catch(const heist::SCM_EXCEPT& eval_throw) {
     if(eval_throw == heist::SCM_EXCEPT::JUMP)
       PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
-        << PROFILE(heist::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
+        << PROFILE(heist::G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
     /* catch errors already output to stdout */ 
     putchar('\n');
   } catch(...) {
@@ -2857,6 +3958,7 @@ int compile_script(char *argv[], const int& compile_pos, std::string& compile_as
     heist::close_port_registry();
     return 1;
   }
+  heist::close_port_registry();
   return 0;
 }
 #endif
@@ -2871,7 +3973,7 @@ int main(int argc, char *argv[]) {
   std::string compile_as = "HEIST_COMPILER_OUTPUT.cpp";
   if(!confirm_valid_command_line_args(argc,argv,script_pos,compile_pos,compile_as)) 
     return 1;
-  // Set up the environment (allocates & fills GLOBAL_ENVIRONMENT_POINTER)
+  // Set up the environment (allocates & fills G::GLOBAL_ENVIRONMENT_POINTER)
   heist::set_default_global_environment();
   // Interpret a Script (as needed)
   if(script_pos != -1) 
@@ -2898,12 +4000,12 @@ void interpret_premade_AST_code(){
   POPULATE_HEIST_PRECOMPILED_READ_AST_EXPS();
   for(const auto& input : HEIST_PRECOMPILED_READ_AST_EXPS) {
     try {
-      heist::scm_eval(heist::scm_list_cast(input),heist::GLOBAL_ENVIRONMENT_POINTER);
+      heist::scm_eval(heist::scm_list_cast(input),heist::G::GLOBAL_ENVIRONMENT_POINTER);
     } catch(const heist::SCM_EXCEPT& eval_throw) {
       if(eval_throw == heist::SCM_EXCEPT::EXIT) return;
       if(eval_throw == heist::SCM_EXCEPT::JUMP)
         PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
-          << PROFILE(heist::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
+          << PROFILE(heist::G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
     } catch(...) {
       PRINT_ERR("Uncaught C++ Exception Detected! -:- BUG ALERT -:-"
            "\n     Triggered By: " << input << 
@@ -2921,6 +4023,7 @@ int main() {
   return 0;
 }
 #endif // @ONLY-COMPILER
+#undef afmt
 #undef HEIST_DIRECTORY_FILE_PATH
 #undef ERR_HEADER
 #undef BAD_SYNTAX

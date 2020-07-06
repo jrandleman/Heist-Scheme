@@ -480,7 +480,7 @@ namespace heist {
   bool prepare_string_for_AST_generation(scm_string& input) {
     if(input.empty() || !confirm_valid_scm_expression(input)) return false;
     strip_comments_and_redundant_whitespace(input);
-    if(!USING_CASE_SENSITIVE_SYMBOLS) render_input_cAsE_iNsEnSiTiVe(input);
+    if(!G::USING_CASE_SENSITIVE_SYMBOLS) render_input_cAsE_iNsEnSiTiVe(input);
     expand_vector_literals(input); // #(<exp>) => (vector-literal <exp>)
     expand_quoted_data(input);     // '<exp>    => (quote <exp>)
     return true;
