@@ -13,11 +13,12 @@ Embed Heist in C++: `#include` the `heist_cpp_interop.hpp` header into your code
 # Features:
 0) Hygienic Macros
 1) Tail-Call Optimization
-2) Opt-In Dynamic Scoping (see the `inline` application primitive)
-3) Native Even Streams (Lists w/ Delayed Car & Cdr)
-4) Generic Algorithms (Polymorphic Algorithm Primitives)
-5) SFRI Primitives (List, Vector, String, etc.)
-6) Eval (Evaluate Symbolic Data as Code)
-7) String I/O (Read/Write Compatibility w/ Strings as Ports)
-8) Recursive Depth Control
-9) See heist_main.cpp for more!
+2) Opt-In Dynamic Scoping (see the `call/ce` & `inline` application primitives)
+3) Opt-In Continuations & `call/cc`
+4) Native Even Streams (Lists w/ Delayed Car & Cdr)
+5) Generic Algorithms (Polymorphic Algorithm Primitives)
+6) SFRI Primitives (List, Vector, String, etc.)
+7) Eval (Evaluate Symbolic Data as Code)
+8) String I/O (Read/Write Compatibility w/ Strings as Ports)
+9) Recursive Depth Control
+10) See heist_main.cpp for more!
