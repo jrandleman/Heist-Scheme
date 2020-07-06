@@ -4477,11 +4477,11 @@ namespace heist {
       "\n     (catch-jump <proc> <arg1> ... <argN>)", args);
     scm_list catch_jump_args(args.begin()+1,args.end());
     if(catch_jump_args.empty()) catch_jump_args.push_back(symconst::sentinel_arg);
-    const bool inline_status = USING_INLINE_INVOCATIONS;
+    const bool inline_status = G::USING_INLINE_INVOCATIONS;
     try {
       return data_cast(execute_application(args[0].exp,catch_jump_args,env));
     } catch(const SCM_EXCEPT& jump_error) {
-      USING_INLINE_INVOCATIONS = inline_status;
+      G::USING_INLINE_INVOCATIONS = inline_status;
       if(jump_error == SCM_EXCEPT::JUMP)
         return G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT;
       throw jump_error;
