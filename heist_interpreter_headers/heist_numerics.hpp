@@ -2095,7 +2095,7 @@ namespace scm_numeric {
   // Generic cpp-fcn-invocation template
   Snum Snum::UNDERLYING_CPP_GENERIC_FCN(const size_type CPP_FCN_TYPE_ID) const noexcept {
     Snum tmp;
-    constexpr size_type EXP_ID = 12;
+    constexpr const size_type EXP_ID = 12;
     // Fcn (non-exp) of NaN or Inf is NaN
     if(stat == status::nan || (stat != status::success && CPP_FCN_TYPE_ID != EXP_ID)) {
       tmp.stat = status::nan; return tmp;

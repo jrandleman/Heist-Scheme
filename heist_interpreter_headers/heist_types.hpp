@@ -35,7 +35,7 @@ namespace heist {
     * PRETTY-PRINTER'S MAX COLUMN WIDTH
     ******************************************************************************/
 
-    size_type PPRINT_MAX_COLUMN_WIDTH = 80;
+    size_type PPRINT_MAX_COLUMN_WIDTH = 80; // see set-pprint-column-width! prim
 
     /******************************************************************************
     * WHETHER TO USE ANSI ESCAPE SEQUENCES TO FORMAT OUTPUT
@@ -54,6 +54,12 @@ namespace heist {
     ******************************************************************************/
 
     bool USING_INLINE_INVOCATIONS = false; // see inline cps-load cps-eval prim's
+
+    /******************************************************************************
+    * WHETHER "-cps" COMMAND LINE FLAG WAS PASSED
+    ******************************************************************************/
+
+    bool USING_CPS_CMD_LINE_FLAG = false;
 
     /******************************************************************************
     * WHETHER TRACING ALL FUNCTION CALLS (DEBUGGING HELPER)
@@ -91,6 +97,12 @@ namespace heist {
     std::vector<FILE*> PORT_REGISTRY({stdin,stdout});
 
     /******************************************************************************
+    * GENSYM UNIQUE HASHING KEYS
+    ******************************************************************************/
+
+    size_type GENSYM_HASH_IDX_1 = 0, GENSYM_HASH_IDX_2 = 0;
+
+    /******************************************************************************
     * THE GLOBAL MACRO LABEL REGISTRY & HYGIENIC-MACROS/CPS HASH INDICES
     ******************************************************************************/
 
@@ -124,6 +136,7 @@ namespace heist {
     constexpr const char * const continuation      = "__HEIST-CPS-";               // hashed continuation arg name prefix
     constexpr const char * const pass_continuation = "__HEIST-PASS-CONTINUATION-"; // denotes to treat proc as if defn'd in a scm->cps block
     constexpr const char * const cps_app_tag       = "__HEIST-APP-CPS";
+    constexpr const char * const gensym_prefix     = "__HEIST-GENSYM-";
     constexpr const char * const scm_cps           = "scm->cps";
     constexpr const char * const cps_quote         = "cps-quote";
     constexpr const char * const null_env          = "null-environment";
@@ -471,26 +484,12 @@ namespace heist {
 
     scm_string display() const noexcept {
       switch(type) {
-        case types::sym:
-          if(sym==symconst::emptylist) return "()";
-          return sym;
         case types::chr: return scm_string(1,chr);
+        case types::str: return *str;
         case types::par: return cio_list_str<&data::display>(*this);
         case types::vec: return cio_vect_str<&data::display>(vec);
         case types::exp: return cio_expr_str<&data::display>(exp);
-        case types::num: return num.str();
-        case types::str: return *str;
-        case types::bol: if(bol.val) return "#t"; return "#f";
-        case types::env: return "#<environment>";
-        case types::del: return "#<delay>";
-        case types::prm: return "#<primitive>";
-        case types::exe: return "#<procedure-body>";
-        case types::cal: return "#<recursion-count>";
-        case types::fip: return "#<input-port>";
-        case types::fop: return "#<output-port>";
-        case types::dne: return "";
-        case types::syn: return "#<syntax-rules-object>";
-        default:         return "#<undefined>"; // types::undefined
+        default:         return write();
       }
     }
 

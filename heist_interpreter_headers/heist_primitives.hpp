@@ -70,6 +70,28 @@ namespace heist {
     return data((args[0].num.expt(args[1].num)));
   }
 
+  // primitive "expt-mod" procedure [more efficient (modulo (expt x y) z)]
+  data primitive_EXPT_MOD(scm_list& args) {
+    // Confirm valid arguments
+    static constexpr const char * const format = "\n     (expt-mod <num1> <num2> <num3>)";
+    if(args.size() != 3)
+      THROW_ERR("'expt-mod invalid # of args given!" << format << FCN_ERR("expt-mod",args));
+    for(size_type i = 0; i < 3; ++i)
+      if(!args[i].is_type(types::num) || !args[i].num.is_integer() || args[i].num.is_neg())
+        THROW_ERR("'expt-mod arg #" << i+1 << ' ' << PROFILE(args[i]) << " isn't a non-negative integer!" 
+          << format << FCN_ERR("expt-mod",args));
+    // Perform Repeated Squares
+    auto &x = args[0].num, &z = args[2].num;
+    auto y_bitstr = args[1].num.str(2);
+    num_type f("1");
+    // For each bit, from left to right
+    for(size_type i = 0, n = y_bitstr.size(); i < n; ++i) {
+      f = (f * f).modulo(z);
+      if(y_bitstr[i] & 1) f = (f * x).modulo(z); // if ith bit is 1
+    }
+    return f;
+  }
+
   // primitive "max" procedure
   data primitive_MAX(scm_list& args) {
     confirm_no_numeric_primitive_errors(args, "max", "(max <num1> <num2> ...)");
@@ -3664,26 +3686,38 @@ namespace heist {
 
   // primitive "number->string" procedure:
   data primitive_COERCE_NUMBER_TO_STRING(scm_list& args) {
-    if(args.size() > 2 || args.empty())
+    static constexpr const char * const format = 
+      "\n     (number->string <number> <optional-radix> <optional-precision>)";
+    if(args.size() > 3 || args.empty())
       THROW_ERR("'number->string received incorrect # of arguments:"
-        "\n     (number->string <number> <optional-numeric-radix>)"
-        << FCN_ERR("number->string", args));
-    // no number or invalid radix given
-    if(!args[0].is_type(types::num) || 
-        (args.size() == 2 && 
-          (!args[1].is_type(types::num) || !args[1].num.is_integer()))) 
-      return G::FALSE_DATA_BOOLEAN;
-    // given a radix
-    if(args.size() == 2) {
+        << format << FCN_ERR("number->string",args));
+    // No number or invalid radix/precision given
+    if(invalid_NUMBER_TO_STRING_args(args)) return G::FALSE_DATA_BOOLEAN;
+    // Given a radix
+    scm_string number_as_string;
+    if(args.size() > 1) {
       size_type radix = args[1].num.round().extract_inexact();
       if(radix < 2 || radix > 36)
         THROW_ERR("'number->string radix (given "<<radix<<") can only range from 2-36:"
-          "\n     (number->string <number> <optional-numeric-radix>)"
-          << FCN_ERR("number->string", args));
-      if(radix != 10)
-        return make_str(args[0].num.str(radix));
+          << format << FCN_ERR("number->string", args));
+      if(radix != 10) {
+        number_as_string = args[0].num.str(radix);
+        goto after_number_stringification;
+      }
     }
-    return make_str(args[0].num.str());
+    number_as_string = args[0].num.str();
+  after_number_stringification:
+    // Alter precision as needed
+    if(no_NUMBER_TO_STRING_precision_change_needed(args,number_as_string))
+      return make_str(number_as_string);
+    const auto dec_pos = number_as_string.find(".");
+    if(dec_pos == scm_string::npos) return make_str(number_as_string);
+    const auto current_precision = number_as_string.size()-dec_pos-1;
+    const auto precision = (size_type)args[2].num.extract_inexact();
+    if(precision > current_precision) // pad 0s
+      return make_str(number_as_string + scm_string(precision-current_precision,'0'));
+    number_as_string.erase(dec_pos+precision+1); // truncate
+    return make_str(number_as_string);
   }
 
   // primitive "string->number" procedure:
@@ -4267,20 +4301,14 @@ namespace heist {
   // Compiles a given filename's file's Heist-Scheme code into a C++ File
   #ifdef HEIST_DIRECTORY_FILE_PATH // @GIVEN-COMPILE-PATH
   data primitive_COMPILE(scm_list& args){
-    // Read File & Generate an AST-construction string
-    if(args.empty() || args.size() > 2) 
-      THROW_ERR("'compile received incorrect # of args!"
-        "\n     (compile <filename-string> <optional-compiled-filename>)"<<FCN_ERR("compile",args));
-    if(args.size() == 2 && !args[1].is_type(types::str))
-      THROW_ERR("'compile 2nd arg "<<PROFILE(args[1])<<" wasn't a string!"
-        "\n     (compile <filename-string> <optional-compiled-filename>)"<<FCN_ERR("compile",args));
-    scm_list expressions;
-    primitive_read_file_being_compiled(args,expressions);
-    if(args.size() == 2)
-      return primitive_write_compiled_file(args,*args[1].str,
-        primitive_generate_precompiled_AST(expressions));
-    return primitive_write_compiled_file(args,"HEIST_COMPILER_OUTPUT.cpp",
-      primitive_generate_precompiled_AST(expressions));
+    return primitive_COMPILE_TEMPLATE(args,"compile",
+      "\n     (compile <filename-string> <optional-compiled-filename>)",false);
+  }
+
+  // Compiles a given file w/ a ((scm->cps <file-contents>) id) wrapper
+  data primitive_CPS_COMPILE(scm_list& args){
+    return primitive_COMPILE_TEMPLATE(args,"cps-compile",
+      "\n     (cps-compile <filename-string> <optional-compiled-filename>)",true);
   }
   #endif
 
@@ -4328,7 +4356,11 @@ namespace heist {
     if(!args.empty())
       THROW_ERR("'command-line doesn't take any arguments:"
         "\n     (command-line)" << FCN_ERR("command-line",args));
-    return make_str("> To run a Script:     -script <script-filename>"
+    return make_str("> Interpret Script:    -script <script-filename>"
+                  #ifdef HEIST_DIRECTORY_FILE_PATH // @GIVEN-COMPILE-PATH
+                  "\n> Compile Script:      -compile <script-filename> <optional-compiled-filename>"
+                  #endif
+                  "\n> With CPS Evaluation: -cps"
                   "\n> Disable ANSI Colors: -nansi"
                   "\n> Case Insensitivity:  -ci");
   }
@@ -4523,6 +4555,39 @@ namespace heist {
     auto result = data_cast(execute_application(args[0].exp,trace_args,env));
     G::TRACED_FUNCTION_NAME = "";
     return result;
+  }
+
+  /******************************************************************************
+  * GENSYM PRIMITIVES
+  ******************************************************************************/
+
+  data primitive_GENSYM(scm_list& args) {
+    if(args.size() > 1)
+      THROW_ERR("'gensym recieved incorrect # of args!"
+        "\n     (gensym <optional-instance-#-to-reference>)" << FCN_ERR("gensym",args));
+    if(args.size() == 1) {
+      if(!args[0].is_type(types::num) || !args[0].num.is_integer() || args[0].num.is_neg())
+        THROW_ERR("'gensym arg " << PROFILE(args[0]) << " isn't a non-negative integer!"
+          "\n     (gensym <optional-instance-#-to-reference>)" << FCN_ERR("gensym",args));
+      return decremented_hashed_gensym_arg((size_type)args[0].num.extract_inexact(),args);
+    }
+    return hygienically_hashed_gensym_arg();
+  }
+
+
+  data primitive_SOWN_GENSYM(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (sown-gensym <seed>)"
+      "\n     => <seed> = number | char | symbol | boolean";
+    if(args.size() != 1)
+      THROW_ERR("'sown-gensym recieved incorrect # of args!" 
+        << format << FCN_ERR("sown-gensym",args));
+    if(!args[0].is_type(types::num) && !args[0].is_type(types::chr) && 
+       !args[0].is_type(types::sym) && !args[0].is_type(types::bol)) {
+      THROW_ERR("'sown-gensym arg "<<PROFILE(args[0])<<" isn't a valid 'sown-gensym key!" 
+        << format << FCN_ERR("sown-gensym",args));
+    }
+    return symconst::gensym_prefix + scm_string("SOWN-") + args[0].write();
   }
 
   /******************************************************************************
@@ -4859,6 +4924,7 @@ namespace heist {
 
     std::make_pair(primitive_ABS,       "abs"),
     std::make_pair(primitive_EXPT,      "expt"),
+    std::make_pair(primitive_EXPT_MOD,  "expt-mod"),
     std::make_pair(primitive_MAX,       "max"),
     std::make_pair(primitive_MIN,       "min"),
     std::make_pair(primitive_QUOTIENT,  "quotient"),
@@ -5231,6 +5297,7 @@ namespace heist {
     std::make_pair(primitive_COMMAND_LINE, "command-line"),
     #ifdef HEIST_DIRECTORY_FILE_PATH // @GIVEN-COMPILE-PATH
     std::make_pair(primitive_COMPILE,      "compile"),
+    std::make_pair(primitive_CPS_COMPILE,  "cps-compile"),
     #endif
 
     std::make_pair(primitive_SECONDS_SINCE_EPOCH, "seconds-since-epoch"),
@@ -5252,6 +5319,9 @@ namespace heist {
     std::make_pair(primitive_CATCH_JUMP,      "catch-jump"),
     std::make_pair(primitive_EXPAND,          "expand"),
     std::make_pair(primitive_TRACE,           "trace"),
+
+    std::make_pair(primitive_GENSYM,      "gensym"),
+    std::make_pair(primitive_SOWN_GENSYM, "sown-gensym"),
   };
 
   frame_vals primitive_procedure_objects()noexcept{

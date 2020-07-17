@@ -199,6 +199,12 @@ namespace heist {
   * EQUALITY PRIMITIVE HELPERS
   ******************************************************************************/
 
+  bool prm_comparing_primitives(const scm_list& l1, const scm_list& l2)noexcept{
+    return l1.size() == 3 && l1[0].is_type(types::sym) && l2[0].is_type(types::sym) &&
+      l1[0].sym == l2[0].sym && l1[0].sym == symconst::primitive;
+  }
+
+
   bool prm_compare_atomic_values(const data& v1,const data& v2,const types& t)noexcept{
     switch(t) {
       case types::undefined: case types::dne: case types::exe: return true;
@@ -223,7 +229,8 @@ namespace heist {
 
 
   bool prm_compare_EXPRs(const scm_list& l1, const scm_list& l2)noexcept{
-    if(l1.size() != l2.size()) return false;
+    if(l1.size() != l2.size())          return false;
+    if(prm_comparing_primitives(l1,l2)) return l1[1].prm == l2[1].prm;
     for(size_type i = 0, n = l1.size(); i < n; ++i) {
       if(l1[i].type != l2[i].type) return false; // compare types
       if(l1[i].is_type(types::exp)) {            // compare sub-lists
@@ -2818,6 +2825,24 @@ namespace heist {
     return symbol_str;
   }
 
+
+  // primitive "number->string" conversion helper
+  bool invalid_NUMBER_TO_STRING_args(const scm_list& args)noexcept{
+    return !args[0].is_type(types::num) || 
+            (args.size() > 1 && 
+              (!args[1].is_type(types::num) || !args[1].num.is_integer() ||
+                (args.size() == 3 && 
+                  (!args[2].is_type(types::num) || !args[2].num.is_integer() || 
+                                                   !args[2].num.is_pos()))));
+  }
+
+  // primitive "number->string" conversion helper
+  bool no_NUMBER_TO_STRING_precision_change_needed(const scm_list& args, const scm_string& number_as_string)noexcept{
+    // No change needed if non-inexact or in scientific notation
+    return args.size() < 3 || !args[0].num.is_inexact() || 
+      (args[1].num == 10 && number_as_string.find("e") != number_as_string.find("E"));
+  }
+
   /******************************************************************************
   * READER ERROR INPUT PRIMITIVE HELPERS
   ******************************************************************************/
@@ -3715,9 +3740,9 @@ namespace heist {
   }
 
 
-  void primitive_read_file_being_compiled(scm_list& args, scm_list& expressions){
-    FILE* ins = confirm_valid_input_file(args[0],"compile",
-      "\n     (compile <filename-string> <optional-compiled-filename>)",args);
+  void primitive_read_file_being_compiled(scm_list& args, scm_list& expressions, 
+                                          const char* name, const char* format){
+    FILE* ins = confirm_valid_input_file(args[0],name,format,args);
     size_type exp_count = 1;
     while(!feof(ins)) {
       // Try reading an expression
@@ -3733,13 +3758,13 @@ namespace heist {
         throw compile_error;
       }
     }
+    expressions.pop_back(); // rm EOF character (not part of the source code)
     if(ins) fclose(ins);
   }
 
 
   scm_string primitive_generate_precompiled_AST(scm_list& expressions)noexcept{
     // Generate Vector Assignments to explicitly lay out a predetermined AST
-    expressions.pop_back(); // rm EOF character (not part of the source code)
     scm_string ast_generator = "heist::exp_type HEIST_PRECOMPILED_READ_AST_EXPS(" + 
                                 std::to_string(expressions.size()) + ");\n"
                                 "void POPULATE_HEIST_PRECOMPILED_READ_AST_EXPS(){\n";
@@ -3749,12 +3774,13 @@ namespace heist {
 
 
   data primitive_write_compiled_file(scm_list& args, const scm_string& compiled_filename, 
-                                                     const scm_string& ast_generator){
+                                                     const scm_string& ast_generator,
+                                                     const char* name){
     FILE* outs = fopen(compiled_filename.c_str(), "w");
     if(outs == nullptr)
-      THROW_ERR("'compile file \"" << compiled_filename 
-        << "\" couldn't be written to!\n     (compile <filename-string>)"
-        << FCN_ERR("compile",args));
+      THROW_ERR('\''<<name<<" file \"" << compiled_filename 
+        << "\" couldn't be written to!\n     ("<<name<<" <filename-string>)"
+        << FCN_ERR(name,args));
     fprintf(outs, "// Heist-Scheme Compiled Source from \"%s\""
                   "\n#include \"%s%cheist_interpreter_headers%cheist_types.hpp\""
                   "\n#define HEIST_INTERPRETING_COMPILED_AST"
@@ -3767,6 +3793,40 @@ namespace heist {
                   HEIST_DIRECTORY_FILE_PATH,char(std::filesystem::path::preferred_separator));
     if(outs) fclose(outs);
     return G::VOID_DATA_OBJECT;
+  }
+
+
+  // Generates a custom or default named compiled file as needed
+  data primitive_compile_dispatch(scm_list& args, scm_list& expressions, const char* name) {
+    if(args.size() == 2)
+      return primitive_write_compiled_file(args,*args[1].str,
+        primitive_generate_precompiled_AST(expressions),name);
+    return primitive_write_compiled_file(args,"HEIST_COMPILER_OUTPUT.cpp",
+      primitive_generate_precompiled_AST(expressions),name);
+  }
+
+
+  // General Layout for Compilation Primitives (For Both CPS-Style & Not)
+  data primitive_COMPILE_TEMPLATE(scm_list& args,const char* name,const char* format,const bool cps_style){
+    // Read File & Generate an AST-construction string
+    if(args.empty() || args.size() > 2) 
+      THROW_ERR('\''<<name<<" received incorrect # of args!"
+        "\n     ("<<name<<" <filename-string> <optional-compiled-filename>)"<<FCN_ERR(name,args));
+    if(args.size() == 2 && !args[1].is_type(types::str))
+      THROW_ERR('\''<<name<<" 2nd arg "<<PROFILE(args[1])<<" wasn't a string!"
+        "\n     ("<<name<<" <filename-string> <optional-compiled-filename>)"<<FCN_ERR(name,args));
+    scm_list expressions;
+    primitive_read_file_being_compiled(args,expressions,name,format);
+    if(cps_style) {
+      scm_list wrapped_exps(1);
+      wrapped_exps[0] = scm_list(2);
+      wrapped_exps[0].exp[0] = scm_list(1+expressions.size());
+      wrapped_exps[0].exp[0].exp[0] = symconst::scm_cps;
+      std::move(expressions.begin(),expressions.end(),wrapped_exps[0].exp[0].exp.begin()+1);
+      wrapped_exps[0].exp[1] = "id";
+      return primitive_compile_dispatch(args,wrapped_exps,name);
+    }
+    return primitive_compile_dispatch(args,expressions,name);
   }
   #endif
 
@@ -3891,6 +3951,35 @@ namespace heist {
     if(!expanded.is_type(types::bol) || expanded.bol.val)
       return prm_recursively_deep_expand_macros(expanded,env);
     return prm_recursively_deep_expand_macros_exp(d,env);
+  }
+
+  /******************************************************************************
+  * GENSYM PRIMITIVE HELPERS
+  ******************************************************************************/
+
+  // Returns a freshly generated gensym symbol
+  scm_string hygienically_hashed_gensym_arg()noexcept{
+    if(G::GENSYM_HASH_IDX_1 != G::MAX_SIZE_TYPE)
+      return symconst::gensym_prefix + std::to_string(G::GENSYM_HASH_IDX_2) + 
+                                 '_' + std::to_string(G::GENSYM_HASH_IDX_1++);
+    return symconst::gensym_prefix + std::to_string(++G::GENSYM_HASH_IDX_2) + 
+                               '_' + std::to_string(G::GENSYM_HASH_IDX_1++);
+  }
+
+
+  // If given an arg, return the nth previously generated gensym symbol
+  scm_string decremented_hashed_gensym_arg(size_type n, const scm_list& args){
+    if(!G::GENSYM_HASH_IDX_2 && G::GENSYM_HASH_IDX_1 < n)
+      THROW_ERR("'gensym less than " << n << " gensym instances have been generated!"
+        "\n     (gensym <optional-instance-#-to-reference>)" << FCN_ERR("gensym",args));
+    if(G::GENSYM_HASH_IDX_1 < n) {
+      n -= G::GENSYM_HASH_IDX_1;
+      return symconst::gensym_prefix + std::to_string(G::GENSYM_HASH_IDX_2 - 1) + 
+                                 '_' + std::to_string(G::MAX_SIZE_TYPE - n);
+    } else {
+      return symconst::gensym_prefix + std::to_string(G::GENSYM_HASH_IDX_2) + 
+                                 '_' + std::to_string(G::GENSYM_HASH_IDX_1 - n);
+    }
   }
 } // End of namespace heist
 #endif

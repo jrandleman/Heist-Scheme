@@ -292,23 +292,25 @@ namespace heist {
   struct pprint_datum {
     // <output_len> Denotes length of <exp> or <datum_str> once ouput
     size_type output_len = 0;
-    bool is_exp = false;
+    bool is_exp = false, is_sym = false;
     // Either a datum_str non-proper-list-pair or and <exp> of <pprint_datum>
     scm_string datum_str;
     pprint_data exp;
     pprint_datum()                      = default;
     pprint_datum(const pprint_datum& p) = default;
     pprint_datum(pprint_datum&& p)      = default;
-    pprint_datum(scm_string&& str) : output_len(str.size()),datum_str(std::move(str)) {}
+    pprint_datum(scm_string&& str,const bool is_symbol=false) : output_len(str.size()),
+                                                                is_sym(is_symbol),
+                                                                datum_str(std::move(str)) {}
     pprint_datum(const pprint_data& e,const size_type& len) : output_len(len),is_exp(true),exp(e) {}
   };
 
 
   // Gets the length of <list_as_strs> once output
   void get_pprint_data_ouput_length(const pprint_data& list_as_strs,size_type& output_length)noexcept{
-      // initial value accounts for outputting both parens & spaces between elts
-      output_length = 2 + list_as_strs.size()-1;
-      for(const auto& e : list_as_strs) output_length += e.output_len;
+    // initial value accounts for outputting both parens & spaces between elts
+    output_length = 2 + list_as_strs.size()-1;
+    for(const auto& e : list_as_strs) output_length += e.output_len;
   }
 
 
@@ -317,7 +319,7 @@ namespace heist {
   void stringify_list_data(pprint_data& list_as_strs, size_type& length, const par_type& p)noexcept{
     // Strify car
     if(!p->first.is_type(types::par)) {
-      list_as_strs.push_back(p->first.pprint());
+      list_as_strs.push_back(pprint_datum(p->first.pprint(),p->first.is_type(types::sym)));
     } else if(!data_is_proper_list(p->first)) {
       list_as_strs.push_back(p->first.write());
     } else {
@@ -332,7 +334,7 @@ namespace heist {
       return; // end of list
     }
     if(!p->second.is_type(types::par))
-      list_as_strs.push_back(p->second.pprint());
+      list_as_strs.push_back(pprint_datum(p->second.pprint(),p->second.is_type(types::sym)));
     else if(!data_is_proper_list(p->second))
       list_as_strs.push_back(p->second.write());
     else
@@ -354,9 +356,31 @@ namespace heist {
   }
 
 
+  void pretty_print_pprint_data(const pprint_data&,const size_type&,const size_type&,scm_string&)noexcept;
+
+  // Prints a list beginning w/ a non-symbol atom
+  void pretty_print_list_of_data(const pprint_data& list_as_strs, const size_type& depth, 
+                                                 scm_string& buffer, char* tabs)noexcept{
+    tabs[2*depth+1] = 0; // shorten tabs to account for specialized printing
+    for(size_type col_length = 2*depth, i = 0, n = list_as_strs.size(); i < n; ++i) {
+      if(i && list_as_strs[i].output_len + col_length > G::PPRINT_MAX_COLUMN_WIDTH) {
+        buffer += '\n';
+        buffer += tabs;
+        col_length = 2*depth;
+      }
+      col_length += list_as_strs[i].output_len + 1; // +1 accounts for spaces
+      if(list_as_strs[i].is_exp)
+        pretty_print_pprint_data(list_as_strs[i].exp,list_as_strs[i].output_len,depth+1,buffer);
+      else
+        buffer += std::move(list_as_strs[i].datum_str);
+      if(i+1 != n) buffer += ' ';
+    }
+  }
+
+
   // Show info on the parsed stringified data
   void pretty_print_pprint_data(const pprint_data& list_as_strs, const size_type& len,
-                                                size_type depth, scm_string& buffer)noexcept{
+                                const size_type& depth, scm_string& buffer)noexcept{
     // Print as is if possible
     if(len + 2*depth <= G::PPRINT_MAX_COLUMN_WIDTH || len < 2) {
       print_pprint_data_as_is(list_as_strs,buffer);
@@ -368,9 +392,14 @@ namespace heist {
     tabs[2*depth+2] = 0;
     // Open paren
     buffer += '(';
-    // If 1st elt is a list, hence special printing case for such applications
     const size_type n = list_as_strs.size();
     size_type i = 1;
+    // If 1st elt is a non-symbol atom, specialize printing
+    if(!list_as_strs[0].is_sym && !list_as_strs[0].is_exp) {
+      pretty_print_list_of_data(list_as_strs,depth,buffer,tabs);
+      goto end_of_pprint;
+    }
+    // If 1st elt is a list, hence special printing case for such applications
     if(list_as_strs[0].is_exp) {
       pretty_print_pprint_data(list_as_strs[0].exp,list_as_strs[0].output_len,depth+1,buffer);
     } else {
@@ -395,6 +424,7 @@ namespace heist {
       if(i+1 != n) buffer += '\n';
     }
     // Free <tabs> & add the closing paren
+  end_of_pprint:
     delete [] tabs;
     buffer += ')';
   }

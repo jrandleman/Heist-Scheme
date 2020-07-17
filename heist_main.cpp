@@ -27,7 +27,7 @@
 * => HINT: JUST USE WHAT "$ pwd" (OR "$ cd" ON WINDOWS) PRINTS!
 ******************************************************************************/
 
-// #define HEIST_DIRECTORY_FILE_PATH "/Users/jordanrandleman/desktop/Heist-Scheme"
+// #define HEIST_DIRECTORY_FILE_PATH "/Users/jordanrandleman/Desktop/Heist-Scheme"
 
 /******************************************************************************
 * WARN USER IF COMPILING W/O AN ABSOLUTE FILE PATH
@@ -3528,10 +3528,10 @@ namespace heist {
         // Extract the continuation form the parameter list as needed
         auto continuation = (*arg_procs.rbegin())(env);
         bool passing_continuation = procedure_requires_continuation(proc);
-        if(!passing_continuation) arg_procs.pop_back();
-        scm_list arg_vals(arg_procs.size());
+        scm_list arg_vals(arg_procs.size() - !passing_continuation);
         // Eval each arg's exec proc to obtain the actual arg values
         if(!passing_continuation) {
+          arg_procs.pop_back();
           eval_application_arg_procs(arg_procs,arg_vals,env);
           // Pass the result of the proc to the continuation
           auto result_arg = scm_list(1,data_cast(execute_application(proc,arg_vals,env)));
@@ -3810,12 +3810,29 @@ void user_print(FILE* outs, heist::scm_list& object)noexcept{
 }
 
 
+// Wrap each entry in "scm->cps" (w/ "id" bound as the topmost cont.) 
+//   if "-cps" cmd-line flag passed
+void cpsify_inputs(heist::scm_list& AST) {
+  const heist::size_type n = AST.size();
+  heist::scm_list CPS_AST(n);
+  for(heist::size_type i = 0; i < n; ++i) {
+    CPS_AST[i] = heist::scm_list(2);
+    CPS_AST[i].exp[0] = heist::scm_list(2);
+    CPS_AST[i].exp[0].exp[0] = heist::symconst::scm_cps;
+    CPS_AST[i].exp[0].exp[1] = AST[i];
+    CPS_AST[i].exp[1] = "id";
+  }
+  AST = CPS_AST;
+}
+
+
 void driver_loop() {
   bool printed_data = true;
   print_repl_newline(printed_data);
   for(;;) {
     heist::announce_input(stdout);
     auto AST = heist::read_user_input(stdout,stdin); // AST = Abstract Syntax Tree
+    if(heist::G::USING_CPS_CMD_LINE_FLAG) cpsify_inputs(AST);
     // Eval each expression given
     for(const auto& input : AST) {
       try {
@@ -3854,6 +3871,7 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
     #ifdef HEIST_DIRECTORY_FILE_PATH // @GIVEN-COMPILE-PATH
     "\n> Compile Script:      -compile <script-filename> <optional-compiled-filename>"
     #endif
+    "\n> With CPS Evaluation: -cps"
     "\n> Disable ANSI Colors: -nansi"
     "\n> Case Insensitivity:  -ci"
     "\n> Terminating Heist Scheme Interpretation.\n\n";
@@ -3870,6 +3888,8 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
       heist::G::USING_CASE_SENSITIVE_SYMBOLS = false;
     } else if(cmd_flag == "-nansi") {
       heist::G::USING_ANSI_ESCAPE_SEQUENCES = false;
+    } else if(cmd_flag == "-cps") {
+      heist::G::USING_CPS_CMD_LINE_FLAG = true;
     } else if(cmd_flag == "-script") {
       if(i == argc-1) {
         fprintf(stderr,"\n> \"-script\" wasn't followed by a file!%s",cmd_line_options);
@@ -3901,13 +3921,23 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
 * INTERPRET SCRIPT HELPER FUNCTION
 ******************************************************************************/
 
-int load_script(char *argv[], const int& script_pos){
+int load_script(char* argv[], const int& script_pos){
   // Load the script & immediately exit
-  heist::scm_list load_args(2); 
+  heist::scm_list load_args(2 + heist::G::USING_CPS_CMD_LINE_FLAG);
   load_args[0] = heist::make_str(argv[script_pos]);
-  load_args[1] = heist::G::GLOBAL_ENVIRONMENT_POINTER;
+  load_args[1 + heist::G::USING_CPS_CMD_LINE_FLAG] = heist::G::GLOBAL_ENVIRONMENT_POINTER;
+  // Bind "id" as the topmost continuation if "-cps" was passed
+  if(heist::G::USING_CPS_CMD_LINE_FLAG) {
+    load_args[1] = heist::scm_list(3);
+    load_args[1].exp[0] = heist::symconst::primitive;
+    load_args[1].exp[1] = (heist::prm_type)[](heist::scm_list& args){return args[0];};
+    load_args[1].exp[2] = "id";
+  }
   try {
-    heist::primitive_LOAD(load_args);
+    if(heist::G::USING_CPS_CMD_LINE_FLAG)
+      heist::primitive_CPS_LOAD(load_args);
+    else
+      heist::primitive_LOAD(load_args);
   } catch(const heist::SCM_EXCEPT& eval_throw) {
     if(eval_throw == heist::SCM_EXCEPT::JUMP)
       PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
@@ -3934,13 +3964,16 @@ int load_script(char *argv[], const int& script_pos){
 ******************************************************************************/
 
 #ifdef HEIST_DIRECTORY_FILE_PATH // @GIVEN-COMPILE-PATH
-int compile_script(char *argv[], const int& compile_pos, std::string& compile_as){
+int compile_script(char* argv[], const int& compile_pos, std::string& compile_as){
   // Compile the script & immediately exit
   heist::scm_list compile_args(2);
   compile_args[0] = heist::make_str(argv[compile_pos]);
   compile_args[1] = heist::make_str(compile_as);
   try {
-    heist::primitive_COMPILE(compile_args);
+    if(heist::G::USING_CPS_CMD_LINE_FLAG)
+      heist::primitive_CPS_COMPILE(compile_args);
+    else
+      heist::primitive_COMPILE(compile_args);
   } catch(const heist::SCM_EXCEPT& eval_throw) {
     if(eval_throw == heist::SCM_EXCEPT::JUMP)
       PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
@@ -3951,7 +3984,7 @@ int compile_script(char *argv[], const int& compile_pos, std::string& compile_as
     /* catch uncaught C++ exceptions -:- ANOMALY -:- */
     PRINT_ERR(afmt(heist::AFMT_1) << 
       "\nUncaught C++ Exception Detected! -:- BUG ALERT -:-"
-      "\n  => While Compiling script \"" << argv[compile_pos] << "\""
+      "\n  => While compiling script \"" << argv[compile_pos] << "\""
       "\n  => Please send your code to jrandleman@scu.edu to fix"
       "\n     the interpreter's bug!"
       "\n  => Terminating Heist Scheme Interpretation.\n\n" << afmt(heist::AFMT_0));
@@ -3967,7 +4000,7 @@ int compile_script(char *argv[], const int& compile_pos, std::string& compile_as
 * MAIN INTERPRETER EXECUTION
 ******************************************************************************/
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   // Validate arguments
   int script_pos = -1, compile_pos = -1;
   std::string compile_as = "HEIST_COMPILER_OUTPUT.cpp";
