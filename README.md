@@ -170,18 +170,18 @@ Souped-Up Scheme Interpreter Written in C++!
 ------------------------
 # Heist Primitive Data Types
 0. Symbol (quoted syntax label, `'hello`)
-1. Number (see numerics section)
-2. Pair (quoted expression `'(1 2 3)`, primitive `(list 1 2 3)`, or cons `(cons 1 (cons 2 (cons 3 '())))`)
+1. Number ([see numerics section](#Heist-Numerics))
+2. Pair (quoted expression `'(1 2 3)`, [list](#ListPair-Procedures) `(list 1 2 3)`, or [cons](#ListPair-Procedures) `(cons 1 (cons 2 (cons 3 '())))`)
 3. String (wrapped by `""`, `"hello"`)
 4. Char (have the `#\` prefix, `#\h #\e #\l #\l #\o`) (uses `ascii` encoding!)
 5. Boolean (true or false, `#t` or`#f`)
 6. Vector (quoted literal `'#(1 2 3)`, or primitive `(vector 1 2 3)`)
-7. Input Port, Output Port (see port primitives)
-8. Syntax-Rules Object (see `syntax-rules` special form)
-9. Delayed Data (see `delay` special form)
-10. Procedure (via primitives or the `lambda` special form)
-11. Void Data `(void)`
-12. Undefined Data `(undefined)`
+7. Input Port, Output Port ([see port primitives](#File--Port-Procedures))
+8. Syntax-Rules Object (see [`syntax-rules`](#Define-Syntax-Let-Syntax-Letrec-Syntax) special form)
+9. Delayed Data (see [`delay`](#Delay) special form)
+10. Procedure (via primitives or the [`lambda`](#Lambda) special form)
+11. Void Data [`(void)`](#Type-Predicates)
+12. Undefined Data [`(undefined)`](#Type-Predicates)
 
 
 
