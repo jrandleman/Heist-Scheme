@@ -4,6 +4,7 @@
 Souped-Up Scheme Interpreter Written in C++!
 ------------------------
 
+------------------------
 # Using Heist Scheme:
 0. Compiling the Interpreter: `$ clang++ -std=c++17 -O3 -o heist_main heist_main.cpp`
 1. REPL: `$ ./heist_main` (exit REPL via [`(exit)`](#Control-Flow-Procedures) command)
