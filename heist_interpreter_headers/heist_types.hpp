@@ -124,19 +124,19 @@ namespace heist {
   * PREMADE SYMBOLIC CONSTANTS
   ******************************************************************************/
 
-  // NOTE: ***ALL SYMBOL NAMES BEGINNING WITH "__HEIST-" ARE RESERVED!!!***
+  // NOTE: ***ALL SYMBOL NAMES BEGINNING WITH "__heist-" ARE RESERVED!!!***
 
   namespace symconst {
     constexpr const char * const emptylist         = "";
-    constexpr const char * const sentinel_arg      = "__HEIST-NIL-ARG";
-    constexpr const char * const do_label          = "__HEIST-DO-LETREC";
-    constexpr const char * const primitive         = "__HEIST-PRIMITIVE";
-    constexpr const char * const procedure         = "__HEIST-PROCEDURE";
-    constexpr const char * const tail_call         = "__HEIST-TAIL-CALL";
-    constexpr const char * const continuation      = "__HEIST-CPS-";               // hashed continuation arg name prefix
-    constexpr const char * const pass_continuation = "__HEIST-PASS-CONTINUATION-"; // denotes to treat proc as if defn'd in a scm->cps block
-    constexpr const char * const cps_app_tag       = "__HEIST-APP-CPS";
-    constexpr const char * const gensym_prefix     = "__HEIST-GENSYM-";
+    constexpr const char * const sentinel_arg      = "__heist-nil-arg";
+    constexpr const char * const do_label          = "__heist-do-letrec";
+    constexpr const char * const primitive         = "__heist-primitive";
+    constexpr const char * const procedure         = "__heist-procedure";
+    constexpr const char * const tail_call         = "__heist-tail-call";
+    constexpr const char * const continuation      = "__heist-cps-";               // hashed continuation arg name prefix
+    constexpr const char * const pass_continuation = "__heist-pass-continuation"; // denotes to treat proc as if defn'd in a scm->cps block
+    constexpr const char * const cps_app_tag       = "__heist-app-cps";
+    constexpr const char * const gensym_prefix     = "__heist-gensym-";
     constexpr const char * const scm_cps           = "scm->cps";
     constexpr const char * const cps_quote         = "cps-quote";
     constexpr const char * const null_env          = "null-environment";

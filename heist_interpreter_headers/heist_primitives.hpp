@@ -4728,20 +4728,20 @@ namespace heist {
   (define (id a) a)
 
   ; CALL/CC (ONLY WORKS IN scm->cps BLOCKS!)
-  (define (__HEIST-PASS-CONTINUATION-call/cc f k)
-    (define (__HEIST-PASS-CONTINUATION-k-kestrel a b) (k a)) ; ignore 2nd cont. passed by CPS-ification
-    (f __HEIST-PASS-CONTINUATION-k-kestrel k))
-  (define call/cc __HEIST-PASS-CONTINUATION-call/cc)
-  (define call-with-current-continuation __HEIST-PASS-CONTINUATION-call/cc)
+  (define (__heist-pass-continuation-call/cc f k)
+    (define (__heist-pass-continuation-k-kestrel a b) (k a)) ; ignore 2nd cont. passed by CPS-ification
+    (f __heist-pass-continuation-k-kestrel k))
+  (define call/cc __heist-pass-continuation-call/cc)
+  (define call-with-current-continuation __heist-pass-continuation-call/cc)
 
   ; CPS-EVAL & CPS-LOAD
-  (define cps-eval __HEIST-PASS-CONTINUATION-cps-eval)
-  (define cps-load __HEIST-PASS-CONTINUATION-cps-load)
+  (define cps-eval __heist-pass-continuation-cps-eval)
+  (define cps-load __heist-pass-continuation-cps-load)
 
   ; CPS->SCM (BINDS 'id TO THE GIVEN PROC'S CONTINUATION)[FOR scm->cps & REGULAR CODE HIGHER-ORDER FCN INTEROP]
-  (define (__HEIST-PASS-CONTINUATION-cps->scm proc k)
+  (define (__heist-pass-continuation-cps->scm proc k)
     (k (lambda (. args) (apply proc (append args (cons id '()))))))
-  (define cps->scm __HEIST-PASS-CONTINUATION-cps->scm)
+  (define cps->scm __heist-pass-continuation-cps->scm)
   )";
 
   /******************************************************************************
@@ -5214,7 +5214,7 @@ namespace heist {
     std::make_pair(primitive_SEQP,                 "seq?"),
 
     std::make_pair(primitive_EVAL,     "eval"),
-    std::make_pair(primitive_CPS_EVAL, "__HEIST-PASS-CONTINUATION-cps-eval"),
+    std::make_pair(primitive_CPS_EVAL, "__heist-pass-continuation-cps-eval"),
     std::make_pair(primitive_APPLY,    "apply"),
 
     std::make_pair(primitive_DELAYP, "delay?"),
@@ -5310,7 +5310,7 @@ namespace heist {
     std::make_pair(primitive_CLOSE_PORT,            "close-port"),
 
     std::make_pair(primitive_LOAD,         "load"),
-    std::make_pair(primitive_CPS_LOAD,     "__HEIST-PASS-CONTINUATION-cps-load"),
+    std::make_pair(primitive_CPS_LOAD,     "__heist-pass-continuation-cps-load"),
     std::make_pair(primitive_SYSTEM,       "system"),
     std::make_pair(primitive_GETENV,       "getenv"),
     std::make_pair(primitive_COMMAND_LINE, "command-line"),

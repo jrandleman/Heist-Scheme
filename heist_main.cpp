@@ -27,7 +27,7 @@
 * => HINT: JUST USE WHAT "$ pwd" (OR "$ cd" ON WINDOWS) PRINTS!
 ******************************************************************************/
 
-// #define HEIST_DIRECTORY_FILE_PATH "/Users/jordanrandleman/Desktop/Heist-Scheme"
+#define HEIST_DIRECTORY_FILE_PATH "/Users/jordanrandleman/Desktop/Heist-Scheme"
 
 /******************************************************************************
 * WARN USER IF COMPILING W/O AN ABSOLUTE FILE PATH
