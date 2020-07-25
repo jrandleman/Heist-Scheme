@@ -29,7 +29,7 @@ Embed Heist in C++: `#include` the `heist_cpp_interop.hpp` header into your code
 ------------------------ 
 # Table of Contents
 0. [Heist Properties](#Heist-Properties)
-   - [Quick Overview](##Quick-Overview])
+   - [Quick Overview](#Quick-Overview])
    - Conventions
    - Metaprogramming Advantages
    - Notation
