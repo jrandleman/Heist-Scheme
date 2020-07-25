@@ -17,8 +17,8 @@ Souped-Up Scheme Interpreter Written in C++!
 # Features:
 0. Hygienic Macros
 1. Tail-Call Optimization
-2. Opt-In Dynamic Scoping (see the `call/ce` & `inline` application primitives)
-3. Opt-In Continuations & `call/cc`
+2. Opt-In Dynamic Scoping (see the [`call/ce`](#control-flow-procedures) & [`inline`](#control-flow-procedures) application primitives)
+3. Opt-In Continuations & [`call/cc`](#Scm-Cps-Procedures)
 4. Native Even Streams (Lists w/ Delayed Car & Cdr)
 5. Generic Algorithms (Polymorphic Algorithm Primitives)
 6. SFRI Primitives (List, Vector, String, etc.)
