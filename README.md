@@ -1300,6 +1300,8 @@ Other primitives of this nature include:<br>
 
 3. __Last Pair In List__: `(last-pair <non-empty-list>)`
 
+4. __Swap 2 Pairs__: `(pair-swap! <pair1> <pair2>)`
+
 
 ### List Constructors:
 0. __Construct List (1)__: `(make-list <size> <fill-value>)`
