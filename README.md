@@ -5,26 +5,26 @@ Souped-Up Scheme Interpreter Written in C++!
 ------------------------
 
 # Using Heist Scheme:
-Compiling the Interpreter: `$ clang++ -std=c++17 -O3 -o heist_main heist_main.cpp`</br></br>
-REPL: `$ ./heist_main` (exit REPL via `(exit)` command)</br>
-Interpret Script: `$ ./heist_main -script <your-scripts-filename-here>`</br>
-Compile Script to C++: `$ ./heist_main -compile <your-scripts-filename-here> <optional-target-name>`</br>
-Embed Heist in C++: `#include` the `heist_cpp_interop.hpp` header into your code (read it for more details)!</br>
-* See `embedded_heist_demo.cpp` for an example of embedding Heist in action!
+0. Compiling the Interpreter: `$ clang++ -std=c++17 -O3 -o heist_main heist_main.cpp`
+1. REPL: `$ ./heist_main` (exit REPL via `(exit)` command)
+2. Interpret Script: `$ ./heist_main -script <your-scripts-filename-here>`
+3. Compile Script to C++: `$ ./heist_main -compile <your-scripts-filename-here> <optional-target-name>`
+4. Embed Heist in C++: `#include` the `heist_cpp_interop.hpp` header into your code (read it for more details)!
+   * See `embedded_heist_demo.cpp` for an example of embedding Heist in action!
 
 ------------------------
 # Features:
-0) Hygienic Macros
-1) Tail-Call Optimization
-2) Opt-In Dynamic Scoping (see the `call/ce` & `inline` application primitives)
-3) Opt-In Continuations & `call/cc`
-4) Native Even Streams (Lists w/ Delayed Car & Cdr)
-5) Generic Algorithms (Polymorphic Algorithm Primitives)
-6) SFRI Primitives (List, Vector, String, etc.)
-7) Eval (Evaluate Symbolic Data as Code)
-8) String I/O (Read/Write Compatibility w/ Strings as Ports)
-9) Recursive Depth Control
-10) And More!
+0. Hygienic Macros
+1. Tail-Call Optimization
+2. Opt-In Dynamic Scoping (see the `call/ce` & `inline` application primitives)
+3. Opt-In Continuations & `call/cc`
+4. Native Even Streams (Lists w/ Delayed Car & Cdr)
+5. Generic Algorithms (Polymorphic Algorithm Primitives)
+6. SFRI Primitives (List, Vector, String, etc.)
+7. Eval (Evaluate Symbolic Data as Code)
+8. String I/O (Read/Write Compatibility w/ Strings as Ports)
+9. Recursive Depth Control
+10. And More!
 
 ------------------------ 
 # Table of Contents
@@ -40,72 +40,72 @@ Embed Heist in C++: `#include` the `heist_cpp_interop.hpp` header into your code
    - [2 Prefix Types](#2-Prefix-Types)
 4. [Heist Hygienic Macro System, Procedures vs. Macros](#Heist-Hygienic-Macro-System,-Procedures-vs.-Macros)
 5. [Heist Commenting](#Heist-Commenting)
-6. [Continuation Passing Style (CPS)](#Continuation-Passing-Style-(CPS))
+6. [CPS: Continuation Passing Style](#CPS:-Continuation-Passing-Style)
 7. [Heist Special Forms](#Heist-Special-Forms)
-   - Quotation
-   - Quasiquotation, Unquote, & Unquote-Splicing
-   - Lambda
-   - Define
-   - Set!
-   - Begin
-   - If
-   - And
-   - Or
-   - Cond
-   - Case
-   - Let
-   - Let\*
-   - Letrec
-   - Do
-   - Delay
-   - Scons
-   - Stream
-   - Vector-Literal
-   - Define-Syntax, Let-Syntax, Letrec-Syntax
-   - Syntax-Rules
-   - Cps-Quote
-   - Scm->Cps
-   - Defstruct
-   - Curry
-8. Heist Primitive Variables
-9. Heist Primitive Procedures
-   - Stream Primitives
-   - Numeric Primitives
-     * General
-     * Numeric Predicates
-     * Numeric Rounding
-     * Trigonometry Procedures
-     * Logical Bitwise Operations
-   - Equality Predicates
-   - Character Procedures
-     * General
-     * Character Predicates
-   - String Procedures
-     * General
-     * String Predicates
-   - List/Pair Procedures
-     * Accessors
-     * List Constructors
-     * List Predicates
-     * List Seeking Procedures
-   - Vector Procedures
-   - Generic Sequence (List | Vector | String) Algorithmic Procedures
-     * General
-     * Sorting Procedures
-   - Type Predicates
-   - Eval/Apply & Symbol-Append
-   - Delay Predicate & Force
-   - Type Coercion
-   - Output Procedures
-   - Input Procedures
-   - File & Port Procedures
-   - System Interface Procedures
-   - Interpreter Invariants Manipulation
-   - Control Flow Procedures
-   - Gensym
-   - Scm->Cps Procedures
-10. Heist Mathematical Flonum Constants
-11. Heist Minimalist REPL
+   - [Quotation](#Quotation)
+   - [Quasiquotation, Unquote, & Unquote-Splicing](#Quasiquotation,-Unquote,-&-Unquote-Splicing)
+   - [Lambda](#Lambda)
+   - [Define](#Define)
+   - [Set!](#Set!)
+   - [Begin](#Begin)
+   - [If](#If)
+   - [And](#And)
+   - [Or](#Or)
+   - [Cond](#Cond)
+   - [Case](#Case)
+   - [Let](#Let)
+   - [Let\*](#Let*)
+   - [Letrec](#Letrec)
+   - [Do](#Do)
+   - [Delay](#Delay)
+   - [Scons](#Scons)
+   - [Stream](#Stream)
+   - [Vector-Literal](#Vector-Literal)
+   - [Define-Syntax, Let-Syntax, Letrec-Syntax](#Define-Syntax,-Let-Syntax,-Letrec-Syntax)
+   - [Syntax-Rules](#Syntax-Rules)
+   - [Cps-Quote](#Cps-Quote)
+   - [Scm->Cps](#Scm->Cps)
+   - [Defstruct](#Defstruct)
+   - [Curry](#Curry)
+8. [Heist Primitive Variables](#Heist-Primitive-Variables)
+9. [Heist Primitive Procedures](#Heist-Primitive-Procedures)
+   - [Stream Primitives](#Stream-Primitives)
+   - [Numeric Primitives](#Numeric-Primitives)
+     * [General](#General)
+     * [Numeric Predicates](#Numeric-Predicates)
+     * [Numeric Rounding](#Numeric-Rounding)
+     * [Trigonometry Procedures](#Trigonometry-Procedures)
+     * [Logical Bitwise Operations](#Logical-Bitwise-Operations)
+   - [Equality Predicates](#Equality-Predicates)
+   - [Character Procedures](#Character-Procedures)
+     * [General](#General)
+     * [Character Predicates](#Character-Predicates)
+   - [String Procedures](#String-Procedures)
+     * [General](#General)
+     * [String Predicates](#String-Predicates)
+   - [List/Pair Procedures](#List/Pair-Procedures)
+     * [Accessors](#Accessors)
+     * [List Constructors](#List-Constructors)
+     * [List Predicates](#List-Predicates)
+     * [List Seeking Procedures](#List-Seeking-Procedures)
+   - [Vector Procedures](#Vector-Procedures)
+   - [Generic Sequence, List|Vector|String, Algorithmic Procedures](#Generic-Sequence,-List|Vector|String,-Algorithmic-Procedures)
+     * [General](#General)
+     * [Sorting Procedures](#Sorting-Procedures)
+   - [Type Predicates](#Type-Predicates)
+   - [Eval/Apply & Symbol-Append](#Eval/Apply-&-Symbol-Append)
+   - [Delay Predicate & Force](#Delay-Predicate-&-Force)
+   - [Type Coercion](#Type-Coercion)
+   - [Output Procedures](#Output-Procedures)
+   - [Input Procedures](#Input-Procedures)
+   - [File & Port Procedures](#File-&-Port-Procedures)
+   - [System Interface Procedures](#System-Interface-Procedures)
+   - [Interpreter Invariants Manipulation](#Interpreter-Invariants-Manipulation)
+   - [Control Flow Procedures](#Control-Flow-Procedures)
+   - [Gensym](#Gensym)
+   - [Scm->Cps Procedures](#Scm->Cps-Procedures)
+10. [Heist Mathematical Flonum Constants](#Heist-Mathematical-Flonum-Constants)
+11. [Heist Minimalist REPL](#Heist-Minimalist-REPL)
 
 
 
@@ -289,7 +289,7 @@ Macros are identical to procedures, except for 3 key features:<br>
 
 
 ------------------------
-# Continuation Passing Style (CPS)
+# CPS: Continuation Passing Style
 A style of programming which explicitly handles control flow via "continuations",<br>
 where a "continuation" represents the rest of the work to be done in a program.<br><br>
 
@@ -1389,7 +1389,7 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
-## Generic Sequence (List | Vector | String) Algorithmic Procedures:
+## Generic Sequence, List|Vector|String, Algorithmic Procedures:
 ### General
 0. __Generate Empty Variant of Sequence__: `(empty <sequence>)`
 
