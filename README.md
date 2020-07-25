@@ -29,19 +29,19 @@ Embed Heist in C++: `#include` the `heist_cpp_interop.hpp` header into your code
 ------------------------ 
 # Table of Contents
 0. [Heist Properties](#Heist-Properties)
-   - [Quick Overview](#Quick-Overview)
-   - Conventions
-   - Metaprogramming Advantages
-   - Notation
-1. Heist Command-Line Flags
-2. Heist Primitive Data Types
-3. Heist Numerics
-   - 2 Number Types
-   - 2 Prefix Types
-4. Heist Hygienic Macro System, Procedures vs. Macros
-5. Heist Commenting
-6. Continuation Passing Style (CPS)
-7. Heist Special Forms
+   - [Quick Overview](Quick-Overview)
+   - [Conventions](Conventions)
+   - [Metaprogramming Advantages](Metaprogramming-Advantages)
+   - [Notation](Notation)
+1. [Heist Command-Line Flags](Heist-Command-Line-Flags)
+2. [Heist Primitive Data Types](Heist-Primitive-Data-Types)
+3. [Heist Numerics](Heist-Numerics)
+   - [2 Number Types](2-Number-Types)
+   - [2 Prefix Types](2-Prefix-Types)
+4. [Heist Hygienic Macro System, Procedures vs. Macros](Heist-Hygienic-Macro-System,-Procedures-vs.-Macros)
+5. [Heist Commenting](Heist-Commenting)
+6. [Continuation Passing Style (CPS)](Continuation-Passing-Style-(CPS))
+7. [Heist Special Forms](Heist-Special-Forms)
    - Quotation
    - Quasiquotation, Unquote, & Unquote-Splicing
    - Lambda
