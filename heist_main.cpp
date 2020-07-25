@@ -4017,7 +4017,7 @@ int main(int argc, char* argv[]) {
     return compile_script(argv, compile_pos, compile_as);
   #endif
   // Run the REPL
-  puts("Heist Scheme Version 5.0");
+  puts("Heist Scheme Version 5.0\nEnter '(exit)' to Terminate REPL");
   driver_loop();
   heist::close_port_registry();
   return 0;

@@ -1171,7 +1171,7 @@ namespace heist {
       THROW_ERR("'set-car!'s 1st arg "<<PROFILE(args[0])<<" isn't a pair:"
         "\n     (set-car! <pair> <obj>)" << FCN_ERR("set-car!", args));
     args[0].par->first = args[1];
-    return G::VOID_DATA_OBJECT; // return is implementation dependant, We've chosen 'ok symbol
+    return G::VOID_DATA_OBJECT;
   }
 
   // primitive "set-cdr!" procedure:
@@ -1183,7 +1183,25 @@ namespace heist {
       THROW_ERR("'set-cdr!'s 1st arg "<<PROFILE(args[0])<<" isn't a pair:"
         "\n     (set-cdr! <pair> <obj>)" << FCN_ERR("set-cdr!", args));
     args[0].par->second = args[1];
-    return G::VOID_DATA_OBJECT; // return is implementation dependant, We've chosen 'ok symbol
+    return G::VOID_DATA_OBJECT;
+  }
+
+  // primitive "pair-swap!" procedure:
+  data primitive_PAIR_SWAP_BANG(scm_list& args) {
+    if(args.size() != 2)
+      THROW_ERR("'pair-swap! received incorrect # of args (only "
+        << args.size() << "):\n     (pair-swap! <pair1> <pair2>)" 
+        << FCN_ERR("pair-swap!", args));
+    if(!args[0].is_type(types::par))
+      THROW_ERR("'pair-swap! 1st arg "<<PROFILE(args[0])<<" isn't a pair: "
+        "\n     (pair-swap! <pair1> <pair2>)" << FCN_ERR("pair-swap!",args));
+    if(!args[1].is_type(types::par))
+      THROW_ERR("'pair-swap! 2nd arg "<<PROFILE(args[1])<<" isn't a pair: "
+        "\n     (pair-swap! <pair1> <pair2>)" << FCN_ERR("pair-swap!",args));
+    scm_pair tmp(*args[0].par);
+    *args[0].par = *args[1].par;
+    *args[1].par = tmp;
+    return G::VOID_DATA_OBJECT;
   }
 
   // ---------------------
@@ -4378,7 +4396,7 @@ namespace heist {
   }
 
   /******************************************************************************
-  * INTERPRETER DISPLAY MANIPULATION PRIMITIVES
+  * INTERPRETER INVARIANTS MANIPULATION PRIMITIVES
   ******************************************************************************/
 
   // Defaults to disabling ANSI escape sequences, if not given a boolean.
@@ -5048,12 +5066,13 @@ namespace heist {
 
     std::make_pair(primitive_SYMBOL_APPEND, "symbol-append"),
 
-    std::make_pair(primitive_CONS,   "cons"),
-    std::make_pair(primitive_CAR,    "car"),
-    std::make_pair(primitive_CDR,    "cdr"),
-    std::make_pair(primitive_NULLP,  "null?"),
-    std::make_pair(primitive_SETCAR, "set-car!"),
-    std::make_pair(primitive_SETCDR, "set-cdr!"),
+    std::make_pair(primitive_CONS,           "cons"),
+    std::make_pair(primitive_CAR,            "car"),
+    std::make_pair(primitive_CDR,            "cdr"),
+    std::make_pair(primitive_NULLP,          "null?"),
+    std::make_pair(primitive_SETCAR,         "set-car!"),
+    std::make_pair(primitive_SETCDR,         "set-cdr!"),
+    std::make_pair(primitive_PAIR_SWAP_BANG, "pair-swap!"),
 
     std::make_pair(primitive_CAAR, "caar"),
     std::make_pair(primitive_CADR, "cadr"),

@@ -302,8 +302,8 @@ namespace heist {
     }
     void operator=(scm_macro&& m) noexcept {
       if(this == &m) return;
-      label     = std::move(m.label),    keywords  = std::move(m.keywords);
-      patterns  = std::move(m.patterns), templates = std::move(m.templates);
+      label    = std::move(m.label),    keywords  = std::move(m.keywords);
+      patterns = std::move(m.patterns), templates = std::move(m.templates);
     }
   };
 
