@@ -6,7 +6,7 @@ Souped-Up Scheme Interpreter Written in C++!
 
 # Using Heist Scheme:
 0. Compiling the Interpreter: `$ clang++ -std=c++17 -O3 -o heist_main heist_main.cpp`
-1. REPL: `$ ./heist_main` (exit REPL via `(exit)` command)
+1. REPL: `$ ./heist_main` (exit REPL via [`(exit)`](#Control-Flow-Procedures) command)
 2. Interpret Script: `$ ./heist_main -script <your-scripts-filename-here>`
 3. Compile Script to C++: `$ ./heist_main -compile <your-scripts-filename-here> <optional-target-name>`
 4. Embed Heist in C++: `#include` the `heist_cpp_interop.hpp` header into your code (read it for more details)!
@@ -121,7 +121,7 @@ Souped-Up Scheme Interpreter Written in C++!
 * Weak & Dynamically Typed
 * Properly Tail-Recursive
 * Limits non-tail recursion to depth of 1000 by default
-  - _See `set-max-recursion-depth!` primitive to change this_
+  - _See [`set-max-recursion-depth!`](#Interpreter-Invariants-Manipulation) primitive to change this_
 * Embeddable in >= C++17
 * `"\__HEIST-"` symbol prefix is reserved for internal use!
 
@@ -134,9 +134,9 @@ Souped-Up Scheme Interpreter Written in C++!
 ## Metaprogramming Advantages:
 * Code is data (parentheses construct an Abstract Syntax Tree)
   - Hence Hygienic Macro System enables direct manipulation of the AST
-  - Quotation (`quote`) Converts Code to Data, Eval (`eval`) Converts Data to Code
-  - Reader (`read`) takes input and parses it into a quoted list of symbolic data
-    * Hence `read` and `eval` may be combined for a custom repl!
+  - Quotation ([`quote`](#Quotation)) Converts Code to Data, Eval ([`eval`](#EvalApply--Symbol-Append)) Converts Data to Code
+  - Reader ([`read`](#Input-Procedures)) takes input and parses it into a quoted list of symbolic data
+    * Hence [`read`](#Input-Procedures) and [`eval`](#EvalApply--Symbol-Append) may be combined for a custom repl!
 
 ## Notation:
 * Function (or "procedure") calls are denoted by parens:
