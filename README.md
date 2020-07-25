@@ -157,7 +157,7 @@ Souped-Up Scheme Interpreter Written in C++!
 # Heist Command-Line Flags
 0. Interpret Script: `-script <script-filename>`
 1. Compile Script: `-compile <script-filename> <optional-compiled-filename>`
-   * _Only_ available if the `HEIST_DIRECTORY_FILE_PATH` macro is filled in by the user in `heist_main.cpp`
+   * _Only_ available if the `HEIST_DIRECTORY_FILE_PATH` macro is filled in by the user in [`heist_main.cpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/heist_main.cpp)
 2. With CPS Evaluation: `-cps`
 3. Disable ANSI Colors: `-nansi`
 4. Case Insensitivity:  `-ci`
@@ -171,7 +171,7 @@ Souped-Up Scheme Interpreter Written in C++!
 # Heist Primitive Data Types
 0. Symbol (quoted syntax label, `'hello`)
 1. Number ([see numerics section](#Heist-Numerics))
-2. Pair (quoted expression `'(1 2 3)`, [list](#ListPair-Procedures) `(list 1 2 3)`, or [cons](#ListPair-Procedures) `(cons 1 (cons 2 (cons 3 '())))`)
+2. Pair ([quoted](#Quotation) expression `'(1 2 3)`, [list](#ListPair-Procedures) `(list 1 2 3)`, or [cons](#ListPair-Procedures) `(cons 1 (cons 2 (cons 3 '())))`)
 3. String (wrapped by `""`, `"hello"`)
 4. Char (have the `#\` prefix, `#\h #\e #\l #\l #\o`) (uses `ascii` encoding!)
 5. Boolean (true or false, `#t` or`#f`)
@@ -194,7 +194,7 @@ Souped-Up Scheme Interpreter Written in C++!
 0. Exact/Ratnum (rational number)
    * Has a numerator and a denominator
    * Gets automatically reduced to simplest form!
-   * Numerator with > `fl-precision` digits & a non-`1` denominator collapses<br>
+   * Numerator with > [`fl-precision`](#Heist-Primitive-Variables) digits & a non-`1` denominator collapses<br>
      into an inexact flonum!
    * _Special Case_: denominator of `1` creates a ___BigInt___ of arbitrary size
      ```scheme
@@ -204,7 +204,7 @@ Souped-Up Scheme Interpreter Written in C++!
      ```
 1. Inexact/Flonum (floating-point number)
    * Base-10 may use scientific notation!
-   * Precision is bound by `fl-precision`
+   * Precision is bound by [`fl-precision`](#Heist-Primitive-Variables)
    * _Special Case_: `0.0` gets simplified to `0` (Zero is Exact)
      ```scheme
      1.0
@@ -301,28 +301,28 @@ Unfortunately, explicitly programming with continuations is rarely desirable and
 Fortunately, there are ways to convert any program into CPS, and Scheme as a language has this<br>
 transformation baked in by default.<br><br>
 
-The power of continuations in Scheme may be leveraged through the primitive `call/cc` procedure:<br>
-taking an unary procedure as its argument, `call/cc` (or `call-with-current-continuation`) passes<br>
+The power of continuations in Scheme may be leveraged through the primitive [`call/cc`](#Scm-Cps-Procedures) procedure:<br>
+taking an unary procedure as its argument, [`call/cc`](#Scm-Cps-Procedures) (or [`call-with-current-continuation`](#Scm-Cps-Procedures)) passes<br>
 the current continuation as an argument to the function it received.<br>
 [Check out this blog post on implementing Coroutines, Exceptions, Generators, and more using `call/cc`](http://matt.might.net/articles/programming-with-continuations--exceptions-backtracking-search-threads-generators-coroutines/)!<br><br>
 
 And yet, continuations pose certain penalties incurred by the transformation process, and as such<br>
 some believe they should be removed from the Scheme standard altogether.<br>
 Heist Scheme, in an effort to reconcile these perspectives, offers "opt-in" CPS tranformations by<br>
-using the intrinsic `scm->cps` macro to transform code blocks into CPS & the `-cps` cmd-line flag to<br>
+using the intrinsic [`scm->cps`](#scm-cps) macro to transform code blocks into CPS & the [`-cps`](#Heist-Command-Line-Flags) cmd-line flag to<br>
 transform entire programs at the user's behest.<br><br>
 
 As such, Heist programs may get the efficiency of not using continuations by default, then activate CPS<br>
-transformations for their benefits as needed. However, this means that primitives such as `call/cc`<br>
-may ___only___ be validly used in the scope of a `scm->cps` block ___or___ when using the `-cps` cmd-line flag.<br>
+transformations for their benefits as needed. However, this means that primitives such as [`call/cc`](#Scm-Cps-Procedures)<br>
+may ___only___ be validly used in the scope of a [`scm->cps`](#scm-cps) block ___or___ when using the [`-cps`](#Heist-Command-Line-Flags) cmd-line flag.<br>
 Other primitives of this nature include:<br>
 
-0. `load` alternative in `scm->cps` blocks: `cps-load`
-1. `eval` alternative in `scm->cps` blocks: `cps-eval`
-2. `compile` alternative in `scm->cps` blocks: cps-compile
-3. Bind `id` as the continuation of a procedure: `cps->scm`
-   * for passing a procedure defined in a `scm->cps` block as an argument<br>
-     to a procedure __not__ defined in a `scm->cps` block
+0. [`load`](#system-interface-procedures) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-load`](#system-interface-procedures)
+1. [`eval`](#evalapply--symbol-append) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-eval`](#evalapply--symbol-append)
+2. [`compile`](#system-interface-procedures) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-compile`](#system-interface-procedures)
+3. Bind `id` as the continuation of a procedure: [`cps->scm`](#scm-cps-procedures)
+   * for passing a procedure defined in a [`scm->cps`](#scm-cps) block as an argument<br>
+     to a procedure __not__ defined in a [`scm->cps`](#scm-cps) block
    * Example:
      ```scheme
      ;; <sort> primitive is NOT defined in a <scm->cps> block, so <cps-lt>
@@ -453,7 +453,7 @@ Other primitives of this nature include:<br>
 ## Begin:
 
 #### Use: ___Sequentially Evaluate Expressions (in the Current Environment Frame)!___
-* Helps fit multiple expressions somewhere only expecting 1 (see `if`)
+* Helps fit multiple expressions somewhere only expecting 1 (see [`if`](#if))
 
 #### Form: `(begin <exp1> <exp2> ...)`
 
@@ -464,7 +464,7 @@ Other primitives of this nature include:<br>
 #### Use: ___Conditional Branching!___
 
 #### Form: `(if <condition> <consequent> <alternative>)`
-* _Note: Use `begin` for multiple `<consequent>` and/or `<alternative>` expressions_
+* _Note: Use [`begin`](#begin) for multiple `<consequent>` and/or `<alternative>` expressions_
 
 
 ------------------------
@@ -474,7 +474,7 @@ Other primitives of this nature include:<br>
 
 #### Form: `(and <exp1> <exp2> ...)`
 
-#### Derivation Using `if`:
+#### Derivation Using [`if`](#if):
 ```scheme
 (and <exp1> <exp2> <exp3> <exp4>)
 ;; Becomes =>
@@ -489,7 +489,7 @@ Other primitives of this nature include:<br>
 
 #### Form: `(or <exp1> <exp2> ...)`
 
-#### Derivation Using `if`:
+#### Derivation Using [`if`](#if):
 ```scheme
 (or <exp1> <exp2> <exp3> <exp4>)
 
@@ -520,7 +520,7 @@ Other primitives of this nature include:<br>
 * _Using `else` as the condition of the last clause is equivalent to using `#t` as the condition_
 * _Use `=>` to apply the result of the condition to a procedure_
 
-#### Derivation Using `if`:
+#### Derivation Using [`if`](#if):
 ```scheme
 (cond (<condition1> <exp1> ...)
       (<condition2> <exp2> ...)
@@ -551,7 +551,7 @@ Other primitives of this nature include:<br>
 ```
 * _Using `else` as the condition of the last clause is equivalent to using `#t` as the condition_
 
-#### Derivation Using `cond`:
+#### Derivation Using [`cond`](#cond):
 ```scheme
 (case <key> 
   ((<val1> ...) <exp1> ...)
@@ -576,7 +576,7 @@ Other primitives of this nature include:<br>
 0. Nameless: `(let (<arg-binding1> ... <arg-bindingN>) <body> ...)`
 1. Named: `(let <name> (<arg-binding1> ... <arg-bindingN>) <body> ...)`
 
-#### Derivations Using `lambda`:
+#### Derivations Using [`lambda`](#lambda):
 ```scheme
 ;; -:- NAMELESS -:-
 (let ((<name> <value>) ...)
@@ -604,7 +604,7 @@ Other primitives of this nature include:<br>
 
 #### Form: `(let* (<arg-binding1> ... <arg-bindingN>) <body> ...)`, `<arg-binding>` = `(<name> <value>)`
 
-#### Derivation Using `let`:
+#### Derivation Using [`let`](#let):
 ```scheme
 (let* ((<name1> <value1>) (<name2> <value2>) (<name3> <value3>))
   <body> ...)
@@ -625,7 +625,7 @@ Other primitives of this nature include:<br>
 
 #### Form: `(letrec (<arg-binding1> ... <arg-bindingN>) <body> ...)`, `<arg-binding>` = `(<name> <value>)`
 
-#### Derivation Using `let`:
+#### Derivation Using [`let`](#let):
 ```scheme
 (letrec ((<name> <value>) ...)
   <body> ...)
@@ -650,7 +650,7 @@ Other primitives of this nature include:<br>
   <body> ...)
 ```
 
-#### Derivation Using `letrec`:
+#### Derivation Using [`letrec`](#letrec):
 ```scheme
 (do ((<var> <initial-val> <update>) ...)
     (<break-test> <return-exp1> <return-exp2> ...)
@@ -678,7 +678,7 @@ Other primitives of this nature include:<br>
 
 #### Form: `(delay <exp>)`
 
-#### Derivation Using `lambda`:
+#### Derivation Using [`lambda`](#lambda):
 ```scheme
 (delay <exp>)
 
@@ -710,7 +710,7 @@ Other primitives of this nature include:<br>
 
 #### Form: `(scons <obj1> <obj2>)`
 
-#### Derivation Using `delay`::
+#### Derivation Using [`delay`](#delay):
 ```scheme
 (scons <obj1> <obj2>)
 ;; Becomes =>
@@ -722,11 +722,11 @@ Other primitives of this nature include:<br>
 ## Stream:
 
 #### Use: ___Create a Stream!___
-* _`stream` is to `scons` as `list` is to `cons`!_
+* _`stream` is to [`scons`](#scons) as [`list`](#list-constructors) is to [`cons`](#listpair-procedures)!_
 
 #### Form: `(stream <obj1> <obj2> <obj3> ...)`
 
-#### Derivation Using `scons`::
+#### Derivation Using [`scons`](#scons):
 ```scheme
 (stream <obj1> <obj2> <obj3>)
 ;; Becomes =>
@@ -756,14 +756,14 @@ Other primitives of this nature include:<br>
 ## Define-Syntax, Let-Syntax, Letrec-Syntax:
 
 #### Use: ___Create a Macro (Bind a Label to a Syntax Object)!___
-* _Note: create a `<syntax-object>` via the `syntax-rules` special form below!_
+* _Note: create a `<syntax-object>` via the [`syntax-rules`](#syntax-rules) special form below!_
 
 #### Forms:
 0. `(define-syntax <label> <syntax-object>)`
 1. `(let-syntax ((<label> <syntax-object>) ...) <body> ...)`
 2. `(letrec-syntax ((<label> <syntax-object>) ...) <body> ...)`
 
-#### Derivation Using `let`::
+#### Derivation Using [`let`](#let):
 ```scheme
 (let-syntax ((<label> <syntax-object>) ...) <body> ...)
 
@@ -820,7 +820,7 @@ Other primitives of this nature include:<br>
 ## Cps-Quote:
 
 #### Use: ___Convert Code to Data in CPS!___
-* _Identical to `quote` after transforming given code into CPS!_
+* _Identical to [`quote`](#quotation) after transforming given code into CPS!_
 
 #### Form: `(cps-quote <exp>)`
 
@@ -830,9 +830,8 @@ Other primitives of this nature include:<br>
 
 #### Use: ___Convert Code CPS & Evaluate the Result!___
 * _Hence returns an unary procedure, accepting the "topmost" continuation!_
-* _Enables use of `call/cc`, `cps-eval`, `cps-load`, & `cps->scm` primitives!_
-  - _Look into these in the `primitives` section for more info!_
-* _Automatically wraps entire program (& passed `id`) if `-cps` cmd-line flag used!_
+* _Enables use of [`call/cc`](#scm-cps-procedures), [`cps-eval`](#evalapply--symbol-append), [`cps-load`](#system-interface-procedures), & [`cps->scm`](#scm-cps-procedures) primitives!_
+* _Automatically wraps entire program (& passed [`id`](#general-3)) if [`-cps`](#Heist-Command-Line-Flags) cmd-line flag used!_
 * _Enables opt-in continuations for their benefits w/o their overhead when unused!_
   - _Optimizes the cps transformation as well for reasonable speed!_
   - _In general, `scm->cps` code at `-O3` optimization runs as fast as its non-cps version would at `-O0`_
@@ -929,7 +928,7 @@ Other primitives of this nature include:<br>
 
 6. __The Empty Stream:__ `stream-null` (equivalent to `'()`)
 
-7. __Optional Environment Arg Flags for `Eval`, `Load`, `Cps-Eval`, `Cps-Load`:__
+7. __Optional Environment Arg Flags for [`Eval`](#evalapply--symbol-append), [`Load`](#system-interface-procedures), [`Cps-Eval`](#evalapply--symbol-append), [`Cps-Load`](#system-interface-procedures):__
    * Null Environment, all effects are sandboxed: `null-environment`
    * Local Environment, using local bindings: `local-environment`
    * Global Environment, using global bindings: `global-environment`
@@ -1568,7 +1567,7 @@ Other primitives of this nature include:<br>
   * _Pass `'local-environment` to `eval` in the local environment!_
   * _Pass `'global-environment` to `eval` in the global environment (default)!_
 
-1. __Cps-Eval__: _Alternative to `eval` for `scm->cps` blocks (evals in CPS)!
+1. __Cps-Eval__: _Alternative to `eval` for [`scm->cps`](#Scm-Cps) blocks (evals in CPS)!
   * `(cps-eval <data> <optional-environment> <continuation>)`
   * _Pass `'null-environment` to `cps-eval` in the empty environment!_
   * _Pass `'local-environment` to `cps-eval` in the local environment (default)!_
@@ -1694,7 +1693,7 @@ Other primitives of this nature include:<br>
   * _Pass `'global-environment` to `load` in the global environment (default)!_
 
 1. __Cps-Load__: `(cps-load <filename-string> <optional-environment> <continuation-procedure>)`
-  * _Alternative to `load` for `scm->cps` blocks (converts file to CPS prior loading)!
+  * _Alternative to `load` for [`scm->cps`](#Scm-Cps) blocks (converts file to CPS prior loading)!
   * _Pass `'null-environment` to `cps-load` in the empty environment!_
   * _Pass `'local-environment` to `cps-load` in the local environment (default)!_
   * _Pass `'global-environment` to `cps-load` in the global environment!_
@@ -1773,11 +1772,11 @@ Other primitives of this nature include:<br>
   * `(call-with-current-continuation <unary-continuation-procedure>`
 
 1. __Cps->Scm__: Bind `id` as procedure's "topmost" continuation
-  * _Note: To pass procs defined **in** a `scm->cps` block as an arg to a proc defined **out** of `scm->cps`_
+  * _Note: To pass procs defined **in** a [`scm->cps`](#Scm-Cps) block as an arg to a proc defined **out** of [`scm->cps`](#Scm-Cps)_
   * `(cps->scm <procedure>)`
-    - _Hence programs written in and out of `scm->cps` blocks may interop!_
-    - _BEWARE: primitives are defined **OUT** of a `scm->cps` block!_
-      - _Hence wrap `cps->scm` around procs being passed to them as args when in a `scm->cps` block!_
+    - _Hence programs written in and out of [`scm->cps`](#Scm-Cps) blocks may interop!_
+    - _BEWARE: primitives are defined **OUT** of a [`scm->cps`](#Scm-Cps) block!_
+      - _Hence wrap `cps->scm` around procs being passed to them as args when in a [`scm->cps`](#Scm-Cps) block!_
 
 
 
