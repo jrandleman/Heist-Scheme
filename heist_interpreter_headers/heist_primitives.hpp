@@ -1126,6 +1126,17 @@ namespace heist {
   }
 
   /******************************************************************************
+  * TYPEOF PRIMITIVE
+  ******************************************************************************/
+
+  data primitive_TYPEOF(scm_list& args) {
+    if(args.size() != 1)
+      THROW_ERR("'typeof recieved incorrect # of args!\n     (typeof <obj>)" 
+        << FCN_ERR("typeof", args));
+    return args[0].type_name();
+  }
+
+  /******************************************************************************
   * PAIR PRIMITIVES
   ******************************************************************************/
 
@@ -5065,6 +5076,8 @@ namespace heist {
     std::make_pair(primitive_STRING_CI_GTE, "string-ci>=?"),
 
     std::make_pair(primitive_SYMBOL_APPEND, "symbol-append"),
+
+    std::make_pair(primitive_TYPEOF, "typeof"),
 
     std::make_pair(primitive_CONS,           "cons"),
     std::make_pair(primitive_CAR,            "car"),
