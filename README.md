@@ -94,7 +94,7 @@ Souped-Up Scheme Interpreter Written in C++!
      * [General](#General)
      * [Sorting Procedures](#Sorting-Procedures)
    - [Type Predicates](#Type-Predicates)
-   - [Eval/Apply & Symbol-Append](#EvalApply--Symbol-Append)
+   - [Eval/Apply, Symbol-Append, & Typeof](#evalapply-symbol-append--typeof)
    - [Delay Predicate & Force](#Delay-Predicate--Force)
    - [Type Coercion](#Type-Coercion)
    - [Output Procedures](#Output-Procedures)
@@ -135,9 +135,9 @@ Souped-Up Scheme Interpreter Written in C++!
 ## Metaprogramming Advantages:
 * Code is data (parentheses construct an Abstract Syntax Tree)
   - Hence Hygienic Macro System enables direct manipulation of the AST
-  - Quotation ([`quote`](#Quotation)) Converts Code to Data, Eval ([`eval`](#EvalApply--Symbol-Append)) Converts Data to Code
+  - Quotation ([`quote`](#Quotation)) Converts Code to Data, Eval ([`eval`](#evalapply-symbol-append--typeof)) Converts Data to Code
   - Reader ([`read`](#Input-Procedures)) takes input and parses it into a quoted list of symbolic data
-    * Hence [`read`](#Input-Procedures) and [`eval`](#EvalApply--Symbol-Append) may be combined for a custom repl!
+    * Hence [`read`](#Input-Procedures) and [`eval`](#evalapply-symbol-append--typeof) may be combined for a custom repl!
 
 ## Notation:
 * Function (or "procedure") calls are denoted by parens:
