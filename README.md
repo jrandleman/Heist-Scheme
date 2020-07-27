@@ -1563,7 +1563,7 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
-## Eval/Apply & Symbol-Append:
+## Eval/Apply, Symbol-Append, & Typeof:
 0. __Eval__: Run quoted data as code
   * `(eval <data> <optional-environment>)`
   * _Pass `'null-environment` to `eval` in the empty environment!_
@@ -1579,6 +1579,8 @@ Other primitives of this nature include:<br>
 2. __Apply `<procedure>` to List of Args__: `(apply <procedure> <argument-list>)`
 
 3. __Append Symbols__: `(symbol-append <symbol-1> ... <symbol-N>)`
+
+4. __Get Typename Symbol__: `(typeof <obj>)`
 
 
 
