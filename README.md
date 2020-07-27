@@ -885,7 +885,7 @@ Other primitives of this nature include:<br>
 * _Note: `curry` is actually a macro directly defined **in** Heist Scheme!_
 * _Enables trivial means to bind arguments to values (especially helps w/ lambda calculus)_
 
-#### Form: `(cury (<arg1> <arg2> ...) <body> ...)`
+#### Form: `(curry (<arg1> <arg2> ...) <body> ...)`
 * _Note: it is undefined behavior to have a variadic `curry` lambda using `.`!_
 
 #### Example:
