@@ -1570,7 +1570,7 @@ Other primitives of this nature include:<br>
   * _Pass `'local-environment` to `eval` in the local environment!_
   * _Pass `'global-environment` to `eval` in the global environment (default)!_
 
-1. __Cps-Eval__: _Alternative to `eval` for [`scm->cps`](#Scm-Cps) blocks (evals in CPS)!
+1. __Cps-Eval__: Alternative to `eval` for [`scm->cps`](#Scm-Cps) blocks (evals in CPS)!
   * `(cps-eval <data> <optional-environment> <continuation>)`
   * _Pass `'null-environment` to `cps-eval` in the empty environment!_
   * _Pass `'local-environment` to `cps-eval` in the local environment (default)!_
