@@ -1698,7 +1698,7 @@ Other primitives of this nature include:<br>
   * _Pass `'global-environment` to `load` in the global environment (default)!_
 
 1. __Cps-Load__: `(cps-load <filename-string> <optional-environment> <continuation-procedure>)`
-  * _Alternative to `load` for [`scm->cps`](#Scm-Cps) blocks (converts file to CPS prior loading)!
+  * _Alternative to `load` for [`scm->cps`](#Scm-Cps) blocks (converts file to CPS prior loading)!_
   * _Pass `'null-environment` to `cps-load` in the empty environment!_
   * _Pass `'local-environment` to `cps-load` in the local environment (default)!_
   * _Pass `'global-environment` to `cps-load` in the global environment!_
