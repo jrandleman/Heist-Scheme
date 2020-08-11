@@ -3147,10 +3147,10 @@ namespace heist {
   // NOTE: Max Unique Hashes = (expt 18446744073709551615 18446744073709551615)
   scm_string hygienically_hashed_macro_arg(const scm_string& label)noexcept{
     if(G::MACRO_HASH_IDX_1 != G::MAX_SIZE_TYPE)
-      return "__HEIST-" + label + '-' 
+      return "__heist-" + label + '-' 
         + std::to_string(G::MACRO_HASH_IDX_2) + '-' 
         + std::to_string(G::MACRO_HASH_IDX_1++);
-    return "__HEIST-" + label + '-' 
+    return "__heist-" + label + '-' 
       + std::to_string(++G::MACRO_HASH_IDX_2) + '-' 
       + std::to_string(G::MACRO_HASH_IDX_1++);
   }
