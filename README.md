@@ -328,7 +328,7 @@ Other primitives of this nature include:<br>
      ```scheme
      ;; <sort> primitive is NOT defined in a <scm->cps> block, so <cps-lt>
      ;; _MUST_ be wrapped in <cps->scm> to bind <id> as its continuation
-     ;; (since it was defined _IN_ a <cms->cps> block, it _EXPECTS_ a continuation,
+     ;; (since it was defined _IN_ a <scm->cps> block, it _EXPECTS_ a continuation,
      ;; but it won't get one if used in a non <scm->cps> block, such as in <sort>)
      ((scm->cps
       (define (cps-lt a b) (< a b))
