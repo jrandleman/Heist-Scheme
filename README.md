@@ -21,7 +21,7 @@ Souped-Up Scheme Interpreter Written in C++!
 3. Opt-In Continuations & [`call/cc`](#Scm-Cps-Procedures)
 4. Native Even Streams (Lists w/ Delayed Car & Cdr)
 5. Generic Algorithms (Polymorphic Algorithm Primitives)
-6. SFRI Primitives (List, Vector, String, etc.)
+6. SRFI Primitives (List, Vector, String, etc.)
 7. Eval (Evaluate Symbolic Data as Code)
 8. String I/O (Read/Write Compatibility w/ Strings as Ports)
 9. Recursive Depth Control
