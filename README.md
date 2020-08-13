@@ -295,7 +295,7 @@ A style of programming which explicitly handles control flow via "continuations"
 where a "continuation" represents the rest of the work to be done in a program.<br><br>
 
 Programming with and manipulating continuations can yield certain advantages,<br>
-most notably the ability to implement ___many___ control flow opterations in terms<br>
+most notably the ability to implement ___many___ control flow operations in terms<br>
 of continuations (including threads, coroutines, try-catch, arbitrary returns, goto, etc.)<br><br>
 
 Unfortunately, explicitly programming with continuations is rarely desirable and hardly enjoyable.<br>
