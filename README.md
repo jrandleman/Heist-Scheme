@@ -1542,7 +1542,7 @@ Other primitives of this nature include:<br>
 
 15. __Procedure Predicate__: `(procedure? <obj>)`
 
-16. __Cps-Preocedure Predicate__: `(cps-procedure? <obj>)`
+16. __Cps-Procedure Predicate__: `(cps-procedure? <obj>)`
 
 17. __Input-Port Predicate__: `(input-port? <obj>)`
 
