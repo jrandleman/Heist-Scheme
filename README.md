@@ -21,7 +21,7 @@ Souped-Up Scheme Interpreter Written in C++!
 3. Opt-In Continuations & [`call/cc`](#Scm-Cps-Procedures)
 4. Native Even Streams (Lists w/ Delayed Car & Cdr)
 5. Generic Algorithms (Polymorphic Algorithm Primitives)
-6. SFRI Primitives (List, Vector, String, etc.)
+6. SRFI Primitives (List, Vector, String, etc.)
 7. Eval (Evaluate Symbolic Data as Code)
 8. String I/O (Read/Write Compatibility w/ Strings as Ports)
 9. Recursive Depth Control
@@ -295,7 +295,7 @@ A style of programming which explicitly handles control flow via "continuations"
 where a "continuation" represents the rest of the work to be done in a program.<br><br>
 
 Programming with and manipulating continuations can yield certain advantages,<br>
-most notably the ability to implement ___many___ control flow opterations in terms<br>
+most notably the ability to implement ___many___ control flow operations in terms<br>
 of continuations (including threads, coroutines, try-catch, arbitrary returns, goto, etc.)<br><br>
 
 Unfortunately, explicitly programming with continuations is rarely desirable and hardly enjoyable.<br>
@@ -328,7 +328,7 @@ Other primitives of this nature include:<br>
      ```scheme
      ;; <sort> primitive is NOT defined in a <scm->cps> block, so <cps-lt>
      ;; _MUST_ be wrapped in <cps->scm> to bind <id> as its continuation
-     ;; (since it was defined _IN_ a <cms->cps> block, it _EXPECTS_ a continuation,
+     ;; (since it was defined _IN_ a <scm->cps> block, it _EXPECTS_ a continuation,
      ;; but it won't get one if used in a non <scm->cps> block, such as in <sort>)
      ((scm->cps
       (define (cps-lt a b) (< a b))
@@ -1542,7 +1542,7 @@ Other primitives of this nature include:<br>
 
 15. __Procedure Predicate__: `(procedure? <obj>)`
 
-16. __Cps-Preocedure Predicate__: `(cps-procedure? <obj>)`
+16. __Cps-Procedure Predicate__: `(cps-procedure? <obj>)`
 
 17. __Input-Port Predicate__: `(input-port? <obj>)`
 
@@ -1570,7 +1570,7 @@ Other primitives of this nature include:<br>
   * _Pass `'local-environment` to `eval` in the local environment!_
   * _Pass `'global-environment` to `eval` in the global environment (default)!_
 
-1. __Cps-Eval__: _Alternative to `eval` for [`scm->cps`](#Scm-Cps) blocks (evals in CPS)!
+1. __Cps-Eval__: Alternative to `eval` for [`scm->cps`](#Scm-Cps) blocks (evals in CPS)!
   * `(cps-eval <data> <optional-environment> <continuation>)`
   * _Pass `'null-environment` to `cps-eval` in the empty environment!_
   * _Pass `'local-environment` to `cps-eval` in the local environment (default)!_
@@ -1698,7 +1698,7 @@ Other primitives of this nature include:<br>
   * _Pass `'global-environment` to `load` in the global environment (default)!_
 
 1. __Cps-Load__: `(cps-load <filename-string> <optional-environment> <continuation-procedure>)`
-  * _Alternative to `load` for [`scm->cps`](#Scm-Cps) blocks (converts file to CPS prior loading)!
+  * _Alternative to `load` for [`scm->cps`](#Scm-Cps) blocks (converts file to CPS prior loading)!_
   * _Pass `'null-environment` to `cps-load` in the empty environment!_
   * _Pass `'local-environment` to `cps-load` in the local environment (default)!_
   * _Pass `'global-environment` to `cps-load` in the global environment!_
