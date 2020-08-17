@@ -2571,8 +2571,7 @@ namespace heist {
     } else {
       if(code.exp.empty())
         THROW_ERR("'scm->cps CAN'T EVAL AN EMPTY EXPRESSION!" << EXP_ERR(code.exp));
-      // Applications are expanded @eval-time (accounts for expanding macros 
-      //   & handling non-cps fcn applications in scm->cps blocks)
+      // Applications are expanded @eval-time (accounts for expanding macros)
       if(code.exp[0].is_type(types::sym) && is_HEIST_cpp_derived_special_form(code.exp[0].sym))
         return code.exp; // Don't tag applications of HEIST's C++ derived forms
       // Tag any other application
