@@ -387,7 +387,7 @@ namespace heist {
       return;
     }
     // Get tab (2 spaces per tab) width as per the depth
-    char* tabs = new char [2*depth+2];
+    char* tabs = new char [2*depth+3];
     for(size_type i = 0, tabs_len = 2*depth+2; i < tabs_len; ++i) tabs[i] = ' ';
     tabs[2*depth+2] = 0;
     // Open paren
