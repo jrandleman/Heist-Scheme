@@ -1,8 +1,8 @@
 <!-- Author: Jordan Randleman -:- C++ Heist Scheme Interpreter's README -->
 
 # Heist-Scheme
-Souped-Up Scheme Interpreter Written in C++!
-------------------------
+## Souped-Up Scheme Interpreter Written in C++!
+### Written in as much C++ and as little Scheme as possible for runtime speed!
 
 ------------------------
 # Using Heist Scheme:
