@@ -1392,7 +1392,7 @@ Other primitives of this nature include:<br>
 
 ------------------------
 ## Generic Sequence, List|Vector|String, Algorithmic Procedures:
-### General
+### General:
 0. __Generate Empty Variant of Sequence__: `(empty <sequence>)`
 
 1. __Get Sequence Length__: `(length <sequence>)`
