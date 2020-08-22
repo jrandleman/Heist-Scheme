@@ -3638,14 +3638,14 @@ namespace heist {
 
   // -- ANALYZE (SYNTAX)
   void throw_unknown_analysis_anomalous_error(const scm_list& exp) {
-    scm_string err_str("ANALYZE: received unknown expression! -:- BUG ALERT -:-"
+    scm_string err_str("ANALYZE: Invalid Syntax (received unknown expression)!"
                        "\n         Triggered By: " + cio_expr_str<&data::write>(exp) + 
                        "\n         Profile of data in expression:");
     for(size_type i = 0, n = exp.size(); i < n; ++i)
       err_str += (("\n         " + std::to_string(i+1) + ". " + 
                     exp[i].write() + " of type \"") + exp[i].type_name()) + '"';
-    THROW_ERR(err_str << "\n         => Please send your code to jrandleman@scu.edu to fix"
-                         "\n            the interpreter's bug!");
+    THROW_ERR(err_str << "\n         => If you believe this is a bug, please send your code "
+                         "\n            to jrandleman@scu.edu to fix the interpreter's bug!");
   }
 
 
