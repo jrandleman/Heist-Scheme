@@ -366,7 +366,7 @@ Other primitives of this nature include:<br>
 'hello          ; => hello
 '(1 2 3)        ; => (list 1 2 3)
 '#(hello there) ; => (vector 'hello 'there)
-''double        ; => (quote (quote double)) => (list 'quote 'doubles)
+''double        ; => (quote (quote double)) => (list 'quote 'double)
 '(define a 12)  ; => (list 'define 'a '12) ; quoted code becomes a list of data!
 ```
 
@@ -829,7 +829,7 @@ Other primitives of this nature include:<br>
 ------------------------
 ## Scm->Cps:
 
-#### Use: ___Convert Code CPS & Evaluate the Result!___
+#### Use: ___Convert Code to CPS & Evaluate the Result!___
 * _Hence returns an unary procedure, accepting the "topmost" continuation!_
 * _Enables use of [`call/cc`](#scm-cps-procedures), [`cps-eval`](#evalapply--symbol-append), [`cps-load`](#system-interface-procedures), & [`cps->scm`](#scm-cps-procedures) primitives!_
 * _Automatically wraps entire program (& passed [`id`](#general-3)) if [`-cps`](#Heist-Command-Line-Flags) cmd-line flag used!_
