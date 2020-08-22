@@ -3876,7 +3876,7 @@ namespace heist {
         fputs(args[0].pprint().c_str(), outs);
         fflush(outs);
       } else {
-        *args[1].str += args[0].pprint();
+        return make_str(*args[1].str + args[0].pprint());
       }
     }
     G::LAST_PRINTED_TO_STDOUT = (outs == stdout && is_port);
@@ -3892,7 +3892,7 @@ namespace heist {
         fputs(args[0].write().c_str(), outs);
         fflush(outs);
       } else {
-        *args[1].str += args[0].write();
+        return make_str(*args[1].str + args[0].write());
       }
     }
     G::LAST_PRINTED_TO_STDOUT = (outs == stdout && is_port);
@@ -3908,7 +3908,7 @@ namespace heist {
       fflush(outs);
       G::LAST_PRINTED_NEWLINE_TO_STDOUT = G::LAST_PRINTED_TO_STDOUT = (outs == stdout);
     } else {
-      *args[0].str += '\n';
+      return make_str(*args[0].str + '\n');
     }
     return G::VOID_DATA_OBJECT;
   }
@@ -3919,7 +3919,7 @@ namespace heist {
                     "\n     (display <obj> <optional-open-output-port-or-string>)");
     if(is_port)
       return primitive_display_port_logic(args[0], outs);
-    return primitive_display_string_logic(args[0], *args[1].str);
+    return make_str(*args[1].str + args[0].display());
   }
 
   data primitive_WRITE_CHAR(scm_list& args) {
@@ -3936,7 +3936,7 @@ namespace heist {
       fflush(outs);
       G::LAST_PRINTED_TO_STDOUT = (outs == stdout);
     } else {
-      *args[1].str += char(args[0].chr);
+      return make_str(*args[1].str + char(args[0].chr));
     }
     return G::VOID_DATA_OBJECT;
   }

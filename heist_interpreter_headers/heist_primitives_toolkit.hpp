@@ -3127,12 +3127,6 @@ namespace heist {
     THROW_ERR('\''<<name<<" received incorrect # of args: "<<format<<FCN_ERR(name,args));
     return true;
   }
-  
-
-  data primitive_display_string_logic(const data& obj, scm_string& write_to)noexcept{
-    write_to += obj.display();
-    return G::VOID_DATA_OBJECT;
-  }
 
 
   data primitive_display_port_logic(const data& obj, FILE*& outs)noexcept{
