@@ -335,6 +335,14 @@ namespace heist {
   }
 
 
+  // Determine whether enough vals for the variadic arg decl
+  bool invalid_variadic_arg_declaration(const frame_vars& vars, const frame_vals& vals){
+    return vals.size() < vars.size() - 2 -
+      (vars.size() > 2 && vars[vars.size()-1].find(symconst::continuation) == 0
+                       && vars[vars.size()-3] == symconst::period); // - again if at a continuation
+  }
+
+
   // Wrapper composing the above helpers
   bool confirm_valid_environment_extension(frame_vars& vars, frame_vals& vals, 
                                                        const sym_type& name){
@@ -346,8 +354,12 @@ namespace heist {
       THROW_ERR("Too many arguments supplied! -- EXTEND_ENVIRONMENT" 
         << improper_call_alert(name,vals,vars));
     // Transform variadic arg's corresponding values into a list (if present)
-    if(variadic_arg_declaration(vars))
+    if(variadic_arg_declaration(vars)) {
+      if(invalid_variadic_arg_declaration(vars,vals))
+        THROW_ERR("Too few arguments supplied! -- EXTEND_ENVIRONMENT" 
+        << improper_call_alert(name,vals,vars));
       transform_variadic_vals_into_a_list(vars,vals);
+    }
     return vars.size() == vals.size();
   }
 
