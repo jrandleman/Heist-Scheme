@@ -2077,9 +2077,8 @@ namespace heist {
 
   bool convert_lists_to_exp_matrix_and_return_if_empty(scm_list& args,   scm_list& list_exps, 
                                                        const char* name, const char* format){
-    list_exps.reserve(args.size());
-    list_exps[0] = args[0];
-    list_exps[1] = scm_list();
+    list_exps.push_back(args[0]);
+    list_exps.push_back(scm_list());
     shallow_unpack_list_into_exp(args[1], list_exps[1].exp);
     for(size_type i = 2, n = args.size(); i < n; ++i) {
       if(auto stat = is_proper_sequence(args[i],args,name,format); stat == heist_sequence::nul)
@@ -2087,7 +2086,7 @@ namespace heist {
       else if(stat != heist_sequence::lis)
         THROW_ERR('\''<<name<<" <list> arg #"<<i+1<<' '<<PROFILE(args[i])<<" isn't a proper list:"
           << format << FCN_ERR(name,args));
-      list_exps[i] = scm_list();
+      list_exps.push_back(scm_list());
       shallow_unpack_list_into_exp(args[i], list_exps[i].exp);
     }
     return false;
