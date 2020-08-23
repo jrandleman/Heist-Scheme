@@ -4756,7 +4756,7 @@ namespace heist {
   )";
 
   /******************************************************************************
-  * DEFSTRUCT MACRO FOR SIMPLY OO
+  * DEFSTRUCT MACRO FOR SIMPLE OO
   ******************************************************************************/
 
   constexpr const char* const HEIST_DEFSTRUCT_DEFINITION = R"(
@@ -4853,15 +4853,71 @@ namespace heist {
   )";
 
   /******************************************************************************
+  * TLAMBDA MACRO FOR AUTOMATED PREDICATED LAMBDA ARGUMENTS
+  ******************************************************************************/
+
+  constexpr const char* const HEIST_TLAMBDA_PRIM_DEFINITION = R"(
+  ;; <tlambda-exp>'s args may be of form <symbol> or <(<pred?> <symbol>)>
+  ;; where args are default checked against 'pred? (if such is present)
+  (define (__heist-tlambda->lambda tlambda-exp . err-message)
+    (define err-prefix 
+            (if (null? err-message) 
+                "\"" 
+                (append (car err-message) " \"")))
+    (define pred?-errors '())
+    (define (pred?->error pred?)
+      (list 'if (list 'not pred?) 
+                (list 'error ''tlambda 
+                              (append (write pred? err-prefix) "\" Failed!")
+                              (cadr pred?))))
+    (define lambda-args 
+      (map (lambda (arg) 
+              (if (pair? arg)
+                  (begin (set! pred?-errors 
+                               (cons (pred?->error arg) pred?-errors))
+                         (cadr arg))
+                  arg))
+           (cadr tlambda-exp)))
+    (if (null? pred?-errors)
+        tlambda-exp
+        (cons 'lambda 
+              (cons lambda-args 
+                    (cons (cons 'begin pred?-errors) 
+                          (cddr tlambda-exp))))))
+
+
+  ;; Typed-Lambda Macro to automate predicates on arguments
+  ;; Ex1: (tlambda ((string? s) any-arg (number? n)) <body>) ; predicated & arbitrary args
+  ;; Ex2: (tlambda "optional-description" ((string? s) any-arg) <body>) ; optional descriptor
+  ;; Ex3: (tlambda ((string? s) . ((lambda (ns) (every even? ns)) numbers)) <body>) ; predicated variadic 
+  (define-syntax tlambda
+    (syntax-rules ()
+      ((_ () b ...) (lambda () b ...)) ; 0 args
+      ((_ (a ...) b ...)               ; N args
+        (eval (__heist-tlambda->lambda (cons 'lambda (cons (list 'a ...) '(b ...))))
+              'local-environment))
+      ((_ err-message (a ...) b ...)  ; optional-descriptor & N args
+        (eval (__heist-tlambda->lambda (cons 'lambda (cons (list 'a ...) '(b ...))) err-message)
+              'local-environment))))
+  )";
+
+  /******************************************************************************
   * REGISTRY OF PRIMITIVES DEFINED _IN_ HEIST SCHEME TO EVAL PRIOR ANYTHING ELSE
   ******************************************************************************/
 
+  // Single primitive procedures
   constexpr const char * const PRIMITIVES_DEFINED_IN_HEIST_SCHEME[] = {
     primitive_HEIST_STREAM_MAP,        primitive_HEIST_STREAM_FILTER, 
     primitive_HEIST_STREAM_FROM,       primitive_HEIST_STREAM_UNFOLD, 
     primitive_HEIST_STREAM_ITERATE,    primitive_HEIST_STREAM_ZIP, 
     primitive_HEIST_STREAM_CONSTANT,   primitive_HEIST_STREAM_APPEND, 
     primitive_HEIST_STREAM_INTERLEAVE, 
+  };
+
+  // Multi-expression primitive procedures
+  constexpr const char * const PRIMITIVE_EXPRESSIONS_DEFINED_IN_HEIST_SCHEME[] {
+    MATHEMATICAL_FLONUM_CONSTANTS, HEIST_CURRIED_LAMBDA_ID_CPS_PRIM_DEFINITIONS, 
+    HEIST_DEFSTRUCT_DEFINITION,    HEIST_TLAMBDA_PRIM_DEFINITION, 
   };
 
   void evaluate_primitives_written_in_heist_scheme(env_type& env) {
@@ -4871,21 +4927,14 @@ namespace heist {
       parse_input_exp(heist_prim, heist_scheme_prim);
       scm_eval(std::move(heist_scheme_prim[0].exp),env);
     }
-    // Process heist scheme primitive flonum mathematical constants
+    // Process individual heist scheme primitive multi-expression procedures
     scm_list heist_scheme_prim;
-    parse_input_exp(MATHEMATICAL_FLONUM_CONSTANTS, heist_scheme_prim);
-    for(auto& primitive_float_constant : heist_scheme_prim)
-      scm_eval(std::move(primitive_float_constant.exp),env);
-    // Process heist scheme primitive 'curry macro & 'id, 'call/cc, 'cps->scm procedures
-    heist_scheme_prim.clear();
-    parse_input_exp(HEIST_CURRIED_LAMBDA_ID_CPS_PRIM_DEFINITIONS, heist_scheme_prim);
-    for(auto& primitive_scm_procedure : heist_scheme_prim)
-      scm_eval(std::move(primitive_scm_procedure.exp),env);
-    // Process heist scheme primitive 'defstruct macro
-    heist_scheme_prim.clear();
-    parse_input_exp(HEIST_DEFSTRUCT_DEFINITION, heist_scheme_prim);
-    for(auto& primitive_scm_procedure : heist_scheme_prim)
-      scm_eval(std::move(primitive_scm_procedure.exp),env);
+    for(const auto& heist_prim_exp : PRIMITIVE_EXPRESSIONS_DEFINED_IN_HEIST_SCHEME){
+      heist_scheme_prim.clear();
+      parse_input_exp(heist_prim_exp, heist_scheme_prim);
+      for(auto& primitive_scm_procedure : heist_scheme_prim)
+        scm_eval(std::move(primitive_scm_procedure.exp),env);
+    }
   }
 
   /******************************************************************************
