@@ -68,6 +68,7 @@
    - [Scm->Cps](#Scm-Cps)
    - [Defstruct](#Defstruct)
    - [Curry](#Curry)
+   - [Tlambda](#Tlambda)
 8. [Heist Primitive Variables](#Heist-Primitive-Variables)
 9. [Heist Primitive Procedures](#Heist-Primitive-Procedures)
    - [Stream Primitives](#Stream-Primitives)
@@ -899,6 +900,27 @@ Other primitives of this nature include:<br>
 (define KI (K Id)) ; Binds "Id" as the first arg to "K"!
 ((KI 1) 2) ; "Id" is selected, then 2 is passed to "Id"! ; => 2
 (KI 1 2)   ; => 2
+```
+
+
+------------------------
+## Tlambda:
+
+#### Use: ___Automate Predicating Lambda!___
+* _Note: `tlambda` is actually a macro directly defined **in** Heist Scheme!_
+* _Note: Predicates are optional (also works on variadic args)!_
+* _Note: Add an optional descriptor string to be shown on predicate failures!_
+
+#### Form: 
+`(tlambda "optional-descriptor" 
+          ((<pred?> <arg1>) <arg2> ... . (<pred?> <variadic-arg>)) 
+          <body> ...)`
+
+#### Examples:
+```scheme
+(tlambda ((string? s) any-arg (number? n)) <body>) ; predicated & arbitrary args
+(tlambda "optional-description" ((string? s) any-arg) <body>) ; optional descriptor
+(tlambda ((string? s) . ((lambda (ns) (every even? ns)) numbers)) <body>) ; predicated variadic 
 ```
 
 
