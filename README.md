@@ -906,7 +906,7 @@ Other primitives of this nature include:<br>
 ------------------------
 ## Tlambda:
 
-#### Use: ___Automate Predicating Lambda!___
+#### Use: ___Automate Predicating Lambda Arguments!___
 * _Note: `tlambda` is actually a macro directly defined **in** Heist Scheme!_
 * _Note: Predicates are optional (also works on variadic args)!_
 * _Note: Add an optional descriptor string to be shown on predicate failures!_
