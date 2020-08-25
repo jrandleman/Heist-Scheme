@@ -3018,6 +3018,7 @@ namespace heist {
     // apply arguments in list to the procedure
     scm_list args_list;
     shallow_unpack_list_into_exp(args[1], args_list);
+    if(args_list.empty()) args_list.push_back(symconst::sentinel_arg);
     return data_cast(execute_application(args[0].exp,args_list,env));
   }
 
