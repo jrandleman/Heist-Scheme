@@ -793,7 +793,7 @@ Other primitives of this nature include:<br>
   - _Note: `...` is **always** a reserved `<key>` name!_
 
 #### Variadic Matching & Hygienic Expansion:
-##### Heist Scheme's Powerful Macro System Enables Matching & Constructing Expressions of Arbitrary Complexity
+##### Heist Scheme's Powerful Macro System Enables Matching & Constructing Complex Expressions!
 * _For Patterns:_
   - `<obj> ...` Matches 1 or more entities
   - `(<contents>) ...` Matches 1 or more expressions that match `<contents>`
@@ -803,7 +803,6 @@ Other primitives of this nature include:<br>
     a ...             ; Matches 1+ arbitrary objects
     (a b) ...         ; Matches 1+ pairs
     ((a b) (c d)) ... ; Matches 1+ pairs of pairs
-    (a ...) ...       ; Matches 1+ expressions of 1+ arbitrary objects
     ```
 * _For Templates:_
   - `<obj> ...` Expands 1 or more entities
@@ -814,7 +813,17 @@ Other primitives of this nature include:<br>
     a ...             ; Expands 1+ arbitrary objects
     (a b) ...         ; Constructs 1+ pairs of variadic matches <a> & <b>
     ((a b) (c d)) ... ; Constructs 1+ pairs of pairs of variadic matches <a>, <b>, <c>, & <d>
-    (a ...) ...       ; Constructs 1+ expressions of 1+ arbitrary objects of variadic match <a>
+    ```
+* _Pattern-Matching Variadic Exceptions:_
+  - May only have 1 `...` per expression depth:
+    ```scheme
+    ((a ...) b ...) ; OK (1 `...` per expression depth)!
+    (a ... b ...) ; NOT OK (2 `...` in the same expression depth)!
+    ```
+  - May only match an arbitrary # of elements to the 1st degree:
+    ```scheme
+    ((a ...) b ...) ; OK (each identifier matches 1 set of N variadic values)!
+    ((a ...) ...) ; NOT OK (matches N*M variadic values for `a`)!
     ```
 
 
