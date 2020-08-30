@@ -804,6 +804,17 @@ Other primitives of this nature include:<br>
     (a b) ...         ; Matches 1+ pairs
     ((a b) (c d)) ... ; Matches 1+ pairs of pairs
     ```
+  - _Variadic Exceptions:_
+    * May only have 1 `...` per expression depth:
+      ```scheme
+      ((a ...) b ...) ; Ok (1 `...` per expression depth)!
+      (a ... b ...) ; Not Ok (2 `...` in the same expression depth)!
+      ```
+    * May only match an arbitrary # of elements to the 1st degree:
+      ```scheme
+      ((a ...) b ...) ; Ok (each identifier matches 1 set of N variadic values)!
+      ((a ...) ...) ; Not Ok (matches N*M variadic values for `a`)!
+      ```
 * _For Templates:_
   - `<obj> ...` Expands 1 or more entities
   - `(<contents>) ...` Constructs 1 or more expressions with `<contents>`
@@ -813,17 +824,6 @@ Other primitives of this nature include:<br>
     a ...             ; Expands 1+ arbitrary objects
     (a b) ...         ; Constructs 1+ pairs of variadic matches <a> & <b>
     ((a b) (c d)) ... ; Constructs 1+ pairs of pairs of variadic matches <a>, <b>, <c>, & <d>
-    ```
-* _Pattern-Matching Variadic Exceptions:_
-  - May only have 1 `...` per expression depth:
-    ```scheme
-    ((a ...) b ...) ; OK (1 `...` per expression depth)!
-    (a ... b ...) ; NOT OK (2 `...` in the same expression depth)!
-    ```
-  - May only match an arbitrary # of elements to the 1st degree:
-    ```scheme
-    ((a ...) b ...) ; OK (each identifier matches 1 set of N variadic values)!
-    ((a ...) ...) ; NOT OK (matches N*M variadic values for `a`)!
     ```
 
 
