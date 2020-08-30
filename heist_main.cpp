@@ -774,7 +774,7 @@ namespace heist {
 
   exe_type analyze_scons(scm_list& exp,const bool cps_block=false) {
     if(exp.size() != 3)
-      THROW_ERR("'scons expects 2 arguments: (scons <car> <cdr>)"<<EXP_ERR(exp));
+      THROW_ERR("'scons expects 2 arguments: (scons <scar> <scdr>)"<<EXP_ERR(exp));
     scm_list scons_exp(3); 
     scons_exp[0] = symconst::cons;
     scons_exp[1] = scm_list(2);
