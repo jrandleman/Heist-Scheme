@@ -133,7 +133,7 @@ namespace heist {
     constexpr const char * const primitive         = "__heist-primitive";
     constexpr const char * const procedure         = "__heist-procedure";
     constexpr const char * const tail_call         = "__heist-tail-call";
-    constexpr const char * const continuation      = "__heist-cps-";               // hashed continuation arg name prefix
+    constexpr const char * const continuation      = "__heist-cps-";              // hashed continuation arg name prefix
     constexpr const char * const pass_continuation = "__heist-pass-continuation"; // denotes to treat proc as if defn'd in a scm->cps block
     constexpr const char * const cps_app_tag       = "__heist-app-cps";
     constexpr const char * const gensym_prefix     = "__heist-gensym-";
