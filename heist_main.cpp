@@ -3087,6 +3087,7 @@ namespace heist {
         // Expand variadic symbolic identifer immediately (no ctoring of any expression)
         if(is_symbolic_macro_identifier(expanded_exp[i])) {
           auto val_idx = find_macro_identifier_leaf_index(MACRO_EXPANSION_TREES,expanded_exp[i].sym);
+          if(val_idx == G::MAX_SIZE_TYPE) continue; // symbol != variadic macro identifier
           // confirm expanding into a non-nested variadic identifier
           if(!MACRO_EXPANSION_TREES[val_idx].is_leaf())
             THROW_ERR("'syntax-rules Misplaced \"...\" after improper non-nested variadic identifier [ " 
