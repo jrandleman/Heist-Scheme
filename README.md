@@ -1379,7 +1379,7 @@ Other primitives of this nature include:<br>
 
 1. __Construct Vector (2)__: `(vector <obj1> <obj2> ...)`
 
-2. __Mutating Push Object to Vector__: `(vector-push! <vector> <char>)`
+2. __Mutating Push Object to Vector__: `(vector-push! <vector> <obj>)`
 
 3. __Generate Numeric Vector__: Generate `<count>` objects, from `<start>` & incrementing w/ `<step>`
   * `<optional-start-number>` defaults to `0`
