@@ -2764,15 +2764,16 @@ namespace heist {
   // Associate a pattern's macro identifier to the objects it will expand into
   void register_macro_identifier_expansion_values(MACRO_ID_TABLE& ID_TO_VAL_MAP,const sym_type& id_name, 
                                                   scm_list&& expansion_values,  const macId_position_t& macId_pos_vector)noexcept{
-  for(auto& id : ID_TO_VAL_MAP)
-    if(macId_name(id) == id_name) {
-      // Add to the flatmap of values
-      auto& id_values = macId_values(id);
-      id_values.insert(id_values.end(), expansion_values.begin(), expansion_values.end());
-      // Add to the map of values-to-positions
-      auto& val_pos_map = macId_val_pos_map(id);
-      val_pos_map.push_back(std::make_pair(expansion_values,macId_pos_vector));
-      return;
+    for(auto& id : ID_TO_VAL_MAP) {
+      if(macId_name(id) == id_name) {
+        // Add to the flatmap of values
+        auto& id_values = macId_values(id);
+        id_values.insert(id_values.end(), expansion_values.begin(), expansion_values.end());
+        // Add to the map of values-to-positions
+        auto& val_pos_map = macId_val_pos_map(id);
+        val_pos_map.push_back(std::make_pair(expansion_values,macId_pos_vector));
+        return;
+      }
     }
     MACRO_ID_VAL_POS_PAIRS val_pos_pairs(1,std::make_pair(expansion_values,macId_pos_vector));
     ID_TO_VAL_MAP.push_back(std::make_tuple(id_name,val_pos_pairs,expansion_values));
