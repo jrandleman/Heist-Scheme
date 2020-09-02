@@ -2650,17 +2650,74 @@ namespace heist {
   // EXAMPLES:
   // ; Redefining λ to expand to 'lambda
   // (define-syntax λ
-  //       (syntax-rules ()
-  //         ((λ args body ...) (lambda args body ...))))
+  //   (syntax-rules ()
+  //     ((λ () body ...) (lambda () body ...))
+  //     ((λ (arg ...) body ...) (lambda (arg ...) body ...))))
   //
   // ; Macro simulating variadic multiplication if '* were a binary operation
   // (define-syntax multiply-all 
-  //     (syntax-rules ()
-  //       ((multiply-all) 1)
-  //       ((multiply-all a) a)
-  //       ((multiply-all a b ...) (* a (multiply-all b ...)))))
+  //   (syntax-rules ()
+  //     ((multiply-all) 1)
+  //     ((multiply-all a) a)
+  //     ((multiply-all a b ...) (* a (multiply-all b ...)))))
 
-  using MACRO_ID_TABLE = std::vector<std::pair<sym_type,scm_list>>;
+
+  // 0. Each macro Id entry in <MACRO_ID_TABLE> (ie <MACRO_ID_VAR_TABLE.first>) represents 
+  //      an instance of a macro identifier [in the pattern] to be expanded [in the template]
+  //      into a value(s) [from the matched expression].
+  // 1. <macId_name> gets the symbolic name of the identifier in question.
+  // 2. <macId_val_pos_map> gets a vector of value-position pairs
+  //    - "values" are those which the "name" should expand into
+  //      * >1 "value" indicates a variadic expansion of the "name"
+  //    - a "position" is a vector of indices to locate the "value" in the 
+  //      pattern-matched expression (multiple idxs to traverse the nested vectors)
+  // 3. <macId_values> returns a flatmap of the values in <macId_val_pos_map>
+  //    - this is maintained alongside <macId_val_pos_map> in a seperate structure 
+  //      internally in order to have fast reads (rather than generating a new instance
+  //      from <macId_val_pos_map> each time)
+
+  // 0. <VARARG_POSITIONS> (ie <MACRO_ID_VAR_TABLE.second>) tracks all of the position idx 
+  //      vectors of '...' symbols found in the macro pattern (1st idx of each row in the matrix
+  //      is detracted by 1 to disregard the intitial '_' & line up w/ the values of <MACRO_ID_TABLE>'s
+  //      idxs of values [from <macId_val_pos_map>] in the matched expression)
+
+  // 0. <MacroId_varArg_posPair> Holds 2 vectors, each holding nested vectors of position idxs 
+  //    (of an elt w/in nested vectors) for:
+  //    - .first: the current macro Id being parsed
+  //    - .second: the current variadic '...' symbol being detected
+
+  using macId_position_t = std::vector<size_type>;
+  using MacroId_varArg_posPair = std::pair<macId_position_t,macId_position_t>;
+  using MACRO_ID_VAL_POS_PAIR = std::pair<scm_list,macId_position_t>;
+  using MACRO_ID_VAL_POS_PAIRS = std::vector<MACRO_ID_VAL_POS_PAIR>;
+  using MACRO_ID = std::tuple<sym_type,MACRO_ID_VAL_POS_PAIRS,scm_list>;
+  using MACRO_ID_TABLE = std::vector<MACRO_ID>;
+  using VARARG_POSITIONS = std::vector<macId_position_t>;
+  using MACRO_ID_VAR_TABLE = std::pair<MACRO_ID_TABLE,VARARG_POSITIONS>;
+
+  // Node elt in the variadic expansion process
+  struct macro_expansion_node {
+    sym_type id_name;                             // Identifier name being expanded
+    std::vector<macro_expansion_node> children;   // Variadic subgroup children
+    std::vector<macId_position_t> positions;      // Position vector(s) of leaf node value(s)
+    scm_list values;                              // Leaf node value(s)
+    bool is_variadic = false;                     // Determines whether value corresponds to ...
+    bool is_leaf()const{return children.empty();} // Determines valid elt: true ? value : children
+    macro_expansion_node(const sym_type& name, const bool& variadic_node = false) : id_name(name), 
+                                                                                    is_variadic(variadic_node) {}
+  };
+
+  // - Topmost node (ie node of in <MACRO_EXPANSION_TREE> is a symbol w/ children)
+  //   * NON-VARIADIC identifiers are repn'd by nodes that are both ROOTS & a LEAF
+  // - Leaves are ultimate values to be expanded into
+  // - Intermediate nodes repn any multi-layered variadic expansion [ie (a ...) ...]
+  using MACRO_EXPANSION_TREES_t = std::vector<macro_expansion_node>;
+
+
+  // Accessors
+  sym_type& macId_name(MACRO_ID& macId_instance)                      noexcept{return std::get<0>(macId_instance);}
+  MACRO_ID_VAL_POS_PAIRS& macId_val_pos_map(MACRO_ID& macId_instance) noexcept{return std::get<1>(macId_instance);}
+  scm_list& macId_values(MACRO_ID& macId_instance)                    noexcept{return std::get<2>(macId_instance);}
 
 
   // Confirm whether the given word is a keyword
@@ -2669,16 +2726,15 @@ namespace heist {
   }
 
 
-  bool data_is_ellipsis(const data& d) noexcept {
+  bool data_is_ellipsis(const data& d)noexcept{
     return d.is_type(types::sym) && d.sym == symconst::ellipsis;
   }
 
 
   // Primitive symbolic literals: #t #f '()
   bool is_primitive_symbolic_literal(const data& obj)noexcept{
-    return obj.is_type(types::sym) && (obj.sym == symconst::true_t || 
-                                       obj.sym == symconst::false_t || 
-                                       obj.sym == symconst::emptylist);
+    return obj.is_type(types::sym) && 
+      (obj.sym == symconst::true_t || obj.sym == symconst::false_t || obj.sym == symconst::emptylist);
   }
 
 
@@ -2698,9 +2754,8 @@ namespace heist {
 
   // Confirm whether 'pattern' is argless but was given 'args' (or vise versa)
   bool incompatible_void_arg_use(const scm_list& pattern, const scm_list& args)noexcept{
-    bool pattern_is_argless = pattern.size() == 2 && 
-                              pattern[1].is_type(types::sym) && 
-                              pattern[1].sym==symconst::sentinel_arg;
+    bool pattern_is_argless = pattern.size() == 2 && pattern[1].is_type(types::sym) && 
+                              pattern[1].sym == symconst::sentinel_arg;
     bool args_is_argless    = args.size()==1 && data_is_the_SENTINEL_VAL(args[0]);
     return pattern_is_argless ^ args_is_argless;
   }
@@ -2708,28 +2763,27 @@ namespace heist {
 
   // Associate a pattern's macro identifier to the objects it will expand into
   void register_macro_identifier_expansion_values(MACRO_ID_TABLE& ID_TO_VAL_MAP,const sym_type& id_name, 
-                                                                    scm_list&& expansion_values)noexcept{
-    for(auto& id : ID_TO_VAL_MAP)
-      if(id.first == id_name) {
-        id.second.insert(id.second.end(), expansion_values.begin(), expansion_values.end());
-        return;
-      }
-    ID_TO_VAL_MAP.push_back(std::make_pair(id_name,expansion_values));
-  }
-
-
-  // Get idx of <id_name> in <ID_TO_VAL_MAP>. Returns <G::MAX_SIZE_TYPE> if not found.
-  size_type find_macro_identifier_index(MACRO_ID_TABLE& ID_TO_VAL_MAP,const sym_type& id_name)noexcept{
-    for(size_type i = 0, n = ID_TO_VAL_MAP.size(); i < n; ++i)
-      if(ID_TO_VAL_MAP[i].first == id_name) return i;
-    return G::MAX_SIZE_TYPE;
+                                                  scm_list&& expansion_values,  const macId_position_t& macId_pos_vector)noexcept{
+  for(auto& id : ID_TO_VAL_MAP)
+    if(macId_name(id) == id_name) {
+      // Add to the flatmap of values
+      auto& id_values = macId_values(id);
+      id_values.insert(id_values.end(), expansion_values.begin(), expansion_values.end());
+      // Add to the map of values-to-positions
+      auto& val_pos_map = macId_val_pos_map(id);
+      val_pos_map.push_back(std::make_pair(expansion_values,macId_pos_vector));
+      return;
+    }
+    MACRO_ID_VAL_POS_PAIRS val_pos_pairs(1,std::make_pair(expansion_values,macId_pos_vector));
+    ID_TO_VAL_MAP.push_back(std::make_tuple(id_name,val_pos_pairs,expansion_values));
   }
 
   /******************************************************************************
   * REPRESENTING MACRO SYNTACTIC EXTENSIONS -- PATTERN MATCHING HELPER FUNCTIONS
   ******************************************************************************/
 
-  bool compare_pattern_args_exp_match(const scm_list&,const scm_list&,const frame_vars&,MACRO_ID_TABLE&,const size_type&)noexcept;
+  bool compare_pattern_args_exp_match(const scm_list&,const scm_list&,const frame_vars&,MACRO_ID_VAR_TABLE&,
+                                                      const size_type&,MacroId_varArg_posPair)noexcept;
   
 
   // Determine whether only the par's elt OR only the arg's elt is a keyword
@@ -2742,8 +2796,7 @@ namespace heist {
   // Confirm given 2 incompatible atomics
   bool mismatched_atomics(const data& pat_entity, const data& arg_entity)noexcept{
     if(is_primitive_symbolic_literal(pat_entity))
-       return !is_primitive_symbolic_literal(arg_entity) || 
-              pat_entity.sym != arg_entity.sym;
+       return !is_primitive_symbolic_literal(arg_entity) || pat_entity.sym != arg_entity.sym;
     if(pat_entity.is_type(types::sym) || pat_entity.is_type(types::exp)) return false;
     if(pat_entity.type != arg_entity.type)                               return true;
     if(pat_entity.is_type(types::par))
@@ -2755,65 +2808,80 @@ namespace heist {
 
 
   // Confirm the 2 given pattern/arg elts are mismatched subexpressions
-  bool mismatched_subexpressions(const data& pat_elt,        const data& arg_elt, 
-                                 const frame_vars& keywords, MACRO_ID_TABLE& ID_TO_VAL_MAP)noexcept{
+  bool mismatched_subexpressions(const data& pat_elt, const data& arg_elt, const frame_vars& keywords, 
+                                 MACRO_ID_VAR_TABLE& MID_VARG_PAIR, MacroId_varArg_posPair macId_varArg_vecs, 
+                                 const size_type& args_idx, const size_type& pat_idx)noexcept{
     if(!pat_elt.is_type(types::exp) || !arg_elt.is_type(types::exp)) return true;
     if(pat_elt.exp.empty()) return !arg_elt.exp.empty();
-    return !compare_pattern_args_exp_match(pat_elt.exp,arg_elt.exp,keywords,ID_TO_VAL_MAP,0);
+    macId_varArg_vecs.first.push_back(args_idx), macId_varArg_vecs.second.push_back(pat_idx);
+    return !compare_pattern_args_exp_match(pat_elt.exp,arg_elt.exp,keywords,MID_VARG_PAIR,0,macId_varArg_vecs);
   }
 
 
   // Handle '...' pattern analysis
-  bool account_for_pattern_ellipsis_and_return_whether_no_match(const scm_list& args_exp, const size_type& args_size, size_type& args_idx,
-                                                      const data& pat_obj_prior_ellipsis, const size_type& number_args_left_after_variadic,
-                                                      const frame_vars& keywords,         MACRO_ID_TABLE& ID_TO_VAL_MAP)noexcept{
+  bool account_for_pattern_ellipsis_and_return_whether_no_match(const scm_list& args_exp,    size_type& args_idx, const data& pat_obj_prior_ellipsis,
+                                                                const size_type& number_args_left_after_variadic, const frame_vars& keywords,
+                                                                MACRO_ID_VAR_TABLE& MID_VARG_PAIR,MacroId_varArg_posPair macId_varArg_vecs,
+                                                                const size_type& pat_idx)noexcept{
     // Start associating objs based on the first obj prior "..."'s position
     --args_idx;
     // Confirm enough room in <args_exp> for the variadic
+    const auto& args_size = args_exp.size();
     if(number_args_left_after_variadic + args_idx > args_size) return true;
     const auto va_objs_end = args_size - number_args_left_after_variadic;
     // Confirm each variadic obj in <args_exp> matches the layout of <pat_obj_prior_ellipsis>
     // Symbol Identifiers may expand to _any_ form
     if(pat_obj_prior_ellipsis.is_type(types::sym)) {
-      register_macro_identifier_expansion_values(ID_TO_VAL_MAP,pat_obj_prior_ellipsis.sym,
-                                                               scm_list(args_exp.begin() + args_idx, 
-                                                                        args_exp.begin() + va_objs_end));
+      macId_varArg_vecs.first.push_back(args_idx);
+      register_macro_identifier_expansion_values(MID_VARG_PAIR.first,pat_obj_prior_ellipsis.sym,
+                                                                     scm_list(args_exp.begin() + args_idx, 
+                                                                              args_exp.begin() + va_objs_end),
+                                                                     macId_varArg_vecs.first);
       const auto number_of_va_objs_in_args = va_objs_end - args_idx;
       args_idx += number_of_va_objs_in_args - 1; // advance <args_idx> to the last va obj associated
     // Expression Identifiers _may only_ expand into expressions of the same form
     } else {
       for(; args_idx < va_objs_end; ++args_idx)
-        if(mismatched_subexpressions(pat_obj_prior_ellipsis,args_exp[args_idx],keywords,ID_TO_VAL_MAP))
+        if(mismatched_subexpressions(pat_obj_prior_ellipsis,args_exp[args_idx],keywords,MID_VARG_PAIR,macId_varArg_vecs,args_idx,pat_idx))
           return true;
       --args_idx; // move back to the last associated obj (accounts for '++' in loop returning to)
     }
+    // Save current position vector for ... identifier
+    macId_varArg_vecs.second.push_back(pat_idx+1);
+    MID_VARG_PAIR.second.push_back(macId_varArg_vecs.second);
+    macId_varArg_vecs.second.pop_back();
     return false;
   }
 
 
   // Confirm whether the pattern sub-expression matches the 'args' sub-expression
-  bool compare_pattern_args_exp_match(const scm_list& pat_exp,const scm_list& args_exp,
-                                      const frame_vars& keywords,MACRO_ID_TABLE& ID_TO_VAL_MAP,
-                                      const size_type& pat_idx_start)noexcept{
+  bool compare_pattern_args_exp_match(const scm_list& pat_exp, const scm_list& args_exp, const frame_vars& keywords,
+                                      MACRO_ID_VAR_TABLE& MID_VARG_PAIR,                 const size_type& pat_idx_start, 
+                                                                      MacroId_varArg_posPair macId_varArg_vecs)noexcept{
     // Confirm whether <pat_exp> & <args_exp> match one another
     size_type pat_idx = pat_idx_start, args_idx = 0, args_size = args_exp.size(), pat_size = pat_exp.size();
     for(; pat_idx < pat_size && args_idx < args_size; ++pat_idx, ++args_idx){
       // Check for proper "..." use in the pat_exp definition
       if(data_is_ellipsis(pat_exp[pat_idx])) { // Guarenteed pat_idx > 0 by syntax-rules analysis
-        if(account_for_pattern_ellipsis_and_return_whether_no_match(args_exp, args_size, args_idx,
-                                                                    pat_exp[pat_idx-1], pat_size-pat_idx-1,
-                                                                    keywords, ID_TO_VAL_MAP)) {
+        macId_varArg_vecs.second.push_back(pat_idx);
+        MID_VARG_PAIR.second.push_back(macId_varArg_vecs.second);
+        macId_varArg_vecs.second.pop_back();
+        if(account_for_pattern_ellipsis_and_return_whether_no_match(args_exp, args_idx,pat_exp[pat_idx-1], pat_size-pat_idx-1,
+                                                                        keywords, MID_VARG_PAIR,macId_varArg_vecs,pat_idx-1)){
           return false;
         }
       // Register the pat_exp's identifier & associated expansion value
       } else if(is_macro_argument_label(pat_exp[pat_idx],keywords)) {
-        if(pat_idx+1 == pat_size || !data_is_ellipsis(pat_exp[pat_idx+1]))
-          register_macro_identifier_expansion_values(ID_TO_VAL_MAP,pat_exp[pat_idx].sym,scm_list(1,args_exp[args_idx]));
+        if(pat_idx+1 == pat_size || !data_is_ellipsis(pat_exp[pat_idx+1])) {
+          macId_varArg_vecs.first.push_back(args_idx);
+          register_macro_identifier_expansion_values(MID_VARG_PAIR.first,pat_exp[pat_idx].sym,scm_list(1,args_exp[args_idx]),macId_varArg_vecs.first);
+          macId_varArg_vecs.first.pop_back();
+        }
       // Verify matching subexpressions
       } else if(pat_exp[pat_idx].is_type(types::exp)) {
         if(!args_exp[args_idx].is_type(types::exp) || 
           ((pat_idx+1 == pat_size || !data_is_ellipsis(pat_exp[pat_idx+1])) &&
-            mismatched_subexpressions(pat_exp[pat_idx],args_exp[args_idx],keywords,ID_TO_VAL_MAP))) {
+            mismatched_subexpressions(pat_exp[pat_idx],args_exp[args_idx],keywords,MID_VARG_PAIR,macId_varArg_vecs,args_idx,pat_idx))) {
           return false;
         }
       // Verify literal & keyword use are aligned
@@ -2825,11 +2893,16 @@ namespace heist {
     // Register the last identifier if variadic portion of expansion @ the end of the pattern & empty in args
     if(pat_idx+1 == pat_size && data_is_ellipsis(pat_exp[pat_idx]) && args_idx == args_size) {
       if(is_macro_argument_label(pat_exp[pat_idx-1],keywords)) {
-        register_macro_identifier_expansion_values(ID_TO_VAL_MAP,pat_exp[pat_idx-1].sym,scm_list(1,args_exp[args_idx-1]));
+        macId_varArg_vecs.second.push_back(pat_idx);
+        MID_VARG_PAIR.second.push_back(macId_varArg_vecs.second);
+        macId_varArg_vecs.second.pop_back();
+        macId_varArg_vecs.first.push_back(args_idx-1);
+        register_macro_identifier_expansion_values(MID_VARG_PAIR.first,pat_exp[pat_idx-1].sym,scm_list(1,args_exp[args_idx-1]),macId_varArg_vecs.first);
+        macId_varArg_vecs.first.pop_back();
         return true;
-      } 
-      return !account_for_pattern_ellipsis_and_return_whether_no_match(args_exp, args_size, args_idx, pat_exp[pat_idx-1], 
-                                                                       pat_size-pat_idx-1, keywords, ID_TO_VAL_MAP);
+      }
+      return !account_for_pattern_ellipsis_and_return_whether_no_match(args_exp, args_idx, pat_exp[pat_idx-1], pat_size-pat_idx-1, 
+                                                                           keywords, MID_VARG_PAIR, macId_varArg_vecs, pat_idx-1);
     }
     // Verify both <pat_exp> & <arg_exp> have been fully iterated
     return pat_idx == pat_size && args_idx == args_size;
@@ -2837,11 +2910,13 @@ namespace heist {
 
 
   // Confirm the given arg combo matches the given pattern (in terms of layout)
-  bool is_pattern_match(const scm_list& args, const frame_vars& keywords,
-                        const scm_list& pattern, MACRO_ID_TABLE& ID_TO_VAL_MAP)noexcept{
+  bool is_pattern_match(const scm_list& args,const frame_vars& keywords,const scm_list& pattern,
+                                                   MACRO_ID_VAR_TABLE& MID_VARG_PAIR)noexcept{
     if(incompatible_void_arg_use(pattern,args)) return false;
-    if(!compare_pattern_args_exp_match(pattern,args,keywords,ID_TO_VAL_MAP,1)) {
-      ID_TO_VAL_MAP.clear();
+    MacroId_varArg_posPair macId_varArg_vecs;
+    if(!compare_pattern_args_exp_match(pattern,args,keywords,MID_VARG_PAIR,1,macId_varArg_vecs)){
+      MID_VARG_PAIR.first.clear();
+      MID_VARG_PAIR.second.clear();
       return false;
     }
     return true;
@@ -2849,10 +2924,10 @@ namespace heist {
 
 
   // Returns whether the given args correspond to the given macro
-  bool is_macro_match(const scm_list& args, const frame_mac& mac, 
-                      size_type& match_idx, MACRO_ID_TABLE& ID_TO_VAL_MAP)noexcept{
+  bool is_macro_match(const scm_list& args, const frame_mac& mac, size_type& match_idx, 
+                                            MACRO_ID_VAR_TABLE& MID_VARG_PAIR)noexcept{
     for(size_type i = 0, n = mac.patterns.size(); i < n; ++i) {
-      if(is_pattern_match(args, mac.keywords, mac.patterns[i], ID_TO_VAL_MAP)) {
+      if(is_pattern_match(args, mac.keywords, mac.patterns[i], MID_VARG_PAIR)) {
         match_idx = i;
         return true;
       }
@@ -2864,104 +2939,213 @@ namespace heist {
   * MACRO SYNTACTIC EXTENSIONS -- EXPANSION HELPER FUNCTIONS
   ******************************************************************************/
 
-  // Get the idx-th variadic expansion instance of the <expanded_exp> variadic expression
-  void get_macro_variadic_exp_expansion_object(scm_list& expanded_exp,
-                                               MACRO_ID_TABLE& ID_TO_VAL_MAP, 
-                                               const size_type& idx)noexcept{
-    for(size_type i = 0, n = expanded_exp.size(); i < n; ++i) {
-      if(expanded_exp[i].is_type(types::exp)) {
-        get_macro_variadic_exp_expansion_object(expanded_exp[i].exp,ID_TO_VAL_MAP,idx);
-      } else if(is_symbolic_macro_identifier(expanded_exp[i])) {
-        auto val_idx = find_macro_identifier_index(ID_TO_VAL_MAP,expanded_exp[i].sym);
-        if(val_idx != G::MAX_SIZE_TYPE)
-          expanded_exp[i] = ID_TO_VAL_MAP[val_idx].second[idx];
+  // Recursively prints <MACRO_EXPANSION_TREES> children subgroups
+  void recur_stringify_MACRO_EXPANSION_TREES(const MACRO_EXPANSION_TREES_t& children,scm_string& buffer)noexcept{
+    for(const auto& child : children) {
+      if(!child.is_variadic) {
+        buffer += "NON-VARIADIC = " + data(child.values).write() + ',';
+      } else if(child.is_leaf()) {
+        buffer += data(child.values).write() + ',';
+      } else {
+        buffer += '[';
+        recur_stringify_MACRO_EXPANSION_TREES(child.children,buffer);
+        buffer += ']';
       }
     }
   }
 
+  // Stringifies <MACRO_EXPANSION_TREES> contents
+  scm_string stringify_MACRO_EXPANSION_TREES(const MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES)noexcept{
+    scm_string buffer("     ======================\n     MACRO_EXPANSION_TREES:\n     ");
+    // for each tree
+    for(const auto& tree : MACRO_EXPANSION_TREES) {
+      buffer += "  " + tree.id_name + ": ";
+      // print leaves immediately
+      if(!tree.is_variadic) {
+        buffer += "NON-VARIADIC = " + data(tree.values).write() + "\n     ";
+      // recursively print subgroups
+      } else if(tree.is_leaf()) {
+        buffer += "LEAF: " + data(tree.values).write() + "\n     ";
+      } else {
+        buffer += '[';
+        recur_stringify_MACRO_EXPANSION_TREES(tree.children,buffer);
+        buffer += "]\n     ";
+      }
+    }
+    return buffer + "======================";
+  }
 
-  // Get the first variadic expansion instance of the <expanded_exp> variadic expression
-  void get_first_macro_variadic_exp_expansion_object(const scm_list& args,   const sym_type& name,
-                                                     scm_list& expanded_exp, MACRO_ID_TABLE& ID_TO_VAL_MAP,
-                                                                             size_type& len) {
-    for(size_type i = 0, n = expanded_exp.size(); i < n; ++i) {
-      // Recursively create expansion object down subexpressions
-      if(expanded_exp[i].is_type(types::exp)) {
-        get_first_macro_variadic_exp_expansion_object(args,name,expanded_exp[i].exp,ID_TO_VAL_MAP,len);
-      } else if(is_symbolic_macro_identifier(expanded_exp[i])) {
-        auto val_idx = find_macro_identifier_index(ID_TO_VAL_MAP,expanded_exp[i].sym);
-        if(val_idx == G::MAX_SIZE_TYPE) continue;
-        if(!len) { // 1st identifier found
-          len = ID_TO_VAL_MAP[val_idx].second.size();
-        } else if(len != ID_TO_VAL_MAP[val_idx].second.size()) {
-          THROW_ERR("'syntax-rules Mismatched variadic expression identifier amounts:\n     " 
-            << expanded_exp << FCN_ERR(name,args));
+
+  // Generate a unique hashed id_name for the expanded symbol
+  scm_string hash_macro_expansion_identifier(const scm_string& id_name,const bool& finished_expanding = false)noexcept{
+    static size_type IDX_1 = 0, IDX_2 = 0;
+    if(finished_expanding) {
+      IDX_1 = IDX_2 = 0;
+      return "";
+    } else {
+      if(IDX_1 != G::MAX_SIZE_TYPE)
+        return id_name + '-' + std::to_string(IDX_2) + '-' + std::to_string(IDX_1++);
+      return id_name + '-' + std::to_string(++IDX_2) + '-' + std::to_string(IDX_1++);
+    }
+  }
+
+
+  // Changes all <id_name> in <id_node> & below to be <tagged_symbol>
+  void propagate_new_tagged_identifier_name(const scm_string& tagged_symbol,macro_expansion_node& id_node)noexcept{
+    id_node.id_name = tagged_symbol;
+    if(id_node.is_leaf()) return;
+    for(auto& child : id_node.children)
+      propagate_new_tagged_identifier_name(tagged_symbol,child);
+  }
+
+
+  // Get idx of <id_name> in <MACRO_EXPANSION_TREES>. Returns <G::MAX_SIZE_TYPE> if not found.
+  size_type find_macro_identifier_leaf_index(const MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES,const sym_type& id_name)noexcept{
+    for(size_type i = 0, n = MACRO_EXPANSION_TREES.size(); i < n; ++i)
+      if(MACRO_EXPANSION_TREES[i].id_name == id_name) return i;
+    return G::MAX_SIZE_TYPE;
+  }
+
+
+  // Expand level-1 ids, tag all nested variadic ids, wrench up tagged children of nested variadic ids
+  void tag_and_expand_identifiers_while_wrenching_up_children(const size_type expansion_No, scm_list& expansions,
+                                                                    MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES)noexcept{
+    for(size_type i = 0, n = expansions.size(); i < n; ++i) {
+      if(expansions[i].is_type(types::exp)) {
+        tag_and_expand_identifiers_while_wrenching_up_children(expansion_No,expansions[i].exp,MACRO_EXPANSION_TREES);
+      } else if(is_symbolic_macro_identifier(expansions[i])) {
+        auto val_idx = find_macro_identifier_leaf_index(MACRO_EXPANSION_TREES,expansions[i].sym);
+        if(val_idx == G::MAX_SIZE_TYPE) continue; // symbol != variadic macro identifier
+        // Splice in level-1 (non-nested) ... value
+        if(MACRO_EXPANSION_TREES[val_idx].is_leaf()) {
+          expansions[i] = MACRO_EXPANSION_TREES[val_idx].values[expansion_No];
+        // Tag nested ... identifier to be expanded further, & wrench up the associated child node as a new (tagged) root
+        } else {
+          auto tagged_symbol = hash_macro_expansion_identifier(expansions[i].sym);
+          expansions[i].sym = tagged_symbol; // tag symbol
+          MACRO_EXPANSION_TREES.push_back(MACRO_EXPANSION_TREES[val_idx].children[expansion_No]); // wrench up child
+          propagate_new_tagged_identifier_name(tagged_symbol,*MACRO_EXPANSION_TREES.rbegin()); // tag up wrenched child
         }
-        expanded_exp[i] = ID_TO_VAL_MAP[val_idx].second[0];
       }
     }
   }
 
 
-  // Get variadic expansion of the <expanded_exp> variadic expression
-  void get_macro_exp_variadic_expansion(const scm_list& args,    const sym_type& name,
-                                         scm_list& expanded_exp, MACRO_ID_TABLE& ID_TO_VAL_MAP,
-                                                                 scm_list& expansions) {
-    auto obj = expanded_exp;
-    size_type len = 0;
-    get_first_macro_variadic_exp_expansion_object(args,name,obj,ID_TO_VAL_MAP,len);
-    if(len) expansions.reserve(len);
-    expansions.push_back(obj);
-    if(!len) return; // object either expanded by <expand_macro_symbols>, or <scm_eval> will trigger error
-    for(size_type i = 1; i < len; ++i) {
-      expansions.push_back(expanded_exp);
-      get_macro_variadic_exp_expansion_object(expansions[i].exp,ID_TO_VAL_MAP,i);
+  // <verify_all_identifiers_have_same_variadic_length> helper
+  void confirm_identifier_variadic_length_is_consistent(size_type& total_expansions,  const scm_list& exp,
+                                                        const scm_list& expanded_exp, const scm_list& args,
+                                                        const sym_type& name,         const size_type& result, 
+                                                        const MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES){
+    if(total_expansions == G::MAX_SIZE_TYPE) {
+      total_expansions = result;
+    } else if(total_expansions != result && result != G::MAX_SIZE_TYPE) {
+      THROW_ERR("'syntax-rules Different variadic identifiers can't expand in the same template expression!"
+        "\n     Length 1 = " << total_expansions << ", Length 2 = " << result << 
+        "\n     In subexpression: [ " << exp << " ]"
+        "\n     Of template expansion: [ " << expanded_exp << " ]\n" 
+        << stringify_MACRO_EXPANSION_TREES(MACRO_EXPANSION_TREES) << FCN_ERR(name,args));
     }
   }
 
 
-  void expand_macro_variadic_exps(const scm_list& args,   const sym_type& name,
-                                  scm_list& expanded_exp, MACRO_ID_TABLE& ID_TO_VAL_MAP){
+  // Returns the length that the identifiers match (throw error if any are off)
+  size_type verify_all_identifiers_have_same_variadic_length(const scm_list& args, const sym_type& name, const scm_list& exp, 
+                                                             const scm_list& expanded_exp, const MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES){
+    size_type total_expansions = G::MAX_SIZE_TYPE;
+    for(auto& elt : exp) {
+      if(elt.is_type(types::exp)) {
+        confirm_identifier_variadic_length_is_consistent(total_expansions,exp,expanded_exp,args,name,
+          verify_all_identifiers_have_same_variadic_length(args,name,elt.exp,expanded_exp,MACRO_EXPANSION_TREES),
+          MACRO_EXPANSION_TREES);
+      } else if(is_symbolic_macro_identifier(elt)) {
+        auto val_idx = find_macro_identifier_leaf_index(MACRO_EXPANSION_TREES,elt.sym);
+        if(val_idx == G::MAX_SIZE_TYPE) continue; // symbol != variadic macro identifier
+        confirm_identifier_variadic_length_is_consistent(total_expansions,exp,expanded_exp,args,name,
+          MACRO_EXPANSION_TREES[val_idx].is_leaf() ? MACRO_EXPANSION_TREES[val_idx].values.size() : 
+                                                     MACRO_EXPANSION_TREES[val_idx].children.size(),
+          MACRO_EXPANSION_TREES);
+      }
+    }
+    return total_expansions;
+  }
+
+
+  // Non-Variadics have been expanded, expand all (possibly nested) variadics identifiers
+  // NOTE: Traverses in POST-ORDER!
+  void expand_macro_variadic_identifiers(const scm_list& args, const sym_type& name, scm_list& expanded_exp,
+                                                               MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES){
     for(size_type i = 0; i < expanded_exp.size(); ++i) {
-      if(!expanded_exp[i].is_type(types::exp)) continue;
-      // we recusively expand most nested exp's first, & work our way "up-and-out"
-      expand_macro_variadic_exps(args,name,expanded_exp[i].exp,ID_TO_VAL_MAP);
-      if(i+1 == expanded_exp.size() || !data_is_ellipsis(expanded_exp[i+1])) continue;
-      scm_list expansions;
-      get_macro_exp_variadic_expansion(args,name,expanded_exp[i].exp,ID_TO_VAL_MAP,expansions);
-      // erase the identifier & "...", then insert the variadic expansion values
-      expanded_exp.erase(expanded_exp.begin()+i,expanded_exp.begin()+i+2);
-      expanded_exp.insert(expanded_exp.begin()+i,expansions.begin(),expansions.end());
-      i += expansions.size() - 1; // -1 accounts for loop's "++i"
-    }
+      if(i+1 < expanded_exp.size() && data_is_ellipsis(expanded_exp[i+1])) {
+        // Expand variadic symbolic identifer immediately (no ctoring of any expression)
+        if(is_symbolic_macro_identifier(expanded_exp[i])) {
+          auto val_idx = find_macro_identifier_leaf_index(MACRO_EXPANSION_TREES,expanded_exp[i].sym);
+          // confirm expanding into a non-nested variadic identifier
+          if(!MACRO_EXPANSION_TREES[val_idx].is_leaf())
+            THROW_ERR("'syntax-rules Misplaced \"...\" after improper non-nested variadic identifier [ " 
+              << expanded_exp[i].sym << " ]\n     in [ " << expanded_exp << " ]\n"
+              << stringify_MACRO_EXPANSION_TREES(MACRO_EXPANSION_TREES) << FCN_ERR(name,args));
+          // erase the identifier & "...", then insert the variadic expansion values
+          auto& expansions = MACRO_EXPANSION_TREES[val_idx].values;
+          expanded_exp.erase(expanded_exp.begin()+i,expanded_exp.begin()+i+2);
+          expanded_exp.insert(expanded_exp.begin()+i,expansions.begin(),expansions.end());
+          i += expansions.size() - 1; // -1 accounts for loop's "++i"
+        // Expand variadic expressions by constructing N expressions filled in w/ N values
+        } else if(expanded_exp[i].is_type(types::exp)) {
+          // verify ... follows an expression using the same # of expansion values per identifier
+          size_type total_expansions = verify_all_identifiers_have_same_variadic_length(args,name,expanded_exp[i].exp,
+                                                                                        expanded_exp,MACRO_EXPANSION_TREES);
+          if(total_expansions == G::MAX_SIZE_TYPE)
+            THROW_ERR("'syntax-rules Misplaced \"...\" after non-variadic subexpression [ " 
+              << expanded_exp[i].exp << " ]\n     in [ " << expanded_exp << " ]" << FCN_ERR(name,args));
+          scm_list expansions(total_expansions,expanded_exp[i].exp);
+          // tag <expansions> nested identifiers, tag associated tree groups & 
+          //   wrench them up to be a root (WHILE KEEPING THE NEW ROOTS IN PLACE)
+          for(size_type i = 0, n = expansions.size(); i < n; ++i)
+            tag_and_expand_identifiers_while_wrenching_up_children(i,expansions[i].exp,MACRO_EXPANSION_TREES);
+          // expand the ctord exps & re-traverse to expand any nested ...
+          expanded_exp.erase(expanded_exp.begin()+i,expanded_exp.begin()+i+2);
+          expanded_exp.insert(expanded_exp.begin()+i,expansions.begin(),expansions.end());
+          --i; // mv back to account for loop's "++" & completely re-traverse expanded exp
+        // NOTE: SHOULD NEVER BE INVOKED, BUT KEPT HERE AS A SAFETY GUARD
+        } else {
+          THROW_ERR("'syntax-rules Misplaced \"...\" after non-variadic identifier [ " 
+            << expanded_exp[i].sym << " ]\n     in [ " << expanded_exp << " ]\n"
+            << stringify_MACRO_EXPANSION_TREES(MACRO_EXPANSION_TREES) << FCN_ERR(name,args));
+        }
+      // Parse the nested non-variadic expression
+      } else if(expanded_exp[i].is_type(types::exp)) {
+        expand_macro_variadic_identifiers(args,name,expanded_exp[i].exp,MACRO_EXPANSION_TREES);
+      }
+    } // End of for
   }
+  
 
-
-  void expand_macro_symbols(const scm_list& args,   const sym_type& name,
-                            scm_list& expanded_exp, MACRO_ID_TABLE& ID_TO_VAL_MAP){
+  // Expands non-variadics, and guarentees:
+  //   0. No expressions begin w/ ...
+  //   2. Any SYMBOLIC identifier followed by ... is variadic
+  //      => NOTE: EXPRESSIONS FOLLOWED BY ... HAVE __NOT__ BEEN VERIFIED THO !!!
+  void expand_non_variadic_macro_symbols(const scm_list& args, const sym_type& name, scm_list& expanded_exp, 
+                                                               MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES){
     for(size_type i = 0; i < expanded_exp.size(); ++i) {
       if(is_symbolic_macro_identifier(expanded_exp[i])) {
         // Expand non-variadic identifiers
-        auto val_idx = find_macro_identifier_index(ID_TO_VAL_MAP,expanded_exp[i].sym);
+        auto val_idx = find_macro_identifier_leaf_index(MACRO_EXPANSION_TREES,expanded_exp[i].sym);
         if(i+1 == expanded_exp.size() || !data_is_ellipsis(expanded_exp[i+1])) {
-          if(val_idx != G::MAX_SIZE_TYPE && ID_TO_VAL_MAP[val_idx].second.size() == 1)
-            expanded_exp[i] = ID_TO_VAL_MAP[val_idx].second[0];
-        // Expand variadic identifiers
-        } else if(val_idx != G::MAX_SIZE_TYPE) {
-          // erase the identifier & "...", then insert the variadic expansion values
-          expanded_exp.erase(expanded_exp.begin()+i,expanded_exp.begin()+i+2);
-          expanded_exp.insert(expanded_exp.begin()+i,ID_TO_VAL_MAP[val_idx].second.begin(),
-                                                     ID_TO_VAL_MAP[val_idx].second.end());
-          i += ID_TO_VAL_MAP[val_idx].second.size() - 1; // -1 accounts for loop's "++i"
+          if(val_idx != G::MAX_SIZE_TYPE && !MACRO_EXPANSION_TREES[val_idx].is_variadic)
+            expanded_exp[i] = MACRO_EXPANSION_TREES[val_idx].values[0];
+        // Skip past ... if at a variadic identifier (handled in <expand_macro_variadic_identifiers>)
+        } else if(val_idx != G::MAX_SIZE_TYPE && MACRO_EXPANSION_TREES[val_idx].is_variadic) {
+          ++i;
+        // Catch non-macro syntax identifiers OR non-variadic syntax identifier followed by ...
         } else {
           THROW_ERR("'syntax-rules Misplaced \"...\" after non-variadic identifier [ " 
             << expanded_exp[i].sym << " ]\n     in [ " << expanded_exp << " ]" << FCN_ERR(name,args));
         }
       } else if(expanded_exp[i].is_type(types::exp)) {
         // Recursively expand symbolic identifiers
-        expand_macro_symbols(args,name,expanded_exp[i].exp,ID_TO_VAL_MAP);
-        // Skip past variadics after expressions (handled in <expand_macro_variadic_exps>)
-        if(i+1 != expanded_exp.size() && data_is_ellipsis(expanded_exp[i+1])) ++i;
+        expand_non_variadic_macro_symbols(args,name,expanded_exp[i].exp,MACRO_EXPANSION_TREES);
+        // Skip past variadics after expressions (handled in <expand_macro_variadic_identifiers>)
+        if(i+1 < expanded_exp.size() && data_is_ellipsis(expanded_exp[i+1])) ++i;
       } else if(data_is_ellipsis(expanded_exp[i])) {
         if(i) {
           THROW_ERR("'syntax-rules Misplaced \"...\" after non-variadic identifier [ " 
@@ -2974,11 +3158,222 @@ namespace heist {
     }
   }
 
+  /******************************************************************************
+  * MACRO SYNTACTIC EXTENSIONS -- MATRIX DATA CLEANING HELPER FCNS PRIOR TREE
+  ******************************************************************************/
 
-  void expand_macro(const scm_list& args,   const sym_type& name, 
-                    scm_list& expanded_exp, MACRO_ID_TABLE& ID_TO_VAL_MAP){
-    expand_macro_symbols(args,name,expanded_exp,ID_TO_VAL_MAP);
-    expand_macro_variadic_exps(args,name,expanded_exp,ID_TO_VAL_MAP);
+  void remove_VA_POS_MATRIX_duplicate_instances(VARARG_POSITIONS& VA_POS_MATRIX)noexcept{
+    const auto sameRows = [](auto& row1, auto& row2) {
+      if(row1.size() != row2.size()) return false;
+      for(size_type i = 0, n = row1.size(); i < n; ++i)
+        if(row1[i] != row2[i]) return false;
+      return true;
+    };
+    for(size_type i = 0; i < VA_POS_MATRIX.size(); ++i)
+      for(size_type j = i+1; j < VA_POS_MATRIX.size();) {
+        if(sameRows(VA_POS_MATRIX[i],VA_POS_MATRIX[j]))
+          VA_POS_MATRIX.erase(VA_POS_MATRIX.begin()+j);
+        else
+           ++j;
+      }
+  }
+
+
+  // Correlate positions in pattern moreso to those in args by negating result of skipping initial '_'
+  void decrement_first_elt_of_each_VA_POS_VECTOR(VARARG_POSITIONS& VA_POS_MATRIX)noexcept{
+    for(size_type i = 0, n = VA_POS_MATRIX.size(); i < n; ++i) --VA_POS_MATRIX[i][0];
+  }
+
+
+  // Compose the above 2 helper fcns functions to clean the position data
+  void clean_VA_POS_MATRIX_for_MACRO_ID_comparision(VARARG_POSITIONS& VA_POS_MATRIX)noexcept{
+    remove_VA_POS_MATRIX_duplicate_instances(VA_POS_MATRIX);
+    decrement_first_elt_of_each_VA_POS_VECTOR(VA_POS_MATRIX);
+    // Sort variadics based on descending # of idxs, 
+    //   to process subgroups of nested ... prior outer ...
+    std::sort(VA_POS_MATRIX.begin(),VA_POS_MATRIX.end(),
+      [](macId_position_t& e1,macId_position_t& e2){return e1.size()>e2.size();});
+  }
+
+
+  // Break down sequential grouped instances of variadic identifier matches into individual instances
+  void split_ID_TO_VAL_MAP_children_into_unique_entries(MACRO_ID_TABLE& ID_TO_VAL_MAP)noexcept{
+    for(auto& id_val_pos_tuple : ID_TO_VAL_MAP) {
+      auto& val_pos_pairs = macId_val_pos_map(id_val_pos_tuple);
+      for(size_type i = 0; i < val_pos_pairs.size(); ++i) {
+        // Expand the set of values into single value instances
+        if(val_pos_pairs[i].first.size() > 1) {
+          MACRO_ID_VAL_POS_PAIRS indiv_val_pos_instances;
+          auto posv = val_pos_pairs[i].second;
+          for(size_type j = 1, n = val_pos_pairs[i].first.size(); j < n; ++j) {
+            ++(*posv.rbegin());
+            indiv_val_pos_instances.push_back(std::make_pair(scm_list(1,val_pos_pairs[i].first[j]),posv));
+          }
+          // Erase the excess values in the original value set
+          val_pos_pairs[i].first.erase(val_pos_pairs[i].first.begin()+1,val_pos_pairs[i].first.end());
+          // Add the values/positions as individual instances
+          val_pos_pairs.insert(val_pos_pairs.begin()+i+1,std::make_move_iterator(indiv_val_pos_instances.begin()),
+                                                         std::make_move_iterator(indiv_val_pos_instances.end()));
+        }
+      }
+    }
+  }
+
+
+  // Determine if <id_posv> begins w/ the elts in <prefix>
+  bool id_posv_begins_with_prefix(const macId_position_t& id_posv, const macId_position_t& prefix)noexcept{
+    if(id_posv.size() < prefix.size()) return false;
+    for(size_type i = 0, n = prefix.size(); i < n; ++i)
+      if(id_posv[i] != prefix[i]) return false;
+    return true;
+  }
+
+
+  // init <va_prefix> w/ the prefix values of <id_posv>
+  void get_new_VA_POSV_prefix(macId_position_t& va_prefix, const macId_position_t& id_posv)noexcept{
+    std::copy(id_posv.begin(),id_posv.begin()+va_prefix.size(),va_prefix.begin());
+  }
+
+
+  // Cleans & reorganizes the <MACRO_ID_VAR_TABLE> table for easier analysis
+  void clean_MID_VARG_PAIR_for_macro_expansion_analysis(MACRO_ID_VAR_TABLE& MID_VARG_PAIR) {
+    split_ID_TO_VAL_MAP_children_into_unique_entries(MID_VARG_PAIR.first);
+    clean_VA_POS_MATRIX_for_MACRO_ID_comparision(MID_VARG_PAIR.second);
+  }
+
+
+  // Adds values & positions to a <macro_expansion_node>
+  // => NOTE: LAST UNUSED ARG IS JUST TO MATCH THE SAME FCN PTR TYPE AS <extract_id_children_subgroup>
+  void accumulate_id_leaf_values_and_positions(macro_expansion_node& id_node, MACRO_ID_VAL_POS_PAIR& val_pos_pair,
+                                                                              MACRO_EXPANSION_TREES_t&)noexcept{
+    id_node.values.insert(id_node.values.end(),val_pos_pair.first.begin(),val_pos_pair.first.end());
+    id_node.positions.push_back(val_pos_pair.second);
+  }
+
+
+  // Confirm <posv_matrix> contains <sought_posv>
+  bool matrix_contains_vector(const macId_position_t& sought_posv, const std::vector<macId_position_t>& posv_matrix)noexcept{
+    for(auto& posv : posv_matrix) {
+      if(posv.size() != sought_posv.size()) continue;
+      bool same_posv = true;
+      for(size_type i = 0, n = posv.size(); i < n; ++i)
+        if(posv[i] != sought_posv[i]) {
+          same_posv = false;
+          break;
+        }
+      if(same_posv) return true;
+    }
+    return false;
+  }
+
+
+  // Recursive search for <extract_id_children_subgroup>, returns whether found position in subgroup
+  bool extract_id_children_subgroup_recur(macro_expansion_node& child, MACRO_ID_VAL_POS_PAIR& val_pos_pair)noexcept{
+    if(child.is_leaf()) return matrix_contains_vector(val_pos_pair.second,child.positions);
+    for(auto& grand_child : child.children)
+      if(extract_id_children_subgroup_recur(grand_child,val_pos_pair))
+        return true;
+    return false;
+  }
+
+
+  // Extracts the subgroup from <generated_subgroups> containing <val_pos_pair> & puts it into <id_node>
+  // => NOTE: if <generated_subgroups> DOESN'T have <val_pos_pair>, it is assumed to be already in <id_node>
+  void extract_id_children_subgroup(macro_expansion_node& id_node, MACRO_ID_VAL_POS_PAIR& val_pos_pair,
+                                                          MACRO_EXPANSION_TREES_t& generated_subgroups)noexcept{
+    for(size_type i = 0, n = generated_subgroups.size(); i < n; ++i)
+      if(extract_id_children_subgroup_recur(generated_subgroups[i],val_pos_pair)) {
+        id_node.children.push_back(generated_subgroups[i]);
+        generated_subgroups.erase(generated_subgroups.begin()+i);
+        return; // found the subgroup, no more search needed!
+      }
+  }
+
+
+  // Constructs <MACRO_EXPANSION_TREES> based on <ID_TO_VAL_MAP> & <VA_POS_MATRIX>
+  // (transformation yields an easier means to expand nested variadic expressions by)
+  void derive_and_construct_macro_expansion_tree(MACRO_ID_TABLE& ID_TO_VAL_MAP, VARARG_POSITIONS& VA_POS_MATRIX, 
+                                                        MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES)noexcept{
+    // For each identifier instance
+    for(auto& macId_instance : ID_TO_VAL_MAP) {
+      // Create the macro identifier expansion tree's root
+      macro_expansion_node macId_node(macId_name(macId_instance));
+      auto& val_pos_map = macId_val_pos_map(macId_instance);
+
+      // For each ... instance
+      for(auto& va_posv : VA_POS_MATRIX) {
+        auto sought_id_posv_prefix = va_posv;
+        --(*sought_id_posv_prefix.rbegin()); // 1st identifier associated w/ ... appears 1 idx prior ...
+        
+        // If identifier does match against ... instance
+        if(id_posv_begins_with_prefix(val_pos_map[0].second,sought_id_posv_prefix)) {
+          macId_node.is_variadic = true;
+          sought_id_posv_prefix.pop_back(); // rm last idx to match against (no longer relevant to match)
+
+          // Mk a subgroup node for the variadic expansion
+          macro_expansion_node subgroup_node(macId_node.id_name,true);
+
+          // If !macId_node.is_leaf(), keep a buffer of the current children subgroups
+          //   from which to derive a higher level of subgroups (from nested ...)
+          MACRO_EXPANSION_TREES_t generated_subgroups;
+
+          // Fcn to build up the tree, based on whether currently aggregating leaves or combining subgroups
+          void(*build_macro_expansion_tree)(macro_expansion_node&,MACRO_ID_VAL_POS_PAIR&,MACRO_EXPANSION_TREES_t&)noexcept = nullptr;
+          // Add the leaf values as needed
+          if(macId_node.is_leaf()) {
+            accumulate_id_leaf_values_and_positions(subgroup_node,val_pos_map[0],generated_subgroups);
+            build_macro_expansion_tree = accumulate_id_leaf_values_and_positions;
+          // Get the current subgroup set as needed
+          } else {
+            generated_subgroups = std::move(macId_node.children);
+            macId_node.children.clear();
+            build_macro_expansion_tree = extract_id_children_subgroup;
+          }
+
+          // For each value instance of the identifier 
+          for(size_type i = 1, n = val_pos_map.size(); i < n; ++i) {
+            // if value posv matches the current ... subgroup instance
+            if(id_posv_begins_with_prefix(val_pos_map[i].second,sought_id_posv_prefix)) {
+              build_macro_expansion_tree(subgroup_node,val_pos_map[i],generated_subgroups);
+            // if value posv matches a new ... subgroup instance
+            } else {
+              // AT A NEW SUBGROUP!
+              get_new_VA_POSV_prefix(sought_id_posv_prefix,val_pos_map[i].second);
+              // Add the current subgroup as a child, & reset the current subgroup node
+              macId_node.children.push_back(subgroup_node);
+              subgroup_node = macro_expansion_node(macId_node.id_name,true);
+              build_macro_expansion_tree(subgroup_node,val_pos_map[i],generated_subgroups);
+            }
+          } // End of for
+
+          // Add the current subgroup as a child
+          macId_node.children.push_back(subgroup_node);
+
+        } // End of if
+      } // End of for
+      if(!macId_node.is_variadic) {
+        // Save the leaf non-variadic value (in this instance, root = leaf)
+        macId_node.values = val_pos_map[0].first;
+        macId_node.positions.push_back(val_pos_map[0].second);
+      }
+
+      // Register the generated macro id expansion tree
+      if(macId_node.is_variadic && macId_node.children.size() == 1) 
+        MACRO_EXPANSION_TREES.push_back(std::move(macId_node.children[0]));
+      else
+        MACRO_EXPANSION_TREES.push_back(std::move(macId_node));
+    } // End of for
+  }
+
+
+  void expand_macro(const scm_list& args, const sym_type& name, scm_list& expanded_exp, 
+                                                    MACRO_ID_VAR_TABLE& MID_VARG_PAIR){
+    MACRO_EXPANSION_TREES_t MACRO_EXPANSION_TREES;
+    clean_MID_VARG_PAIR_for_macro_expansion_analysis(MID_VARG_PAIR);
+    derive_and_construct_macro_expansion_tree(MID_VARG_PAIR.first,MID_VARG_PAIR.second,MACRO_EXPANSION_TREES);
+    expand_non_variadic_macro_symbols(args,name,expanded_exp,MACRO_EXPANSION_TREES);
+    expand_macro_variadic_identifiers(args,name,expanded_exp,MACRO_EXPANSION_TREES);
+    hash_macro_expansion_identifier("",true); // reset hash idxs
   }
 
   /******************************************************************************
@@ -3000,13 +3395,13 @@ namespace heist {
   bool handle_macro_transformation(const sym_type& label,const scm_list& args, 
                                    const frame_macs& macs,scm_list& expanded_exp){
     //  Map of pattern identifier & expansion value pairs
-    MACRO_ID_TABLE ID_TO_VAL_MAP;
+    MACRO_ID_VAR_TABLE MID_VARG_PAIR;
     // search for macro matches
     for(const auto& mac : macs) {
       size_type match_idx = 0; // idx of the pattern & template w/in 'mac' that the label & args match
-      if(label == mac.label && is_macro_match(args, mac, match_idx, ID_TO_VAL_MAP)) {
-        expanded_exp = mac.templates[match_idx];    // prefilled, then has contents expanded into it
-        expand_macro(args, mac.label, expanded_exp, ID_TO_VAL_MAP);
+      if(label == mac.label && is_macro_match(args, mac, match_idx, MID_VARG_PAIR)) {
+        expanded_exp = mac.templates[match_idx]; // prefilled, then has contents expanded into it
+        expand_macro(args, mac.label, expanded_exp, MID_VARG_PAIR);
         expanded_exp = scm_list_cast(expanded_exp); // if only 1 sub-expression, degrade to the sub-expression
         return true;
       }
@@ -3656,7 +4051,7 @@ namespace heist {
     for(size_type i = 0, n = exp.size(); i < n; ++i)
       err_str += (("\n         " + std::to_string(i+1) + ". " + 
                     exp[i].write() + " of type \"") + exp[i].type_name()) + '"';
-    THROW_ERR(err_str << "\n         => If you believe this is a bug, please send your code "
+    THROW_ERR(err_str << "\n         => If you believe this is a bug, please send your code"
                          "\n            to jrandleman@scu.edu to fix the interpreter's bug!");
   }
 
