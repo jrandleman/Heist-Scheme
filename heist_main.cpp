@@ -3327,6 +3327,7 @@ namespace heist {
           } else {
             generated_subgroups = std::move(macId_node.children);
             macId_node.children.clear();
+            extract_id_children_subgroup(subgroup_node,val_pos_map[0],generated_subgroups);
             build_macro_expansion_tree = extract_id_children_subgroup;
           }
 
