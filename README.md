@@ -592,7 +592,7 @@ Other primitives of this nature include:<br>
 (let <procedure-name> ((<name> <value>) ...)
   <body> ...)
 ;; Becomes =>
-(begin 
+(let () 
   (define <procedure-name>
     (lambda (<name> ...) <body> ...))
   (<procedure-name> <value> ...))

@@ -1253,8 +1253,15 @@ namespace heist {
       // bind lambda to name & immediately invoke
       scm_list let_exp(2); 
       let_exp[0] = std::move(lambda_defn), let_exp[1] = std::move(self_invocation);
-      if(!cps_block) return convert_sequence_exp(let_exp);
-      return generate_fundamental_form_cps(convert_sequence_exp(let_exp));
+      // wrap the defined fcn in a self-invoking lambda to bind it to a local env
+      scm_list outer_lambda(2);
+      outer_lambda[0] = scm_list(2+let_exp.size());
+      outer_lambda[1] = symconst::sentinel_arg;
+      outer_lambda[0].exp[0] = symconst::lambda;
+      outer_lambda[0].exp[1] = scm_list(1,symconst::sentinel_arg);
+      std::move(let_exp.begin(),let_exp.end(),outer_lambda[0].exp.begin()+2);
+      if(!cps_block) return outer_lambda;
+      return generate_fundamental_form_cps(outer_lambda);
     } else {
       scm_list nameless_self_invoke(exprs.size()+1);
       nameless_self_invoke[0] = std::move(let_lambda_object);
