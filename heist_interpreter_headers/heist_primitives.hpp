@@ -1133,6 +1133,9 @@ namespace heist {
     if(args.size() != 1)
       THROW_ERR("'typeof recieved incorrect # of args!\n     (typeof <obj>)" 
         << FCN_ERR("typeof", args));
+    if(data_is_stream_pair(args[0]))           return "#<stream>";
+    if(primitive_data_is_a_procedure(args[0])) return "#<procedure>";
+    if(data_is_a_delay(args[0]))               return "#<delay>";
     return args[0].type_name();
   }
 
