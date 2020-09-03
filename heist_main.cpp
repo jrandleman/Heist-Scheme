@@ -104,7 +104,8 @@
  *         * quasiquote       ; SELECTIVELY eval AND SYMBOLIZE CODE
  *         * unquote          ; eval quasiquote CODE
  *         * unquote-splicing ; eval AND SPLICE IN quasiquote CODE'S RESULT
- *         * define-syntax    ; MACRO DEFINITION
+ *         * define-syntax    ; RUN-TIME MACRO DEFINITION
+ *         * global-syntax    ; ANALYSIS-TIME GLOBAL MACRO DEFINITION
  *         * let-syntax       ; LOCALLY-SCOPED MACRO DEFINITION
  *         * letrec-syntax    ; LOCALLY-SCOPED RECURSIVE MACRO DEFINITION
  *         * syntax-rules     ; SYNTAX OBJECT
@@ -2133,7 +2134,7 @@ namespace heist {
 
   // Heist-specific checker to not prefix C++ derived special forms w/ application tag
   bool is_HEIST_cpp_derived_special_form(const sym_type& app)noexcept{
-    return app == symconst::cps_quote || app == symconst::scm_cps    ||
+    return app == symconst::cps_quote || app == symconst::scm_cps    || app == symconst::glob_syn     ||
            app == symconst::and_t     || app == symconst::or_t       || app == symconst::scons        ||
            app == symconst::stream    || app == symconst::delay      || app == symconst::cond         ||
            app == symconst::case_t    || app == symconst::let        || app == symconst::let_star     ||
@@ -3391,9 +3392,10 @@ namespace heist {
   ******************************************************************************/
 
   // Confirm whether 'application_label' is a potential macro label
-  bool application_is_a_potential_macro(const scm_string& application_label)noexcept{
+  bool application_is_a_potential_macro(const scm_string& application_label, 
+                                        const std::vector<scm_string>& label_registry)noexcept{
     if(application_label.empty()) return false;
-    for(const auto& label : G::MACRO_LABEL_REGISTRY)
+    for(const auto& label : label_registry)
       if(label == application_label)
         return true;
     return false;
@@ -3729,6 +3731,33 @@ namespace heist {
   }
 
   /******************************************************************************
+  * ANALYSIS-TIME & ALWAYS-GLOBAL-SCOPE MACRO
+  ******************************************************************************/
+
+  bool is_global_syntax(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::glob_syn);}
+
+  exe_type analyze_global_syntax(scm_list& exp,const bool cps_block=false) {
+    static constexpr const char * const format = 
+      "\n     (global-syntax <name> (<keyword> ...) (<pattern> <template>) ...)";
+    if(exp.size() < 4)
+      THROW_ERR("'defsytax didn't recieve enough args!\n     In expression: " << exp << format);
+    if(!exp[1].is_type(types::sym))
+      THROW_ERR("'defsytax didn't recieve enough args!\n     In expression: " << exp << format);
+    // Register the global-syntax label
+    G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY.push_back(exp[1].sym);
+    // Transform global-syntax->define-syntax, evaling via global env, then registering the analysis-time label
+    scm_list define_syntax_transform(3);
+    define_syntax_transform[0] = symconst::defn_syn;
+    define_syntax_transform[1] = exp[1];
+    define_syntax_transform[2] = scm_list();
+    define_syntax_transform[2].exp.push_back(symconst::syn_rules);
+    define_syntax_transform[2].exp.insert(define_syntax_transform[2].exp.end(),exp.begin()+2,exp.end());
+    // Eval the syntax defn AT ANALYSIS TIME in the global env
+    analyze_define_syntax(define_syntax_transform,cps_block)(G::GLOBAL_ENVIRONMENT_POINTER);
+    return [](env_type&){return G::VOID_DATA_EXPRESSION;};
+  }
+
+  /******************************************************************************
   * TRACING PROCEDURE CALLS
   ******************************************************************************/
 
@@ -3980,6 +4009,10 @@ namespace heist {
     }
     // Save name of invoking entity (iff a symbol) to check for a possible macro
     sym_type op_name = exp[0].is_type(types::sym) ? exp[0].sym : "";
+    // If possible analysis-time macro, expand and return analysis of the expansion
+    if(application_is_a_potential_macro(op_name,G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY))
+      if(scm_list expanded; expand_macro_if_in_env(op_name, arg_exps, G::GLOBAL_ENVIRONMENT_POINTER, expanded))
+        return scm_analyze(generate_fundamental_form_cps(expanded),tail_call,true);
     // If possible macro, expand the application if so, else analyze args at eval
     return [arg_exps=std::move(arg_exps),op_name=std::move(op_name),exp=std::move(exp),
             tail_call=std::move(tail_call)](env_type& env)mutable{
@@ -4026,8 +4059,12 @@ namespace heist {
     auto arg_exps = operands(exp);
     // Save name of invoking entity (iff a symbol) to check for a possible macro
     sym_type op_name = exp[0].is_type(types::sym) ? exp[0].sym : "";
+    // If possible analysis-time macro, expand and return analysis of the expansion
+    if(application_is_a_potential_macro(op_name,G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY))
+      if(scm_list expanded; expand_macro_if_in_env(op_name, arg_exps, G::GLOBAL_ENVIRONMENT_POINTER, expanded))
+        return scm_analyze(std::move(expanded),false,cps_block);
     // If _NOT_ a possible macro, analyze the applicator's args ahead of time
-    if(!application_is_a_potential_macro(op_name)) {
+    if(!application_is_a_potential_macro(op_name,G::MACRO_LABEL_REGISTRY)) {
       std::vector<exe_type> arg_procs(arg_exps.size());
       for(size_type i = 0, n = arg_exps.size(); i < n; ++i)
         arg_procs[i] = scm_analyze(scm_list_cast(arg_exps[i]),false,cps_block);
@@ -4052,7 +4089,7 @@ namespace heist {
       return execute_application(op_proc(env),arg_vals,env,tail_call);
     };
   }
-
+  
 
   // -- ANALYZE (SYNTAX)
   void throw_unknown_analysis_anomalous_error(const scm_list& exp) {
@@ -4090,6 +4127,7 @@ namespace heist {
     else if(is_letrec(exp))          return scm_analyze(convert_letrec_let(exp,cps_block),tail_call,cps_block);
     else if(is_do(exp))              return scm_analyze(convert_do_letrec(exp),tail_call,cps_block);
     else if(is_quasiquote(exp))      return analyze_quasiquote(exp,cps_block);
+    else if(is_global_syntax(exp))   return analyze_global_syntax(exp,cps_block);
     else if(is_define_syntax(exp))   return analyze_define_syntax(exp,cps_block);
     else if(is_let_syntax(exp))      return analyze_let_syntax(exp,tail_call,cps_block);
     else if(is_letrec_syntax(exp))   return analyze_letrec_syntax(exp,tail_call,cps_block);

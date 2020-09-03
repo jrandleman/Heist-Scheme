@@ -113,6 +113,12 @@ namespace heist {
     size_type CPS_HASH_IDX_1 = 0, CPS_HASH_IDX_2 = 0;
 
     /******************************************************************************
+    * THE GLOBAL REGISTRY OF ANALYSIS-TIME GLOBAL MACRO LABELS
+    ******************************************************************************/
+
+    std::vector<scm_string> ANALYSIS_TIME_MACRO_LABEL_REGISTRY;
+
+    /******************************************************************************
     * MAX VALUE FOR SIZE_TYPE
     ******************************************************************************/
 
@@ -155,6 +161,7 @@ namespace heist {
     constexpr const char * const let_star          = "let*";
     constexpr const char * const letrec            = "letrec";
     constexpr const char * const set               = "set!";
+    constexpr const char * const glob_syn          = "global-syntax";
     constexpr const char * const defn_syn          = "define-syntax";
     constexpr const char * const let_syn           = "let-syntax";
     constexpr const char * const letrec_syn        = "letrec-syntax";

@@ -4723,24 +4723,23 @@ namespace heist {
   ;   => 'lambda alternative that will curry its arguments
   ;      => IE (define K (curry (a b) a)) => (define K (lambda (a) (lambda (b) a)))
   ;            ((K 1) 2) = (K 1 2) ;; BOTH OF THESE MEANS OF APPLICATION WORK IDENTICALLY!
-  (define-syntax curry 
-    (syntax-rules ()
-      ((_ () body ...)
-        (lambda () body ...))
-      ((_ (arg) body ...) 
-        (lambda (x . xs)
-          (fold (lambda (f a) (f a)) 
-                (lambda (a) a)
-                (cons (lambda (arg) body ...)
-                      (cons x xs)))))
-      ((_ (arg rest-args ...) body ...)
-        (lambda (x . xs)
-          (define curried-lambdas
-            (lambda (arg) (curry (rest-args ...) body ...)))
-          (fold (lambda (f a) (f a)) 
-                (lambda (a) a)
-                (cons curried-lambdas
-                      (cons x xs)))))))
+  (global-syntax curry ()
+    ((_ () body ...)
+      (lambda () body ...))
+    ((_ (arg) body ...) 
+      (lambda (x . xs)
+        (fold (lambda (f a) (f a)) 
+              (lambda (a) a)
+              (cons (lambda (arg) body ...)
+                    (cons x xs)))))
+    ((_ (arg rest-args ...) body ...)
+      (lambda (x . xs)
+        (define curried-lambdas
+          (lambda (arg) (curry (rest-args ...) body ...)))
+        (fold (lambda (f a) (f a)) 
+              (lambda (a) a)
+              (cons curried-lambdas
+                    (cons x xs))))))
 
   ; IDENTITY PRIMITIVE PROCEDURE
   (define (id a) a)
@@ -4834,29 +4833,28 @@ namespace heist {
   ;;                      (printf "Hello " your-name 
   ;;                              ", my name is " (student-name this) " and my id is "
   ;;                              (student-id this) ", great to meet you!\n"))
-  (define-syntax defstruct
-    (syntax-rules ()
-      ((_ name field ...)
-        (eval (list 'define (cons (symbol-append 'make- 'name) '(field ...))
-                  '(vector 'name field ...)) 'local-environment)
-        (eval (list 'define (list (symbol-append 'name '- 'field) 'obj)
-                  '(define res (assq 'field (map cons '(field ...) (iota (length '#(field ...)) 1))))
-                  '(if res
-                       (ref obj (cdr res))
-                       #f)) 'local-environment) ...
-        (eval (list 'define (list (symbol-append 'set- 'name '- 'field '!) 'obj 'new-val)
-                  '(define res (assq 'field (map cons '(field ...) (iota (length '#(field ...)) 1))))
-                  '(if res
-                       (set-index! obj (cdr res) new-val)
-                       #f)) 'local-environment) ...
-        (eval (list 'define (list (symbol-append 'name '?) 'obj)
-                  '(and (vector? obj)
-                        (= (length obj) (+ 1 (length '#(field ...))))
-                        (eq? (head obj) 'name))) 'local-environment)
-        (eval (list 'define (list (symbol-append 'name '>slots)) 
-                  ''(field ...)) 'local-environment)
-        (eval (list 'define-syntax (symbol-append 'defmethod- 'name)
-                  '(eval (__HEIST-ctor-defmethod-syntax-rules 'name))) 'local-environment))))
+  (global-syntax defstruct ()
+    ((_ name field ...)
+      (eval (list 'define (cons (symbol-append 'make- 'name) '(field ...))
+                '(vector 'name field ...)) 'local-environment)
+      (eval (list 'define (list (symbol-append 'name '- 'field) 'obj)
+                '(define res (assq 'field (map cons '(field ...) (iota (length '#(field ...)) 1))))
+                '(if res
+                     (ref obj (cdr res))
+                     #f)) 'local-environment) ...
+      (eval (list 'define (list (symbol-append 'set- 'name '- 'field '!) 'obj 'new-val)
+                '(define res (assq 'field (map cons '(field ...) (iota (length '#(field ...)) 1))))
+                '(if res
+                     (set-index! obj (cdr res) new-val)
+                     #f)) 'local-environment) ...
+      (eval (list 'define (list (symbol-append 'name '?) 'obj)
+                '(and (vector? obj)
+                      (= (length obj) (+ 1 (length '#(field ...))))
+                      (eq? (head obj) 'name))) 'local-environment)
+      (eval (list 'define (list (symbol-append 'name '>slots)) 
+                ''(field ...)) 'local-environment)
+      (eval (list 'define-syntax (symbol-append 'defmethod- 'name)
+                '(eval (__HEIST-ctor-defmethod-syntax-rules 'name))) 'local-environment)))
   )";
 
   /******************************************************************************
@@ -4897,15 +4895,14 @@ namespace heist {
   ;; Ex1: (tlambda ((string? s) any-arg (number? n)) <body>) ; predicated & arbitrary args
   ;; Ex2: (tlambda "optional-description" ((string? s) any-arg) <body>) ; optional descriptor
   ;; Ex3: (tlambda ((string? s) . ((lambda (ns) (every even? ns)) numbers)) <body>) ; predicated variadic 
-  (define-syntax tlambda
-    (syntax-rules ()
-      ((_ () b ...) (lambda () b ...)) ; 0 args
-      ((_ (a ...) b ...)               ; N args
-        (eval (__heist-tlambda->lambda (cons 'lambda (cons (list 'a ...) '(b ...))))
-              'local-environment))
-      ((_ err-message (a ...) b ...)  ; optional-descriptor & N args
-        (eval (__heist-tlambda->lambda (cons 'lambda (cons (list 'a ...) '(b ...))) err-message)
-              'local-environment))))
+  (global-syntax tlambda ()
+    ((_ () b ...) (lambda () b ...)) ; 0 args
+    ((_ (a ...) b ...)               ; N args
+      (eval (__heist-tlambda->lambda (cons 'lambda (cons (list 'a ...) '(b ...))))
+            'local-environment))
+    ((_ err-message (a ...) b ...)  ; optional-descriptor & N args
+      (eval (__heist-tlambda->lambda (cons 'lambda (cons (list 'a ...) '(b ...))) err-message)
+            'local-environment)))
   )";
 
   /******************************************************************************
@@ -5345,7 +5342,6 @@ namespace heist {
     std::make_pair(primitive_VECTOR_TO_STRING,        "vector->string"),
     std::make_pair(primitive_STRING_TO_LIST,          "string->list"),
     std::make_pair(primitive_LIST_TO_STRING,          "list->string"),
-
 
     std::make_pair(primitive_PPRINT,     "pprint"),
     std::make_pair(primitive_PPRINT,     "pretty-print"),

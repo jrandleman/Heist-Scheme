@@ -4,6 +4,7 @@
 ## Souped-Up Scheme Interpreter Written in C++!
 ### Written in as much C++ and as little Scheme as possible for runtime speed!
 
+
 ------------------------
 # Using Heist Scheme:
 0. Compiling the Interpreter: `$ clang++ -std=c++17 -O3 -o heist_main heist_main.cpp`
@@ -64,6 +65,7 @@
    - [Vector-Literal](#Vector-Literal)
    - [Define-Syntax, Let-Syntax, Letrec-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax)
    - [Syntax-Rules](#Syntax-Rules)
+   - [Global-Syntax](#Global-Syntax)
    - [Cps-Quote](#Cps-Quote)
    - [Scm->Cps](#Scm-Cps)
    - [Defstruct](#Defstruct)
@@ -757,8 +759,9 @@ Other primitives of this nature include:<br>
 ------------------------
 ## Define-Syntax, Let-Syntax, Letrec-Syntax:
 
-#### Use: ___Create a Macro (Bind a Label to a Syntax Object)!___
+#### Use: ___Create a Run-Time Macro (Bind a Label to a Syntax Object)!___
 * _Note: create a `<syntax-object>` via the [`syntax-rules`](#syntax-rules) special form below!_
+* _Note: Run-Time macros are expanded **at run-time**, ie each time they're invoked!_
 
 #### Forms:
 0. `(define-syntax <label> <syntax-object>)`
@@ -816,6 +819,25 @@ Other primitives of this nature include:<br>
     ((a b) (c d)) ... ; Constructs 1+ pairs of pairs of variadic matches <a>, <b>, <c>, & <d>
     ((a ...) ...)     ; Constructs 1+ expressions of 1+ variadic matches <a>
     ```
+
+------------------------
+## Global-Syntax:
+
+#### Use: ___Construct an Analysis-Time Macro in the GLOBAL Scope!___
+
+#### Form: 
+* `(global-syntax-rules <label> (<key> ...) <syntax-clause1> <syntax-clause2> ...))`
+  - `<syntax-clause>` = `(<pattern> <template>)`
+    - `<pattern>` = `(<any-symbol> <expression-to-match-against>)`
+    - `<template>` = `<expression-to-expand-into>`
+  - _Note: Form is as if [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax) and [`syntax-rules`](#syntax-rules) were merged!_
+
+#### Analysis-Time Advantanges:
+  * Interpreter's [`eval`](#evalapply--symbol-append) seperates expression analysis (declaration) & execution (invocation):
+    - [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax) macros, bound to an environment, dynamically expand at **run-time**
+      * _Hence **run-time** macros in a [`lambda`](#lambda) body are re-expanded **upon every invocation!**_
+    - [`global-syntax`](#global-syntax) macros, only bound to the **global environment**, expand at **analysis-time**
+      * _Hence **analysis-time** macros in a [`lambda`](#lambda) body expand **in the [`lambda`](#lambda) declaration only once!**_
 
 
 ------------------------

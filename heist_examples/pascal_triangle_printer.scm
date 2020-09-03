@@ -19,7 +19,7 @@
     (if (null? pascal-list)
       (newline)
       (let ()
-           (display (car pascal-list))
+           (pprint (car pascal-list))
            (newline)
            (print-triangle (cdr pascal-list)))))
   (print-triangle (pascal-triangle-list total-layers)))
