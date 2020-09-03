@@ -23,21 +23,13 @@
  */
 
 /******************************************************************************
-* ABSOLUTE FILE PATH TO HEIST INTERPRETERS DIRECTORY: FOR THE compile PRIMITIVE
-* => HINT: JUST USE WHAT "$ pwd" (OR "$ cd" ON WINDOWS) PRINTS!
+* ABSOLUTE FILE PATH TO HEIST INTERPRETERS DIRECTORY
 ******************************************************************************/
 
-// #define HEIST_DIRECTORY_FILE_PATH "/Users/jordanrandleman/Desktop/Heist-Scheme"
-
-/******************************************************************************
-* WARN USER IF COMPILING W/O AN ABSOLUTE FILE PATH
-******************************************************************************/
-
-#ifndef HEIST_DIRECTORY_FILE_PATH
-  #warning NO FILE PATH IN "HEIST_DIRECTORY_FILE_PATH" MACRO OF "heist_main.cpp" DEFINED!
-  #warning PRIMITIVE compile IS DISABLED (ENABLE BY PROVIDING "HEIST_DIRECTORY_FILE_PATH")!
+#if __has_include("HEIST_FILEPATH.hpp")
+  #include "HEIST_FILEPATH.hpp"
 #else
-  #include <filesystem> // only used by "compile" primitive
+  #error "INSTALLER.cpp" MUST BE COMPILED (USING "-std=c++17") AND RUN PRIOR THE INTERPRETER!
 #endif
 
 /******************************************************************************
@@ -4089,7 +4081,7 @@ namespace heist {
       return execute_application(op_proc(env),arg_vals,env,tail_call);
     };
   }
-  
+
 
   // -- ANALYZE (SYNTAX)
   void throw_unknown_analysis_anomalous_error(const scm_list& exp) {
@@ -4323,9 +4315,7 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
   
   constexpr const char * const cmd_line_options = 
     "\n> Interpret Script:    -script <script-filename>"
-    #ifdef HEIST_DIRECTORY_FILE_PATH // @GIVEN-COMPILE-PATH
     "\n> Compile Script:      -compile <script-filename> <optional-compiled-filename>"
-    #endif
     "\n> With CPS Evaluation: -cps"
     "\n> Disable ANSI Colors: -nansi"
     "\n> Case Insensitivity:  -ci"
@@ -4351,9 +4341,7 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
         return false;
       }
       script_pos = ++i;
-    } 
-    #ifdef HEIST_DIRECTORY_FILE_PATH // @GIVEN-COMPILE-PATH
-    else if(cmd_flag == "-compile") {
+    } else if(cmd_flag == "-compile") {
       if(i == argc-1) {
         fprintf(stderr,"\n> \"-compile\" wasn't followed by a file!%s",cmd_line_options);
         return false;
@@ -4362,9 +4350,7 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
       if(std::string next_cmd(argv[i]); i < argc-1 && next_cmd != "-nansi" && 
          next_cmd != "-script" && next_cmd != "-compile" && next_cmd != "-ci")
         compile_as = argv[++i];
-    } 
-    #endif
-    else {
+    } else {
       fprintf(stderr,"\n> Invalid command-line flag \"%s\"!%s",argv[i],cmd_line_options);
       return false;
     }
@@ -4418,7 +4404,6 @@ int load_script(char* argv[], const int& script_pos){
 * COMPILE SCRIPT HELPER FUNCTION
 ******************************************************************************/
 
-#ifdef HEIST_DIRECTORY_FILE_PATH // @GIVEN-COMPILE-PATH
 int compile_script(char* argv[], const int& compile_pos, std::string& compile_as){
   // Compile the script & immediately exit
   heist::scm_list compile_args(2);
@@ -4449,7 +4434,6 @@ int compile_script(char* argv[], const int& compile_pos, std::string& compile_as
   heist::close_port_registry();
   return 0;
 }
-#endif
 
 /******************************************************************************
 * MAIN INTERPRETER EXECUTION
@@ -4467,10 +4451,8 @@ int main(int argc, char* argv[]) {
   if(script_pos != -1) 
     return load_script(argv, script_pos);
   // Compile a Script (as needed)
-  #ifdef HEIST_DIRECTORY_FILE_PATH // @GIVEN-COMPILE-PATH
   if(compile_pos != -1) 
     return compile_script(argv, compile_pos, compile_as);
-  #endif
   // Run the REPL
   puts("Heist Scheme Version 5.0\nEnter '(exit)' to Terminate REPL");
   driver_loop();

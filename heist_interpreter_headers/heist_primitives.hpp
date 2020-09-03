@@ -4335,7 +4335,6 @@ namespace heist {
   }
 
   // Compiles a given filename's file's Heist-Scheme code into a C++ File
-  #ifdef HEIST_DIRECTORY_FILE_PATH // @GIVEN-COMPILE-PATH
   data primitive_COMPILE(scm_list& args){
     return primitive_COMPILE_TEMPLATE(args,"compile",
       "\n     (compile <filename-string> <optional-compiled-filename>)",false);
@@ -4346,7 +4345,6 @@ namespace heist {
     return primitive_COMPILE_TEMPLATE(args,"cps-compile",
       "\n     (cps-compile <filename-string> <optional-compiled-filename>)",true);
   }
-  #endif
 
   // Make a system call, returns #f if can't use 'system, 
   //   and the call's success status if can use the system
@@ -4393,9 +4391,7 @@ namespace heist {
       THROW_ERR("'command-line doesn't take any arguments:"
         "\n     (command-line)" << FCN_ERR("command-line",args));
     return make_str("> Interpret Script:    -script <script-filename>"
-                  #ifdef HEIST_DIRECTORY_FILE_PATH // @GIVEN-COMPILE-PATH
                   "\n> Compile Script:      -compile <script-filename> <optional-compiled-filename>"
-                  #endif
                   "\n> With CPS Evaluation: -cps"
                   "\n> Disable ANSI Colors: -nansi"
                   "\n> Case Insensitivity:  -ci");
@@ -5379,10 +5375,8 @@ namespace heist {
     std::make_pair(primitive_SYSTEM,       "system"),
     std::make_pair(primitive_GETENV,       "getenv"),
     std::make_pair(primitive_COMMAND_LINE, "command-line"),
-    #ifdef HEIST_DIRECTORY_FILE_PATH // @GIVEN-COMPILE-PATH
     std::make_pair(primitive_COMPILE,      "compile"),
     std::make_pair(primitive_CPS_COMPILE,  "cps-compile"),
-    #endif
 
     std::make_pair(primitive_SECONDS_SINCE_EPOCH, "seconds-since-epoch"),
 

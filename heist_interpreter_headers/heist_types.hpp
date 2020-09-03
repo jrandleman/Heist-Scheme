@@ -5,6 +5,7 @@
 #define HEIST_TYPES_HPP_
 
 #include <algorithm>
+#include <filesystem>
 #include <functional>
 #include <tuple>
 #include <vector>

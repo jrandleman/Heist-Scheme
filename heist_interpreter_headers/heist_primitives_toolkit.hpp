@@ -3699,7 +3699,6 @@ namespace heist {
   // Compiler Helpers:
   // -----------------
 
-  #ifdef HEIST_DIRECTORY_FILE_PATH // @GIVEN-COMPILE-PATH
   // Recursively generate assignments to vectors as a precomputed AST
   //   => NOTE: The reader's generated AST _ONLY_ contains 1 of 5 types:
   //            types::exp, types::str, types::sym, types::chr, & types::num
@@ -3821,7 +3820,6 @@ namespace heist {
     }
     return primitive_compile_dispatch(args,expressions,name);
   }
-  #endif
 
   /******************************************************************************
   * INTERPRETER GLOBAL-SETTING MANIPULATION PRIMITIVE HELPER

@@ -7,6 +7,8 @@
 
 ------------------------
 # Using Heist Scheme:
+=> _See [`INSTALL.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/INSTALL.md) for step-by-step initial installation instructions!_<br>
+
 0. Compiling the Interpreter: `$ clang++ -std=c++17 -O3 -o heist_main heist_main.cpp`
 1. REPL: `$ ./heist_main` (exit REPL via [`(exit)`](#Control-Flow-Procedures) command)
 2. Interpret Script: `$ ./heist_main -script <your-scripts-filename-here>`
