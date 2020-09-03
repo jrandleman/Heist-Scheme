@@ -14,10 +14,9 @@ INSTALLING THE INTERPRETER:
 
 1. COMPILE AND RUN `INSTALL_SCRIPT.cpp` USING THE `-std=c++17` FLAG
    - This generates a file named `HEIST_FILEPATH.hpp`
-   - Any instance of `<HEIST_DIRECTORY_FILE_PATH>` below refers<br>
-     to the string in this file
+   - Any instance of `<HEIST_DIRECTORY_FILE_PATH>` below refers to the string in this file
 
-2. COMPILE THE INTERPRETER: `$ clang++ -std=c++17 -O3 -o heist_main heist_main.cpp`
+2. COMPILE THE INTERPRETER: `$ clang++ -std=c++17 -O3 -o heist_main heist_main.cpp`<br>
    0. FLAG DESCRIPTIONS:
       - `-std=c++17`: [REQUIRED] compile using the C++17 standard
       - `-O3`: [RECOMMENDED FOR FASTEST EXECUTION] maximum optimization
@@ -35,8 +34,9 @@ INSTALLING THE INTERPRETER:
 SETTING UP BETTER COMMAND-LINE INTERFACE -- FOR BASH & ZSH:
 ------------------------------------------------------------
 
-0. BASH: OPEN `~/.bash_aliases` (OR `~/.bashrc`)
-0. ZSH: OPEN `~/.zshrc`
+0. OPEN THE FILE:
+   * FOR BASH: `~/.bash_aliases` (OR `~/.bashrc`)
+   * FOR ZSH: `~/.zshrc`
 
 1. WRITE: `alias heist='<HEIST_DIRECTORY_FILE_PATH>/heist_main'`
 
