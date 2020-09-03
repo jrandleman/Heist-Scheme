@@ -322,7 +322,7 @@ may ___only___ be validly used in the scope of a [`scm->cps`](#scm-cps) block __
 Other primitives of this nature include:<br>
 
 0. [`load`](#system-interface-procedures) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-load`](#system-interface-procedures)
-1. [`eval`](#evalapply--symbol-append) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-eval`](#evalapply--symbol-append)
+1. [`eval`](#evalapply-symbol-append-typeof--id) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-eval`](#evalapply-symbol-append-typeof--id)
 2. [`compile`](#system-interface-procedures) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-compile`](#system-interface-procedures)
 3. Bind `id` as the continuation of a procedure: [`cps->scm`](#scm-cps-procedures)
    * for passing a procedure defined in a [`scm->cps`](#scm-cps) block as an argument<br>
@@ -834,7 +834,7 @@ Other primitives of this nature include:<br>
   - _Note: Form is as if [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax) and [`syntax-rules`](#syntax-rules) were merged!_
 
 #### Analysis-Time Advantanges:
-  * Interpreter's [`eval`](#evalapply--symbol-append) seperates expression analysis (declaration) & execution (invocation):
+  * Interpreter's [`eval`](#evalapply-symbol-append-typeof--id) seperates expression analysis (declaration) & execution (invocation):
     - [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax) macros, bound to an environment, dynamically expand at **run-time**
       * _Hence **run-time** macros in a [`lambda`](#lambda) body are re-expanded **upon every invocation!**_
     - [`global-syntax`](#global-syntax) macros, only bound to the **global environment**, expand at **analysis-time**
@@ -855,7 +855,7 @@ Other primitives of this nature include:<br>
 
 #### Use: ___Convert Code to CPS & Evaluate the Result!___
 * _Hence returns an unary procedure, accepting the "topmost" continuation!_
-* _Enables use of [`call/cc`](#scm-cps-procedures), [`cps-eval`](#evalapply--symbol-append), [`cps-load`](#system-interface-procedures), & [`cps->scm`](#scm-cps-procedures) primitives!_
+* _Enables use of [`call/cc`](#scm-cps-procedures), [`cps-eval`](#evalapply-symbol-append-typeof--id), [`cps-load`](#system-interface-procedures), & [`cps->scm`](#scm-cps-procedures) primitives!_
 * _Automatically wraps entire program (& passed [`id`](#general-3)) if [`-cps`](#Heist-Command-Line-Flags) cmd-line flag used!_
 * _Enables opt-in continuations for their benefits w/o their overhead when unused!_
   - _Optimizes the cps transformation as well for reasonable speed!_
@@ -974,7 +974,7 @@ Other primitives of this nature include:<br>
 
 6. __The Empty Stream:__ `stream-null` (equivalent to `'()`)
 
-7. __Optional Environment Arg Flags for [`Eval`](#evalapply--symbol-append), [`Load`](#system-interface-procedures), [`Cps-Eval`](#evalapply--symbol-append), [`Cps-Load`](#system-interface-procedures):__
+7. __Optional Environment Arg Flags for [`Eval`](#evalapply-symbol-append-typeof--id), [`Load`](#system-interface-procedures), [`Cps-Eval`](#evalapply-symbol-append-typeof--id), [`Cps-Load`](#system-interface-procedures):__
    * Null Environment, all effects are sandboxed: `null-environment`
    * Local Environment, using local bindings: `local-environment`
    * Global Environment, using global bindings: `global-environment`
