@@ -3807,7 +3807,7 @@ namespace heist {
     return is_tagged_list(p,symconst::primitive);
   }
 
-  scm_list apply_primitive_procedure(scm_list& proc,scm_list& args,env_type& env){
+  scm_list apply_primitive_procedure(scm_list& proc,scm_list& args,env_type& env,const bool tail_call){
     // Rm "sentinel-arg" value from args (if present from an argless application)
     if(args.size()==1 && args[0].is_type(types::sym) && args[0].sym == symconst::sentinel_arg)
       args.pop_back();
@@ -3816,6 +3816,7 @@ namespace heist {
     if(tracing_proc) output_call_trace_invocation(proc,args);
     // Provide the environment to primitives applying user-defined procedures
     if(primitive_requires_environment(proc[1].prm)) args.push_back(env);
+    if(proc[1].prm == primitive_APPLY) args.push_back(boolean(tail_call));
     if(!tracing_proc) return scm_list_cast(proc[1].prm(args));
     // Output result's trace as needed
     auto result = scm_list_cast(proc[1].prm(args));
@@ -3846,7 +3847,7 @@ namespace heist {
       output_debug_call_trace(procedure,arguments,tail_call,callceing);
     // execute primitive procedure directly
     if(is_primitive_procedure(procedure))
-      return apply_primitive_procedure(procedure,arguments,env);
+      return apply_primitive_procedure(procedure,arguments,env,tail_call);
     else if(is_compound_procedure(procedure)) {
       // create the procedure body's extended environment frame
       auto extended_env = extend_environment(procedure_parameters(procedure),

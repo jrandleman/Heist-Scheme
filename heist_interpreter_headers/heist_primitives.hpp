@@ -3005,6 +3005,9 @@ namespace heist {
 
   // primitive "apply" procedure:
   data primitive_APPLY(scm_list& args) {
+    // get whether in a tail call
+    bool tail_call = args.rbegin()->bol.val;
+    args.pop_back();
     // extract the environment
     auto env = args.rbegin()->env;
     args.pop_back();
@@ -3022,7 +3025,7 @@ namespace heist {
     scm_list args_list;
     shallow_unpack_list_into_exp(args[1], args_list);
     if(args_list.empty()) args_list.push_back(symconst::sentinel_arg);
-    return data_cast(execute_application(args[0].exp,args_list,env));
+    return data_cast(execute_application(args[0].exp,args_list,env,tail_call));
   }
 
   /******************************************************************************
