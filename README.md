@@ -762,6 +762,7 @@ Other primitives of this nature include:<br>
 #### Use: ___Create a Run-Time Macro (Bind a Label to a Syntax Object)!___
 * _Note: create a `<syntax-object>` via the [`syntax-rules`](#syntax-rules) special form below!_
 * _Note: Run-Time macros are expanded **at run-time**, ie each time they're invoked!_
+  - _See [`global-syntax`](#global-syntax) for an **analysis-time** macro alternative!_
 
 #### Forms:
 0. `(define-syntax <label> <syntax-object>)`
