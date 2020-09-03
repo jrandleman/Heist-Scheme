@@ -37,11 +37,8 @@ SETTING UP BETTER COMMAND-LINE INTERFACE -- FOR BASH & ZSH:
 0. OPEN THE FILE:
    * FOR BASH: `~/.bash_aliases` (OR `~/.bashrc`)
    * FOR ZSH: `~/.zshrc`
-
 1. WRITE: `alias heist='<HEIST_DIRECTORY_FILE_PATH>/heist_main'`
-
 2. SAVE THE FILE, CLOSE THE CURRENT TERMINAL WINDOW, & RELAUNCH THE TERMINAL
-
 3. NOW, WRITING `heist` FROM ANYWHERE IN THE TERMINAL LAUNCHES THE INTERPRETER!
 
 
@@ -50,7 +47,6 @@ SETTING UP A BUILD SYSTEM -- FOR SUBLIME TEXT:
 -----------------------------------------------
 
 0. GOTO `Tools > Build System > New Build System`
-
 1. WRITE:
     ```json
     {
@@ -58,7 +54,5 @@ SETTING UP A BUILD SYSTEM -- FOR SUBLIME TEXT:
       "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
     }
     ```
-
 2. SAVE THE FILE AS `Heist-Scheme.sublime-build`
-
 3. NOW THE HEIST SCHEME INTERPRETER OUGHT TO APPEAR IN `Tools > Build System`
