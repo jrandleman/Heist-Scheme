@@ -826,7 +826,7 @@ Other primitives of this nature include:<br>
 #### Use: ___Construct an Analysis-Time Macro in the GLOBAL Scope!___
 
 #### Form: 
-* `(global-syntax-rules <label> (<key> ...) <syntax-clause1> <syntax-clause2> ...))`
+* `(global-syntax <label> (<key> ...) <syntax-clause1> <syntax-clause2> ...))`
   - `<syntax-clause>` = `(<pattern> <template>)`
     - `<pattern>` = `(<any-symbol> <expression-to-match-against>)`
     - `<template>` = `<expression-to-expand-into>`
