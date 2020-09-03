@@ -10,12 +10,18 @@
 INSTALLING THE INTERPRETER:
 ----------------------------
 
-0. DOWNLOAD THIS REPOSITORY
+### With `python3`, ___AND___ `clang++` OR `g++`:
+0. OPEN THE `/heist_installation/` FOLDER
+1. RUN `$ python3 heist_installer.py`
+   - This generates a file named `HEIST_FILEPATH.hpp` in `/heist_interpreter_headers/`
+     * Any instance of `<HEIST_DIRECTORY_FILE_PATH>` below refers to the string in this file
 
-1. COMPILE AND RUN `INSTALL_SCRIPT.cpp` USING THE `-std=c++17` FLAG
-   - This generates a file named `HEIST_FILEPATH.hpp`
-   - Any instance of `<HEIST_DIRECTORY_FILE_PATH>` below refers to the string in this file
 
+### Otherwise:
+0. OPEN THE `/heist_installation/` FOLDER
+1. COMPILE AND RUN `heist_installer.cpp` USING THE `-std=c++17` FLAG
+   - This generates a file named `HEIST_FILEPATH.hpp` in `/heist_interpreter_headers/`
+     * Any instance of `<HEIST_DIRECTORY_FILE_PATH>` below refers to the string in this file
 2. COMPILE THE INTERPRETER: `$ clang++ -std=c++17 -O3 -o heist_main heist_main.cpp`<br>
    0. FLAG DESCRIPTIONS:
       - `-std=c++17`: [REQUIRED] compile using the C++17 standard

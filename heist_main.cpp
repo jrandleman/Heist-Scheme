@@ -26,10 +26,10 @@
 * ABSOLUTE FILE PATH TO HEIST INTERPRETERS DIRECTORY
 ******************************************************************************/
 
-#if __has_include("HEIST_FILEPATH.hpp")
-  #include "HEIST_FILEPATH.hpp"
+#if __has_include("heist_interpreter_headers/HEIST_FILEPATH.hpp")
+  #include "heist_interpreter_headers/HEIST_FILEPATH.hpp"
 #else
-  #error "INSTALL_SCRIPT.cpp" MUST BE COMPILED (USING "-std=c++17") AND RUN PRIOR THE INTERPRETER!
+  #error "heist_installer.cpp" MUST BE COMPILED (USING "-std=c++17") AND RUN PRIOR THE INTERPRETER!
 #endif
 
 /******************************************************************************

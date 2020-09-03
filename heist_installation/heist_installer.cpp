@@ -1,9 +1,9 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- INSTALL_SCRIPT.cpp
+// Author: Jordan Randleman -- jrandleman@scu.edu -- heist_installer.cpp
 // => Gets the filepath to the current repo & writes such in the generated "HEIST_FILEPATH.hpp" file
 #include <filesystem>
 #include <cstdio>
 int main() {
-  FILE* fp = fopen("HEIST_FILEPATH.hpp", "w");
+  FILE* fp = fopen("../heist_interpreter_headers/HEIST_FILEPATH.hpp", "w");
   fprintf(fp, "/***\n"
               " * ALIAS FOR THE REPL TO PUT IN `~/.bash_aliases` OR `~/.zshrc`:\n"
               " *   alias heist='%s/heist_main'\n"
