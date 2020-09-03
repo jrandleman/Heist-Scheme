@@ -29,7 +29,7 @@
 #if __has_include("HEIST_FILEPATH.hpp")
   #include "HEIST_FILEPATH.hpp"
 #else
-  #error "INSTALLER.cpp" MUST BE COMPILED (USING "-std=c++17") AND RUN PRIOR THE INTERPRETER!
+  #error "INSTALL_SCRIPT.cpp" MUST BE COMPILED (USING "-std=c++17") AND RUN PRIOR THE INTERPRETER!
 #endif
 
 /******************************************************************************

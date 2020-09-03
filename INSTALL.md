@@ -12,7 +12,7 @@ INSTALLING THE INTERPRETER:
 
 0. DOWNLOAD THIS REPOSITORY
 
-1. COMPILE AND RUN `INSTALLER.cpp` USING THE `-std=c++17` FLAG
+1. COMPILE AND RUN `INSTALL_SCRIPT.cpp` USING THE `-std=c++17` FLAG
    - This generates a file named `HEIST_FILEPATH.hpp`
    - Any instance of `<HEIST_DIRECTORY_FILE_PATH>` below refers<br>
      to the string in this file

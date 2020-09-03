@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- INSTALLER.cpp
+// Author: Jordan Randleman -- jrandleman@scu.edu -- INSTALL_SCRIPT.cpp
 // => Gets the filepath to the current repo & writes such in the generated "HEIST_FILEPATH.hpp" file
 #include <filesystem>
 #include <cstdio>
