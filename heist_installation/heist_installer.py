@@ -9,7 +9,7 @@ import os
 ###############################################################################
 
 def getHeistInterpreterAlias(pathToInterpreter):
-  return "alias heist='" + pathToInterpreter + "/heist_main"
+  return "alias heist='" + pathToInterpreter + "/heist_main'"
 
 
 def getSublimeTextBuildSystem(pathToInterpreter):
@@ -62,17 +62,16 @@ def dispatchCompilation(pathToInterpreter):
     return
   print(">>> Successful Compilation!\n>>> Run \"./heist_main\" to start the REPL!\n")
   print(">>> Alias to add to \"~/.zshrc\" or \"~/.bash_aliases\" to launch Heist-Scheme:")
-  print("    alias heist='" + pathToInterpreter + "/heist_main'")
+  print("    " + getHeistInterpreterAlias(pathToInterpreter))
   print(">>> SublimeText Build System JSON:" + getSublimeTextBuildSystem(pathToInterpreter) + "\n")
-  print(">>> Read \"INSTALL.md\" for how to make a shell alias & SublimeText Build for Heist!\n")
 
 ###############################################################################
 # Main Execution
 ###############################################################################
 
 # Write the header file needed and dispatch to automate compilation
-f = open("../heist_interpreter_headers/HEIST_FILEPATH.hpp", "w")
 pathToInterpreter = os.path.dirname(os.getcwd())
+f = open("../heist_interpreter_headers/HEIST_FILEPATH.hpp", "w")
 f.write(makeFilePathHeader(pathToInterpreter))
 f.close()
 dispatchCompilation(pathToInterpreter)
