@@ -1843,7 +1843,7 @@ Other primitives of this nature include:<br>
 0. __Core-Syntax?__: Determine if a symbol was defined by [`core-syntax`](#Core-Syntax)
    * `(core-syntax? <symbol>)`
 
-1. __Runtime-Syntax?__: Determine if a symbol was defined by [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax))
+1. __Runtime-Syntax?__: Determine if a symbol was defined by [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax)
    * `(runtime-syntax? <symbol>)`
 
 2. __Mutate Core Syntax__: `(set-core-syntax! <old-name-symbol> <optional-new-name-symbol>)`
