@@ -37,6 +37,7 @@
    - [Conventions](#Conventions)
    - [Metaprogramming Advantages](#Metaprogramming-Advantages)
    - [Notation](#Notation)
+   - [Namespacing](#Namespacing)
 1. [Heist Command-Line Flags](#Heist-Command-Line-Flags)
 2. [Heist Primitive Data Types](#Heist-Primitive-Data-Types)
 3. [Heist Numerics](#Heist-Numerics)
