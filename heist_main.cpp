@@ -97,7 +97,7 @@
  *         * unquote          ; eval quasiquote CODE
  *         * unquote-splicing ; eval AND SPLICE IN quasiquote CODE'S RESULT
  *         * define-syntax    ; RUN-TIME MACRO DEFINITION
- *         * global-syntax    ; ANALYSIS-TIME GLOBAL MACRO DEFINITION
+ *         * core-syntax      ; ANALYSIS-TIME GLOBAL MACRO DEFINITION
  *         * let-syntax       ; LOCALLY-SCOPED MACRO DEFINITION
  *         * letrec-syntax    ; LOCALLY-SCOPED RECURSIVE MACRO DEFINITION
  *         * syntax-rules     ; SYNTAX OBJECT
@@ -2126,7 +2126,7 @@ namespace heist {
 
   // Heist-specific checker to not prefix C++ derived special forms w/ application tag
   bool is_HEIST_cpp_derived_special_form(const sym_type& app)noexcept{
-    return app == symconst::cps_quote || app == symconst::scm_cps    || app == symconst::glob_syn     ||
+    return app == symconst::cps_quote || app == symconst::scm_cps    || app == symconst::core_syn     ||
            app == symconst::and_t     || app == symconst::or_t       || app == symconst::scons        ||
            app == symconst::stream    || app == symconst::delay      || app == symconst::cond         ||
            app == symconst::case_t    || app == symconst::let        || app == symconst::let_star     ||
@@ -3726,18 +3726,18 @@ namespace heist {
   * ANALYSIS-TIME & ALWAYS-GLOBAL-SCOPE MACRO
   ******************************************************************************/
 
-  bool is_global_syntax(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::glob_syn);}
+  bool is_core_syntax(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::core_syn);}
 
-  exe_type analyze_global_syntax(scm_list& exp,const bool cps_block=false) {
+  exe_type analyze_core_syntax(scm_list& exp,const bool cps_block=false) {
     static constexpr const char * const format = 
-      "\n     (global-syntax <name> (<keyword> ...) (<pattern> <template>) ...)";
+      "\n     (core-syntax <name> (<keyword> ...) (<pattern> <template>) ...)";
     if(exp.size() < 4)
-      THROW_ERR("'defsytax didn't recieve enough args!\n     In expression: " << exp << format);
+      THROW_ERR("'core-syntax didn't recieve enough args!\n     In expression: " << exp << format);
     if(!exp[1].is_type(types::sym))
-      THROW_ERR("'defsytax didn't recieve enough args!\n     In expression: " << exp << format);
-    // Register the global-syntax label
+      THROW_ERR("'core-syntax didn't recieve enough args!\n     In expression: " << exp << format);
+    // Register the core-syntax label
     G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY.push_back(exp[1].sym);
-    // Transform global-syntax->define-syntax, evaling via global env, then registering the analysis-time label
+    // Transform core-syntax->define-syntax, evaling via global env, then registering the analysis-time label
     scm_list define_syntax_transform(3);
     define_syntax_transform[0] = symconst::defn_syn;
     define_syntax_transform[1] = exp[1];
@@ -4119,7 +4119,7 @@ namespace heist {
     else if(is_letrec(exp))          return scm_analyze(convert_letrec_let(exp,cps_block),tail_call,cps_block);
     else if(is_do(exp))              return scm_analyze(convert_do_letrec(exp),tail_call,cps_block);
     else if(is_quasiquote(exp))      return analyze_quasiquote(exp,cps_block);
-    else if(is_global_syntax(exp))   return analyze_global_syntax(exp,cps_block);
+    else if(is_core_syntax(exp))     return analyze_core_syntax(exp,cps_block);
     else if(is_define_syntax(exp))   return analyze_define_syntax(exp,cps_block);
     else if(is_let_syntax(exp))      return analyze_let_syntax(exp,tail_call,cps_block);
     else if(is_letrec_syntax(exp))   return analyze_letrec_syntax(exp,tail_call,cps_block);

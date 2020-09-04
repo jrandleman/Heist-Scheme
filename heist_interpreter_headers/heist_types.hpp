@@ -162,7 +162,7 @@ namespace heist {
     constexpr const char * const let_star          = "let*";
     constexpr const char * const letrec            = "letrec";
     constexpr const char * const set               = "set!";
-    constexpr const char * const glob_syn          = "global-syntax";
+    constexpr const char * const core_syn          = "core-syntax";
     constexpr const char * const defn_syn          = "define-syntax";
     constexpr const char * const let_syn           = "let-syntax";
     constexpr const char * const letrec_syn        = "letrec-syntax";

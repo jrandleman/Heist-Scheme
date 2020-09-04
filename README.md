@@ -67,7 +67,7 @@
    - [Vector-Literal](#Vector-Literal)
    - [Define-Syntax, Let-Syntax, Letrec-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax)
    - [Syntax-Rules](#Syntax-Rules)
-   - [Global-Syntax](#Global-Syntax)
+   - [Core-Syntax](#Core-Syntax)
    - [Cps-Quote](#Cps-Quote)
    - [Scm->Cps](#Scm-Cps)
    - [Defstruct](#Defstruct)
@@ -154,7 +154,11 @@
   - Hence can do things like name a factorial function `!` as if
     it were a primitive!
 
-
+## Namespacing:
+* Lisp 1: variables & procedures share a single namespace
+* [`core-syntax`](#Core-Syntax) ___MUST___ be matched (unlike runtime macros from [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax))
+* Runtime macros & variables are in different namespaces
+  - Hence if a [runtime macro's](#Define-Syntax-Let-Syntax-Letrec-Syntax) pattern doesn't match, it gets treated as an attempted procedure call
 
 
 
@@ -764,7 +768,7 @@ Other primitives of this nature include:<br>
 #### Use: ___Create a Run-Time Macro (Bind a Label to a Syntax Object)!___
 * _Note: create a `<syntax-object>` via the [`syntax-rules`](#syntax-rules) special form below!_
 * _Note: Run-Time macros are expanded **at run-time**, ie each time they're invoked!_
-  - _See [`global-syntax`](#global-syntax) for an **analysis-time** macro alternative!_
+  - _See [`core-syntax`](#core-syntax) for an **analysis-time** macro alternative!_
 
 #### Forms:
 0. `(define-syntax <label> <syntax-object>)`
@@ -824,12 +828,12 @@ Other primitives of this nature include:<br>
     ```
 
 ------------------------
-## Global-Syntax:
+## Core-Syntax:
 
 #### Use: ___Construct an Analysis-Time Macro in the GLOBAL Scope!___
 
 #### Form: 
-* `(global-syntax <label> (<key> ...) <syntax-clause1> <syntax-clause2> ...))`
+* `(core-syntax <label> (<key> ...) <syntax-clause1> <syntax-clause2> ...))`
   - `<syntax-clause>` = `(<pattern> <template>)`
     - `<pattern>` = `(<any-symbol> <expression-to-match-against>)`
     - `<template>` = `<expression-to-expand-into>`
@@ -839,7 +843,7 @@ Other primitives of this nature include:<br>
   * Interpreter's [`eval`](#evalapply-symbol-append--typeof) seperates expression analysis (declaration) & execution (invocation):
     - [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax) macros, bound to an environment, dynamically expand at **run-time**
       * _Hence **run-time** macros in a [`lambda`](#lambda) body are re-expanded **upon every invocation!**_
-    - [`global-syntax`](#global-syntax) macros, only bound to the **global environment**, expand at **analysis-time**
+    - [`core-syntax`](#core-syntax) macros, only bound to the **global environment**, expand at **analysis-time**
       * _Hence **analysis-time** macros in a [`lambda`](#lambda) body expand **in the [`lambda`](#lambda) declaration only once!**_
 
 

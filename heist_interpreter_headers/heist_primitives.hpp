@@ -4719,7 +4719,7 @@ namespace heist {
   ;   => 'lambda alternative that will curry its arguments
   ;      => IE (define K (curry (a b) a)) => (define K (lambda (a) (lambda (b) a)))
   ;            ((K 1) 2) = (K 1 2) ;; BOTH OF THESE MEANS OF APPLICATION WORK IDENTICALLY!
-  (global-syntax curry ()
+  (core-syntax curry ()
     ((_ () body ...)
       (lambda () body ...))
     ((_ (arg) body ...) 
@@ -4829,7 +4829,7 @@ namespace heist {
   ;;                      (printf "Hello " your-name 
   ;;                              ", my name is " (student-name this) " and my id is "
   ;;                              (student-id this) ", great to meet you!\n"))
-  (global-syntax defstruct ()
+  (core-syntax defstruct ()
     ((_ name field ...)
       (eval (list 'define (cons (symbol-append 'make- 'name) '(field ...))
                 '(vector 'name field ...)) 'local-environment)
@@ -4891,7 +4891,7 @@ namespace heist {
   ;; Ex1: (tlambda ((string? s) any-arg (number? n)) <body>) ; predicated & arbitrary args
   ;; Ex2: (tlambda "optional-description" ((string? s) any-arg) <body>) ; optional descriptor
   ;; Ex3: (tlambda ((string? s) . ((lambda (ns) (every even? ns)) numbers)) <body>) ; predicated variadic 
-  (global-syntax tlambda ()
+  (core-syntax tlambda ()
     ((_ () b ...) (lambda () b ...)) ; 0 args
     ((_ (a ...) b ...)               ; N args
       (eval (__heist-tlambda->lambda (cons 'lambda (cons (list 'a ...) '(b ...))))
