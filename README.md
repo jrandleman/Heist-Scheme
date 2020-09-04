@@ -111,6 +111,7 @@
    - [Control Flow Procedures](#Control-Flow-Procedures)
    - [Gensym](#Gensym)
    - [Scm->Cps Procedures](#Scm-Cps-Procedures)
+   - [Syntax Predicates](#Syntax-Predicates)
 10. [Heist Mathematical Flonum Constants](#Heist-Mathematical-Flonum-Constants)
 11. [Heist Minimalist REPL](#Heist-Minimalist-REPL)
 
@@ -1834,6 +1835,16 @@ Other primitives of this nature include:<br>
     - _Hence programs written in and out of [`scm->cps`](#Scm-Cps) blocks may interop!_
     - _BEWARE: primitives are defined **OUT** of a [`scm->cps`](#Scm-Cps) block!_
       - _Hence wrap `cps->scm` around procs being passed to them as args when in a [`scm->cps`](#Scm-Cps) block!_
+
+
+
+------------------------
+## Syntax Predicates:
+0. __Core-Syntax?__: Determine if a symbol was defined by `core-syntax`
+   * `(core-syntax? <symbol>)`
+
+1. __Runtime-Syntax?__: Determine if a symbol was defined by `define-syntax`
+   * `(runtime-syntax? <symbol>)`
 
 
 
