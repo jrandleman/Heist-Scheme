@@ -111,7 +111,7 @@
    - [Control Flow Procedures](#Control-Flow-Procedures)
    - [Gensym](#Gensym)
    - [Scm->Cps Procedures](#Scm-Cps-Procedures)
-   - [Syntax Predicates](#Syntax-Predicates)
+   - [Syntax Procedures](#Syntax-Procedures)
 10. [Heist Mathematical Flonum Constants](#Heist-Mathematical-Flonum-Constants)
 11. [Heist Minimalist REPL](#Heist-Minimalist-REPL)
 
@@ -1839,12 +1839,22 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
-## Syntax Predicates:
-0. __Core-Syntax?__: Determine if a symbol was defined by `core-syntax`
+## Syntax Procedures:
+0. __Core-Syntax?__: Determine if a symbol was defined by [`core-syntax`](#Core-Syntax)
    * `(core-syntax? <symbol>)`
 
-1. __Runtime-Syntax?__: Determine if a symbol was defined by `define-syntax`
+1. __Runtime-Syntax?__: Determine if a symbol was defined by [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax))
    * `(runtime-syntax? <symbol>)`
+
+2. __Mutate Core Syntax__: `(set-core-syntax! <old-name-symbol> <optional-new-name-symbol>)`
+   * Only old name: ___DELETES___ `<old-name-symbol>` as core-syntax
+   * Both old & new name: ___RENAMES___ syntax's old name to new name
+     - _NOTE: also recursively renames all recursive calls to the macro in its templates!_
+
+3. __Mutate Runtime Syntax__: `(set-runtime-syntax! <old-name-symbol> <optional-new-name-symbol>)`
+   * Only old name: ___DELETES___ `<old-name-symbol>` as runtime-syntax
+   * Both old & new name: ___RENAMES___ syntax's old name to new name
+     - _NOTE: also recursively renames all recursive calls to the macro in its templates!_
 
 
 

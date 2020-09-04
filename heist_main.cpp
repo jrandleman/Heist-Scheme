@@ -3625,6 +3625,24 @@ namespace heist {
   bool is_letrec_syntax(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::letrec_syn);}
 
 
+  void register_symbol_iff_new(std::vector<sym_type>& registry, const sym_type& label) {
+    for(const auto& macro_label : registry)
+      if(macro_label == label)
+        return;
+    registry.push_back(label);
+  }
+
+
+  void confirm_is_not_core_syntax_label(scm_list& exp) {
+    if(std::find(G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY.begin(),
+                 G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY.end(),exp[1].sym) != 
+       G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY.end()) {
+      THROW_ERR("'define-syntax label \""<<exp[1].sym<<"\" is already 'core-syntax!"
+        "\n     (define-syntax <label> <syntax-rules-object>)"<<EXP_ERR(exp));
+    }
+  }
+
+
   void confirm_valid_define_syntax(const scm_list& exp) {
     if(exp.size() != 3)
       THROW_ERR("'define-syntax expects 2 arguments:"
@@ -3688,8 +3706,9 @@ namespace heist {
   }
 
 
-  exe_type analyze_define_syntax(scm_list& exp,const bool cps_block=false) {
+  exe_type analyze_define_syntax(scm_list& exp,const bool cps_block=false,const bool core_syntax=false) {
     if(must_evaluate_2nd_arg_for_syntax_rules_object(exp)) { 
+      if(!core_syntax) confirm_is_not_core_syntax_label(exp);
       auto syntax_rules_obj_proc = scm_analyze(scm_list_cast(exp[2]),false,cps_block);
       return [syntax_rules_obj_proc=std::move(syntax_rules_obj_proc),
         exp=std::move(exp)](env_type& env)mutable{
@@ -3699,13 +3718,14 @@ namespace heist {
             <<" isn't a syntax-rules object:\n     (define-syntax "
               "<label> <syntax-rules-object>)"<<EXP_ERR(exp));
         mac.syn.label = exp[1].sym;     // assign macro label
-        G::MACRO_LABEL_REGISTRY.push_back(exp[1].sym);
+        register_symbol_iff_new(G::MACRO_LABEL_REGISTRY,exp[1].sym);
         define_syntax_extension(mac.syn,env); // establish in environment
         return G::VOID_DATA_EXPRESSION;
       };
     }
+    if(!core_syntax) confirm_is_not_core_syntax_label(exp);
     exp[2].syn.label = exp[1].sym; // assign macro label
-    G::MACRO_LABEL_REGISTRY.push_back(exp[1].sym);
+    register_symbol_iff_new(G::MACRO_LABEL_REGISTRY,exp[1].sym);
     return [mac = std::move(exp[2].syn)](env_type& env){
       define_syntax_extension(mac,env); // establish in environment
       return G::VOID_DATA_EXPRESSION;
@@ -3736,7 +3756,7 @@ namespace heist {
     if(!exp[1].is_type(types::sym))
       THROW_ERR("'core-syntax didn't recieve enough args!\n     In expression: " << exp << format);
     // Register the core-syntax label
-    G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY.push_back(exp[1].sym);
+    register_symbol_iff_new(G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY,exp[1].sym);
     // Transform core-syntax->define-syntax, evaling via global env, then registering the analysis-time label
     scm_list define_syntax_transform(3);
     define_syntax_transform[0] = symconst::defn_syn;
@@ -3745,7 +3765,7 @@ namespace heist {
     define_syntax_transform[2].exp.push_back(symconst::syn_rules);
     define_syntax_transform[2].exp.insert(define_syntax_transform[2].exp.end(),exp.begin()+2,exp.end());
     // Eval the syntax defn AT ANALYSIS TIME in the global env
-    analyze_define_syntax(define_syntax_transform,cps_block)(G::GLOBAL_ENVIRONMENT_POINTER);
+    analyze_define_syntax(define_syntax_transform,cps_block,true)(G::GLOBAL_ENVIRONMENT_POINTER);
     return [](env_type&){return G::VOID_DATA_EXPRESSION;};
   }
 

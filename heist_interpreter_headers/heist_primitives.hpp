@@ -4661,6 +4661,49 @@ namespace heist {
   }
 
   /******************************************************************************
+  * SYNTAX MUTATING PRIMITIVES
+  ******************************************************************************/
+
+  data primitive_SET_CORE_SYNTAX_BANG(scm_list& args) {
+    confirm_proper_set_syntax_args(args,"set-core-syntax!",
+      "\n     (set-core-syntax! <old-name-symbol> <optional-new-name-symbol>)" 
+      "\n     => LEAVING OUT <new-name-symbol> DELETES <old-name-symbol>");
+    // Modify the registry
+    size_type i = 0, n = G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY.size();
+    for(; i < n; ++i)
+      if(G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY[i] == args[0].sym) {
+        if(args.size() == 1) // Rm from registry
+          G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY.erase(G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY.begin()+i);
+        else                 // Change name in registry
+          G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY[i] = args[1].sym;
+        break;
+      }
+    if(i == n) return G::FALSE_DATA_BOOLEAN; // not found
+    // Delete core syntax as needed
+    if(args.size() == 1)
+      return delete_macro_from_env(args[0].sym,G::GLOBAL_ENVIRONMENT_POINTER);
+    // Relabel core syntax as needed
+    return relabel_macro_in_env(args[0].sym,args[1].sym,G::GLOBAL_ENVIRONMENT_POINTER);
+  }
+
+
+  data primitive_SET_RUNTIME_SYNTAX_BANG(scm_list& args) {
+    auto env = args.rbegin()->env;
+    args.pop_back();
+    confirm_proper_set_syntax_args(args,"set-runtime-syntax!",
+      "\n     (set-runtime-syntax! <old-name-symbol> <optional-new-name-symbol>)" 
+      "\n     => LEAVING OUT <new-name-symbol> DELETES <old-name-symbol>");
+    // NOTE: Can't check registry, since same name may be dispersed across environment frames
+    // Delete core syntax as needed
+    if(args.size() == 1)
+      return delete_macro_from_env(args[0].sym,env);
+    // Relabel core syntax as needed
+    auto result = relabel_macro_in_env(args[0].sym,args[1].sym,env);
+    if(result.bol.val) G::MACRO_LABEL_REGISTRY.push_back(args[1].sym); // if found, add to cumulative registry
+    return result;
+  }
+
+  /******************************************************************************
   * MATHEMATICAL CONSTANTS
   ******************************************************************************/
 
@@ -4802,7 +4845,7 @@ namespace heist {
   constexpr const char* const HEIST_DEFSTRUCT_DEFINITION = R"(
   ;; Convert each <member-name> instance from <member-list> in <method-body-list>
   ;;   to be (<struct-name>-<member-name> this) instead
-  (define (__HEIST-ctor-defmethod-body struct-name member-list method-body-list)
+  (define (__heist-ctor-defmethod-body struct-name member-list method-body-list)
     (define member-setters (map (lambda (s) (cons (symbol-append 'set- s '!) s)) member-list))
     (define (member-name? d) (and (symbol? d) (memq d member-list)))
     (define (member-setter? d) (and (symbol? d) (assq d member-setters)))
@@ -4822,14 +4865,14 @@ namespace heist {
 
 
   ;; Return a quoted syntax-rules list for defining a <struct-name> method macro
-  (define (__HEIST-ctor-defmethod-syntax-rules struct-name)
+  (define (__heist-ctor-defmethod-syntax-rules struct-name)
     `(syntax-rules ()
       ((_ (method-name arg ...) body ...) ; METHOD W/ ARGS
         (eval `(define (,(symbol-append ',(symbol-append struct-name '>) 'method-name) this arg ...)
-                  ,@(__HEIST-ctor-defmethod-body ',struct-name (,(symbol-append struct-name '>slots)) '(body ...)))) 'local-environment)
+                  ,@(__heist-ctor-defmethod-body ',struct-name (,(symbol-append struct-name '>slots)) '(body ...)))) 'local-environment)
       ((_ (method-name) body ...) ; METHOD W/O ARGS
         (eval `(define (,(symbol-append ',(symbol-append struct-name '>) 'method-name) this)
-                  ,@(__HEIST-ctor-defmethod-body ',struct-name (,(symbol-append struct-name '>slots)) '(body ...)))  'local-environment))))
+                  ,@(__heist-ctor-defmethod-body ',struct-name (,(symbol-append struct-name '>slots)) '(body ...)))  'local-environment))))
 
 
   ;; DEFINES A "STRUCTURE" OBJECT BASED ON VECTOR ACCESS
@@ -4888,7 +4931,7 @@ namespace heist {
       (eval (list 'define (list (symbol-append 'name '>slots)) 
                 ''(field ...)) 'local-environment)
       (eval (list 'define-syntax (symbol-append 'defmethod- 'name)
-                '(eval (__HEIST-ctor-defmethod-syntax-rules 'name))) 'local-environment)))
+                '(eval (__heist-ctor-defmethod-syntax-rules 'name))) 'local-environment)))
   )";
 
   /******************************************************************************
@@ -5009,7 +5052,7 @@ namespace heist {
     primitive_INLINE,               primitive_CALL_CE, 
     primitive_CPS_EVAL,             primitive_CPS_LOAD, 
     primitive_EXPAND,               primitive_TRACE, 
-    primitive_RUNTIME_SYNTAXP, 
+    primitive_RUNTIME_SYNTAXP,      primitive_SET_RUNTIME_SYNTAX_BANG, 
   };
 
 #ifndef HEIST_CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
@@ -5442,6 +5485,9 @@ namespace heist {
 
     std::make_pair(primitive_CORE_SYNTAXP,    "core-syntax?"),
     std::make_pair(primitive_RUNTIME_SYNTAXP, "runtime-syntax?"),
+
+    std::make_pair(primitive_SET_CORE_SYNTAX_BANG,    "set-core-syntax!"),
+    std::make_pair(primitive_SET_RUNTIME_SYNTAX_BANG, "set-runtime-syntax!"),
   };
 
   frame_vals primitive_procedure_objects()noexcept{

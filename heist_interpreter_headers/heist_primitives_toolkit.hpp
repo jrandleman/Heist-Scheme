@@ -3972,5 +3972,63 @@ namespace heist {
                                  '_' + std::to_string(G::GENSYM_HASH_IDX_1 - n);
     }
   }
+
+  /******************************************************************************
+  * SYNTAX MUTATING PRIMITIVE HELPERS
+  ******************************************************************************/
+
+  void confirm_proper_set_syntax_args(scm_list& args,const char* name,const char* format){
+    if(args.empty() || args.size() > 2)
+      THROW_ERR('\''<<name<<" didn't recieve correct # of args!"
+        << format << FCN_ERR(name,args));
+    for(size_type i = 0, n = args.size(); i < n; ++i)
+      if(!args[i].is_type(types::sym))
+        THROW_ERR('\''<<name<<" arg #" << i+1 << ' ' << PROFILE(args[i])
+          << " isn't a symbol!" << format << FCN_ERR(name,args));
+  }
+
+
+  void relabel_recursive_calls_in_macro_template(const sym_type& old_label,const sym_type& new_label,scm_list& tmp){
+    for(size_type i = 0, n = tmp.size(); i < n; ++i) {
+      if(tmp[i].is_type(types::exp))
+        relabel_recursive_calls_in_macro_template(old_label,new_label,tmp[i].exp);
+      else if(tmp[i].is_type(types::sym) && tmp[i].sym == old_label)
+        tmp[i].sym = new_label;
+    }
+  }
+
+
+  data delete_macro_from_env(const sym_type& label,env_type& env){
+    for(size_type i = 0, total_frames = env->size(); i < total_frames; ++i){
+      // Get Variables & Values Lists of the current frame
+      auto& [var_list, val_list, mac_list] = *env->operator[](i);
+      // Search Variable-Value List Pair In Frame
+      for(size_type j = 0, total_macs = mac_list.size(); j < total_macs; ++j)
+        if(label == mac_list[j].label) {
+          mac_list.erase(mac_list.begin()+j);
+          return G::TRUE_DATA_BOOLEAN;
+        }
+    }
+    return G::FALSE_DATA_BOOLEAN;
+  }
+
+
+  data relabel_macro_in_env(const sym_type& old_label,const sym_type& new_label,env_type& env){
+    for(size_type i = 0, total_frames = env->size(); i < total_frames; ++i){
+      // Get Variables & Values Lists of the current frame
+      auto& [var_list, val_list, mac_list] = *env->operator[](i);
+      // Search Variable-Value List Pair In Frame
+      for(size_type j = 0, total_macs = mac_list.size(); j < total_macs; ++j)
+        if(old_label == mac_list[j].label) {
+          mac_list[j].label = new_label;
+          auto& templates = mac_list[j].templates;
+          // Relabel each recursive call in the macro templates as well
+          for(size_type k = 0, n = templates.size(); k < n; ++k)
+            relabel_recursive_calls_in_macro_template(old_label,new_label,templates[k]);
+          return G::TRUE_DATA_BOOLEAN;
+        }
+    }
+    return G::FALSE_DATA_BOOLEAN;
+  }
 } // End of namespace heist
 #endif
