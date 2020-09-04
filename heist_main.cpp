@@ -4002,9 +4002,14 @@ namespace heist {
     // Save name of invoking entity (iff a symbol) to check for a possible macro
     sym_type op_name = exp[0].is_type(types::sym) ? exp[0].sym : "";
     // If possible analysis-time macro, expand and return analysis of the expansion
-    if(application_is_a_potential_macro(op_name,G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY))
-      if(scm_list expanded; expand_macro_if_in_env(op_name, arg_exps, G::GLOBAL_ENVIRONMENT_POINTER, expanded))
+    if(application_is_a_potential_macro(op_name,G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY)) {
+      if(scm_list expanded; expand_macro_if_in_env(op_name, arg_exps, G::GLOBAL_ENVIRONMENT_POINTER, expanded)) {
         return scm_analyze(generate_fundamental_form_cps(expanded),tail_call,true);
+      } else {
+        THROW_ERR("'core-syntax expression (label \"" << op_name 
+          << "\") didn't match any patterns!" << EXP_ERR(exp));
+      }
+    }
     // If possible macro, expand the application if so, else analyze args at eval
     return [arg_exps=std::move(arg_exps),op_name=std::move(op_name),exp=std::move(exp),
             tail_call=std::move(tail_call)](env_type& env)mutable{
@@ -4052,9 +4057,14 @@ namespace heist {
     // Save name of invoking entity (iff a symbol) to check for a possible macro
     sym_type op_name = exp[0].is_type(types::sym) ? exp[0].sym : "";
     // If possible analysis-time macro, expand and return analysis of the expansion
-    if(application_is_a_potential_macro(op_name,G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY))
-      if(scm_list expanded; expand_macro_if_in_env(op_name, arg_exps, G::GLOBAL_ENVIRONMENT_POINTER, expanded))
+    if(application_is_a_potential_macro(op_name,G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY)) {
+      if(scm_list expanded; expand_macro_if_in_env(op_name, arg_exps, G::GLOBAL_ENVIRONMENT_POINTER, expanded)) {
         return scm_analyze(std::move(expanded),false,cps_block);
+      } else {
+        THROW_ERR("'core-syntax expression (label \"" << op_name 
+          << "\") didn't match any patterns!" << EXP_ERR(exp));
+      }
+    }
     // If _NOT_ a possible macro, analyze the applicator's args ahead of time
     if(!application_is_a_potential_macro(op_name,G::MACRO_LABEL_REGISTRY)) {
       std::vector<exe_type> arg_procs(arg_exps.size());

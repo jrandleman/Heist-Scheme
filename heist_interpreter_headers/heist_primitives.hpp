@@ -4623,6 +4623,44 @@ namespace heist {
   }
 
   /******************************************************************************
+  * SYNTAX PREDICATE PRIMITIVES
+  ******************************************************************************/
+
+  data primitive_CORE_SYNTAXP(scm_list& args) {
+    if(args.size() != 1 || !args[0].is_type(types::sym))
+      THROW_ERR("'core-syntax? didn't recieve 1 symbolic arg!"
+        "\n     (core-syntax? <symbol>)" << FCN_ERR("core-syntax?",args));
+    for(const auto& core_syntax_label : G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY)
+      if(core_syntax_label == args[0].sym)
+        return G::TRUE_DATA_BOOLEAN;
+    return G::FALSE_DATA_BOOLEAN;
+  }
+
+
+  data primitive_RUNTIME_SYNTAXP(scm_list& args) {
+    auto env = args.rbegin()->env;
+    args.pop_back();
+    if(args.size() != 1 || !args[0].is_type(types::sym))
+      THROW_ERR("'runtime-syntax? didn't recieve 1 symbolic arg!"
+        "\n     (runtime-syntax? <symbol>)" << FCN_ERR("runtime-syntax?",args));
+    // Confirm not core-syntax
+    for(const auto& core_syntax_label : G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY)
+      if(core_syntax_label == args[0].sym)
+        return G::FALSE_DATA_BOOLEAN;
+    // Search for macro in the environment
+    const auto& label = args[0].sym;
+    for(size_type i = 0, total_frames = env->size(); i < total_frames; ++i){
+      // Get Variables & Values Lists of the current frame
+      auto& [var_list, val_list, mac_list] = *env->operator[](i);
+      // Search Variable-Value List Pair In Frame
+      for(size_type j = 0, total_macs = mac_list.size(); j < total_macs; ++j)
+        if(label == mac_list[j].label)
+          return G::TRUE_DATA_BOOLEAN;
+    }
+    return G::FALSE_DATA_BOOLEAN;
+  }
+
+  /******************************************************************************
   * MATHEMATICAL CONSTANTS
   ******************************************************************************/
 
@@ -4971,6 +5009,7 @@ namespace heist {
     primitive_INLINE,               primitive_CALL_CE, 
     primitive_CPS_EVAL,             primitive_CPS_LOAD, 
     primitive_EXPAND,               primitive_TRACE, 
+    primitive_RUNTIME_SYNTAXP, 
   };
 
 #ifndef HEIST_CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
@@ -5400,6 +5439,9 @@ namespace heist {
 
     std::make_pair(primitive_GENSYM,      "gensym"),
     std::make_pair(primitive_SOWN_GENSYM, "sown-gensym"),
+
+    std::make_pair(primitive_CORE_SYNTAXP,    "core-syntax?"),
+    std::make_pair(primitive_RUNTIME_SYNTAXP, "runtime-syntax?"),
   };
 
   frame_vals primitive_procedure_objects()noexcept{

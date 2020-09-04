@@ -156,7 +156,7 @@
 
 ## Namespacing:
 * Lisp 1: variables & procedures share a single namespace
-* [`core-syntax`](#Core-Syntax) ___MUST___ be matched (unlike runtime macros from [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax))
+* [`core-syntax`](#Core-Syntax) is evaluated first & ___MUST___ be matched (unlike runtime macros from [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax))
 * Runtime macros & variables are in different namespaces
   - Hence if a [runtime macro's](#Define-Syntax-Let-Syntax-Letrec-Syntax) pattern doesn't match, it gets treated as an attempted procedure call
 
