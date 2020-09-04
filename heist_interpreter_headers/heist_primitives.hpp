@@ -4822,20 +4822,20 @@ namespace heist {
   (define (id a) a)
 
   ; CALL/CC (ONLY WORKS IN scm->cps BLOCKS!)
-  (define (__heist-pass-continuation-call/cc f k)
-    (define (__heist-pass-continuation-k-kestrel a b) (k a)) ; ignore 2nd cont. passed by CPS-ification
-    (f __heist-pass-continuation-k-kestrel k))
-  (define call/cc __heist-pass-continuation-call/cc)
-  (define call-with-current-continuation __heist-pass-continuation-call/cc)
+  (define (heist:core:pass-continuation-call/cc f k)
+    (define (heist:core:pass-continuation-k-kestrel a b) (k a)) ; ignore 2nd cont. passed by CPS-ification
+    (f heist:core:pass-continuation-k-kestrel k))
+  (define call/cc heist:core:pass-continuation-call/cc)
+  (define call-with-current-continuation heist:core:pass-continuation-call/cc)
 
   ; CPS-EVAL & CPS-LOAD
-  (define cps-eval __heist-pass-continuation-cps-eval)
-  (define cps-load __heist-pass-continuation-cps-load)
+  (define cps-eval heist:core:pass-continuation-cps-eval)
+  (define cps-load heist:core:pass-continuation-cps-load)
 
   ; CPS->SCM (BINDS 'id TO THE GIVEN PROC'S CONTINUATION)[FOR scm->cps & REGULAR CODE HIGHER-ORDER FCN INTEROP]
-  (define (__heist-pass-continuation-cps->scm proc k)
+  (define (heist:core:pass-continuation-cps->scm proc k)
     (k (lambda (. args) (apply proc (append args (cons id '()))))))
-  (define cps->scm __heist-pass-continuation-cps->scm)
+  (define cps->scm heist:core:pass-continuation-cps->scm)
   )";
 
   /******************************************************************************
@@ -4845,7 +4845,7 @@ namespace heist {
   constexpr const char* const HEIST_DEFSTRUCT_DEFINITION = R"(
   ;; Convert each <member-name> instance from <member-list> in <method-body-list>
   ;;   to be (<struct-name>-<member-name> this) instead
-  (define (__heist-ctor-defmethod-body struct-name member-list method-body-list)
+  (define (heist:core:ctor-defmethod-body struct-name member-list method-body-list)
     (define member-setters (map (lambda (s) (cons (symbol-append 'set- s '!) s)) member-list))
     (define (member-name? d) (and (symbol? d) (memq d member-list)))
     (define (member-setter? d) (and (symbol? d) (assq d member-setters)))
@@ -4865,14 +4865,14 @@ namespace heist {
 
 
   ;; Return a quoted syntax-rules list for defining a <struct-name> method macro
-  (define (__heist-ctor-defmethod-syntax-rules struct-name)
+  (define (heist:core:ctor-defmethod-syntax-rules struct-name)
     `(syntax-rules ()
       ((_ (method-name arg ...) body ...) ; METHOD W/ ARGS
         (eval `(define (,(symbol-append ',(symbol-append struct-name '>) 'method-name) this arg ...)
-                  ,@(__heist-ctor-defmethod-body ',struct-name (,(symbol-append struct-name '>slots)) '(body ...)))) 'local-environment)
+                  ,@(heist:core:ctor-defmethod-body ',struct-name (,(symbol-append struct-name '>slots)) '(body ...)))) 'local-environment)
       ((_ (method-name) body ...) ; METHOD W/O ARGS
         (eval `(define (,(symbol-append ',(symbol-append struct-name '>) 'method-name) this)
-                  ,@(__heist-ctor-defmethod-body ',struct-name (,(symbol-append struct-name '>slots)) '(body ...)))  'local-environment))))
+                  ,@(heist:core:ctor-defmethod-body ',struct-name (,(symbol-append struct-name '>slots)) '(body ...)))  'local-environment))))
 
 
   ;; DEFINES A "STRUCTURE" OBJECT BASED ON VECTOR ACCESS
@@ -4931,7 +4931,7 @@ namespace heist {
       (eval (list 'define (list (symbol-append 'name '>slots)) 
                 ''(field ...)) 'local-environment)
       (eval (list 'define-syntax (symbol-append 'defmethod- 'name)
-                '(eval (__heist-ctor-defmethod-syntax-rules 'name))) 'local-environment)))
+                '(eval (heist:core:ctor-defmethod-syntax-rules 'name))) 'local-environment)))
   )";
 
   /******************************************************************************
@@ -4941,7 +4941,7 @@ namespace heist {
   constexpr const char* const HEIST_TLAMBDA_PRIM_DEFINITION = R"(
   ;; <tlambda-exp>'s args may be of form <symbol> or <(<pred?> <symbol>)>
   ;; where args are default checked against 'pred? (if such is present)
-  (define (__heist-tlambda->lambda tlambda-exp . err-message)
+  (define (heist:core:tlambda->lambda tlambda-exp . err-message)
     (define err-prefix 
             (if (null? err-message) 
                 "\"" 
@@ -4975,10 +4975,10 @@ namespace heist {
   (core-syntax tlambda ()
     ((_ () b ...) (lambda () b ...)) ; 0 args
     ((_ (a ...) b ...)               ; N args
-      (eval (__heist-tlambda->lambda (cons 'lambda (cons (list 'a ...) '(b ...))))
+      (eval (heist:core:tlambda->lambda (cons 'lambda (cons (list 'a ...) '(b ...))))
             'local-environment))
     ((_ err-message (a ...) b ...)  ; optional-descriptor & N args
-      (eval (__heist-tlambda->lambda (cons 'lambda (cons (list 'a ...) '(b ...))) err-message)
+      (eval (heist:core:tlambda->lambda (cons 'lambda (cons (list 'a ...) '(b ...))) err-message)
             'local-environment)))
   )";
 
@@ -5358,7 +5358,7 @@ namespace heist {
     std::make_pair(primitive_SEQP,                 "seq?"),
 
     std::make_pair(primitive_EVAL,     "eval"),
-    std::make_pair(primitive_CPS_EVAL, "__heist-pass-continuation-cps-eval"),
+    std::make_pair(primitive_CPS_EVAL, "heist:core:pass-continuation-cps-eval"),
     std::make_pair(primitive_APPLY,    "apply"),
 
     std::make_pair(primitive_DELAYP, "delay?"),
@@ -5453,7 +5453,7 @@ namespace heist {
     std::make_pair(primitive_CLOSE_PORT,            "close-port"),
 
     std::make_pair(primitive_LOAD,         "load"),
-    std::make_pair(primitive_CPS_LOAD,     "__heist-pass-continuation-cps-load"),
+    std::make_pair(primitive_CPS_LOAD,     "heist:core:pass-continuation-cps-load"),
     std::make_pair(primitive_SYSTEM,       "system"),
     std::make_pair(primitive_GETENV,       "getenv"),
     std::make_pair(primitive_COMMAND_LINE, "command-line"),

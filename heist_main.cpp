@@ -76,7 +76,7 @@
  * RESERVED WORDS -VS- SPECIAL FORMS -VS- PRIMITIVES: 
  *   (A) RESERVED WORDS:
  *       - DEFINITION: IMPLEMENTATION-SPECIFIC RESERVED INTERNAL OBJECT NAMES
- *       - PROPERTIES: 1) ***RESERVED SYMBOLS BEGIN WITH "__heist-"***
+ *       - PROPERTIES: 1) ***RESERVED SYMBOLS BEGIN WITH "heist:core:"***
  *                     2) ***USE BY USER IS UNDEFINED BEHAVIOR***
  *
  *   (B) SPECIAL FORMS:
@@ -3557,10 +3557,10 @@ namespace heist {
   // NOTE: Max Unique Hashes = (expt 18446744073709551615 18446744073709551615)
   scm_string hygienically_hashed_macro_arg(const scm_string& label)noexcept{
     if(G::MACRO_HASH_IDX_1 != G::MAX_SIZE_TYPE)
-      return "__heist-" + label + '-' 
+      return "heist:core:" + label + '-' 
         + std::to_string(G::MACRO_HASH_IDX_2) + '-' 
         + std::to_string(G::MACRO_HASH_IDX_1++);
-    return "__heist-" + label + '-' 
+    return "heist:core:" + label + '-' 
       + std::to_string(++G::MACRO_HASH_IDX_2) + '-' 
       + std::to_string(G::MACRO_HASH_IDX_1++);
   }
