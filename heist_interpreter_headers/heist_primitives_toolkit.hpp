@@ -4000,8 +4000,8 @@ namespace heist {
 
   data delete_macro_from_env(const sym_type& label,env_type& env){
     for(size_type i = 0, total_frames = env->size(); i < total_frames; ++i){
-      // Get Macros List of the current frame
-      auto& mac_list = frame_macros(*env->operator[](i));
+      // Get Variables & Values Lists of the current frame
+      auto& [var_list, val_list, mac_list] = *env->operator[](i);
       // Search Variable-Value List Pair In Frame
       for(size_type j = 0, total_macs = mac_list.size(); j < total_macs; ++j)
         if(label == mac_list[j].label) {
@@ -4015,8 +4015,8 @@ namespace heist {
 
   data relabel_macro_in_env(const sym_type& old_label,const sym_type& new_label,env_type& env){
     for(size_type i = 0, total_frames = env->size(); i < total_frames; ++i){
-      // Get Macros List of the current frame
-      auto& mac_list = frame_macros(*env->operator[](i));
+      // Get Variables & Values Lists of the current frame
+      auto& [var_list, val_list, mac_list] = *env->operator[](i);
       // Search Variable-Value List Pair In Frame
       for(size_type j = 0, total_macs = mac_list.size(); j < total_macs; ++j)
         if(old_label == mac_list[j].label) {

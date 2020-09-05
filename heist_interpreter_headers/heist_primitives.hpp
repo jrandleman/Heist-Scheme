@@ -4375,11 +4375,12 @@ namespace heist {
     // search each environment frame
     auto var = *args[0].str;
     for(size_type i = 0, total_frames = env->size(); i < total_frames; ++i){
-      // Get Variables & Values Map of the current frame
-      auto& var_val_map = frame_objects(*env->operator[](i));
-      auto var_pos = var_val_map.find(var);
-      if(var_pos != var_val_map.end() && !var_pos->second->is_type(types::undefined))
-        return make_str(var_pos->second->write());
+      // Get Variables & Values Lists of the current frame
+      auto& [var_list, val_list, mac_list] = *env->operator[](i);
+      // Search Variable-Value List Pair In Frame
+      for(size_type j = 0, total_vars = var_list.size(); j < total_vars; ++j)
+        if(var == var_list[j] && !val_list[j].is_type(types::undefined))
+          return make_str(val_list[j].write());
     }
     return G::FALSE_DATA_BOOLEAN;
   }
@@ -4649,8 +4650,8 @@ namespace heist {
     // Search for macro in the environment
     const auto& label = args[0].sym;
     for(size_type i = 0, total_frames = env->size(); i < total_frames; ++i){
-      // Get Macros List of the current frame
-      auto& mac_list = frame_macros(*env->operator[](i));
+      // Get Variables & Values Lists of the current frame
+      auto& [var_list, val_list, mac_list] = *env->operator[](i);
       // Search Variable-Value List Pair In Frame
       for(size_type j = 0, total_macs = mac_list.size(); j < total_macs; ++j)
         if(label == mac_list[j].label)
