@@ -1765,11 +1765,17 @@ Other primitives of this nature include:<br>
 4. __Command-Line Args__: Get a string with command-line arg descriptions
   * `(command-line)`
 
-5. __Compile a File__: `(compile <filename-string> <optional-compiled-filename>)`
+5. __Current Working Directory__: Get a string of the current working directory
+  * `(getcwd)`
 
-6. __Cps-Compile a File__: `(cps-compile <filename-string> <optional-compiled-filename>)`
+6. __Get Parent Directory__: Given a filepath string, get a string of its parent directory
+  * `(dirname <filepath-string>)`
 
-7. __Get Seconds Since Epoch__: `(seconds-since-epoch)`
+7. __Compile a File__: `(compile <filename-string> <optional-compiled-filename>)`
+
+8. __Cps-Compile a File__: `(cps-compile <filename-string> <optional-compiled-filename>)`
+
+9. __Get Seconds Since Epoch__: `(seconds-since-epoch)`
 
 
 

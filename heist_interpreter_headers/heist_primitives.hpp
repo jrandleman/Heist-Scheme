@@ -4397,6 +4397,22 @@ namespace heist {
                   "\n> Case Insensitivity:  -ci");
   }
 
+  // Returns a string of the current working directory
+  data primitive_GETCWD(scm_list& args) {
+    if(!args.empty())
+      THROW_ERR("'getcwd doesn't take any arguments:"
+        "\n     (getcwd)" << FCN_ERR("getcwd",args));
+    return make_str(std::filesystem::current_path());
+  }
+
+  // Returns a string of the parent directory of the given path string
+  data primitive_DIRNAME(scm_list& args) {
+    if(args.size() != 1 || !args[0].is_type(types::str))
+      THROW_ERR("'dirname didn't get a filepath <string> arg:"
+        "\n     (dirname <filepath-string>)" << FCN_ERR("dirname",args));
+    return make_str(std::filesystem::path(*args[0].str).parent_path());
+  }
+
   /******************************************************************************
   * CURRENT TIME PRIMITIVE
   ******************************************************************************/
@@ -5459,6 +5475,8 @@ namespace heist {
     std::make_pair(primitive_COMMAND_LINE, "command-line"),
     std::make_pair(primitive_COMPILE,      "compile"),
     std::make_pair(primitive_CPS_COMPILE,  "cps-compile"),
+    std::make_pair(primitive_GETCWD,       "getcwd"),
+    std::make_pair(primitive_DIRNAME,      "dirname"),
 
     std::make_pair(primitive_SECONDS_SINCE_EPOCH, "seconds-since-epoch"),
 
