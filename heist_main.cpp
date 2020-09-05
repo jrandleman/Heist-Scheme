@@ -360,19 +360,16 @@ namespace heist {
   * ENVIRONMENT DATA STRUCTURE IMPLEMENTATION
   ******************************************************************************/
 
-  // -- ENVIRONMENTAL GETTERS
-  frame_vars& frame_variables(frame_t& f)noexcept{return std::get<0>(f);}
-  frame_vals& frame_values(frame_t& f)   noexcept{return std::get<1>(f);}
-  frame_macs& frame_macros(frame_t& f)   noexcept{return std::get<2>(f);}
-
-
   // -- ENVIRONMENTAL EXTENSION
   env_type extend_environment(frame_vars&& vars, frame_vals& vals, env_type& base_env, 
                                                              const sym_type& name = ""){
     // If valid extension, return environment w/ a new frame prepended
     if(confirm_valid_environment_extension(vars,vals,name)) {
       env_type extended_env(make_env());
-      extended_env->push_back(make_frame(frame_t(vars,vals,frame_macs())));
+      frame_objs var_val_map;
+      for(size_type i = 0, n = vars.size(); i < n; ++i)
+        var_val_map[vars[i]] = vals[i];
+      extended_env->push_back(make_frame(frame_t(var_val_map,frame_macs())));
       extended_env->insert(extended_env->end(), base_env->begin(), base_env->end());
       return extended_env;
     // Invalid extension
@@ -395,15 +392,14 @@ namespace heist {
   frame_val lookup_variable_value(const frame_var& var, env_type& env) {
     // Search Each Environment Frame
     for(size_type i = 0, total_frames = env->size(); i < total_frames; ++i) {
-      // Get Variables & Values Lists of the current frame
-      auto& [var_list, val_list, mac_list] = *env->operator[](i);
-      // Search Variable Bindings List of the Frame
-      for(size_type j = 0, total_vars = var_list.size(); j < total_vars; ++j)
-        if(var == var_list[j]) {
-          if(val_list[j].is_type(types::undefined))
-            THROW_ERR("Unassigned Variable -- " << var);
-          return val_list[j];
-        }
+      // Get Variables & Values Map of the current frame
+      auto& var_val_map = frame_objects(*env->operator[](i));
+      auto var_pos = var_val_map.find(var);
+      if(var_pos != var_val_map.end()) {
+        if(var_pos->second.is_type(types::undefined))
+          THROW_ERR("Unassigned Variable -- " << var);
+        return var_pos->second;
+      }
     }
     THROW_ERR("Variable " << var << " is not bound!");
   }
@@ -425,15 +421,14 @@ namespace heist {
     if(is_single_self_evaluating_object_in_list(val)) val = val.exp[0];
     // Search Each Environment Frame
     for(size_type i = 0, total_frames = env->size(); i < total_frames; ++i) {
-      // Get Variables & Values Lists of the current frame
-      auto& [var_list, val_list, mac_list] = *env->operator[](i);
-      // Search Variable Bindings List of the Frame, Assign New Val if Found
-      for(size_type j = 0, total_vars = var_list.size(); j < total_vars; ++j)
-        if(var == var_list[j]) {
-          mangle_bound_anonymous_procedure_name(var,val);
-          val_list[j] = val; // var found, change val
-          return;
-        }
+      // Get Variables & Values Map of the current frame
+      auto& var_val_map = frame_objects(*env->operator[](i));
+      auto var_pos = var_val_map.find(var);
+      if(var_pos != var_val_map.end()) {
+        mangle_bound_anonymous_procedure_name(var,val);
+        var_pos->second = val; // var found, change val
+        return;
+      }
     }
     scm_list invalid_set_call(3);
     invalid_set_call[0] = symconst::set;
@@ -447,18 +442,15 @@ namespace heist {
     if(env->empty()) // add an empty frame to if given an empty environment
       env->push_back(make_frame(frame_t())); 
     if(is_single_self_evaluating_object_in_list(val)) val = val.exp[0];
-    // Get Variables & Values Lists of the foremost frame
-    auto& [var_list, val_list, mac_list] = *env->operator[](0);
+    // Get Variables & Values Map of the foremost frame
+    auto& var_val_map = frame_objects(*env->operator[](0));
     // Search Variable Bindings List of the Frame, Assign New Val if Found
     mangle_bound_anonymous_procedure_name(var,val);
-    for(size_type j = 0, total_vars = var_list.size(); j < total_vars; ++j)
-      if(var == var_list[j]) {
-        val_list[j] = val; // var found, change val
-        return;
-      }
-    // var not found, bind it to the foremost frame
-    frame_variables(*env->operator[](0)).push_back(var);
-    frame_values(*env->operator[](0)).push_back(val);
+    auto var_pos = var_val_map.find(var);
+    if(var_pos != var_val_map.end())
+      var_pos->second = val; // var found, change val
+    else
+      var_val_map[var] = val;
   }
 
 
