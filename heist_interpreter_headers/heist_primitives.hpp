@@ -4378,8 +4378,8 @@ namespace heist {
       // Get Variables & Values Map of the current frame
       auto& var_val_map = frame_objects(*env->operator[](i));
       auto var_pos = var_val_map.find(var);
-      if(var_pos != var_val_map.end() && !var_pos->second.is_type(types::undefined))
-        return make_str(var_pos->second.write());
+      if(var_pos != var_val_map.end() && !var_pos->second->is_type(types::undefined))
+        return make_str(var_pos->second->write());
     }
     return G::FALSE_DATA_BOOLEAN;
   }

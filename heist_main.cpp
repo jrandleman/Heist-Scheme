@@ -368,7 +368,7 @@ namespace heist {
       env_type extended_env(make_env());
       frame_objs var_val_map;
       for(size_type i = 0, n = vars.size(); i < n; ++i)
-        var_val_map[vars[i]] = vals[i];
+        var_val_map[vars[i]] = frame_val_ptr(vals[i]);
       extended_env->push_back(make_frame(frame_t(var_val_map,frame_macs())));
       extended_env->insert(extended_env->end(), base_env->begin(), base_env->end());
       return extended_env;
@@ -396,9 +396,9 @@ namespace heist {
       auto& var_val_map = frame_objects(*env->operator[](i));
       auto var_pos = var_val_map.find(var);
       if(var_pos != var_val_map.end()) {
-        if(var_pos->second.is_type(types::undefined))
+        if(var_pos->second->is_type(types::undefined))
           THROW_ERR("Unassigned Variable -- " << var);
-        return var_pos->second;
+        return *var_pos->second;
       }
     }
     THROW_ERR("Variable " << var << " is not bound!");
@@ -426,7 +426,7 @@ namespace heist {
       auto var_pos = var_val_map.find(var);
       if(var_pos != var_val_map.end()) {
         mangle_bound_anonymous_procedure_name(var,val);
-        var_pos->second = val; // var found, change val
+        *var_pos->second = val; // var found, change val
         return;
       }
     }
@@ -448,9 +448,9 @@ namespace heist {
     mangle_bound_anonymous_procedure_name(var,val);
     auto var_pos = var_val_map.find(var);
     if(var_pos != var_val_map.end())
-      var_pos->second = val; // var found, change val
+      *var_pos->second = val; // var found, change val
     else
-      var_val_map[var] = val;
+      var_val_map[var] = frame_val_ptr(val);
   }
 
 

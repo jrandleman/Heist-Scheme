@@ -196,18 +196,20 @@ namespace heist {
   // ENVIRONMENTS AS VECTOR OF FRAMES, [i+1] = ENCLOSING ENVIRONMENT OF [i]
   //    => FRAMES AS A HASHMAP/VECTOR PAIR: VARIABLE/VALUES MAP, MACRO DEFNS
 
-  using frame_var   = std::string;
-  using frame_val   = struct data;
-  using frame_mac   = struct scm_macro;
-  using frame_vars  = std::vector<frame_var>;
-  using frame_vals  = std::vector<frame_val>;
-  using frame_objs  = std::unordered_map<frame_var,frame_val>;
-  using frame_macs  = std::vector<frame_mac>;
-  using frame_t     = std::pair<frame_objs,frame_macs>;
-  using frame_ptr   = tgc_ptr<frame_t>;
-  using environment = std::vector<frame_ptr>;
+  using frame_var     = std::string;
+  using frame_val     = struct data;
+  using frame_mac     = struct scm_macro;
+  using frame_vars    = std::vector<frame_var>;
+  using frame_vals    = std::vector<frame_val>;
+  using frame_val_ptr = tgc_ptr<frame_val>;
+  using frame_objs    = std::unordered_map<frame_var,frame_val_ptr>;
+  using frame_macs    = std::vector<frame_mac>;
+  using frame_t       = std::pair<frame_objs,frame_macs>;
+  using frame_ptr     = tgc_ptr<frame_t>;
+  using environment   = std::vector<frame_ptr>;
 
   // -- ENVIRONMENTAL GETTERS
+
   frame_objs& frame_objects(frame_t& f)noexcept{return f.first;}
   frame_macs& frame_macros(frame_t& f)noexcept{return f.second;}
 
