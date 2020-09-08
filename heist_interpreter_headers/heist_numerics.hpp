@@ -1377,7 +1377,7 @@ namespace scm_numeric {
       big_int_abs_val_mul(rhs,rhs_len,s.numerator,s.nlen,denominator,dlen);
       bool result = big_int_lt(lhs,lhs_len,rhs,rhs_len);
       delete [] lhs; delete [] rhs;
-      return result;
+      return result ^ is_neg();
     } else {
       return (*this - s).is_neg();
     }
@@ -1400,7 +1400,7 @@ namespace scm_numeric {
       big_int_abs_val_mul(rhs,rhs_len,s.numerator,s.nlen,denominator,dlen);
       bool result = big_int_gt(lhs,lhs_len,rhs,rhs_len);
       delete [] lhs; delete [] rhs;
-      return result;
+      return result ^ is_neg();
     } else {
       return (*this - s).is_pos();
     }
