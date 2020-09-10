@@ -1863,6 +1863,33 @@ Other primitives of this nature include:<br>
    * Have the reader expand `<shorthand-string>` around objects into `<longhand-string>`
      - _Internally, `'` works as if interpreted `(define-reader-syntax "'" "quote")`_
      - _Leaving out `<optional-longhand-string>` rms `<shorthand-string>` reader macro & returns if found_
+   ```scheme
+   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+   ;; NOTE: Definitions __must__ be registered by the _EVALUATOR_ prior to being used by the reader!
+
+   ;; Ex 1:
+   (define-reader-syntax "%" "display")
+   %1 ; OK! Above definition was evaluated prior reading this expression!
+
+   ;; Ex 2:
+   ((lambda () (define-reader-syntax "%" "display")))
+   %1 ; Also OK! Same reason as Ex 1.
+
+   ;; Ex 3:
+   ((lambda () 
+      (define-reader-syntax "%" "display")
+      %1)) ; ERROR (%1 not defined!): This entire expression is read prior the
+           ; `(define-reader-syntax "%" "display")` was evaluated!
+           ; => Hence `%1` didn't expand to `(display 1)` by the reader
+   
+   ;; Ex 3:
+   ((lambda () 
+      (define-reader-syntax "%" "display")
+      %1)) ; ERROR (%1 not defined!): `%1` got read in the same expression as
+           ; `(define-reader-syntax "%" "display")` before the definition was evaluated!
+           ; >>> Hence `%1` didn't get expanded to `(display 1)` by the reader!
+
+   ```
 
 4. __Mutate Core Syntax__: `(set-core-syntax! <old-name-symbol> <optional-new-name-symbol>)`
    * Only old name: ___DELETES___ `<old-name-symbol>` as core-syntax
