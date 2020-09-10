@@ -1864,8 +1864,8 @@ Other primitives of this nature include:<br>
      - _Internally, `'` works as if interpreted `(define-reader-syntax "'" "quote")`_
      - _Leaving out `<optional-longhand-string>` rms `<shorthand-string>` reader macro & returns if found_
    ```scheme
-   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-   ;; NOTE: Definitions __must__ be registered by the _EVALUATOR_ prior to being used by the reader!
+   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+   ;; NOTE: Defn's _MUST_ be evaluated before being usable by the reader!
 
    ;; Ex 1:
    (define-reader-syntax "%" "display")
