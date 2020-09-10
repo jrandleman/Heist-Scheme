@@ -38,7 +38,7 @@ def makeFilePathHeader(pathToInterpreter):
 
 def alertCompileErr(message, result):
   if(result != 0):
-    print(message + ">>> Proceed with manual compilation of \"heist_main.cpp\" using C++17!")
+    print(message + ">>> Proceed with manual compilation of \"heist_main.cpp\" using C++17!\n")
     return True
   return False
 

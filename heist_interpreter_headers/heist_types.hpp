@@ -120,6 +120,13 @@ namespace heist {
     std::vector<scm_string> ANALYSIS_TIME_MACRO_LABEL_REGISTRY;
 
     /******************************************************************************
+    * THE GLOBAL REGISTRY OF READER MACROS
+    ******************************************************************************/
+
+    std::vector<scm_string> SHORTHAND_READER_MACRO_REGISTRY({",@","`",",","'"});
+    std::vector<scm_string> LONGHAND_READER_MACRO_REGISTRY({"unquote-splicing","quasiquote","unquote","quote"});
+
+    /******************************************************************************
     * MAX VALUE FOR SIZE_TYPE
     ******************************************************************************/
 

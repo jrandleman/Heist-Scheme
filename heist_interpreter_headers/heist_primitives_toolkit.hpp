@@ -3238,6 +3238,19 @@ namespace heist {
   ******************************************************************************/
 
   namespace read_port {
+    bool input_ends_with_postfix(const scm_string& postfix, const scm_string& input)noexcept{
+      return input.size() >= postfix.size() && input.compare(input.size()-postfix.size(),postfix.size(),postfix) == 0;
+    }
+
+
+    bool input_ends_with_reader_macro_or_quote(const scm_string& input)noexcept{
+      for(const auto& reader_macro_shorthand : G::SHORTHAND_READER_MACRO_REGISTRY)
+        if(input_ends_with_postfix(reader_macro_shorthand,input))
+          return true;
+      return false;
+    }
+
+
     // Determine the read char's length (for reading from a port)
     // PRECONDITION: input[i] = the 1st char after the '#\' of the char literal
     size_type character_length(const size_type& i, const scm_string& input)noexcept{
@@ -3261,40 +3274,24 @@ namespace heist {
     }
 
 
-    // Confirm improper use for quote, quasiquote, & unquote
-    constexpr bool improper_quotation_char(const chr_type& c,const chr_type& c2)noexcept{
-      return (c == '\'' || c == '`' || c == ',') && (IS_CLOSE_PAREN(c2) || isspace(c2));
+    // Confirm improper use for any quotation/reader-macro shorthand
+    bool improper_quotation(scm_string& input)noexcept{
+      // Not enough room -> false
+      if(input.size() <= 1) return false;
+      auto last_ch = *input.rbegin();
+      // Not improper ending -> false
+      if(!IS_CLOSE_PAREN(last_ch) && !isspace(last_ch)) return false;
+      input.pop_back(); // rm last char to check for quote/reader-macro
+      auto ends_with_reader_macro_or_quote = input_ends_with_reader_macro_or_quote(input);
+      input.push_back(last_ch); // add last char back in
+      return ends_with_reader_macro_or_quote;
     }
 
 
-    // Confirm improper use for unquote-splicing
-    constexpr bool improper_quotation_char(const chr_type& c,const chr_type& c2,
-                                                             const chr_type& c3)noexcept{
-      return c == ',' && c2 == '@' && (IS_CLOSE_PAREN(c3) || isspace(c3));
-    }
-
-
-    // Confirm improper use for any quotation shorthand
-    bool improper_quotation(const scm_string& input)noexcept{
-      return (input.size() > 1 && 
-              improper_quotation_char(*(input.end()-2),*input.rbegin())) 
-             ||
-             (input.size() > 2 && 
-              improper_quotation_char(*(input.end()-3),*(input.end()-2),
-                                                                 *input.rbegin()));
-    }
-
-
-    // Confirm quotation shorthand found at the end of the file
+    // Confirm quotation/reader-macro shorthand found at the end of the file
     bool improper_EOF_quotation(const scm_string& input)noexcept{
-      return ((!input.empty() && 
-               (*input.rbegin()=='\''||*input.rbegin()=='`'||*input.rbegin()==','))
-              || 
-              (input.size()>1 && 
-               *(input.rbegin()+1) == ',' && *input.rbegin() == '@'))
-             &&
-             !(input.size()>2 && 
-               *(input.rbegin()+2)=='#' && *(input.rbegin()+1)=='\\');
+      return !input.empty() && input_ends_with_reader_macro_or_quote(input) &&
+             !(input.size()>2 && *(input.rbegin()+2)=='#' && *(input.rbegin()+1)=='\\');
     }
 
 
@@ -3316,6 +3313,7 @@ namespace heist {
                                                  *(input.rbegin()+1) != '\\');
     }
   } // -- End namespace read_port
+
 
 
   // Read from a non-stdin port
@@ -3375,10 +3373,7 @@ namespace heist {
       input += ch;
 
       // continue to get the quoted data
-      if(!found_nonquote_data && (ch == '\'' || ch == '`' || ch == ',' || 
-        (input.size()>1 && ch == '@' && *(input.rbegin()+1) == ','))) {
-          continue;
-      }
+      if(!found_nonquote_data && read_port::input_ends_with_reader_macro_or_quote(input)) continue;
 
       // skip first char of a char literal
       if(confirmed_char) { confirmed_char=false, parsing_a_char=true; continue; }
@@ -3988,7 +3983,7 @@ namespace heist {
   }
 
 
-  void relabel_recursive_calls_in_macro_template(const sym_type& old_label,const sym_type& new_label,scm_list& tmp){
+  void relabel_recursive_calls_in_macro_template(const sym_type& old_label,const sym_type& new_label,scm_list& tmp)noexcept{
     for(size_type i = 0, n = tmp.size(); i < n; ++i) {
       if(tmp[i].is_type(types::exp))
         relabel_recursive_calls_in_macro_template(old_label,new_label,tmp[i].exp);
@@ -3998,7 +3993,7 @@ namespace heist {
   }
 
 
-  data delete_macro_from_env(const sym_type& label,env_type& env){
+  data delete_macro_from_env(const sym_type& label,env_type& env)noexcept{
     for(size_type i = 0, total_frames = env->size(); i < total_frames; ++i){
       // Get Variables & Values Lists of the current frame
       auto& [var_list, val_list, mac_list] = *env->operator[](i);
@@ -4013,7 +4008,7 @@ namespace heist {
   }
 
 
-  data relabel_macro_in_env(const sym_type& old_label,const sym_type& new_label,env_type& env){
+  data relabel_macro_in_env(const sym_type& old_label,const sym_type& new_label,env_type& env)noexcept{
     for(size_type i = 0, total_frames = env->size(); i < total_frames; ++i){
       // Get Variables & Values Lists of the current frame
       auto& [var_list, val_list, mac_list] = *env->operator[](i);
@@ -4029,6 +4024,48 @@ namespace heist {
         }
     }
     return G::FALSE_DATA_BOOLEAN;
+  }
+
+  /******************************************************************************
+  * READER MACRO DEFINITION / DELETION PRIMITIVE HELPER
+  ******************************************************************************/
+
+  data delete_reader_macro(const scm_string& shorthand)noexcept{
+    for(auto short_iter = G::SHORTHAND_READER_MACRO_REGISTRY.begin(), 
+             long_iter = G::LONGHAND_READER_MACRO_REGISTRY.begin();
+      short_iter != G::SHORTHAND_READER_MACRO_REGISTRY.end();
+      ++short_iter, ++long_iter) {
+      // Rm shorthand/longhand if found
+      if(shorthand == *short_iter) {
+        G::SHORTHAND_READER_MACRO_REGISTRY.erase(short_iter);
+        G::LONGHAND_READER_MACRO_REGISTRY.erase(long_iter);
+        return G::TRUE_DATA_BOOLEAN;
+      }
+    }
+    return G::FALSE_DATA_BOOLEAN;
+  }
+
+
+  void register_reader_macro(const scm_string& shorthand, const scm_string& longhand)noexcept{
+    const auto shorthand_len = shorthand.size();
+    for(auto short_iter = G::SHORTHAND_READER_MACRO_REGISTRY.begin(), 
+             long_iter = G::LONGHAND_READER_MACRO_REGISTRY.begin();
+      short_iter != G::SHORTHAND_READER_MACRO_REGISTRY.end();
+      ++short_iter, ++long_iter) {
+      // Change longhand associated w/ existing shorthand
+      if(shorthand == *short_iter) {
+        *long_iter = longhand;
+        return;
+      // Register new reader macro
+      } else if(shorthand > *short_iter && shorthand_len >= short_iter->size()) {
+        G::SHORTHAND_READER_MACRO_REGISTRY.insert(short_iter,shorthand);
+        G::LONGHAND_READER_MACRO_REGISTRY.insert(long_iter,longhand);
+        return;
+      }
+    }
+    // Register new reader macro
+    G::SHORTHAND_READER_MACRO_REGISTRY.push_back(shorthand);
+    G::LONGHAND_READER_MACRO_REGISTRY.push_back(longhand);
   }
 } // End of namespace heist
 #endif

@@ -4676,6 +4676,19 @@ namespace heist {
     return G::FALSE_DATA_BOOLEAN;
   }
 
+
+  data primitive_READER_SYNTAXP(scm_list& args) {
+    if(args.size() != 1 || !args[0].is_type(types::str))
+      THROW_ERR("'reader-syntax? didn't recieve 1 string arg!"
+        "\n     => Must be a string to avoid expansion by the reader if IS syntax!"
+        "\n     (reader-syntax? <string>)" << FCN_ERR("reader-syntax?",args));
+    auto& sought_shorthand = *args[0].str;
+    for(const auto& reader_syntax_label : G::SHORTHAND_READER_MACRO_REGISTRY)
+      if(reader_syntax_label == sought_shorthand)
+        return G::TRUE_DATA_BOOLEAN;
+    return G::FALSE_DATA_BOOLEAN;
+  }
+
   /******************************************************************************
   * SYNTAX MUTATING PRIMITIVES
   ******************************************************************************/
@@ -4717,6 +4730,23 @@ namespace heist {
     auto result = relabel_macro_in_env(args[0].sym,args[1].sym,env);
     if(result.bol.val) G::MACRO_LABEL_REGISTRY.push_back(args[1].sym); // if found, add to cumulative registry
     return result;
+  }
+
+  /******************************************************************************
+  * READER MACRO DEFINITION PRIMITIVE
+  ******************************************************************************/
+
+  data primitive_DEFINE_READER_SYNTAX(scm_list& args) {
+    if(args.empty() || args.size() > 2 || !args[0].is_type(types::str) || 
+      (args.size() == 2 && !args[1].is_type(types::str)))
+      THROW_ERR("'define-reader-syntax improper arg signature!"
+        "\n     (define-reader-syntax <shorthand-string> <optional-longhand-string>)"
+        << FCN_ERR("define-reader-syntax",args));
+    // Delete Reader Macro
+    if(args.size() == 1) return delete_reader_macro(*args[0].str);
+    // Define/Redefine Reader Macro
+    register_reader_macro(*args[0].str,*args[1].str);
+    return G::VOID_DATA_OBJECT;
   }
 
   /******************************************************************************
@@ -5503,9 +5533,12 @@ namespace heist {
 
     std::make_pair(primitive_CORE_SYNTAXP,    "core-syntax?"),
     std::make_pair(primitive_RUNTIME_SYNTAXP, "runtime-syntax?"),
+    std::make_pair(primitive_READER_SYNTAXP,  "reader-syntax?"),
 
     std::make_pair(primitive_SET_CORE_SYNTAX_BANG,    "set-core-syntax!"),
     std::make_pair(primitive_SET_RUNTIME_SYNTAX_BANG, "set-runtime-syntax!"),
+
+    std::make_pair(primitive_DEFINE_READER_SYNTAX, "define-reader-syntax"),
   };
 
   frame_vals primitive_procedure_objects()noexcept{

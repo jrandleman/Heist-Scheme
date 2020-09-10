@@ -842,11 +842,11 @@ Other primitives of this nature include:<br>
   - _Note: Form is as if [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax) and [`syntax-rules`](#syntax-rules) were merged!_
 
 #### Analysis-Time Advantanges:
-  * Interpreter's [`eval`](#evalapply-symbol-append--typeof) seperates expression analysis (declaration) & execution (invocation):
-    - [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax) macros, bound to an environment, dynamically expand at **run-time**
-      * _Hence **run-time** macros in a [`lambda`](#lambda) body are re-expanded **upon every invocation!**_
-    - [`core-syntax`](#core-syntax) macros, only bound to the **global environment**, expand at **analysis-time**
-      * _Hence **analysis-time** macros in a [`lambda`](#lambda) body expand **in the [`lambda`](#lambda) declaration only once!**_
+* Interpreter's [`eval`](#evalapply-symbol-append--typeof) seperates expression analysis (declaration) & execution (invocation):
+  - [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax) macros, bound to an environment, dynamically expand at **run-time**
+    * _Hence **run-time** macros in a [`lambda`](#lambda) body are re-expanded **upon every invocation!**_
+  - [`core-syntax`](#core-syntax) macros, only bound to the **global environment**, expand at **analysis-time**
+    * _Hence **analysis-time** macros in a [`lambda`](#lambda) body expand **in the [`lambda`](#lambda) declaration only once!**_
 
 
 ------------------------
@@ -887,27 +887,27 @@ Other primitives of this nature include:<br>
 3. Predicate: `(<name>? <object>)`
 4. Analysis (get quoted list of `<member>` names): `(<name>>slots)`
 5. Method-Generator: `(defmethod-<name> (<method-name> <arg1> <arg2>) <body> ...)`
-  - Advantages of Methods Over Procedures:
-    0. `<object>` argument is automatically defined as `this`
-    1. Member setters don't need the object or struct name in their invocation
-    2. Member setters may be invoked just by using the member name
-  - Example:
-  ```scheme
-  (defstruct student name id) 
-  (define (printf . d) (for-each display d))
-  ; Writing:
-  (defmethod-student (greet your-name)
-     (set-id! (+ id 1))
-     (printf "Hello " your-name 
-             ", my name is " name " and my id is "
-             id ", great to meet you!\n"))
-  ; Gets expanded into:
-  (define (student>greet this your-name)
-     (set-student-id! this (+ (student-id this) 1))
-     (printf "Hello " your-name 
-             ", my name is " (student-name this) " and my id is "
-             (student-id this) ", great to meet you!\n"))
-  ```
+   - Advantages of Methods Over Procedures:
+     0. `<object>` argument is automatically defined as `this`
+     1. Member setters don't need the object or struct name in their invocation
+     2. Member setters may be invoked just by using the member name
+   - Example:
+   ```scheme
+   (defstruct student name id) 
+   (define (printf . d) (for-each display d))
+   ; Writing:
+   (defmethod-student (greet your-name)
+      (set-id! (+ id 1))
+      (printf "Hello " your-name 
+              ", my name is " name " and my id is "
+              id ", great to meet you!\n"))
+   ; Gets expanded into:
+   (define (student>greet this your-name)
+      (set-student-id! this (+ (student-id this) 1))
+      (printf "Hello " your-name 
+              ", my name is " (student-name this) " and my id is "
+              (student-id this) ", great to meet you!\n"))
+   ```
 
 
 ------------------------
@@ -1003,69 +1003,69 @@ Other primitives of this nature include:<br>
 1. __Get Reverse of Stream__: `(stream-reverse <stream>)`
 
 2. __Stream Access__: `scar` = first of stream, `scdr` = rest of stream, & composed `scar` & `scdr`
-  * `(scar <stream>)`, `(scdr <stream>)`
-  * `(scaar <stream>)`, `(scadr <stream>)`, `(scdar <stream>)`, `(scddr <stream>)`
-  * `(scaaar <stream>)` ... `(scdddr <stream>)`
-  * `(scaaaar <stream>)` ... `(scddddr <stream>)`
+   * `(scar <stream>)`, `(scdr <stream>)`
+   * `(scaar <stream>)`, `(scadr <stream>)`, `(scdar <stream>)`, `(scddr <stream>)`
+   * `(scaaar <stream>)` ... `(scdddr <stream>)`
+   * `(scaaaar <stream>)` ... `(scddddr <stream>)`
 
 3. __Reference__: Get elt at `<index>` in `<stream-pair>`
-  * `(stream-ref <stream-pair> <index>)`
+   * `(stream-ref <stream-pair> <index>)`
 
 4. __Append__: Join `<streams>` into a new stream
-  * `(stream-append <stream1> <stream2> ...)`
+   * `(stream-append <stream1> <stream2> ...)`
 
 5. __Drop__: Drop `<n>` elts from `<stream>`
-  * `(stream-drop <stream> <n>)`
+   * `(stream-drop <stream> <n>)`
 
 6. __Drop While__: Drop elts from `<stream>` while `<predicate?>` is true
-  * `(stream-drop-while <predicate?> <stream>)`
+   * `(stream-drop-while <predicate?> <stream>)`
 
 7. __Take__: Take `<n>` elts from `<stream>`
-  * `(stream-take <stream> <n>)`
+   * `(stream-take <stream> <n>)`
 
 8. __Take While__: Take elts from `<stream>` while `<predicate?>` is true
-  * `(stream-take-while <predicate?> <stream>)`
+   * `(stream-take-while <predicate?> <stream>)`
 
 9. __Map__: Apply `<procedure>` to each elt in each stream, forming a stream of results
-  * `(stream-map <procedure> <stream1> <stream2> ...)`
+   * `(stream-map <procedure> <stream1> <stream2> ...)`
 
 10. __Filter__: Form a stream of elts from `<stream>` satisfying `<predicate?>`
-  * `(stream-filter <predicate?> <stream>)`
+    * `(stream-filter <predicate?> <stream>)`
 
 11. __For Each__: Apply `<procedure>` to each elt of each `<stream>`
-  * `(stream-for-each <procedure> <stream1> <stream2> ...)`
+    * `(stream-for-each <procedure> <stream1> <stream2> ...)`
 
 12. __Unfold__: Form a stream by mapping & incrementing seed, until `<break-cond-proc>` is true
-  * _Note: **map** via `<map-proc>`, **increment** via `<suc-proc>`_
-  * `(stream-unfold <break-cond-proc> <map-proc> <suc-proc> <seed>)`
+    * _Note: **map** via `<map-proc>`, **increment** via `<suc-proc>`_
+    * `(stream-unfold <break-cond-proc> <map-proc> <suc-proc> <seed>)`
 
 13. __Fold__: Accumulate stream from left to right, starting with `<seed>` using `<procedure>`
-  * `(stream-fold <procedure> <seed> <stream>)`
+    * `(stream-fold <procedure> <seed> <stream>)`
 
 14. __Fold Right__: Accumulate stream from right to left, starting with `<seed>` using `<procedure>`
-  * `(stream-fold-right <procedure> <seed> <stream>)`
+    * `(stream-fold-right <procedure> <seed> <stream>)`
 
 15. __Numeric Stream__: Form a stream starting from `<first>` incrementing by `<optional-step>`
-  * _Note: `<optional-step>` step is `1` by default_
-  * `(stream-from <first> <optional-step>)`
+    * _Note: `<optional-step>` step is `1` by default_
+    * `(stream-from <first> <optional-step>)`
 
 16. __Stream Generation__: Form a stream starting from `<seed>` using `<suc-proc>`
-  * `(stream-iterate <suc-proc> <seed>)`
+    * `(stream-iterate <suc-proc> <seed>)`
 
 17. __Zip__: Form a stream of lists containing the nth elt of each `<stream>`
-  * `(stream-zip <stream1> <stream2> ...)`
+    * `(stream-zip <stream1> <stream2> ...)`
 
 18. __Infinite Cycle__: Forms an infinite stream of repeating `<objs>`
-  * `(stream-constant <obj1> <obj2> ...)`
+    * `(stream-constant <obj1> <obj2> ...)`
   
 19. __Interleave__: Form a stream by interleaving elts of either `<stream>`
-  * `(stream-interleave <stream1> <stream2>)`
+    * `(stream-interleave <stream1> <stream2>)`
 
 20. __Stream->List Conversion__: Convert the 1st `<size>` elts of `<stream>` into a list
-  * `(stream->list <stream> <size>)`
+    * `(stream->list <stream> <size>)`
 
 21. __List->Stream Conversion__: Convert `<list>` into a stream
-  * `(list->stream <list>)`
+    * `(list->stream <list>)`
 
 
 
@@ -1073,53 +1073,53 @@ Other primitives of this nature include:<br>
 ## Numeric Primitives:
 ### General:
 0. __Addition__: Add n numbers
-  * `(+ <number1> <number2> ...)`
+   * `(+ <number1> <number2> ...)`
 
 1. __Subtraction__: Subtract n numbers, *or* negate 1 number
-  * `(- <number1> <number2> ...)`
-  * `(- <number>)`
+   * `(- <number1> <number2> ...)`
+   * `(- <number>)`
 
 2. __Multiplication__: Multiply n numbers
-  * `(* <number1> <number2> ...)`
+   * `(* <number1> <number2> ...)`
 
 3. __Division__: Divide n numbers, *or* invert 1 number
-  * `(/ <number1> <number2> ...)`
-  * `(/ <number>)`
+   * `(/ <number1> <number2> ...)`
+   * `(/ <number>)`
 
 4. __Equality Comparisons__:
-  * `(= <number1> <number2> ...)`
-  * `(< <number1> <number2> ...)`
-  * `(> <number1> <number2> ...)`
-  * `(<= <number1> <number2> ...)`
-  * `(>= <number1> <number2> ...)`
+   * `(= <number1> <number2> ...)`
+   * `(< <number1> <number2> ...)`
+   * `(> <number1> <number2> ...)`
+   * `(<= <number1> <number2> ...)`
+   * `(>= <number1> <number2> ...)`
 
 5. __Absolute Value__: `(abs <number>)`
 
 6. __Exponentiation__: Raise `<number1>` to the power of `<number2>`
-  * `(expt <number1> <number2>)`
+   * `(expt <number1> <number2>)`
 
 7. __Exponentiation Modulo__: Raise `<number1>` to the power of `<number2>` modulo `<number3>`
-  * `(expt-mod <number1> <number2> <number3>)`
+   * `(expt-mod <number1> <number2> <number3>)`
 
 8. __Maximum__: Get the maximum value
-  * `(max <number1> <number2> ...)`
+   * `(max <number1> <number2> ...)`
 
 9. __Minimum__: Get the minimum value
-  * `(min <number1> <number2> ...)`
+   * `(min <number1> <number2> ...)`
 
 10. __Quotient__: Get the quotient of `(/ <number1> <number2>)`
-  * `(quotient <number1> <number2>)`
+    * `(quotient <number1> <number2>)`
 
 11. __Remainder__: Get the remainder of `(/ <number1> <number2>)`
-  * `(remainder <number1> <number2>)`
+    * `(remainder <number1> <number2>)`
 
 12. __Modulo__: `(modulo <number1> <number2>)`
 
 13. __Modulo Flonum__: Get the fractional portion of `<flonum>`
-  * `(modf <flonum>)`
+    * `(modf <flonum>)`
 
 14. __Exponent__: Get e raised to the power of `<number>`
-  * `(exp <number>)`
+    * `(exp <number>)`
 
 15. __Natural Logarithm__: `(log <number>)`
 
@@ -1136,7 +1136,7 @@ Other primitives of this nature include:<br>
 21. __Generate a Log Procedure of a Certain Base__: `(make-log-base <number>)`
 
 22. __Psuedo-Random Number Generator__: Seeded *or* unseeded
-  * `(random)`, `(random <numeric-seed>)`
+    * `(random)`, `(random <numeric-seed>)`
 
 23. __Coerce Inexact to Exact__: `(inexact->exact <number>)`
 
@@ -1244,18 +1244,18 @@ Other primitives of this nature include:<br>
 
 ### Character Predicates:
 0. __Character Equality__: 
-  * `(char=? <char1> <char2> ...)`
-  * `(char<? <char1> <char2> ...)`
-  * `(char>? <char1> <char2> ...)`
-  * `(char<=? <char1> <char2> ...)`
-  * `(char>=? <char1> <char2> ...)`
+   * `(char=? <char1> <char2> ...)`
+   * `(char<? <char1> <char2> ...)`
+   * `(char>? <char1> <char2> ...)`
+   * `(char<=? <char1> <char2> ...)`
+   * `(char>=? <char1> <char2> ...)`
 
 1. __Case-Insensitive Character Equality__: 
-  * `(char-ci=? <char1> <char2> ...)`
-  * `(char-ci<? <char1> <char2> ...)`
-  * `(char-ci>? <char1> <char2> ...)`
-  * `(char-ci<=? <char1> <char2> ...)`
-  * `(char-ci>=? <char1> <char2> ...)`
+   * `(char-ci=? <char1> <char2> ...)`
+   * `(char-ci<? <char1> <char2> ...)`
+   * `(char-ci>? <char1> <char2> ...)`
+   * `(char-ci<=? <char1> <char2> ...)`
+   * `(char-ci>=? <char1> <char2> ...)`
 
 
 
@@ -1263,53 +1263,53 @@ Other primitives of this nature include:<br>
 ## String Procedures:
 ### General:
 0. __Construction__: Creates a string of length `<size>`
-  * defaults to a `<fill-char>` of `?`
-  * `(make-string <size> <optional-fill-char>)`
+   * defaults to a `<fill-char>` of `?`
+   * `(make-string <size> <optional-fill-char>)`
 
 1. __Construction Given Characters__: `(string <char1> <char2> ...)`
 
 2. __Unfold__: Form a string by mapping & incrementing seed, until `<break-condition>` is true
-  * _Note: **map** via `<map-procedure>`, **increment** via `<successor-procedure>`_
-  * `(string-unfold <break-condition> <map-procedure> <successor-procedure> <seed>)`
+   * _Note: **map** via `<map-procedure>`, **increment** via `<successor-procedure>`_
+   * `(string-unfold <break-condition> <map-procedure> <successor-procedure> <seed>)`
 
 3. __Unfold Right__: Form a string by mapping right & incrementing seed, until `<break-condition>` is true
-  * _Note: **map** via `<map-procedure>`, **increment** via `<successor-procedure>`_
-  * `(string-unfold-right <break-condition> <map-procedure> <successor-procedure> <seed>)`
+   * _Note: **map** via `<map-procedure>`, **increment** via `<successor-procedure>`_
+   * `(string-unfold-right <break-condition> <map-procedure> <successor-procedure> <seed>)`
 
 4. __Character Padding Left of String__: pads `<length>` characters, `<character>` defaults to `<space>`
-  * `(string-pad <string> <length> <optional-character>)`
+   * `(string-pad <string> <length> <optional-character>)`
 
 5. __Character Padding Right of String__: pads `<length>` characters, `<character>` defaults to `<space>`
-  * `(string-pad-right <string> <length> <optional-character>)`
+   * `(string-pad-right <string> <length> <optional-character>)`
 
 6. __Character Trimming Left of String__: trims characters while `<predicate?>` is true
-  * _Note: `<predicate?>` defaults to `char-whitespace?`_
-  * `(string-trim <string> <optional-predicate?>)`
+   * _Note: `<predicate?>` defaults to `char-whitespace?`_
+   * `(string-trim <string> <optional-predicate?>)`
 
 7. __Character Trimming Right of String__: trims characters while `<predicate?>` is true
-  * _Note: `<predicate?>` defaults to `char-whitespace?`_
-  * `(string-trim-right <string> <optional-predicate?>)`
+   * _Note: `<predicate?>` defaults to `char-whitespace?`_
+   * `(string-trim-right <string> <optional-predicate?>)`
 
 8. __Character Trimming Left & Right of String__: trims characters while `<predicate?>` is true
-  * _Note: `<predicate?>` defaults to `char-whitespace?`_
-  * `(string-trim-both <string> <optional-predicate?>)`
+   * _Note: `<predicate?>` defaults to `char-whitespace?`_
+   * `(string-trim-both <string> <optional-predicate?>)`
 
 9. __Replacement__: Replace `<string1>` between indices `<start1>` & `<end1>` with `<string2>`
-  * `(string-replace <string1> <string2> <start1> <end1>)`
+   * `(string-replace <string1> <string2> <start1> <end1>)`
 
 10. __String Contains Substring__: Get index of 1st instance
-  * `(string-contains <string> <sub-string>)`
+    * `(string-contains <string> <sub-string>)`
 
 11. __String Contains Substring__: Get index of last instance
-  * `(string-contains-right <string> <sub-string>)`
+    * `(string-contains-right <string> <sub-string>)`
 
 12. __Join a List of Strings Into 1 String__:
-  * `(string-join <string-list> <optional-string-delimiter> <optional-grammar>)`
-  * `<optional-grammar> = 'infix | 'suffix | 'prefix`
+    * `(string-join <string-list> <optional-string-delimiter> <optional-grammar>)`
+    * `<optional-grammar> = 'infix | 'suffix | 'prefix`
 
 13. __Split String Into a List of Substrings__:
-  * `<string-delimiter>` defaults to `""`
-  * `(string-split <string-list> <optional-string-delimiter>)`
+    * `<string-delimiter>` defaults to `""`
+    * `(string-split <string-list> <optional-string-delimiter>)`
 
 14. __Swap String Pointers__: `(string-swap! <string1> <string2>)`
 
@@ -1323,18 +1323,18 @@ Other primitives of this nature include:<br>
 
 ### String Predicates:
 0. __String Equality__: 
-  * `(string=? <string1> <string2> ...)`
-  * `(string<? <string1> <string2> ...)`
-  * `(string>? <string1> <string2> ...)`
-  * `(string<=? <string1> <string2> ...)`
-  * `(string>=? <string1> <string2> ...)`
+   * `(string=? <string1> <string2> ...)`
+   * `(string<? <string1> <string2> ...)`
+   * `(string>? <string1> <string2> ...)`
+   * `(string<=? <string1> <string2> ...)`
+   * `(string>=? <string1> <string2> ...)`
 
 1. __Case-Insensitive String Equality__: 
-  * `(string-ci=? <string1> <string2> ...)`
-  * `(string-ci<? <string1> <string2> ...)`
-  * `(string-ci>? <string1> <string2> ...)`
-  * `(string-ci<=? <string1> <string2> ...)`
-  * `(string-ci>=? <string1> <string2> ...)`
+   * `(string-ci=? <string1> <string2> ...)`
+   * `(string-ci<? <string1> <string2> ...)`
+   * `(string-ci>? <string1> <string2> ...)`
+   * `(string-ci<=? <string1> <string2> ...)`
+   * `(string-ci>=? <string1> <string2> ...)`
 
 
 
@@ -1344,10 +1344,10 @@ Other primitives of this nature include:<br>
 0. __Construct Pair__: `(cons <obj1> <obj2>)`
 
 1. __List Access__: `car` = first of pair, `cdr` = second of pair, & composed `car` & `cdr`
-  * `(car <pair>)`, `(cdr <pair>)`
-  * `(caar <pair>)`, `(cadr <pair>)`, `(cdar <pair>)`, `(cddr <pair>)`
-  * `(caaar <pair>)` ... `(cdddr <pair>)`
-  * `(caaaar <pair>)` ... `(cddddr <pair>)`
+   * `(car <pair>)`, `(cdr <pair>)`
+   * `(caar <pair>)`, `(cadr <pair>)`, `(cdar <pair>)`, `(cddr <pair>)`
+   * `(caaar <pair>)` ... `(cdddr <pair>)`
+   * `(caaaar <pair>)` ... `(cddddr <pair>)`
 
 2. __First/Second Setters__: `(set-car! <pair> <obj>)`, `(set-cdr! <pair> <obj>)`
 
@@ -1366,17 +1366,17 @@ Other primitives of this nature include:<br>
 3. __Construct Circular List__: `(circular-list <obj1> <obj2> ...)`
 
 4. __Generate Numeric List__: Generate `<count>` objects, from `<start>` & incrementing w/ `<step>`
-  * `<optional-start-number>` defaults to `0`
-  * `<optional-step-number>` defaults to `1`
-  * `(iota <count> <optional-start-number> <optional-step-number>)`
+   * `<optional-start-number>` defaults to `0`
+   * `<optional-step-number>` defaults to `1`
+   * `(iota <count> <optional-start-number> <optional-step-number>)`
 
 5. __Unfold__: Form a list by mapping & incrementing seed, until `<break-condition>` is true
-  * _Note: **map** via `<map-procedure>`, **increment** via `<successor-procedure>`_
-  * `(unfold <break-condition> <map-procedure> <successor-procedure> <seed>)`
+   * _Note: **map** via `<map-procedure>`, **increment** via `<successor-procedure>`_
+   * `(unfold <break-condition> <map-procedure> <successor-procedure> <seed>)`
 
 6. __Unfold Right__: Form a list by mapping right & incrementing seed, until `<break-condition>` is true
-  * _Note: **map** via `<map-procedure>`, **increment** via `<successor-procedure>`_
-  * `(unfold-right <break-condition> <map-procedure> <successor-procedure> <seed>)`
+   * _Note: **map** via `<map-procedure>`, **increment** via `<successor-procedure>`_
+   * `(unfold-right <break-condition> <map-procedure> <successor-procedure> <seed>)`
 
 
 ### List Predicates:
@@ -1393,14 +1393,14 @@ Other primitives of this nature include:<br>
 
 ### List Seeking Procedures:
 0. __(Lists) Get Sublist Beginning w/ an Object If Present (`#f` Otherwise)__:
-  * _Seek using `eq?`_: `(memq <obj> <list>)`
-  * _Seek using `eqv?`_: `(memv <obj> <list>)`
-  * _Seek using `equal?`_: `(member <obj> <list>)`
+   * _Seek using `eq?`_: `(memq <obj> <list>)`
+   * _Seek using `eqv?`_: `(memv <obj> <list>)`
+   * _Seek using `equal?`_: `(member <obj> <list>)`
 
 1. __(Associative Lists) Get Pair Beginning w/ a Key If Present (`#f` Otherwise)__:
-  * _Seek using `eq?`_: `(assq <obj> <list>)`
-  * _Seek using `eqv?`_: `(assv <obj> <list>)`
-  * _Seek using `equal?`_: `(assoc <obj> <list>)`
+   * _Seek using `eq?`_: `(assq <obj> <list>)`
+   * _Seek using `eqv?`_: `(assv <obj> <list>)`
+   * _Seek using `equal?`_: `(assoc <obj> <list>)`
 
 
 
@@ -1413,33 +1413,33 @@ Other primitives of this nature include:<br>
 2. __Mutating Push Object to Vector__: `(vector-push! <vector> <obj>)`
 
 3. __Generate Numeric Vector__: Generate `<count>` objects, from `<start>` & incrementing w/ `<step>`
-  * `<optional-start-number>` defaults to `0`
-  * `<optional-step-number>` defaults to `1`
-  * `(vector-iota <count> <optional-start-number> <optional-step-number>)`
+   * `<optional-start-number>` defaults to `0`
+   * `<optional-step-number>` defaults to `1`
+   * `(vector-iota <count> <optional-start-number> <optional-step-number>)`
 
 4. __Unfold__: Form a vector by mapping & incrementing seed, until `<break-condition>` is true
-  * _Note: **map** via `<map-procedure>`, **increment** via `<successor-procedure>`_
-  * `(vector-unfold <break-condition> <map-procedure> <successor-procedure> <seed>)`
+   * _Note: **map** via `<map-procedure>`, **increment** via `<successor-procedure>`_
+   * `(vector-unfold <break-condition> <map-procedure> <successor-procedure> <seed>)`
 
 5. __Unfold Right__: Form a vector by mapping right & incrementing seed, until `<break-condition>` is true
-  * _Note: **map** via `<map-procedure>`, **increment** via `<successor-procedure>`_
-  * `(vector-unfold-right <break-condition> <map-procedure> <successor-procedure> <seed>)`
+   * _Note: **map** via `<map-procedure>`, **increment** via `<successor-procedure>`_
+   * `(vector-unfold-right <break-condition> <map-procedure> <successor-procedure> <seed>)`
 
 6. __Grow a Vector__: Generate a new vector w/ same elts and new size
-  * `(vector-grow <vector> <size>)`
+   * `(vector-grow <vector> <size>)`
 
 7. __Empty Vector Predicate__: `(vector-empty? <vector>)`
 
 8. __Copy Vector__: Copy `<source-vector>` to `<target-vector>` from `<target-start-idx>`
-  * `(vector-copy! <target-vector> <target-start-idx> <source-vector>)`
+   * `(vector-copy! <target-vector> <target-start-idx> <source-vector>)`
 
 9. __Swap Vector Pointers__: `(vector-swap! <vector1> <vector2>)`
 
 10. __Vector Binary Search__: `(vector-binary-search <vector> <value> <3-way-comparison>)`
-  * _Suppose values a & b:_
-    - a < b: `(<3-way-comparison> a b)` < 0
-    - a = b: `(<3-way-comparison> a b)` = 0
-    - a > b: `(<3-way-comparison> a b)` > 0
+    * _Suppose values a & b:_
+      - a < b: `(<3-way-comparison> a b)` < 0
+      - a = b: `(<3-way-comparison> a b)` = 0
+      - a > b: `(<3-way-comparison> a b)` > 0
 
 
 
@@ -1457,28 +1457,28 @@ Other primitives of this nature include:<br>
 4. __Mutating Reverse Sequence__: `(reverse! <sequence>)`
 
 5. __Fold__: Accumulate sequence from left to right, starting with `<seed>` using `<procedure>`
-  * `(fold <procedure> <seed> <sequence1> <sequence2> ...)`
+   * `(fold <procedure> <seed> <sequence1> <sequence2> ...)`
 
 6. __Fold Right__: Accumulate sequence from right to left, starting with `<seed>` using `<procedure>`
-  * `(fold-right <procedure> <seed> <sequence1> <sequence2> ...)`
+   * `(fold-right <procedure> <seed> <sequence1> <sequence2> ...)`
 
 7. __Map__: Apply `<procedure>` to each elt in each sequence, forming a sequence of results
-  * `(map <procedure> <sequence1> <sequence2> ...)`
+   * `(map <procedure> <sequence1> <sequence2> ...)`
 
 8. __Mutating Map__: Apply `<procedure>` to each elt in each sequence, mapping on the 1st sequence
-  * `(map! <procedure> <sequence1> <sequence2> ...)`
+   * `(map! <procedure> <sequence1> <sequence2> ...)`
 
 9. __Filter__: Form a sequence of elts from `<sequence>` satisfying `<predicate?>`
-  * `(filter <predicate?> <sequence>)`
+   * `(filter <predicate?> <sequence>)`
 
 10. __For Each__: Apply `<procedure>` to each elt of each `<sequence>`
-  * `(for-each <procedure> <sequence1> <sequence2> ...)`
+    * `(for-each <procedure> <sequence1> <sequence2> ...)`
 
 11. __Copy__: Generate a freshly allocated copy of `<sequence>`
-  * `(copy <sequence>)`
+    * `(copy <sequence>)`
 
 12. __Mutating Copy__: Copy `<source-sequence>` to `<dest-sequence>`
-  * `(copy! <dest-sequence> <source-sequence>)`
+    * `(copy! <dest-sequence> <source-sequence>)`
 
 13. __Count Elts With a Property__: `(count <predicate?> <sequence>)`
 
@@ -1541,7 +1541,7 @@ Other primitives of this nature include:<br>
 42. __Confirm All Sequences Satisfy `<predicate?>`__: `(every <predicate?> <sequence1> <sequence2> ...)`
 
 43. __Generic `cons`__: `cons` for lists, a copying `push-back` for strings & vectors
-  * `(conj <obj> <sequence>)`
+    * `(conj <obj> <sequence>)`
 
 44. __Identity__: `(id <obj>)`
 
@@ -1618,16 +1618,16 @@ Other primitives of this nature include:<br>
 ------------------------
 ## Eval/Apply, Symbol-Append, & Typeof:
 0. __Eval__: Run quoted data as code
-  * `(eval <data> <optional-environment>)`
-  * _Pass `'null-environment` to `eval` in the empty environment!_
-  * _Pass `'local-environment` to `eval` in the local environment!_
-  * _Pass `'global-environment` to `eval` in the global environment (default)!_
+   * `(eval <data> <optional-environment>)`
+   * _Pass `'null-environment` to `eval` in the empty environment!_
+   * _Pass `'local-environment` to `eval` in the local environment!_
+   * _Pass `'global-environment` to `eval` in the global environment (default)!_
 
 1. __Cps-Eval__: Alternative to `eval` for [`scm->cps`](#Scm-Cps) blocks (evals in CPS)!
-  * `(cps-eval <data> <optional-environment> <continuation>)`
-  * _Pass `'null-environment` to `cps-eval` in the empty environment!_
-  * _Pass `'local-environment` to `cps-eval` in the local environment (default)!_
-  * _Pass `'global-environment` to `cps-eval` in the global environment!_
+   * `(cps-eval <data> <optional-environment> <continuation>)`
+   * _Pass `'null-environment` to `cps-eval` in the empty environment!_
+   * _Pass `'local-environment` to `cps-eval` in the local environment (default)!_
+   * _Pass `'global-environment` to `cps-eval` in the global environment!_
 
 2. __Apply `<procedure>` to List of Args__: `(apply <procedure> <argument-list>)`
 
@@ -1650,7 +1650,7 @@ Other primitives of this nature include:<br>
 0. __Char to Integer__: `(char->int <char>)`
 
 1. __Integer to Char__: `<int>` must be in range of [0,255]
-  * `(int->char <int>)`
+   * `(int->char <int>)`
 
 2. __Number to String__: `(number->string <number> <optional-radix> <optional-precision>)`
 
@@ -1677,8 +1677,8 @@ Other primitives of this nature include:<br>
 ------------------------
 ## Output Procedures:
 0. __Pretty-Print (Indents Quoted Data)__: 
-  * `(pretty-print <obj> <optional-open-output-port-or-string>)`
-  * `(pprint <obj> <optional-open-output-port-or-string>)`
+   * `(pretty-print <obj> <optional-open-output-port-or-string>)`
+   * `(pprint <obj> <optional-open-output-port-or-string>)`
 
 1. __Write (Machine-Readable)__: `(write <obj> <optional-open-output-port-or-string>)`
 
@@ -1693,7 +1693,7 @@ Other primitives of this nature include:<br>
 ------------------------
 ## Input Procedures:
 0. __Read__: Get input as a quoted Datum
-  * `(read <optional-open-input-port-or-string>)`
+   * `(read <optional-open-input-port-or-string>)`
 
 1. __Read Next Expression Into a String__: `(read-string <optional-open-input-port-or-string>)`
 
@@ -1746,30 +1746,30 @@ Other primitives of this nature include:<br>
 ------------------------
 ## System Interface Procedures:
 0. __Load__: `(load <filename-string> <optional-environment>)`
-  * _Pass `'null-environment` to `load` in the empty environment!_
-  * _Pass `'local-environment` to `load` in the local environment!_
-  * _Pass `'global-environment` to `load` in the global environment (default)!_
+   * _Pass `'null-environment` to `load` in the empty environment!_
+   * _Pass `'local-environment` to `load` in the local environment!_
+   * _Pass `'global-environment` to `load` in the global environment (default)!_
 
 1. __Cps-Load__: `(cps-load <filename-string> <optional-environment> <continuation-procedure>)`
-  * _Alternative to `load` for [`scm->cps`](#Scm-Cps) blocks (converts file to CPS prior loading)!_
-  * _Pass `'null-environment` to `cps-load` in the empty environment!_
-  * _Pass `'local-environment` to `cps-load` in the local environment (default)!_
-  * _Pass `'global-environment` to `cps-load` in the global environment!_
+   * _Alternative to `load` for [`scm->cps`](#Scm-Cps) blocks (converts file to CPS prior loading)!_
+   * _Pass `'null-environment` to `cps-load` in the empty environment!_
+   * _Pass `'local-environment` to `cps-load` in the local environment (default)!_
+   * _Pass `'global-environment` to `cps-load` in the global environment!_
 
 2. __System Interface Via Command-Line__: Returns `#f` if feature not offered by OS
-  * `(system <optional-system-call-string>)`
+   * `(system <optional-system-call-string>)`
 
 3. __Get-Environment__: Get variable's value as a string
-  * `(getenv <variable-name-string>)`
+   * `(getenv <variable-name-string>)`
 
 4. __Command-Line Args__: Get a string with command-line arg descriptions
-  * `(command-line)`
+   * `(command-line)`
 
 5. __Current Working Directory__: Get a string of the current working directory
-  * `(getcwd)`
+   * `(getcwd)`
 
 6. __Get Parent Directory__: Given a filepath string, get a string of its parent directory
-  * `(dirname <filepath-string>)`
+   * `(dirname <filepath-string>)`
 
 7. __Compile a File__: `(compile <filename-string> <optional-compiled-filename>)`
 
@@ -1804,11 +1804,11 @@ Other primitives of this nature include:<br>
 2. __Trigger Syntax Error__: `(syntax-error <errorful-obj-symbol> <error-string> <optional-errorful-objs>)`
 
 3. __Call With Current Environment__: 
-  * `(call/ce <procedure> <arg1> ... <argN>)`
-  * `(call-with-current-environment <procedure> <arg1> ... <argN>)`
+   * `(call/ce <procedure> <arg1> ... <argN>)`
+   * `(call-with-current-environment <procedure> <arg1> ... <argN>)`
 
 4. __Inline Call__: "deep" call/ce
-  * `(inline <procedure> <arg1> ... <argN>)`
+   * `(inline <procedure> <arg1> ... <argN>)`
 
 5. __Jump/Throw Value__: `(jump! <optional-arg>)`
 
@@ -1825,22 +1825,22 @@ Other primitives of this nature include:<br>
 0. __Generate a Unique Symbol__: `(gensym <optional-instance-#-to-reference>)`
 
 1. __Generate a Seeded Symbol__: `(sown-gensym <seed>)`
-  * `<seed>` = number | char | symbol | boolean
+   * `<seed>` = number | char | symbol | boolean
 
 
 
 ------------------------
 ## Scm->Cps Procedures:
 0. __Call With Current Continuation__: 
-  * `(call/cc <unary-continuation-procedure>)`
-  * `(call-with-current-continuation <unary-continuation-procedure>`
+   * `(call/cc <unary-continuation-procedure>)`
+   * `(call-with-current-continuation <unary-continuation-procedure>`
 
 1. __Cps->Scm__: Bind `id` as procedure's "topmost" continuation
-  * _Note: To pass procs defined **in** a [`scm->cps`](#Scm-Cps) block as an arg to a proc defined **out** of [`scm->cps`](#Scm-Cps)_
-  * `(cps->scm <procedure>)`
-    - _Hence programs written in and out of [`scm->cps`](#Scm-Cps) blocks may interop!_
-    - _BEWARE: primitives are defined **OUT** of a [`scm->cps`](#Scm-Cps) block!_
-      - _Hence wrap `cps->scm` around procs being passed to them as args when in a [`scm->cps`](#Scm-Cps) block!_
+   * _Note: To pass procs defined **in** a [`scm->cps`](#Scm-Cps) block as an arg to a proc defined **out** of [`scm->cps`](#Scm-Cps)_
+   * `(cps->scm <procedure>)`
+     - _Hence programs written in and out of [`scm->cps`](#Scm-Cps) blocks may interop!_
+     - _BEWARE: primitives are defined **OUT** of a [`scm->cps`](#Scm-Cps) block!_
+       - _Hence wrap `cps->scm` around procs being passed to them as args when in a [`scm->cps`](#Scm-Cps) block!_
 
 
 
@@ -1852,12 +1852,22 @@ Other primitives of this nature include:<br>
 1. __Runtime-Syntax?__: Determine if a symbol was defined by [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax)
    * `(runtime-syntax? <symbol>)`
 
-2. __Mutate Core Syntax__: `(set-core-syntax! <old-name-symbol> <optional-new-name-symbol>)`
+2. __Reader-Syntax?__: Determine if a symbol was defined by [`define-reader-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax)
+   * `(reader-syntax? <string>)`
+   * Must be a string to avoid expansion by the reader if **IS** syntax!
+
+3. __Define Reader Shorthand Syntax__: 
+   * `(define-reader-syntax <shorthand-string> <optional-longhand-string>)`
+   * Have the reader expand `<shorthand-string>` around objects into `<longhand-string>`
+     - _Internally, `'` works as if interpreted `(define-reader-syntax "'" "quote")`_
+     - _Leaving out `<optional-longhand-string>` rms `<shorthand-string>` reader macro & returns if found_
+
+4. __Mutate Core Syntax__: `(set-core-syntax! <old-name-symbol> <optional-new-name-symbol>)`
    * Only old name: ___DELETES___ `<old-name-symbol>` as core-syntax
    * Both old & new name: ___RENAMES___ syntax's old name to new name
      - _NOTE: also recursively renames all recursive calls to the macro in its templates!_
 
-3. __Mutate Runtime Syntax__: `(set-runtime-syntax! <old-name-symbol> <optional-new-name-symbol>)`
+5. __Mutate Runtime Syntax__: `(set-runtime-syntax! <old-name-symbol> <optional-new-name-symbol>)`
    * Only old name: ___DELETES___ `<old-name-symbol>` as runtime-syntax
    * Both old & new name: ___RENAMES___ syntax's old name to new name
      - _NOTE: also recursively renames all recursive calls to the macro in its templates!_

@@ -158,105 +158,141 @@ namespace heist {
   }
 
   /******************************************************************************
-  * READER QUOTE EXPANSION
+  * READER MACROS & QUOTE EXPANSION
   ******************************************************************************/
 
-  // Return size of expandable quotation, hence 0 if NOT expandable
-  constexpr int is_expandable_quotation(const char& c, const char& c2) noexcept {
-    return (c==',' && c2=='@') ? 2 : (c=='\'' || c=='`' || c==','); 
+  // Reader macro identification / error-checking helpers
+  bool input_begins_with_prefix(const scm_string& prefix, const scm_string& input, const size_type i)noexcept{
+    return input.size()-i-1 >= prefix.size() && input.compare(i,prefix.size(),prefix) == 0;
   }
 
-  // Return the expanded prefix of the given quotation shorthand
-  constexpr const char* expanded_quote_prefix(const char& c, const int& expandable_length) noexcept {
-    return c=='\'' ? "(quote " : c=='`' ? "(quasiquote " : 
-            expandable_length==2 ? "(unquote-splicing " : "(unquote ";
+  size_type is_expandable_reader_macro(const scm_string& input, const size_type i)noexcept{
+    for(size_type j = 0, n = G::SHORTHAND_READER_MACRO_REGISTRY.size(); j < n; ++j)
+      if(input_begins_with_prefix(G::SHORTHAND_READER_MACRO_REGISTRY[j],input,i))
+        return j;
+    return G::MAX_SIZE_TYPE;
   }
 
-  // Return "(quote ".size(), "(quasiquote ".size(), "(unquote-splicing ".size(), 
-  //   or "(unquote ".size() based on the current prefix
-  constexpr size_type quote_prefix_length(const char& c, const int& expandable_length) noexcept {
-    return c=='\'' ? 7 : c=='`' ? 12 : expandable_length==2 ? 18 : 9; 
+  void check_for_improper_reader_macro_use(char c) {
+    if(!c)                throw READER_ERROR::quoted_end_of_buffer;
+    if(IS_CLOSE_PAREN(c)) throw READER_ERROR::quoted_end_of_expression;
+    if(isspace(c))        throw READER_ERROR::quoted_space;
   }
 
-  // Expands quoted shorthand: '<exp>  => (quote <exp>)
-  //                           `<exp>  => (quasiquote <exp>)
-  //                           ,<exp>  => (unquote <exp>)
-  //                           ,@<exp> => (unquote-splicing <exp>)
+
+  // Reader macro expansion helpers
+  void expand_reader_macro(scm_string& input, size_type& i, size_type after_macro_idx, const size_type& macro_idx)noexcept{
+    input.insert(after_macro_idx,")"); // insert quote after string literal
+    input.erase(i,G::SHORTHAND_READER_MACRO_REGISTRY[macro_idx].size()); // erase shorthand
+    input.insert(i,'(' + G::LONGHAND_READER_MACRO_REGISTRY[macro_idx] + ' '); // add longhand
+    i += 1 + G::LONGHAND_READER_MACRO_REGISTRY[macro_idx].size(); // mv past longhand
+  }
+
+  void expand_around_string_literal(scm_string& input, size_type& i, const size_type& macro_idx, size_type after_macro_idx)noexcept{
+    skip_string_literal(after_macro_idx,input);
+    expand_reader_macro(input,i,after_macro_idx+1,macro_idx);
+  }
+
+  void expand_around_char_literal(scm_string& input, size_type& i, const size_type& macro_idx, size_type after_macro_idx)noexcept{
+    after_macro_idx += 3;
+    const size_type n = input.size();
+    while(after_macro_idx < n && !IS_END_OF_WORD(input[after_macro_idx],input[after_macro_idx+1])) 
+      ++after_macro_idx;
+    expand_reader_macro(input,i,after_macro_idx,macro_idx);
+  }
+
+  void expand_around_expression_literal(scm_string& input, size_type& i, const size_type& macro_idx, size_type after_macro_idx)noexcept{
+    after_macro_idx += 1;
+    const size_type n = input.size();
+    size_type paren_count = 1;
+    while(after_macro_idx < n && paren_count) {
+      if(is_non_char_open_paren(after_macro_idx,input))       ++paren_count;
+      else if(is_non_char_close_paren(after_macro_idx,input)) --paren_count;
+      ++after_macro_idx;
+    }
+    expand_reader_macro(input,i,after_macro_idx,macro_idx);
+  }
+
+  void expand_around_symbol_or_number_literal(scm_string& input, size_type& i, const size_type& macro_idx, size_type after_macro_idx)noexcept{
+    ++after_macro_idx;
+    while(!IS_END_OF_WORD(input[after_macro_idx],input[after_macro_idx+1]))
+      ++after_macro_idx;
+    expand_reader_macro(input,i,after_macro_idx,macro_idx);
+  }
+
+
+  // Returns whether expanded around a literal -- READER MACRO EXPANSION MAIN DISPATCH
+  bool expand_around_literal(scm_string& input, size_type& i, const size_type& macro_idx, size_type after_macro_idx)noexcept{
+    // expanding around string literal
+    if(input[after_macro_idx] == '"') {
+      expand_around_string_literal(input,i,macro_idx,after_macro_idx);
+      return true;
+    }
+    // expanding around char literal
+    if(input[after_macro_idx] == '#' && input[1+after_macro_idx] == '\\') {
+      expand_around_char_literal(input,i,macro_idx,after_macro_idx);
+      return true;
+    }
+    // expanding around expression literal
+    if(IS_OPEN_PAREN(input[after_macro_idx])) {
+      expand_around_expression_literal(input,i,macro_idx,after_macro_idx);
+      return true;
+    }
+    return false;
+  }
+
+
+  // Expands around a nested reader macro
+  void expand_around_nested_reader_macros(scm_string& input, size_type& i, const size_type& macro_idx, size_type after_macro_idx){
+    // Confirm proper nested reader macro use
+    check_for_improper_reader_macro_use(input[after_macro_idx]);
+    // Try expanding around a literal
+    if(expand_around_literal(input,i,macro_idx,after_macro_idx)) return;
+    // Else, expand around a symbol
+    expand_around_symbol_or_number_literal(input,i,macro_idx,after_macro_idx);
+  }
+
+
+  // Returns length of nested reader macros AFTER the current reader macro (0 if none)
+  size_type is_nested_reader_macro(const scm_string& input, const size_type& i, const size_type& macro_idx)noexcept{
+    size_type after_macro_idx = i + G::SHORTHAND_READER_MACRO_REGISTRY[macro_idx].size();
+    size_type nested_macro_idx = is_expandable_reader_macro(input,after_macro_idx);
+    if(nested_macro_idx == G::MAX_SIZE_TYPE) return 0; // reader macro not found
+    size_type nested_macro_length = G::SHORTHAND_READER_MACRO_REGISTRY[nested_macro_idx].size();
+    while((nested_macro_idx = is_expandable_reader_macro(input,after_macro_idx+nested_macro_length)) != G::MAX_SIZE_TYPE)
+      nested_macro_length += G::SHORTHAND_READER_MACRO_REGISTRY[nested_macro_idx].size();
+    return nested_macro_length;
+  }
+
+
+  // Expands reader macro shorthands: '<exp>  => (quote <exp>)
   // => NOTE: Recusively expands sequential quotations from right to left
   //          - IE: '''a = (quote (quote (quote a)))
-  void expand_quoted_data(scm_string& input) {
-    // Trackers for the outermost quote & remaining quotes to expand
-    //   => IE sequential-quote recursive-expansion helper variables
-    size_type outermost_quote = 0, recusive_quotations = 0;
-    int expandable_length = 0; // Tracker for the last expanded quote's length
-
+  void expand_reader_macro_shorthands(scm_string& input) {
     for(size_type i = 0; i < input.size(); ++i) {
-      // dont expand quotes w/in strings
+      // Don't expand reader macros in string or char literals
       if(is_non_escaped_double_quote(i,input)) {
         skip_string_literal(i,input); 
+        continue; // dont expand quotes/reader-macros w/in strings
+      } else if(i >= 2 && input[i-1] == '\\' && input[i-2] == '#') {
+        continue; // dont expand quotes/reader-macros as part of a char literal
+      }
+      // Determine if at a reader macro/quote
+      size_type macro_idx = is_expandable_reader_macro(input,i);
+      if(macro_idx == G::MAX_SIZE_TYPE) continue; // reader macro not found
+      // Confirm proper reader macro use
+      size_type after_macro_idx = i + G::SHORTHAND_READER_MACRO_REGISTRY[macro_idx].size();
+      check_for_improper_reader_macro_use(input[after_macro_idx]);
+      size_type nested_macro_length = 0;
+      // Expand around char/string/expression literal
+      if(expand_around_literal(input,i,macro_idx,after_macro_idx)) continue;
+      // Expand around nested reader macros
+      if((nested_macro_length = is_nested_reader_macro(input,i,macro_idx))) {
+        expand_around_nested_reader_macros(input,i,macro_idx,after_macro_idx+nested_macro_length);
         continue;
       }
-      
-      // Recursively expand the rest of the quotes, from right to left
-      if(recusive_quotations) {
-        recusive_quotations -= expandable_length;  // account for addressing this quote
-        i = outermost_quote + recusive_quotations; // mv to the next quote on the right
-        if(input[i] == '@') --i;                   // mv back to the , in ,@ as needed
-        goto quote_expansion_start;                // :P
-      }
-
-      // If not recursively expanding a quotation series, get the length of the 
-      //   current quotation (if exists)
-      expandable_length = is_expandable_quotation(input[i],input[i+1]);
-
-      // if at a non-char ' ` , ,@ (IE _NOT_ at the ' in #\')
-      if(expandable_length && (i < 2 || input[i-1] != '\\' || input[i-2] != '#')) {
-        if(!input[i+1])                     throw READER_ERROR::quoted_end_of_buffer;
-        else if(IS_CLOSE_PAREN(input[i+1])) throw READER_ERROR::quoted_end_of_expression;
-        else if(isspace(input[i+1]))        throw READER_ERROR::quoted_space;
-
-        // Recursively expand sequential-quotes from right to left
-        if(input[i+expandable_length] && 
-          is_expandable_quotation(input[i+expandable_length],input[i+expandable_length+1])) {
-          outermost_quote = i;     // save the outermost quote's position
-          recusive_quotations = 0; // count the total recursive quotations
-          int quote_length = 0;    // recusive expandable quotation length counter
-          i += expandable_length;
-          while((quote_length = is_expandable_quotation(input[i],input[i+1]))) 
-            recusive_quotations += quote_length, i += quote_length;
-          i -= 1+(input[i-1]=='@'); // mv back so input[i] = the rightmost ' ` ,
-        }
-
-      quote_expansion_start:
-
-        // assign expansion length to that of the rightmost (and current) quote expansion
-        expandable_length = is_expandable_quotation(input[i],input[i+1]); 
-        // make the quotation explicit
-        const char quote_ch = input[i];
-        input.insert(i,expanded_quote_prefix(quote_ch,expandable_length)); // insert expanded prefix
-        i += quote_prefix_length(quote_ch,expandable_length);              // mv past expanded prefix
-        input.erase(i, expandable_length);                                 // rm "'" "`" "," ",@"
-        // insert closing ')' after the quoted expression (quote <exp>)
-        size_type j = i + (IS_OPEN_PAREN(input[i]));
-        const size_type n = input.size();
-        if(IS_OPEN_PAREN(input[i])) {
-          size_type paren_count = 1;
-          while(j < n && paren_count) {
-            if(is_non_char_open_paren(j,input))       ++paren_count;
-            else if(is_non_char_close_paren(j,input)) --paren_count;
-            ++j;
-          }
-        // insert closing ')' after the quoted atom
-        } else if(is_non_escaped_double_quote(j,input)) { // quote string literal
-          skip_string_literal(j,input), ++j;
-        } else {
-          // if quoting a char mv past 1st 3 symbols to not trigger 'IS_END_OF_WORD'
-          if(input[j] == '#' && input[j+1] == '\\') j += 3; 
-          while(j < n && !IS_END_OF_WORD(input[j],input[j+1])) ++j;
-          --i; // move prior 1st char of quotation, in case of double-quoting (ie ''A)
-        }
-        input.insert(j,")"); // add the closing paren after the expanded quotation.
-      }
+      // Expand around symbol or number literal
+      expand_around_symbol_or_number_literal(input,i,macro_idx,after_macro_idx);
     }
   }
 
@@ -481,8 +517,8 @@ namespace heist {
     if(input.empty() || !confirm_valid_scm_expression(input)) return false;
     strip_comments_and_redundant_whitespace(input);
     if(!G::USING_CASE_SENSITIVE_SYMBOLS) render_input_cAsE_iNsEnSiTiVe(input);
-    expand_vector_literals(input); // #(<exp>) => (vector-literal <exp>)
-    expand_quoted_data(input);     // '<exp>    => (quote <exp>)
+    expand_vector_literals(input);         // #(<exp>) => (vector-literal <exp>)
+    expand_reader_macro_shorthands(input); // '<exp>   => (quote <exp>)
     return true;
   }
 
