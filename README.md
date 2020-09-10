@@ -584,7 +584,7 @@ Other primitives of this nature include:<br>
 
 #### Use: ___Temporary Bindings in a New Scope!___
 
-#### Forms (`<arg-binding>` = `(<name> <value>)`):
+#### Forms, `<arg-binding>` = `(<name> <value>)`:
 0. Nameless: `(let (<arg-binding1> ... <arg-bindingN>) <body> ...)`
 1. Named: `(let <name> (<arg-binding1> ... <arg-bindingN>) <body> ...)`
 
@@ -614,7 +614,8 @@ Other primitives of this nature include:<br>
 
 #### Use: ___Let with Bindings in Terms of One Another!___
 
-#### Form: `(let* (<arg-binding1> ... <arg-bindingN>) <body> ...)`, `<arg-binding>` = `(<name> <value>)`
+#### Form: `(let* (<arg-binding1> ... <arg-bindingN>) <body> ...)`
+* `<arg-binding>` = `(<name> <value>)`
 
 #### Derivation Using [`let`](#let):
 ```scheme
@@ -635,7 +636,8 @@ Other primitives of this nature include:<br>
 
 #### Use: ___Let with Recursive Bindings!___
 
-#### Form: `(letrec (<arg-binding1> ... <arg-bindingN>) <body> ...)`, `<arg-binding>` = `(<name> <value>)`
+#### Form: `(letrec (<arg-binding1> ... <arg-bindingN>) <body> ...)`
+* `<arg-binding>` = `(<name> <value>)`
 
 #### Derivation Using [`let`](#let):
 ```scheme
@@ -1852,7 +1854,7 @@ Other primitives of this nature include:<br>
 1. __Runtime-Syntax?__: Determine if a symbol was defined by [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax)
    * `(runtime-syntax? <symbol>)`
 
-2. __Reader-Syntax?__: Determine if a symbol was defined by [`define-reader-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax)
+2. __Reader-Syntax?__: Determine if a symbol was defined by `define-reader-syntax`
    * `(reader-syntax? <string>)`
    * Must be a string to avoid expansion by the reader if **IS** syntax!
 
