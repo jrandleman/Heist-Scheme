@@ -1878,13 +1878,6 @@ Other primitives of this nature include:<br>
    ;; Ex 3:
    ((lambda () 
       (define-reader-syntax "%" "display")
-      %1)) ; ERROR (%1 not defined!): This entire expression is read prior the
-           ; `(define-reader-syntax "%" "display")` was evaluated!
-           ; => Hence `%1` didn't expand to `(display 1)` by the reader
-   
-   ;; Ex 3:
-   ((lambda () 
-      (define-reader-syntax "%" "display")
       %1)) ; ERROR (%1 not defined!): `%1` got read in the same expression as
            ; `(define-reader-syntax "%" "display")` before the definition was evaluated!
            ; >>> Hence `%1` didn't get expanded to `(display 1)` by the reader!
