@@ -274,8 +274,8 @@ namespace heist {
       if(is_non_escaped_double_quote(i,input)) {
         skip_string_literal(i,input); 
         continue; // dont expand quotes/reader-macros w/in strings
-      } else if(i >= 2 && input[i-1] == '\\' && input[i-2] == '#') {
-        continue; // dont expand quotes/reader-macros as part of a char literal
+      } else if(i+1 < input.size() && input[i] == '#' && input[i+1] == '\\') {
+        i += 2; continue; // dont expand quotes/reader-macros as part of a char literal
       }
       // Determine if at a reader macro/quote
       size_type macro_idx = is_expandable_reader_macro(input,i);
