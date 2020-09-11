@@ -1685,7 +1685,7 @@ Other primitives of this nature include:<br>
 
 1. __Write (Machine-Readable)__: `(write <obj> <optional-open-output-port-or-string>)`
 
-2. __Display (Human-Readable)__: `(<obj> <optional-open-output-port-or-string>)`
+2. __Display (Human-Readable)__: `(display <obj> <optional-open-output-port-or-string>)`
 
 3. __Newline__: `(newline <optional-open-output-port-or-string>)`
 
