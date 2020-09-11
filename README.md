@@ -1882,7 +1882,6 @@ Other primitives of this nature include:<br>
       %1)) ; ERROR (%1 not defined!): `%1` got read in the same expression as
            ; `(define-reader-syntax "%" "display")` before the definition was evaluated!
            ; >>> Hence `%1` didn't get expanded to `(display 1)` by the reader!
-
    ```
 
 4. __Mutate Core Syntax__: `(set-core-syntax! <old-name-symbol> <optional-new-name-symbol>)`
