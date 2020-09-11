@@ -208,6 +208,7 @@ namespace heist {
     while(after_macro_idx < n && paren_count) {
       if(is_non_char_open_paren(after_macro_idx,input))       ++paren_count;
       else if(is_non_char_close_paren(after_macro_idx,input)) --paren_count;
+      else if(is_non_escaped_double_quote(after_macro_idx,input)) skip_string_literal(after_macro_idx,input);
       ++after_macro_idx;
     }
     expand_reader_macro(input,i,after_macro_idx,macro_idx);
