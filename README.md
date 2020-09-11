@@ -890,9 +890,9 @@ Other primitives of this nature include:<br>
 4. Analysis (get quoted list of `<member>` names): `(<name>>slots)`
 5. Method-Generator: `(defmethod-<name> (<method-name> <arg1> <arg2>) <body> ...)`
    - Advantages of Methods Over Procedures:
-     0. `<object>` argument is automatically defined as `this`
-     1. Member setters don't need the object or struct name in their invocation
-     2. Member setters may be invoked just by using the member name
+     1. `<object>` argument is automatically defined as `this`
+     2. Member setters don't need the object or struct name in their invocation
+     3. Member setters may be invoked just by using the member name
    - Example:
    ```scheme
    (defstruct student name id) 
