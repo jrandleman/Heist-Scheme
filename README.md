@@ -18,7 +18,7 @@
 
 ------------------------
 # Features:
-0. Hygienic Macros
+0. Hygienic & Reader Macros
 1. Tail-Call Optimization
 2. Opt-In Dynamic Scoping (see the [`call/ce`](#control-flow-procedures) & [`inline`](#control-flow-procedures) application primitives)
 3. Opt-In Continuations & [`call/cc`](#Scm-Cps-Procedures)
