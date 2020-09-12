@@ -879,6 +879,69 @@ Other primitives of this nature include:<br>
 
 #### Form: `(scm->cps <exp1> <exp2> ...)`
 
+#### Coroutine Example Using [`call/cc`](#scm-cps-procedures):
+```scheme
+((scm->cps
+  (define (make-queue) (cons '() '()))
+
+  (define (enqueue! queue obj)
+    (let ((lobj (list obj)))
+      (if (null? (car queue))
+          (begin
+            (set-car! queue lobj)
+            (set-cdr! queue lobj))
+          (begin
+            (set-cdr! (cdr queue) lobj)
+            (set-cdr! queue lobj)))
+            (car queue)))
+   
+  (define (dequeue! queue)
+    (let ((obj (caar queue)))
+      (set-car! queue (cdar queue))
+      obj))
+
+  ;;;; coroutine   
+  (define process-queue (make-queue))
+
+  (define (coroutine thunk)
+    (enqueue! process-queue thunk))
+
+  (define (start)
+     ((dequeue! process-queue)))
+     
+  (define (pause)
+    (call/cc
+     (lambda (k)
+       (coroutine (lambda () (k #f)))
+       (start))))
+
+  ;;;; example prints alternating ints & chars
+  (coroutine (lambda ()
+    (let loop ((i 0)) 
+      (if (< i 26)
+          (begin
+            (display (+ 1 i)) ; print #
+            (display " ") 
+            (pause) ; pause coroutine to print a char
+            (loop (+ 1 i)))))))
+       
+  (coroutine (lambda ()
+    (let loop ((i 0)) 
+      (if (< i 26)
+          (begin
+            (display (int->char (+ i 65))) ; print char
+            (display " ")
+            (pause) ; pause coroutine to print a #
+            (loop (+ 1 i)))))))
+
+  (newline)
+  (start)) id)
+```
+##### Outputs:
+```
+1 A 2 B 3 C 4 D 5 E 6 F 7 G 8 H 9 I 10 J 11 K 12 L 13 M 14 N 15 O 16 P 17 Q 18 R 19 S 20 T 21 U 22 V 23 W 24 X 25 Y 26 Z
+```
+
 
 ------------------------
 ## Defstruct:
