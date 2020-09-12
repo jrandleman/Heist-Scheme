@@ -3243,11 +3243,11 @@ namespace heist {
     }
 
 
-    bool input_ends_with_reader_macro_or_quote(const scm_string& input)noexcept{
+    size_type input_ends_with_reader_macro_or_quote(const scm_string& input)noexcept{
       for(const auto& reader_macro_shorthand : G::SHORTHAND_READER_MACRO_REGISTRY)
         if(input_ends_with_postfix(reader_macro_shorthand,input))
-          return true;
-      return false;
+          return reader_macro_shorthand.size();
+      return 0;
     }
 
 
@@ -3282,7 +3282,7 @@ namespace heist {
       // Not improper ending -> false
       if(!IS_CLOSE_PAREN(last_ch) && !isspace(last_ch)) return false;
       input.pop_back(); // rm last char to check for quote/reader-macro
-      auto ends_with_reader_macro_or_quote = input_ends_with_reader_macro_or_quote(input);
+      bool ends_with_reader_macro_or_quote = input_ends_with_reader_macro_or_quote(input);
       input.push_back(last_ch); // add last char back in
       return ends_with_reader_macro_or_quote;
     }
@@ -3326,7 +3326,7 @@ namespace heist {
     bool possible_char = false, confirmed_char=false, parsing_a_char=false;
     bool possible_multi_line_comment_end=false, in_a_single_line_comment=false;
     bool possible_multi_line_comment=false,     in_a_multi_line_comment=false;
-    size_type paren_count = 0;
+    size_type paren_count = 0, macro_length = 0;
     fflush(outs);
     // parse the input port's scheme code
     while((ch = fgetc(ins)) != EOF) {
@@ -3373,7 +3373,20 @@ namespace heist {
       input += ch;
 
       // continue to get the quoted data
-      if(!found_nonquote_data && read_port::input_ends_with_reader_macro_or_quote(input)) continue;
+      if((macro_length = read_port::input_ends_with_reader_macro_or_quote(input))) {
+        // if macro reader symbol is in middle of another symbol (ie e'e)
+        //   return back to the previous non-macro symbol & stop parsing
+        if(!paren_count) {
+          if(input.size() == macro_length) {
+            continue;
+          } else if(!IS_END_OF_WORD(*(input.rbegin()+macro_length),*(input.rbegin()+macro_length-1))) {
+            fseek(ins, -macro_length, SEEK_CUR); // mv "ins" back
+            input.erase(input.size()-macro_length);
+            break;
+          }
+        }
+        continue;
+      }
 
       // skip first char of a char literal
       if(confirmed_char) { confirmed_char=false, parsing_a_char=true; continue; }
