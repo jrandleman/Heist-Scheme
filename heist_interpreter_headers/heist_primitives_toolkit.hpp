@@ -36,6 +36,7 @@ namespace heist {
   exe_type scm_analyze(scm_list&& exp,const bool tail_call=false,const bool cps_block=false);
   scm_list execute_application(scm_list&,scm_list&,env_type&,const bool tail_call=false,const bool inlined=false);
   scm_list execute_application(scm_list&&,scm_list&,env_type&,const bool tail_call=false,const bool inlined=false);
+  size_type is_expandable_reader_macro(const scm_string&, const size_type)noexcept;
   constexpr bool IS_END_OF_WORD(const char& c, const char& c2)noexcept;
   std::pair<chr_type,scm_string> data_is_named_char(const size_type&,const scm_string&)noexcept;
 
@@ -3312,6 +3313,25 @@ namespace heist {
                                                  *(input.rbegin()+2) != '#' || 
                                                  *(input.rbegin()+1) != '\\');
     }
+
+
+    // Confirm input is _not_ made up only of nested reader macros
+    bool found_non_macro_prior_macro(const scm_string& input) {
+      const auto n = input.size();
+      size_type i = n, nested_length = 0;
+      // Skip past to last expression
+      while(i-- > 1) if(IS_END_OF_WORD(input[i-1],input[i])) break;
+      if(i) return false; // #f if symbol didn't start at front of input
+      // Confirm series of symbols = nested reader macros
+      while(i < n) {
+        if((nested_length = is_expandable_reader_macro(input,i))) {
+          i += nested_length;
+        } else {
+          return false;
+        }
+      }
+      return true;
+    }
   } // -- End namespace read_port
 
 
@@ -3376,10 +3396,13 @@ namespace heist {
       if((macro_length = read_port::input_ends_with_reader_macro_or_quote(input))) {
         // if macro reader symbol is in middle of another symbol (ie e'e)
         //   return back to the previous non-macro symbol & stop parsing
+        //   IFF not in the middle of an expression (since only reading 1 
+        //   expression at a time)
+        found_nonquote_data = false; // flags to keep seeking after current macro
         if(!paren_count) {
           if(input.size() == macro_length) {
             continue;
-          } else if(!IS_END_OF_WORD(*(input.rbegin()+macro_length),*(input.rbegin()+macro_length-1))) {
+          } else if(read_port::found_non_macro_prior_macro(input)) {
             fseek(ins, -macro_length, SEEK_CUR); // mv "ins" back
             input.erase(input.size()-macro_length);
             break;
