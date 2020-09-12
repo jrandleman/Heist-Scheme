@@ -4413,6 +4413,14 @@ namespace heist {
     return make_str(std::filesystem::path(*args[0].str).parent_path());
   }
 
+  // Returns a string of the directory leading to the heist interpreter
+  data primitive_HEIST_DIRNAME(scm_list& args) {
+    if(!args.empty())
+      THROW_ERR("'heist-dirname doesn't take any arguments:"
+        "\n     (heist-dirname)" << FCN_ERR("heist-dirname",args));
+    return make_str(HEIST_DIRECTORY_FILE_PATH);
+  }
+
   /******************************************************************************
   * CURRENT TIME PRIMITIVE
   ******************************************************************************/
@@ -5498,15 +5506,16 @@ namespace heist {
     std::make_pair(primitive_OPEN_OUTPUT_FILE,      "open-output-file"),
     std::make_pair(primitive_CLOSE_PORT,            "close-port"),
 
-    std::make_pair(primitive_LOAD,         "load"),
-    std::make_pair(primitive_CPS_LOAD,     "heist:core:pass-continuation-cps-load"),
-    std::make_pair(primitive_SYSTEM,       "system"),
-    std::make_pair(primitive_GETENV,       "getenv"),
-    std::make_pair(primitive_COMMAND_LINE, "command-line"),
-    std::make_pair(primitive_COMPILE,      "compile"),
-    std::make_pair(primitive_CPS_COMPILE,  "cps-compile"),
-    std::make_pair(primitive_GETCWD,       "getcwd"),
-    std::make_pair(primitive_DIRNAME,      "dirname"),
+    std::make_pair(primitive_LOAD,          "load"),
+    std::make_pair(primitive_CPS_LOAD,      "heist:core:pass-continuation-cps-load"),
+    std::make_pair(primitive_SYSTEM,        "system"),
+    std::make_pair(primitive_GETENV,        "getenv"),
+    std::make_pair(primitive_COMMAND_LINE,  "command-line"),
+    std::make_pair(primitive_COMPILE,       "compile"),
+    std::make_pair(primitive_CPS_COMPILE,   "cps-compile"),
+    std::make_pair(primitive_GETCWD,        "getcwd"),
+    std::make_pair(primitive_DIRNAME,       "dirname"),
+    std::make_pair(primitive_HEIST_DIRNAME, "heist-dirname"),
 
     std::make_pair(primitive_SECONDS_SINCE_EPOCH, "seconds-since-epoch"),
 
