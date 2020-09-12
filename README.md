@@ -41,7 +41,7 @@
 1. [Heist Command-Line Flags](#Heist-Command-Line-Flags)
 2. [Heist Primitive Data Types](#Heist-Primitive-Data-Types)
 3. [Heist Numerics](#Heist-Numerics)
-   - [2 Number Types](#2-Number-Types)
+   - [3 Number Types](#3-Number-Types)
    - [2 Prefix Types](#2-Prefix-Types)
 4. [Heist Hygienic Macro System, Procedures vs. Macros](#Heist-Hygienic-Macro-System-Procedures-vs-Macros)
 5. [Heist Commenting](#Heist-Commenting)
@@ -202,7 +202,7 @@
 
 ------------------------
 # Heist Numerics
-### 2 Number Types:
+### 3 Number Types:
 0. Exact/Ratnum (rational number)
    * Has a numerator and a denominator
    * Gets automatically reduced to simplest form!
@@ -223,6 +223,11 @@
      3.5e10 ; scientific notation
      -4E12  ; also scientific notation
      ```
+2. Special Constants:
+   * Positive Infinity: `+inf.0`
+   * Negative Infinity: `-inf.0`
+   * NaN: `+nan.0`, `-nan.0`
+     - _Both `+nan.0` & `-nan.0` resolve to the same NaN object!_
 
 ### 2 Prefix Types:
 0. Radix:
