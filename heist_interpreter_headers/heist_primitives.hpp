@@ -4872,6 +4872,14 @@ namespace heist {
               (cons curried-lambdas
                     (cons x xs))))))
 
+  ; COMPOSE PROCS (RETURNS A PROC OF N ARGS APPLYING THEM TO THE COMPOSITION)
+  (define (compose proc . procs)
+    (define fst-proc (last (cons proc procs)))
+    (define rest-procs (init (cons proc procs)))
+    (lambda (. args)
+      (define fst-result (apply fst-proc args))
+      (fold (lambda (result fcn) (fcn result)) fst-result rest-procs)))
+
   ; IDENTITY PRIMITIVE PROCEDURE
   (define (id a) a)
 

@@ -100,7 +100,7 @@
      * [General](#General-3)
      * [Sorting Procedures](#Sorting-Procedures)
    - [Type Predicates](#Type-Predicates)
-   - [Eval/Apply, Symbol-Append, & Typeof](#evalapply-symbol-append--typeof)
+   - [Eval/Apply, Compose, Symbol-Append, & Typeof](#evalapply-compose-symbol-append--typeof)
    - [Delay Predicate & Force](#Delay-Predicate--Force)
    - [Type Coercion](#Type-Coercion)
    - [Output Procedures](#Output-Procedures)
@@ -142,9 +142,9 @@
 ## Metaprogramming Advantages:
 * Code is data (parentheses construct an Abstract Syntax Tree)
   - Hence Hygienic Macro System enables direct manipulation of the AST
-  - Quotation ([`quote`](#Quotation)) Converts Code to Data, Eval ([`eval`](#evalapply-symbol-append--typeof)) Converts Data to Code
+  - Quotation ([`quote`](#Quotation)) Converts Code to Data, Eval ([`eval`](#evalapply-compose-symbol-append--typeof)) Converts Data to Code
   - Reader ([`read`](#Input-Procedures)) takes input and parses it into a quoted list of symbolic data
-    * Hence [`read`](#Input-Procedures) and [`eval`](#evalapply-symbol-append--typeof) may be combined for a custom repl!
+    * Hence [`read`](#Input-Procedures) and [`eval`](#evalapply-compose-symbol-append--typeof) may be combined for a custom repl!
 
 ## Notation:
 * Function (or "procedure") calls are denoted by parens:
@@ -335,7 +335,7 @@ may ___only___ be validly used in the scope of a [`scm->cps`](#scm-cps) block __
 Other primitives of this nature include:<br>
 
 0. [`load`](#system-interface-procedures) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-load`](#system-interface-procedures)
-1. [`eval`](#evalapply-symbol-append--typeof) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-eval`](#evalapply-symbol-append--typeof)
+1. [`eval`](#evalapply-compose-symbol-append--typeof) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-eval`](#evalapply-compose-symbol-append--typeof)
 2. [`compile`](#system-interface-procedures) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-compile`](#system-interface-procedures)
 3. Bind `id` as the continuation of a procedure: [`cps->scm`](#scm-cps-procedures)
    * for passing a procedure defined in a [`scm->cps`](#scm-cps) block as an argument<br>
@@ -850,7 +850,7 @@ Other primitives of this nature include:<br>
   - _Note: Form is as if [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax) and [`syntax-rules`](#syntax-rules) were merged!_
 
 #### Analysis-Time Advantanges:
-* Interpreter's [`eval`](#evalapply-symbol-append--typeof) seperates expression analysis (declaration) & execution (invocation):
+* Interpreter's [`eval`](#evalapply-compose-symbol-append--typeof) seperates expression analysis (declaration) & execution (invocation):
   - [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax) macros, bound to an environment, dynamically expand at **run-time**
     * _Hence **run-time** macros in a [`lambda`](#lambda) body are re-expanded **upon every invocation!**_
   - [`core-syntax`](#core-syntax) macros, only bound to the **global environment**, expand at **analysis-time**
@@ -871,7 +871,7 @@ Other primitives of this nature include:<br>
 
 #### Use: ___Convert Code to CPS & Evaluate the Result!___
 * _Hence returns an unary procedure, accepting the "topmost" continuation!_
-* _Enables use of [`call/cc`](#scm-cps-procedures), [`cps-eval`](#evalapply-symbol-append--typeof), [`cps-load`](#system-interface-procedures), & [`cps->scm`](#scm-cps-procedures) primitives!_
+* _Enables use of [`call/cc`](#scm-cps-procedures), [`cps-eval`](#evalapply-compose-symbol-append--typeof), [`cps-load`](#system-interface-procedures), & [`cps->scm`](#scm-cps-procedures) primitives!_
 * _Automatically wraps entire program (& passed [`id`](#general-3)) if [`-cps`](#Heist-Command-Line-Flags) cmd-line flag used!_
 * _Enables opt-in continuations for their benefits w/o their overhead when unused!_
   - _Optimizes the cps transformation as well for reasonable speed!_
@@ -1053,7 +1053,7 @@ Other primitives of this nature include:<br>
 
 6. __The Empty Stream:__ `stream-null` (equivalent to `'()`)
 
-7. __Optional Environment Arg Flags for [`Eval`](#evalapply-symbol-append--typeof), [`Load`](#system-interface-procedures), [`Cps-Eval`](#evalapply-symbol-append--typeof), [`Cps-Load`](#system-interface-procedures):__
+7. __Optional Environment Arg Flags for [`Eval`](#evalapply-compose-symbol-append--typeof), [`Load`](#system-interface-procedures), [`Cps-Eval`](#evalapply-compose-symbol-append--typeof), [`Cps-Load`](#system-interface-procedures):__
    * Null Environment, all effects are sandboxed: `null-environment`
    * Local Environment, using local bindings: `local-environment`
    * Global Environment, using global bindings: `global-environment`
@@ -1688,7 +1688,7 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
-## Eval/Apply, Symbol-Append, & Typeof:
+## Eval/Apply, Compose, Symbol-Append, & Typeof:
 0. __Eval__: Run quoted data as code
    * `(eval <data> <optional-environment>)`
    * _Pass `'null-environment` to `eval` in the empty environment!_
@@ -1703,9 +1703,12 @@ Other primitives of this nature include:<br>
 
 2. __Apply `<procedure>` to List of Args__: `(apply <procedure> <argument-list>)`
 
-3. __Append Symbols__: `(symbol-append <symbol-1> ... <symbol-N>)`
+3. __Compose N `<procedure>`s__: `(compose <procedure-1> ... <procedure-N>)`
+   * _Generates a procedure of N args that applies them to the procedure composition_
 
-4. __Get Typename Symbol__: `(typeof <obj>)`
+4. __Append Symbols__: `(symbol-append <symbol-1> ... <symbol-N>)`
+
+5. __Get Typename Symbol__: `(typeof <obj>)`
 
 
 
