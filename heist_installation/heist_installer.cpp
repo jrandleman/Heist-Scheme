@@ -16,9 +16,9 @@ int main() {
               " }\n"
               " */\n\n"
               "#define HEIST_DIRECTORY_FILE_PATH \"%s\"\n", 
-              std::filesystem::current_path().c_str(),
-              std::filesystem::current_path().c_str(),
-              std::filesystem::current_path().c_str());
+              std::filesystem::current_path().parent_path().c_str(),
+              std::filesystem::current_path().parent_path().c_str(),
+              std::filesystem::current_path().parent_path().c_str());
   fclose(fp);
   return 0;
 }
