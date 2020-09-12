@@ -2061,8 +2061,8 @@ namespace heist {
   // primitive "slice" procedure (generic 'sublist 'subvector 'substring):
   data primitive_SLICE(scm_list& args) {
     static constexpr const char * const format = 
-      "\n     (slice <sequence> <start-index> <end-index>)" SEQUENCE_DESCRIPTION;
-    if(args.size() != 3) 
+      "\n     (slice <sequence> <start-index> <optional-length>)" SEQUENCE_DESCRIPTION;
+    if(args.size() < 2 || args.size() > 3)
       THROW_ERR("'slice received incorrect # of args (given " 
         << args.size() << "):"<<format<<VALID_SEQUENCE_INDEX_RANGE<<FCN_ERR("slice",args));
     switch(is_proper_sequence(args[0],args,"slice",format)) {

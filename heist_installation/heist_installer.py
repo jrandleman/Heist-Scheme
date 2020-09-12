@@ -5,6 +5,14 @@
 import os
 
 ###############################################################################
+# Compilation Commands for Clang++ & G++
+###############################################################################
+
+clangCompilationCmd = "clang++ -std=c++17 -O3 -o ../heist_main ../heist_main.cpp"
+
+gccCompilationCmd = "g++ -std=c++17 -Wno-psabi -O3 -o ../heist_main ../heist_main.cpp"
+
+###############################################################################
 # Generate Aliases & Header File w/ Path to Interpreter
 ###############################################################################
 
@@ -48,13 +56,13 @@ def dispatchCompilation(pathToInterpreter):
   print("# Checking for Clang++ or G++ to Compile ...")
   print("############################################\n")
   if(os.system("clang++ --version") == 0):
-    print("\n>>> Found Clang++!\n>>> Compiling \"clang++ -std=c++17 -O3 -o ../heist_main ../heist_main.cpp\" ...")
-    result = os.system("clang++ -std=c++17 -O3 -o ../heist_main ../heist_main.cpp")
+    print("\n>>> Found Clang++!\n>>> Compiling \"" + clangCompilationCmd + "\" ...")
+    result = os.system(clangCompilationCmd)
     print("")
     if(alertCompileErr("\n>>> WARNING: FAILED COMPILATION!\n", result)): return
   elif(os.system("g++ --version") == 0):
-    print("\n>>> Found G++!\n>>> Compiling \"g++ -std=c++17 -Wno-psabi -O3 -o ../heist_main ../heist_main.cpp\" ...")
-    result = os.system("g++ -std=c++17 -Wno-psabi -O3 -o ../heist_main ../heist_main.cpp")
+    print("\n>>> Found G++!\n>>> Compiling \"" + gccCompilationCmd + "\" ...")
+    result = os.system(gccCompilationCmd)
     print("")
     if(alertCompileErr("\n>>> WARNING: FAILED COMPILATION!\n", result)): return
   else:

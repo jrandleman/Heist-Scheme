@@ -1492,7 +1492,8 @@ Other primitives of this nature include:<br>
 
 14. __Get Elt at an Index__: `(ref <sequence> <index>)`
 
-15. __Get Subsequence__: `(slice <sequence> <start-index> <end-index>)`
+15. __Get Subsequence__: `(slice <sequence> <start-index> <optional-length>)`
+    * `<optional-length>` defaults to the end of `<sequence>` if not included!
 
 16. __Set Elt at an Index__: `(set-index! <sequence> <index> <obj>)`
 
