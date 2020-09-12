@@ -1704,7 +1704,7 @@ Other primitives of this nature include:<br>
 2. __Apply `<procedure>` to List of Args__: `(apply <procedure> <argument-list>)`
 
 3. __Compose N `<procedure>`s__: `(compose <procedure-1> ... <procedure-N>)`
-   * _Generates a procedure of N args that applies them to the procedure composition_
+   * _Generates a procedure of N args that applies them to the procedure composition!_
 
 4. __Append Symbols__: `(symbol-append <symbol-1> ... <symbol-N>)`
 
