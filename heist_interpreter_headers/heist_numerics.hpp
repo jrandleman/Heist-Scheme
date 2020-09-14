@@ -24,6 +24,13 @@
  * NOTE: Use the _n suffix for int, float, and string <Snum> literals!
  *       => Use _n2, _n8, & _n16 for bin, oct, & hex string <Snum> literals!
  *
+ * NOTE: FRACTIONS (WHEN DENOMINATOR != 1) DEGRADE TO INEXACT FLOATS IFF THEIR 
+ *       NUMERATOR OR DENOMINATOR HAS MORE DIGITS THAN <LDBL_DIG> IN <cfloat>
+ *
+ * NOTE: "LOSSY" OPERATIONS MAY RESULT IN A FLOAT EVEN IF GIVEN BIGINT ARGS
+ *       => "LOSSY" B/C THEY LOSE THE "EXACTNESS" OF THE ARGS
+ *       => LOSSY: operator/(), operator%(), quotient(), modulo(), gcd(), lcm()
+ *
  * +
  * -
  * *
@@ -787,8 +794,9 @@ namespace scm_numeric {
 
   // Simplify the current number (simplifies exact number/converts to float as needed)
   void Snum::simplify_numerics() noexcept {
-    if(is_float && float_num < 0) float_num *= -1;
-    if(stat != status::success || is_zero() || is_float || (dlen == 1 && denominator[0] == 1)) return; 
+    if(stat != status::success) { set_failed_status(); return; }
+    if(is_float) { adjust_float_invariants(); return; }
+    if(is_zero() || (dlen == 1 && denominator[0] == 1)) return; 
     if(unsigned_arrays_are_equal(numerator,nlen,denominator,dlen)) {
       resize_numerator(1), resize_denominator(1);
       numerator[nlen++] = 1, denominator[dlen++] = 1;
@@ -799,8 +807,11 @@ namespace scm_numeric {
       inexact_integer_to_exact_t<true>(*this,N/greatest_common_divisor);
       inexact_integer_to_exact_t<false>(*this,D/greatest_common_divisor);
     } else {
-      coerce_fraction_to_float(float_num,numerator,nlen,denominator,dlen,is_neg());
-      is_float = true;
+      stat = coerce_fraction_to_float(float_num,numerator,nlen,denominator,dlen,is_neg());
+      if(stat == status::success) 
+        adjust_float_invariants();
+      else
+        set_failed_status();
     }
   }
 
@@ -1092,7 +1103,8 @@ namespace scm_numeric {
     // apply the above algorithm
     tmp = *this / s;
     inexact_t div_res;
-    if(!tmp.is_float) { // coerce fractional to floating-point
+    bool exact_division = !tmp.is_float;
+    if(exact_division) { // coerce fractional to floating-point
       tmp.stat = coerce_fraction_to_float(div_res,tmp.numerator,tmp.nlen,tmp.denominator,tmp.dlen,tmp.is_neg());
       if(tmp.stat != status::success) {
         tmp.set_failed_status();return tmp;
@@ -1106,8 +1118,8 @@ namespace scm_numeric {
     auto mod_result = (s * fractional);
     mod_result.adjust_float_invariants();
 
-    // int % int : int
-    if(is_integer() && s.is_integer()) 
+    // exact % exact : exact (iff exact / exact == exact)
+    if(exact_division) 
       mod_result = mod_result.round().to_exact();
     if(!mod_result.is_zero())
       mod_result.sign = sign;
@@ -1236,6 +1248,10 @@ namespace scm_numeric {
     if(stat != status::success)   return s;
     if(s.stat != status::success) return *this;
     inexact_t lhs = 0, rhs = 0;
+
+    // Determine whether to reify as exact once complete
+    bool exact_gcd = !is_float && nlen <= INEXACT_PRECISION && dlen <= INEXACT_PRECISION && 
+                     !s.is_float && s.nlen <= INEXACT_PRECISION && s.dlen <= INEXACT_PRECISION;
     
     // Coerce this' Fractional to Float as Needed
     if(is_float) lhs = float_num;
@@ -1258,7 +1274,8 @@ namespace scm_numeric {
     // return the GCD
     tmp.float_num = long_double_GCD(lhs,rhs);
     tmp.adjust_float_invariants();
-    return tmp.to_exact();
+    if(exact_gcd) return tmp.to_exact();
+    return tmp;
   }
 
   /******************************************************************************
@@ -1280,13 +1297,17 @@ namespace scm_numeric {
     // account for LCM of inf
     if(stat != status::success)   return *this;
     if(s.stat != status::success) return s;
+
+    // Determine whether to reify as exact once complete
+    bool exact_lcm = !is_float && nlen <= INEXACT_PRECISION && dlen <= INEXACT_PRECISION && 
+                     !s.is_float && s.nlen <= INEXACT_PRECISION && s.dlen <= INEXACT_PRECISION;
     
     // get GCD
     auto greatest_common_divisor = gcd(s);
     if(greatest_common_divisor.stat != status::success)
       return greatest_common_divisor;
-
-    return ((abs() / greatest_common_divisor) * s.abs()).to_exact(); // LCM
+    if(exact_lcm) return ((abs() / greatest_common_divisor) * s.abs()).to_exact(); // LCM
+    return (abs() / greatest_common_divisor) * s.abs(); // LCM
   }
 
   /******************************************************************************
@@ -1324,9 +1345,11 @@ namespace scm_numeric {
   Snum Snum::quotient(const Snum& s) const noexcept {
     auto tmp = *this / s;
     if(tmp.stat != status::success) {tmp.set_failed_status(); return tmp;}
-    if(!tmp.is_float) tmp = tmp.to_inexact();
+    bool exact_division = !tmp.is_float;
+    if(exact_division) tmp = tmp.to_inexact();
     if(tmp.stat != status::success) {tmp.set_failed_status(); return tmp;}
-    return tmp.trunc().to_exact();
+    if(exact_division) return tmp.trunc().to_exact();
+    return tmp.trunc();
   }
 
   Snum Snum::modulo(const Snum& s) const noexcept {
