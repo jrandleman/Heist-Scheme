@@ -209,7 +209,7 @@
      numerator or denominator has more digits than [`fl-precision`](#Heist-Primitive-Variables)!
    * _Special Case_: denominator of `1` creates a ___BigInt___ of arbitrary size
      - ***Warning:*** _**"Lossy" operations may yeild a flonum despite recieving BigInt args!**_
-       - _These are "lossy" because they lose the "exact" nature of their args!_
+       - _Yield a flonum iff any BigInt args have more digits than [`fl-precision`](#Heist-Primitive-Variables)!_
        - _These include: [`/`](#General), [`remainder`](#General), [`quotient`](#General), [`modulo`](#General), [`expt-mod`](#General), [`gcd`](#General), [`lcm`](#General)!_
      ```scheme
      -1/2 ; stays as a fraction!
