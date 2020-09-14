@@ -204,8 +204,7 @@
 # Heist Numerics
 ### 3 Number Types:
 0. Exact/Ratnum (rational number)
-   * Has a numerator and a denominator
-   * Gets automatically reduced to simplest form!
+   * Has a numerator and a denominator (automatically reduced to simplest form!)
    * Fractions (when denominator != 1) degrade to inexact flonums iff their<br>
      numerator or denominator has more digits than [`fl-precision`](#Heist-Primitive-Variables)!
    * _Special Case_: denominator of `1` creates a ___BigInt___ of arbitrary size
