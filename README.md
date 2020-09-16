@@ -113,7 +113,7 @@
    - [Scm->Cps Procedures](#Scm-Cps-Procedures)
    - [Syntax Procedures](#Syntax-Procedures)
 10. [Heist Mathematical Flonum Constants](#Heist-Mathematical-Flonum-Constants)
-11. [Heist Minimalist REPL](#Heist-Minimalist-REPL)
+11. [Heist Minimalist REPL Example](#Heist-Minimalist-REPL-Example)
 
 
 
@@ -2059,7 +2059,7 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
-# Heist Minimalist REPL
+# Heist Minimalist REPL Example
 ```scheme
 (define (print data) (pretty-print data) (if (not (void? data)) (newline)))
 (let loop ((ignore #f)) (loop (print (eval (read)))))
