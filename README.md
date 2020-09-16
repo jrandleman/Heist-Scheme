@@ -205,12 +205,7 @@
 ### 3 Number Types:
 0. Exact/Ratnum (rational number)
    * Has a numerator and a denominator (automatically reduced to simplest form!)
-   * Fractions (when denominator != 1) degrade to inexact flonums iff their<br>
-     numerator or denominator has more digits than [`fl-precision`](#Heist-Primitive-Variables)!
    * _Special Case_: denominator of `1` creates a ___BigInt___ of arbitrary size
-     - ***Warning:*** _**"Lossy" operations may yeild a flonum despite recieving BigInt args!**_
-       - _Yield a flonum iff any BigInt args have more digits than [`fl-precision`](#Heist-Primitive-Variables)!_
-       - _These include: [`/`](#General), [`remainder`](#General), [`quotient`](#General), [`modulo`](#General), [`expt-mod`](#General), [`gcd`](#General), [`lcm`](#General)!_
      ```scheme
      -1/2 ; stays as a fraction!
      3    ; ratnum w/ denom of 1 = bigint
@@ -1156,7 +1151,6 @@ Other primitives of this nature include:<br>
    * `(* <number1> <number2> ...)`
 
 3. __Division__: Divide n numbers, *or* invert 1 number
-   * _[Lossy operation!](#Heist-Numerics)_
    * `(/ <number1> <number2> ...)`
    * `(/ <number>)`
 
@@ -1173,7 +1167,6 @@ Other primitives of this nature include:<br>
    * `(expt <number1> <number2>)`
 
 7. __Exponentiation Modulo__: Raise `<number1>` to the power of `<number2>` modulo `<number3>`
-   * _[Lossy operation!](#Heist-Numerics)_
    * `(expt-mod <number1> <number2> <number3>)`
 
 8. __Maximum__: Get the maximum value
@@ -1183,15 +1176,12 @@ Other primitives of this nature include:<br>
    * `(min <number1> <number2> ...)`
 
 10. __Quotient__: Get the quotient of `(/ <number1> <number2>)`
-    * _[Lossy operation!](#Heist-Numerics)_
     * `(quotient <number1> <number2>)`
 
 11. __Remainder__: Get the remainder of `(/ <number1> <number2>)`
-    * _[Lossy operation!](#Heist-Numerics)_
     * `(remainder <number1> <number2>)`
 
 12. __Modulo__: `(modulo <number1> <number2>)`
-    * _[Lossy operation!](#Heist-Numerics)_
 
 13. __Modulo Flonum__: Get the fractional portion of `<flonum>`
     * `(modf <flonum>)`
@@ -1204,10 +1194,8 @@ Other primitives of this nature include:<br>
 16. __Square Root__: `(sqrt <number>)`
 
 17. __Greatest Common Denominator__: `(gcd <number1> <number2>)`
-    * _[Lossy operation!](#Heist-Numerics)_
 
 18. __Least Common Multiple__: `(lcm <number1> <number2>)`
-    * _[Lossy operation!](#Heist-Numerics)_
 
 19. __Extract Number's Numerator__: `(numerator <number>)`
 
