@@ -101,7 +101,7 @@
      * [Sorting Procedures](#Sorting-Procedures)
    - [Type Predicates](#Type-Predicates)
    - [Eval/Apply, Symbol-Append, & Typeof](#evalapply-symbol-append--typeof)
-   - [Compose & Bind](#compose-bind)
+   - [Compose & Bind](#compose--bind)
    - [Delay Predicate & Force](#Delay-Predicate--Force)
    - [Type Coercion](#Type-Coercion)
    - [Output Procedures](#Output-Procedures)
@@ -1713,8 +1713,8 @@ Other primitives of this nature include:<br>
    * _Generates a procedure of N args that applies them to the procedure composition!_
 
 1. __Bind N args to `<procedure>`: `(bind <procedure> <val-1> ... <val-N>)`__
-  * _Generates a procedure that when invoked calls the arg-bound `<procedure>`!_
-  * _Example: `((bind map even?) '(1 2 3))` is equivalent to `(map even? '(1 2 3))`_
+   * _Generates a procedure that when invoked calls the arg-bound `<procedure>`!_
+   * _Example: `((bind map even?) '(1 2 3))` is equivalent to `(map even? '(1 2 3))`_
 
 
 ------------------------
