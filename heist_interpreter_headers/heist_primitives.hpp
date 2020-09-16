@@ -4880,6 +4880,11 @@ namespace heist {
       (define fst-result (apply fst-proc args))
       (fold (lambda (result fcn) (fcn result)) fst-result rest-procs)))
 
+  ; BIND ARGUMENTS TO A PROC PRODUCING A NEW PROC
+  (define (bind proc . bound-vals)
+    (lambda (. new-vals)
+      (apply proc (append bound-vals new-vals))))
+
   ; IDENTITY PRIMITIVE PROCEDURE
   (define (id a) a)
 
