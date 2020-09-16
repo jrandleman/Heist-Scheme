@@ -3932,7 +3932,7 @@ namespace heist {
     }
     if(procedure.empty())
       THROW_ERR("Invalid application of unknown procedure type NULL (received an empty expression)!");
-    THROW_ERR("Invalid application of unknown procedure "<<PROFILE(procedure[0])<<"! "<<EXP_ERR(procedure));
+    THROW_ERR("Invalid application of unknown procedure "<<PROFILE(procedure[0])<<"! "<<FCN_ERR(procedure[0].write(),arguments));
   }
 
   // R-value overload
