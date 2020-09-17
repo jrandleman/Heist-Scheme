@@ -2552,7 +2552,7 @@ namespace scm_numeric {
 
     Snum D = dnum.to_exact().abs();
     exactVec_t decVec(D.nlen), baseVec(1 + (base > 9));
-    for(size_type i = 0; i < nlen; ++i) decVec[i] = D.numerator[i];
+    for(size_type i = 0; i < D.nlen; ++i) decVec[i] = D.numerator[i];
     if(base < 10) {
       baseVec[0] = base;
     } else {
@@ -2884,6 +2884,7 @@ namespace scm_numeric {
     exactVec_t binArr;
     dec_to_bit_string_conversion_helpers::repeatedDiv_recur(binArr,decArr,decArr_len);
     // Reverse the conversion (generated in reverse)
+    if(binArr.size() > 1 && *binArr.rbegin() == 0) binArr.pop_back(); // prefixing 0
     const std::size_t binArr_len = binArr.size();
     for(std::size_t i = 0, n = binArr_len/2; i < n; ++i) {
       binArr[i] ^= binArr[binArr_len-1-i];
