@@ -11,8 +11,8 @@
 
 0. Compiling the Interpreter: `$ clang++ -std=c++17 -O3 -o heist_main heist_main.cpp`
 1. REPL: `$ ./heist_main` (exit REPL via [`(exit)`](#Control-Flow-Procedures) command)
-2. Interpret Script: `$ ./heist_main -script <your-scripts-filename-here> <argv-1> <argv-2> ...`
-3. Compile Script to C++: `$ ./heist_main -compile <your-scripts-filename-here> <optional-target-name>`
+2. Interpret Script: `$ ./heist_main -script <your-script-filename-here> <argv-1> <argv-2> ...`
+3. Compile Script to C++: `$ ./heist_main -compile <your-script-filename-here> <optional-target-name>`
 4. Embed Heist in C++: `#include` the [`heist_cpp_interop.hpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/heist_cpp_interop.hpp) header into your code (read it for more details)!
    * See [`embedded_heist_demo.cpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/heist_examples/embedded_heist_demo.cpp) for an example of embedding Heist in action!
 
