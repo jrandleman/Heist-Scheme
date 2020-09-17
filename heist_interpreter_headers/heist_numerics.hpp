@@ -787,8 +787,7 @@ namespace scm_numeric {
   // Simplify the current number (simplifies exact number/converts to float as needed)
   void Snum::simplify_numerics() noexcept {
     if(stat != status::success) { set_failed_status(); return; }
-    if(is_float) { adjust_float_invariants(); return; }
-    if(is_zero() || (dlen == 1 && denominator[0] == 1)) return; 
+    if(is_float || is_zero() || (dlen == 1 && denominator[0] == 1)) return; 
     if(unsigned_arrays_are_equal(numerator,nlen,denominator,dlen)) {
       resize_numerator(1), resize_denominator(1);
       numerator[nlen++] = 1, denominator[dlen++] = 1;
@@ -1109,6 +1108,7 @@ namespace scm_numeric {
         }
       } else {
         div_res = tmp.float_num;
+        if(tmp.is_neg()) div_res *= -1.0L;
       }
       inexact_t integral;
       inexact_t fractional = std::modf(div_res,&integral);
@@ -1425,7 +1425,7 @@ namespace scm_numeric {
     if(sign != s.sign)
       return is_neg() || (is_zero() && s.is_pos());
     if(is_float && s.is_float)
-      return float_num < s.float_num;
+      return (float_num * (1 - 2 * is_neg())) < (s.float_num * (1 - 2 * s.is_neg()));
     else if(!is_float && !s.is_float) {
       size_type lhs_len = 0, rhs_len = 0;
       exact_t lhs = new exact_val_t [nlen + s.dlen];
@@ -1448,7 +1448,7 @@ namespace scm_numeric {
     if(sign != s.sign)
       return is_pos() || (is_zero() && s.is_neg());
     if(is_float && s.is_float)
-      return float_num > s.float_num;
+      return (float_num * (1 - 2 * is_neg())) > (s.float_num * (1 - 2 * s.is_neg()));
     else if(!is_float && !s.is_float) {
       size_type lhs_len = 0, rhs_len = 0;
       exact_t lhs = new exact_val_t [nlen + s.dlen];
