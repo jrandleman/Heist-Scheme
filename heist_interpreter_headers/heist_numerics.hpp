@@ -2972,7 +2972,6 @@ namespace scm_numeric {
   // Converts a std::string to a <exactVec_t>
   void convert_string_to_exactVec(const std::string& s, exactVec_t& arr)noexcept{
     arr.reserve(s.size());
-    std::size_t i = 0;
     for(const auto& ch : s) arr.push_back(HASH_BASE_N_TO_BASE_10(ch));
   }
 } // End of namespace scm_numeric
