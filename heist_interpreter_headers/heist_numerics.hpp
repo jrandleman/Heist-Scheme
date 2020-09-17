@@ -458,6 +458,8 @@ namespace scm_numeric {
 
     // Convert a base-n big int string into a decimal Snum
     Snum convert_base_N_to_dec(const int& base, std::string bnum) const noexcept;
+    // Converts the Snum decimal fractional representation into the <base> # system
+    std::string convert_dec_to_base_N_flonum(const int& base, const Snum& dnum) const noexcept;
     // Converts the Snum decimal representation into the <base> # system
     std::string convert_dec_to_base_N(const int& base, const Snum& dnum) const noexcept;
     // Evaluates the numerator & denominator of a base-N # & divides their results
@@ -468,6 +470,8 @@ namespace scm_numeric {
     std::string form_base_N_fraction(const int& base,const Snum& dnum) const noexcept;
     // Evaluates the integral & fractional of a decimal # & combines their results
     std::string form_base_N_floating_pt(const int& base, const Snum& dnum) const noexcept;
+    // Check if any early cases of conversion can be leveraged
+    std::string convert_dec_to_base_N_preliminary_check(const int& base, const Snum& dnum)const noexcept;
 
     // Fast comparison for whether *this == -1
     bool is_negative_one() const noexcept;
@@ -2376,6 +2380,18 @@ namespace scm_numeric {
   }
 
 
+  // Returns <digit>'s base-36 representation
+  const char * base_digit_conversion(const Snum& digit, const int& base) noexcept {
+    static constexpr const char * const base_36_digits[] = {
+      "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", 
+      "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", 
+      "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", 
+      "U", "V", "W", "X", "Y", "Z"
+    };
+    return base_36_digits[std::stoi(digit.round().extract_exact()) % base];
+  }
+
+
   constexpr char HASH_BASE_10_TO_BASE_N(unsigned n)noexcept{
     if(n < 10) return n + '0';
     return n - 10 + 'A';
@@ -2432,12 +2448,34 @@ namespace scm_numeric {
               convert_dec_decimal_to_base_N(base,dnum_str.substr(
                 decimal_idx+1, dnum_str.size()-decimal_idx-1)
               );
-    auto integral_part = convert_dec_to_base_N(base,dnum_str.substr(0,decimal_idx));
+    auto integral_part = convert_dec_to_base_N_flonum(base,dnum_str.substr(0,decimal_idx));
     if(integral_part == "+nan.0") return integral_part;
     return (dnum.is_neg() ? "-" : "") + integral_part + "." + 
               convert_dec_decimal_to_base_N(base,dnum_str.substr(
                 decimal_idx+1, dnum_str.size()-decimal_idx-1)
               );
+  }
+
+  // Check if any early cases of conversion can be leveraged
+  std::string Snum::convert_dec_to_base_N_preliminary_check(const int& base, const Snum& dnum)const noexcept{
+    // return if invalid Snum base given, must be in range: [2,36]!
+    if(!confirm_base_in_range(base)) return "+nan.0"; 
+    
+    // Return self if inf or NaN
+    if(dnum.stat != status::success || dnum.is_zero()) 
+      return dnum.extract_exact();
+
+    // Divide & conquer conversion among '/' '.' components as needed
+    if(!dnum.is_integer()) {
+      if(!dnum.is_float) 
+        return form_base_N_fraction(base,dnum);
+      return form_base_N_floating_pt(base,dnum);
+    }
+    
+    // Return if nothing to convert
+    if(base == 10) return dnum.extract_exact();
+
+    return ""; // No cases found
   }
 
   /******************************************************************************
@@ -2481,26 +2519,31 @@ namespace scm_numeric {
   }
 
 
+  std::string Snum::convert_dec_to_base_N_flonum(const int& base, const Snum& dnum)const noexcept{
+    if(auto early_case = convert_dec_to_base_N_preliminary_check(base,dnum); !early_case.empty())
+      return early_case;
+
+    Snum D = dnum.abs();
+    std::string bnum;
+    
+    // From right to left, determine the next digit via %
+    while(D >= base) {
+      bnum += base_digit_conversion(D % base, base);
+      D = (D / base).floor();
+    }
+    bnum += base_digit_conversion(D, base);
+    // Processed from right to left
+    if(dnum.is_neg()) return '-' + std::string(bnum.rbegin(), bnum.rend());
+    return std::string(bnum.rbegin(), bnum.rend());
+  }
+
+
   // Converts the <dnum> decimal # into a <base> #
   //   => NOTE: approximates the conversion if dnum > INEXACT_PRECISION
   // PRECONDITION: <dnum> must be an INTEGER
   std::string Snum::convert_dec_to_base_N(const int& base, const Snum& dnum) const noexcept {
-    // return if invalid Snum base given, must be in range: [2,36]!
-    if(!confirm_base_in_range(base)) return "+nan.0"; 
-    
-    // Return self if inf or NaN
-    if(dnum.stat != status::success || dnum.is_zero()) 
-      return dnum.extract_exact();
-
-    // Divide & conquer conversion among '/' '.' components as needed
-    if(!dnum.is_integer()) {
-      if(!dnum.is_float) 
-        return form_base_N_fraction(base,dnum);
-      return form_base_N_floating_pt(base,dnum);
-    }
-    
-    // Return if nothing to convert
-    if(base == 10) return dnum.extract_exact();
+    if(auto early_case = convert_dec_to_base_N_preliminary_check(base,dnum); !early_case.empty())
+      return early_case;
 
     // Convert bigint
     using exactVec_t = std::vector<exact_val_t>;
@@ -2611,8 +2654,8 @@ namespace scm_numeric {
     // only get precision up to INEXACT_PRECISION decimal points
     if(dnum.size() > INEXACT_PRECISION) dnum.erase(INEXACT_PRECISION);
     // perform the above algorithm
-    auto base_fractional = convert_dec_to_base_N(base, (Snum("0."+dnum) * 
-                                                 (Snum(base).expt(INEXACT_PRECISION))).round());
+    auto base_fractional = convert_dec_to_base_N_flonum(base, (Snum("0."+dnum) * 
+                                                       (Snum(base).expt(INEXACT_PRECISION))).round());
     if(base_fractional == "+nan.0") return base_fractional;
     // the above algorithm has no way to account for 0s padding "b1 b2 b3...bN"'s
     //   LHS, hence continuously pad 0s & compare w/ its decimal form until the
