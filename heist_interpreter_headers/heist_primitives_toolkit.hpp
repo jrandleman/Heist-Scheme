@@ -182,7 +182,7 @@ namespace heist {
 
   void confirm_2_args(const scm_list& args, const char* primitive_name, const char* format){
     if(args.size() != 2)
-      THROW_ERR('\'' << primitive_name << " didn't receive two arguments (given"
+      THROW_ERR('\'' << primitive_name << " didn't receive two arguments (given "
         << args.size() << ")!\n     " << format << FCN_ERR(primitive_name,args));
   }
 
