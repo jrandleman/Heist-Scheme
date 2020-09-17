@@ -4390,7 +4390,7 @@ namespace heist {
     if(!args.empty())
       THROW_ERR("'command-line doesn't take any arguments:"
         "\n     (command-line)" << FCN_ERR("command-line",args));
-    return make_str("> Interpret Script:    -script <script-filename>"
+    return make_str("> Interpret Script:    -script <script-filename> <argv1> <argv2> ..."
                   "\n> Compile Script:      -compile <script-filename> <optional-compiled-filename>"
                   "\n> With CPS Evaluation: -cps"
                   "\n> Disable ANSI Colors: -nansi"

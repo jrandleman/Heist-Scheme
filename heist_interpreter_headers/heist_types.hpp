@@ -89,6 +89,12 @@ namespace heist {
     bool LAST_PRINTED_TO_STDOUT         = false;
 
     /******************************************************************************
+    * ARGV REGISTRY OF STRINGS
+    ******************************************************************************/
+
+    std::vector<tgc_ptr<scm_string>> ARGV;
+
+    /******************************************************************************
     * CURRENT DEFAULT INPUT & OUTPUT PORTS + THE GLOBAL PORT REGISTRY
     ******************************************************************************/
 
@@ -153,6 +159,8 @@ namespace heist {
     constexpr const char * const gensym_prefix     = "heist:core:gensym-";
     constexpr const char * const scm_cps           = "scm->cps";
     constexpr const char * const cps_quote         = "cps-quote";
+    constexpr const char * const argc              = "argc";
+    constexpr const char * const argv              = "argv";
     constexpr const char * const null_env          = "null-environment";
     constexpr const char * const local_env         = "local-environment";
     constexpr const char * const global_env        = "global-environment";

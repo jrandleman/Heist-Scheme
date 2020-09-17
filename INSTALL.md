@@ -15,6 +15,7 @@ INSTALLING THE INTERPRETER:
 1. RUN `$ python3 heist_installer.py`
    - This generates a file named `HEIST_FILEPATH.hpp` in `/heist_interpreter_headers/`
      * Any instance of `<HEIST_DIRECTORY_FILE_PATH>` below refers to the string in this file
+   - _**NOTE:** Use `$ python3 heist_installer.py -debug` to compile with `-Wall -Wextra`!_
 
 
 ### Otherwise:

@@ -2901,8 +2901,8 @@ namespace scm_numeric {
     auto Dbin = b10Vec_to_b2Vec(Dbignum);               // Decimal->Binary
     exactVec_t Q(Nbin.size(),0), R(1,0);                   // Quotient & Remainder
     binary_division_helpers::binArr_UNSIGNED_DIVIDE(Nbin,Dbin,Q,R);
-    Qdec = std::move(b2Vec_to_b10Vec(Q)); // Binary->Decimal
-    Rdec = std::move(b2Vec_to_b10Vec(R)); // Binary->Decimal
+    Qdec = b2Vec_to_b10Vec(Q); // Binary->Decimal
+    Rdec = b2Vec_to_b10Vec(R); // Binary->Decimal
   }
 
   exactVec_t BIGNUM_UNSIGNED_GCD_core(exactVec_t& Abignum, exactVec_t& Bbignum)noexcept{

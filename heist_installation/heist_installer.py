@@ -3,14 +3,20 @@
 #   ELSE, follow INSTALL.md to manually compile Heist using heist_installer.cpp
 
 import os
+import sys
+
+COMPILE_WITH_WARNINGS = len(sys.argv) == 2 and sys.argv[1] == "-debug"
 
 ###############################################################################
 # Compilation Commands for Clang++ & G++
 ###############################################################################
 
-clangCompilationCmd = "clang++ -std=c++17 -O3 -o ../heist_main ../heist_main.cpp"
-
-gccCompilationCmd = "g++ -std=c++17 -Wno-psabi -O3 -o ../heist_main ../heist_main.cpp"
+if COMPILE_WITH_WARNINGS:
+  clangCompilationCmd = "clang++ -std=c++17 -O3 -Wall -Wextra -o ../heist_main ../heist_main.cpp"
+  gccCompilationCmd = "g++ -std=c++17 -Wno-psabi -O3 -Wall -Wextra -o ../heist_main ../heist_main.cpp"
+else:
+  clangCompilationCmd = "clang++ -std=c++17 -O3 -o ../heist_main ../heist_main.cpp"
+  gccCompilationCmd = "g++ -std=c++17 -Wno-psabi -O3 -o ../heist_main ../heist_main.cpp"
 
 ###############################################################################
 # Generate Aliases & Header File w/ Path to Interpreter

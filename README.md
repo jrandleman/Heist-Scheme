@@ -12,7 +12,9 @@
 0. Compiling the Interpreter: `$ clang++ -std=c++17 -O3 -o heist_main heist_main.cpp`
 1. REPL: `$ ./heist_main` (exit REPL via [`(exit)`](#Control-Flow-Procedures) command)
 2. Interpret Script: `$ ./heist_main -script <your-scripts-filename-here>`
+   * Pass args to the global [`<argv>`](#Heist-Primitive-Variables) after the script name!
 3. Compile Script to C++: `$ ./heist_main -compile <your-scripts-filename-here> <optional-target-name>`
+   * Pass args to [`<argv>`](#Heist-Primitive-Variables) via the executable of the compiled C++ file!
 4. Embed Heist in C++: `#include` the [`heist_cpp_interop.hpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/heist_cpp_interop.hpp) header into your code (read it for more details)!
    * See [`embedded_heist_demo.cpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/heist_examples/embedded_heist_demo.cpp) for an example of embedding Heist in action!
 
@@ -1056,7 +1058,9 @@ Other primitives of this nature include:<br>
    * Local Environment, using local bindings: `local-environment`
    * Global Environment, using global bindings: `global-environment`
 
-
+8. __Argc & Argv__: `argc`, `argv`
+   * Interpreted Scripts: passed at the cmd-line after the script name
+   * Compiled Script: passed to the executable of the compiled C++ file
 
 
 

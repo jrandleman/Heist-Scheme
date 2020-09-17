@@ -4190,6 +4190,8 @@ namespace heist {
     define_variable(symconst::local_env,    symconst::local_env,    G::GLOBAL_ENVIRONMENT_POINTER);
     define_variable(symconst::global_env,   symconst::global_env,   G::GLOBAL_ENVIRONMENT_POINTER);
     define_variable(symconst::sentinel_arg, symconst::sentinel_arg, G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable(symconst::argv, primitive_LIST_to_CONS_constructor(G::ARGV.begin(),G::ARGV.end()), G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable(symconst::argc, num_type(G::ARGV.size()),                                          G::GLOBAL_ENVIRONMENT_POINTER);
     evaluate_primitives_written_in_heist_scheme(G::GLOBAL_ENVIRONMENT_POINTER);
   }
 
@@ -4340,12 +4342,17 @@ void driver_loop() {
 * COMMAND LINE ARGUMENT VALIDATION
 ******************************************************************************/
 
+void POPULATE_ARGV_REGISTRY(int argc,int& i,char* argv[]) {
+  while(i < argc) heist::G::ARGV.push_back(heist::str_type(argv[i++]));
+}
+
+
 bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
                                      int& compile_pos,std::string& compile_as)noexcept{
   if(argc == 1) return true;
   
   constexpr const char * const cmd_line_options = 
-    "\n> Interpret Script:    -script <script-filename>"
+    "\n> Interpret Script:    -script <script-filename> <argv1> <argv2> ..."
     "\n> Compile Script:      -compile <script-filename> <optional-compiled-filename>"
     "\n> With CPS Evaluation: -cps"
     "\n> Disable ANSI Colors: -nansi"
@@ -4372,6 +4379,7 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
         return false;
       }
       script_pos = ++i;
+      POPULATE_ARGV_REGISTRY(argc,i,argv);
     } else if(cmd_flag == "-compile") {
       if(i == argc-1) {
         fprintf(stderr,"\n> \"-compile\" wasn't followed by a file!%s",cmd_line_options);
@@ -4518,7 +4526,9 @@ void interpret_premade_AST_code(){
   }
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+  int i = 0;
+  POPULATE_ARGV_REGISTRY(argc,i,argv);
   interpret_premade_AST_code(); 
   heist::close_port_registry();
   return 0;
