@@ -468,12 +468,6 @@ namespace scm_numeric {
     std::string form_base_N_fraction(const int& base,const Snum& dnum) const noexcept;
     // Evaluates the integral & fractional of a decimal # & combines their results
     std::string form_base_N_floating_pt(const int& base, const Snum& dnum) const noexcept;
-    // Confirms base is in the range of [2,36]
-    constexpr bool confirm_base_in_range(const int& base) const noexcept;
-    // Confirms <bnum> only contains digits in the range of the <base> # system
-    bool confirm_valid_base_digits(const int& base, const std::string& bnum) const noexcept;
-    // Converts a decimal digit into a base-36 digit
-    const char * base_digit_conversion(const Snum& digit, const int& base) const noexcept;
 
     // Fast comparison for whether *this == -1
     bool is_negative_one() const noexcept;
@@ -2367,14 +2361,14 @@ namespace scm_numeric {
   * BASE CONVERSION INTEGER HELPER FCNS
   ******************************************************************************/
 
-  // Confirms <base> is w/in range of possible number systems
-  constexpr bool Snum::confirm_base_in_range(const int& base) const noexcept {
+  // Confirms <base> is w/in range [2,36] of possible number systems
+  constexpr bool confirm_base_in_range(const int& base) noexcept {
     return base > 1 && base < 37;
   }
 
 
   // Confirms <bnum> only contains digits in range of the <base> number system
-  bool Snum::confirm_valid_base_digits(const int& base, const std::string& bnum) const noexcept {
+  bool confirm_valid_base_digits(const int& base, const std::string& bnum) noexcept {
     for(const auto& digit : bnum)
       if(!is_base_digit(digit,base))
         return false;
@@ -2382,15 +2376,15 @@ namespace scm_numeric {
   }
 
 
-  // Returns <digit>'s base-36 representation
-  const char * Snum::base_digit_conversion(const Snum& digit, const int& base) const noexcept {
-    static constexpr const char * const base_36_digits[] = {
-      "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", 
-      "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", 
-      "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", 
-      "U", "V", "W", "X", "Y", "Z"
-    };
-    return base_36_digits[std::stoi(digit.round().extract_exact()) % base];
+  constexpr char HASH_BASE_10_TO_BASE_N(unsigned n)noexcept{
+    if(n < 10) return n + '0';
+    return n - 10 + 'A';
+  }
+
+  constexpr unsigned HASH_BASE_N_TO_BASE_10(char n)noexcept{
+    if(n <= '9') return n - '0';
+    if(n <= 'Z') return n - 'A' + 10;
+    return n - 'a' + 10;
   }
 
 
@@ -2477,36 +2471,13 @@ namespace scm_numeric {
       Snum tmp; tmp.stat = status::nan; return tmp;
     }
 
-    // ------------------------------------------------------------------------------
-    // APPROACH: 
-    //   1) From right to left, break the base# string <bnum> into substrings 
-    //      of the maximum length that can be handled by "std::stoull".
-    //   2) Sum the "std::stoull" of each substring multiplied by <base> to the power
-    //      of the # digit the substring would begin at relative to its position 
-    //      in <bnum>, counting said digits from right to left.
-    // ------------------------------------------------------------------------------
-    // MAX_STOULL_LENGTH = max-number-of-bits / bits-per-base-digit
-    const auto MAX_STOULL_LENGTH = sizeof(unsigned long long) * 8 / size_type(std::ceil(std::log2(base)));
-    const auto n = bnum.size();
-
-    // Start of base# substring to splice out, & current digit #
-    size_type start = n > MAX_STOULL_LENGTH ? n-MAX_STOULL_LENGTH : n;
-    size_type digit_count = 0;
-    Snum decimal_num;
-
-    // While-Loop ONLY initially launches if must account for digits to the 
-    //   right of <start>. If triggered, functionally becomes while(true)
-    while(n > MAX_STOULL_LENGTH) {
-      // perform "2)" from "APPROACH" above
-      decimal_num += std::stoull(bnum.substr(start,MAX_STOULL_LENGTH),nullptr,base) * (Snum(base).expt(digit_count));
-      digit_count += MAX_STOULL_LENGTH;     // account for the current digit#
-      if(start <= MAX_STOULL_LENGTH) break; // no more substrings, break
-      start -= MAX_STOULL_LENGTH;           // shift <start> to the next substr
-    }
-
-    // Account for digits remaining to the left of <start>
-    if(start) decimal_num += std::stoull(bnum.substr(0, start),nullptr,base) * (Snum(base).expt(digit_count));
-    return (is_neg) ? (-1 * decimal_num) : decimal_num;
+    // Convert bigint base N -> base 10
+    using exactVec_t = std::vector<exact_val_t>;
+    Snum BASE_10_HORNER_SCHEME(const exactVec_t&,const Snum&)noexcept;
+    void convert_string_to_exactVec(const std::string&, exactVec_t&)noexcept;
+    exactVec_t baseVec;
+    convert_string_to_exactVec(bnum,baseVec);
+    return BASE_10_HORNER_SCHEME(baseVec,base);
   }
 
 
@@ -2530,18 +2501,28 @@ namespace scm_numeric {
     
     // Return if nothing to convert
     if(base == 10) return dnum.extract_exact();
-    Snum D = dnum.abs();
-    std::string bnum;
-    
-    // From right to left, determine the next digit via %
-    while(D >= base) {
-      bnum += base_digit_conversion(D % base, base);
-      D = (D / base).floor();
+
+    // Convert bigint
+    using exactVec_t = std::vector<exact_val_t>;
+    exactVec_t BASE_N_REPEATED_DIV(exactVec_t&,exactVec_t&)noexcept;
+    std::string convert_exactVec_to_string(const exactVec_t& arr)noexcept;
+
+    Snum D = dnum.to_exact().abs();
+    exactVec_t decVec(D.nlen), baseVec(1 + (base > 9));
+    for(size_type i = 0; i < nlen; ++i) decVec[i] = D.numerator[i];
+    if(base < 10) {
+      baseVec[0] = base;
+    } else {
+      baseVec[0] = base/10, baseVec[1] = base%10;
     }
-    bnum += base_digit_conversion(D, base);
-    // Processed from right to left
-    if(dnum.is_neg()) return '-' + std::string(bnum.rbegin(), bnum.rend());
-    return std::string(bnum.rbegin(), bnum.rend());
+    if(dnum.is_neg()) {
+      if(dnum.is_float)
+        return '-' + convert_exactVec_to_string(BASE_N_REPEATED_DIV(decVec,baseVec)) + ".0";
+      return '-' + convert_exactVec_to_string(BASE_N_REPEATED_DIV(decVec,baseVec));
+    }
+    if(dnum.is_float)
+      return convert_exactVec_to_string(BASE_N_REPEATED_DIV(decVec,baseVec)) + ".0";
+    return convert_exactVec_to_string(BASE_N_REPEATED_DIV(decVec,baseVec));
   }
 
   /******************************************************************************
@@ -2834,7 +2815,8 @@ namespace scm_numeric {
 
 
   // Suppose Binary string is stored as "1101" = 13
-  exactVec_t exactVec_to_decArr_HORNER_SCHEME(const exactVec_t& binArr)noexcept{
+  // Uses the Horner Scheme for conversion
+  exactVec_t b2Vec_to_b10Vec(const exactVec_t& binArr)noexcept{
     exactVec_t decArr;
     decArr.push_back(0);
     for(const auto& bit : binArr) {
@@ -2852,7 +2834,7 @@ namespace scm_numeric {
   }
 
   // Converts <decArr> to <exactVec_t>
-  exactVec_t decArr_to_binArr(exactVec_t& decVec)noexcept{
+  exactVec_t b10Vec_to_b2Vec(exactVec_t& decVec)noexcept{
     Snum::exact_t decArr = decVec.data();
     std::size_t decArr_len = decVec.size();
     // Generate bit string
@@ -2871,12 +2853,12 @@ namespace scm_numeric {
   // Performs decimal->binary, binary division, binary->decimal
   void BIGNUM_UNSIGNED_DIVIDE_core(exactVec_t Nbignum, exactVec_t Dbignum,
                                    exactVec_t& Qdec,    exactVec_t& Rdec)noexcept{
-    auto Nbin = decArr_to_binArr(Nbignum);               // Decimal->Binary
-    auto Dbin = decArr_to_binArr(Dbignum);               // Decimal->Binary
+    auto Nbin = b10Vec_to_b2Vec(Nbignum);               // Decimal->Binary
+    auto Dbin = b10Vec_to_b2Vec(Dbignum);               // Decimal->Binary
     exactVec_t Q(Nbin.size(),0), R(1,0);                   // Quotient & Remainder
     binary_division_helpers::binArr_UNSIGNED_DIVIDE(Nbin,Dbin,Q,R);
-    Qdec = std::move(exactVec_to_decArr_HORNER_SCHEME(Q)); // Binary->Decimal
-    Rdec = std::move(exactVec_to_decArr_HORNER_SCHEME(R)); // Binary->Decimal
+    Qdec = std::move(b2Vec_to_b10Vec(Q)); // Binary->Decimal
+    Rdec = std::move(b2Vec_to_b10Vec(R)); // Binary->Decimal
   }
 
   exactVec_t BIGNUM_UNSIGNED_GCD_core(exactVec_t& Abignum, exactVec_t& Bbignum)noexcept{
@@ -2896,6 +2878,102 @@ namespace scm_numeric {
     BIGNUM_UNSIGNED_DIVIDE_core(Nbignum,GCDbignum,Nresult,R);
     R.clear();
     BIGNUM_UNSIGNED_DIVIDE_core(Dbignum,GCDbignum,Dresult,R);
+  }
+
+  /******************************************************************************
+  * BIGNUM BASE CONVERSION (ANY BASE TO ANY BASE, FROM 2-36)
+  ******************************************************************************/
+
+  // FAST Specialization macro to convert base 10 to base 4,8,16,32
+  #define BASE_10_TO_BASE_2_POWER_CONVERTER(FUNCTION_NAME,BASE_2_LOG,CONVERSION_EQ) \
+    exactVec_t FUNCTION_NAME(exactVec_t& decVec)noexcept{                           \
+      if(decVec.empty()) return exactVec_t();                                       \
+      /* Decimal->Binary */                                                         \
+      auto binVec = b10Vec_to_b2Vec(decVec);                                        \
+      const auto binVec_len = binVec.size();                                        \
+      std::size_t i = (binVec_len % BASE_2_LOG), j = 0;                             \
+      exactVec_t bNVec(binVec_len/BASE_2_LOG + bool(i));                            \
+      /* prepend 0s to make bitstring length a factor of <BASE_2_LOG> */            \
+      if(i) {                                                                       \
+        exactVec_t prefix(BASE_2_LOG-i,0);                                          \
+        binVec.insert(binVec.begin(),prefix.begin(),prefix.end());                  \
+        i = 0;                                                                      \
+      }                                                                             \
+      while(i < binVec_len) {                                                       \
+        bNVec[j++] = CONVERSION_EQ;                                                 \
+        i += BASE_2_LOG;                                                            \
+      }                                                                             \
+      return bNVec;                                                                 \
+    }
+  // DECIMAL->BASE4
+  BASE_10_TO_BASE_2_POWER_CONVERTER(b10Vec_to_b4Vec,2,binVec[i]*2+binVec[i+1])
+  // DECIMAL->OCTAL
+  BASE_10_TO_BASE_2_POWER_CONVERTER(b10Vec_to_b8Vec,3,binVec[i]*4+binVec[i+1]*2+binVec[i+2])
+  // DECIMAL->HEX
+  BASE_10_TO_BASE_2_POWER_CONVERTER(b10Vec_to_b16Vec,4,binVec[i]*8+binVec[i+1]*4+binVec[i+2]*2+binVec[i+3])
+  // DECIMAL->BASE32
+  BASE_10_TO_BASE_2_POWER_CONVERTER(b10Vec_to_b32Vec,5,binVec[i]*16+binVec[i+1]*8+binVec[i+2]*4+binVec[i+3]*2+binVec[i+4])
+
+  #undef BASE_10_TO_BASE_2_POWER_CONVERTER
+
+  // PRECONDITION: exactVec.size() <= 2
+  Snum::exact_val_t convert_exactVec_to_UNSIGNED(const exactVec_t& v)noexcept{
+    if(v.size() == 2) return v[0] * 10 + v[1];
+    return v[0];
+  }
+
+  // BASE 10 -> BASE N
+  exactVec_t BASE_N_REPEATED_DIV(exactVec_t& decNum, exactVec_t& baseNum)noexcept{
+    if(baseNum.empty() || (baseNum.size() == 1 && baseNum[0] == 0)) return decNum;
+    // Perform specialized power-of-2 base conversion
+    if(baseNum.size() == 1) {
+      if(baseNum[0] == 2) return b10Vec_to_b2Vec(decNum);
+      if(baseNum[0] == 4) return b10Vec_to_b4Vec(decNum);
+      if(baseNum[0] == 8) return b10Vec_to_b8Vec(decNum);
+    } else if(baseNum.size() == 2) {
+      if(baseNum[0] == 1) {
+        if(baseNum[1] == 6) return b10Vec_to_b16Vec(decNum);
+        if(baseNum[1] == 0) return decNum;
+      } else if(baseNum[0] == 3 && baseNum[1] == 2) {
+        return b10Vec_to_b32Vec(decNum);
+      }
+    }
+    // Perform repeated division a9
+    exactVec_t Q, R, baseNVec;
+    scm_numeric::BIGNUM_UNSIGNED_DIVIDE_core(decNum,baseNum,Q,R);
+    baseNVec.push_back(convert_exactVec_to_UNSIGNED(R));
+    while(Q.size() != 1 || Q[0] != 0) {
+      decNum.clear(), R.clear();
+      scm_numeric::BIGNUM_UNSIGNED_DIVIDE_core(Q,baseNum,decNum,R);
+      baseNVec.push_back(convert_exactVec_to_UNSIGNED(R));
+      Q = decNum;
+    }
+    return exactVec_t(baseNVec.rbegin(),baseNVec.rend()); // conversion is generated in reverse
+  }
+
+  // BASE N -> BASE 10
+  Snum BASE_10_HORNER_SCHEME(const exactVec_t& baseVec, const Snum& Base)noexcept{
+    if(baseVec.empty()) return Snum();
+    // Perform horner scheme a9
+    Snum decVal;
+    for(const auto& digit : baseVec)
+      decVal = decVal * Base + digit;
+    return decVal;
+  }
+
+  // Converts an <exactVec_t> to a std::string
+  std::string convert_exactVec_to_string(const exactVec_t& arr)noexcept{
+    std::string s;
+    s.reserve(arr.size());
+    for(std::size_t i = 0, n = arr.size(); i < n; ++i) s += HASH_BASE_10_TO_BASE_N(arr[i]);
+    return s;
+  }
+
+  // Converts a std::string to a <exactVec_t>
+  void convert_string_to_exactVec(const std::string& s, exactVec_t& arr)noexcept{
+    arr.reserve(s.size());
+    std::size_t i = 0;
+    for(const auto& ch : s) arr.push_back(HASH_BASE_N_TO_BASE_10(ch));
   }
 } // End of namespace scm_numeric
 
