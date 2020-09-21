@@ -8,6 +8,7 @@
 ------------------------
 # Using Heist Scheme:
 => _See [`INSTALL.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/INSTALL.md) for step-by-step initial installation instructions!_<br>
+=> _Tested on OSX & Linux with Clang++ & G++, but **should** work on Windows (adheres C++17 standard)_<br>
 
 0. Compiling the Interpreter: `$ clang++ -std=c++17 -O3 -o heist_main heist_main.cpp`
 1. REPL: `$ ./heist_main` (exit REPL via [`(exit)`](#Control-Flow-Procedures) command)
@@ -1080,7 +1081,7 @@ Other primitives of this nature include:<br>
 ```scheme
 (tlambda ((string? s) any-arg (number? n)) <body>) ; predicated & arbitrary args
 (tlambda "optional-description" ((string? s) any-arg) <body>) ; optional descriptor
-(tlambda ((string? s) . ((lambda (ns) (every even? ns)) numbers)) <body>) ; predicated variadic 
+(tlambda ((string? s) . ((bind every even?) numbers)) <body>) ; predicated variadic 
 ```
 
 
