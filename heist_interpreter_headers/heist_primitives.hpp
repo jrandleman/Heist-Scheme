@@ -4549,7 +4549,7 @@ namespace heist {
     if(args.size() == 1)
       G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT = args[0];
     else
-      G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT = data(); // undefined jump! value
+      G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT = G::VOID_DATA_OBJECT;
     throw SCM_EXCEPT::JUMP;
     return data();
   }
