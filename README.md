@@ -268,34 +268,6 @@ One of Scheme's most powerful features is its flexible run-time macro system!<br
 
 For those in the know: 
 * While R5RS+ Scheme supports hygienic macros, R4RS (Heist Scheme's base) makes this _optional_.<br>
-* Unhygienic macros were selected after experimenting with CL, Clojure, & Scheme, and finding:<br>
-  1. Hygiene's pros are easier to emulate w/o it than non-hygiene's pros are to emulate with it
-  2. Forsaking hygiene enables more extensive control for meta-programs
-
-Macros are identical to procedures, except for 3 key features:<br>
-
-0. They ___expand___ into new code that will be run in the current scope, rather than<br> 
-   processing a computation in a new scope (that of their definition, as with procedures)
-   - Built-in [`syntax-hash`](#Syntax-Hash) mechanism makes avoiding namespace conflicts trivial!
-   - Macro argument names are automatically hashed to become unique symbols!
-1. They do ___not___ evaluate their arguments (unlike procedures)
-   - Hence macros can accept, and expand into, arbitrary code and data patterns!
-2. They do _NOT_ have a recursive expansion limit (as does procedural non-tail-recursion)
-   - Hence recursive expansions _MAY_ cause a segmentation fault if they infinitely expand
-     - ___NOTE__: Such is an indication of a **USER** error however, and **NOT** an interpreter error!_
-
-
-
-
-
-
-
-------------------------
-# Heist Macro System, Procedures vs. Macros
-One of Scheme's most powerful features is its flexible run-time macro system!<br>
-
-For those in the know: 
-* While R5RS+ Scheme supports hygienic macros, R4RS (Heist Scheme's base) makes this _optional_.<br>
 * Unhygienic macros were selected after experimenting with CL, Clojure, & Scheme, finding:<br>
   1. Hygiene's pros are easier to emulate w/o it than non-hygiene's pros are to emulate with it
   2. Forsaking hygiene enables more extensive control when meta-programming
