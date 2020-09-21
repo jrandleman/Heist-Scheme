@@ -61,11 +61,12 @@
  *   - GENERIC ALGORITHMS      ; POLYMORPHIC ALGORITHM PRIMITIVES
  *   - SRFI PRIMITIVES         ; LIST, VECTOR, STRING, ETC.
  *   - EVAL                    ; EVALUATE SYMBOLIC DATA AS CODE
- *   - HYGIENIC MACROS         ; MATCH SYMBOL-LIST PATTERNS TO TEMPLATES
+ *   - UNHYGIENIC MACROS       ; MATCH SYMBOL-LIST PATTERNS TO TEMPLATES
  *     > SYNTAX-RULES
  *     > DEFINE-SYNTAX
  *     > LET-SYNTAX
  *     > LETREC-SYNTAX
+ *     > CORE-SYNTAX
  *   - READER MACROS           ; EXPAND NON-S-EXPRESSIONS (like "'"->"quote")
  *   - STRING I/O              ; READ/WRITE COMPATIBILITY W/ STRINGS AS PORTS
  *   - RECURSIVE DEPTH CONTROL ; SET THE INTERPRETER'S MAX RECURSION DEPTH
@@ -3162,6 +3163,49 @@ namespace heist {
   }
 
   /******************************************************************************
+  * MACRO SYNTACTIC EXTENSIONS -- DYNAMICALLY HASH syntax-hash IDENTIFIERS
+  ******************************************************************************/
+
+  // Generate a unique hashed variant of the given macro arg name for safe expansion
+  // NOTE: Max Unique Hashes = (expt 18446744073709551615 18446744073709551615)
+  scm_string safe_expansion_hashed_macro_arg(const scm_string& label)noexcept{
+    if(G::MACRO_HASH_IDX_1 != G::MAX_SIZE_TYPE)
+      return "heist:core:" + label + '-' 
+        + std::to_string(G::MACRO_HASH_IDX_2) + '-' 
+        + std::to_string(G::MACRO_HASH_IDX_1++);
+    return "heist:core:" + label + '-' 
+      + std::to_string(++G::MACRO_HASH_IDX_2) + '-' 
+      + std::to_string(G::MACRO_HASH_IDX_1++);
+  }
+
+
+  void recursively_apply_syntax_hash_to_identifiers(scm_list& expanded_exp, const frame_vars& hashed_ids, 
+                                                                            const frame_vars& to_hash_ids)noexcept{
+    const auto n = to_hash_ids.size();
+    for(auto& datum : expanded_exp) {
+      if(datum.is_type(types::sym)) {
+        for(size_type i = 0; i < n; ++i) {
+          if(to_hash_ids[i] == datum.sym) {
+            datum.sym = hashed_ids[i];
+            break;
+          }
+        }
+      } else if(datum.is_type(types::exp)) {
+        recursively_apply_syntax_hash_to_identifiers(datum.exp,hashed_ids,to_hash_ids);
+      }
+    }
+  }
+
+
+  void apply_syntax_hash_to_identifiers(scm_list& expanded_exp, const frame_vars& to_hash_ids)noexcept{
+    // Get the dynamic (runtime) hash of each <syntax-hash> identifier in the macro
+    frame_vars hashed_ids(to_hash_ids.size());
+    for(size_type i = 0, n = to_hash_ids.size(); i < n; ++i)
+      hashed_ids[i] = safe_expansion_hashed_macro_arg(to_hash_ids[i]);
+    recursively_apply_syntax_hash_to_identifiers(expanded_exp,hashed_ids,to_hash_ids);
+  }
+
+  /******************************************************************************
   * MACRO SYNTACTIC EXTENSIONS -- MATRIX DATA CLEANING HELPER FCNS PRIOR TREE
   ******************************************************************************/
 
@@ -3406,6 +3450,8 @@ namespace heist {
       size_type match_idx = 0; // idx of the pattern & template w/in 'mac' that the label & args match
       if(label == mac.label && is_macro_match(args, mac, match_idx, MID_VARG_PAIR)) {
         expanded_exp = mac.templates[match_idx]; // prefilled, then has contents expanded into it
+        if(!mac.hashed_template_ids[match_idx].empty()) // dynamic <syntax-hash> application
+          apply_syntax_hash_to_identifiers(expanded_exp,mac.hashed_template_ids[match_idx]);
         expand_macro(args, mac.label, expanded_exp, MID_VARG_PAIR);
         expanded_exp = scm_list_cast(expanded_exp); // if only 1 sub-expression, degrade to the sub-expression
         return true;
@@ -3554,24 +3600,11 @@ namespace heist {
   }
 
 
-  // Generate a unique hashed (hygienic!) variant of the given macro arg name
-  // NOTE: Max Unique Hashes = (expt 18446744073709551615 18446744073709551615)
-  scm_string hygienically_hashed_macro_arg(const scm_string& label)noexcept{
-    if(G::MACRO_HASH_IDX_1 != G::MAX_SIZE_TYPE)
-      return "heist:core:" + label + '-' 
-        + std::to_string(G::MACRO_HASH_IDX_2) + '-' 
-        + std::to_string(G::MACRO_HASH_IDX_1++);
-    return "heist:core:" + label + '-' 
-      + std::to_string(++G::MACRO_HASH_IDX_2) + '-' 
-      + std::to_string(G::MACRO_HASH_IDX_1++);
-  }
-
-
-  void recursively_hygienically_hash_macro_template(const scm_string& value, const scm_string& hash_value, 
+  void recursively_safe_expansion_hash_macro_template(const scm_string& value, const scm_string& hash_value, 
                                                                              scm_list& mac_template)noexcept{
     for(size_type i = 0, n = mac_template.size(); i < n; ++i) {
       if(mac_template[i].is_type(types::exp)) {
-        recursively_hygienically_hash_macro_template(value, hash_value, mac_template[i].exp);
+        recursively_safe_expansion_hash_macro_template(value, hash_value, mac_template[i].exp);
       } else if(mac_template[i].is_type(types::sym) && mac_template[i].sym == value) {
         mac_template[i].sym = hash_value;
       }
@@ -3579,15 +3612,39 @@ namespace heist {
   }
 
 
-  void recursively_hygienically_hash_macro_pattern(scm_list& pattern, scm_list& mac_template, 
-                                                   const frame_vars& keywords, const size_type& start=0)noexcept{
+  void recursively_safe_expansion_hash_macro_pattern(scm_list& pattern, scm_list& mac_template, 
+                                                     const frame_vars& keywords, const size_type& start=0)noexcept{
     for(size_type i = start, n = pattern.size(); i < n; ++i) {
       if(pattern[i].is_type(types::exp)) {
-        recursively_hygienically_hash_macro_pattern(pattern[i].exp, mac_template, keywords);
+        recursively_safe_expansion_hash_macro_pattern(pattern[i].exp, mac_template, keywords);
       } else if(is_macro_argument_label(pattern[i], keywords)) {
         scm_string original_label = pattern[i].sym;
-        pattern[i].sym = hygienically_hashed_macro_arg(pattern[i].sym);
-        recursively_hygienically_hash_macro_template(original_label, pattern[i].sym, mac_template);
+        pattern[i].sym = safe_expansion_hashed_macro_arg(pattern[i].sym);
+        recursively_safe_expansion_hash_macro_template(original_label, pattern[i].sym, mac_template);
+      }
+    }
+  }
+
+
+  bool datum_is_syntax_hashed_symbol(const data& datum, const scm_list& exp){
+    if(datum.is_type(types::exp) && is_tagged_list(datum.exp,symconst::syn_hash)) {
+      if(datum.exp.size() != 2 || !datum.exp[1].is_type(types::sym))
+        THROW_ERR("'syntax-hash didn't receive 1 symbol arg: (syntax-hash <symbol>)" << EXP_ERR(exp));
+      return true;
+    }
+    return false;
+  }
+
+
+  void parse_macro_template_for_syntax_hashed_identifiers(frame_vars& hashed_id_registry, 
+                                                          scm_list& mac_template, 
+                                                          const scm_list& exp){
+    for(size_type i = 0, n = mac_template.size(); i < n; ++i) {
+      if(datum_is_syntax_hashed_symbol(mac_template[i],exp)) {
+        hashed_id_registry.push_back(mac_template[i].exp[1].sym);
+        mac_template[i] = *hashed_id_registry.rbegin(); // replace syntax-hash expression with the var once recorded
+      } else if(mac_template[i].is_type(types::exp)) {
+        parse_macro_template_for_syntax_hashed_identifiers(hashed_id_registry,mac_template[i].exp,exp);
       }
     }
   }
@@ -3604,15 +3661,18 @@ namespace heist {
         mac.patterns.rbegin()->push_back(symconst::sentinel_arg); 
       // Wrap 'begin' around templates prior evaluation (for multi-exp bodies)
       mac.templates.push_back(scm_list(exp[i].exp.size()));
+      mac.hashed_template_ids.push_back(frame_vars());
       mac.templates.rbegin()->operator[](0) = symconst::begin;
       std::copy(exp[i].exp.begin()+1, 
                 exp[i].exp.end(), 
                 mac.templates.rbegin()->begin()+1);
+      // Parse identifiers to hash at runtime to avoid expansion collisions
+      parse_macro_template_for_syntax_hashed_identifiers(*mac.hashed_template_ids.rbegin(),*mac.templates.rbegin(),exp);
     }
-    // Hash macro args to prevent unintentional expansions => "hygienic" macros
+    // Hash macro args to prevent unintentional argument expansions
     for(size_type i = 0, n = mac.patterns.size(); i < n; ++i) {
       // pass <1> to not hash 1st pattern symbol (not an arg)
-      recursively_hygienically_hash_macro_pattern(mac.patterns[i],mac.templates[i],mac.keywords,1);
+      recursively_safe_expansion_hash_macro_pattern(mac.patterns[i],mac.templates[i],mac.keywords,1);
     }
     return [syntax_rule=scm_list(1,std::move(mac))](env_type&){return syntax_rule;};
   }

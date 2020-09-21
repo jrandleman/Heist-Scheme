@@ -1,7 +1,7 @@
 <!-- Author: Jordan Randleman -:- C++ Heist Scheme Interpreter's README -->
 
 # Heist-Scheme
-## Souped-Up Scheme Interpreter Written in C++!
+## Souped-Up R4RS Scheme Interpreter Written in C++!
 ### Written in as much C++ and as little Scheme as possible for runtime speed!
 
 
@@ -18,7 +18,7 @@
 
 ------------------------
 # Features:
-0. Hygienic & Reader Macros
+0. Unhygienic & Reader Macros
 1. Tail-Call Optimization
 2. Opt-In Dynamic Scoping (see the [`call/ce`](#control-flow-procedures) & [`inline`](#control-flow-procedures) application primitives)
 3. Opt-In Continuations & [`call/cc`](#Scm-Cps-Procedures) (see [`scm->cps`](#Scm-Cps))
@@ -43,7 +43,7 @@
 3. [Heist Numerics](#Heist-Numerics)
    - [3 Number Types](#3-Number-Types)
    - [2 Prefix Types](#2-Prefix-Types)
-4. [Heist Hygienic Macro System, Procedures vs. Macros](#Heist-Hygienic-Macro-System-Procedures-vs-Macros)
+4. [Heist Macro System, Procedures vs. Macros](#Heist-Macro-System-Procedures-vs-Macros)
 5. [Heist Commenting](#Heist-Commenting)
 6. [CPS: Continuation Passing Style](#CPS-Continuation-Passing-Style)
 7. [Heist Special Forms](#Heist-Special-Forms)
@@ -68,6 +68,7 @@
    - [Vector-Literal](#Vector-Literal)
    - [Define-Syntax, Let-Syntax, Letrec-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax)
    - [Syntax-Rules](#Syntax-Rules)
+   - [Syntax-Hash](#Syntax-Hash)
    - [Core-Syntax](#Core-Syntax)
    - [Cps-Quote](#Cps-Quote)
    - [Scm->Cps](#Scm-Cps)
@@ -142,7 +143,7 @@
 
 ## Metaprogramming Advantages:
 * Code is data (parentheses construct an Abstract Syntax Tree)
-  - Hence Hygienic Macro System enables direct manipulation of the AST
+  - Hence Macro System enables direct manipulation of the AST
   - Quotation ([`quote`](#Quotation)) Converts Code to Data, Eval ([`eval`](#evalapply-symbol-append--typeof)) Converts Data to Code
   - Reader ([`read`](#Input-Procedures)) takes input and parses it into a quoted list of symbolic data
     * Hence [`read`](#Input-Procedures) and [`eval`](#evalapply-symbol-append--typeof) may be combined for a custom repl!
@@ -262,31 +263,55 @@
 
 
 ------------------------
-# Heist Hygienic Macro System, Procedures vs. Macros
-One of Scheme's most powerful features is its flexible run-time hygienic macro system.<br>
+# Heist Macro System, Procedures vs. Macros
+One of Scheme's most powerful features is its flexible run-time macro system!<br>
+
+For those in the know: 
+* While R5RS+ Scheme supports hygienic macros, R4RS (Heist Scheme's base) makes this _optional_.<br>
+* Unhygienic macros were selected after experimenting with CL, Clojure, & Scheme, and finding:<br>
+  1. Hygiene's pros are easier to emulate w/o it than non-hygiene's pros are to emulate with it
+  2. Forsaking hygiene enables more extensive control for meta-programs
+
 Macros are identical to procedures, except for 3 key features:<br>
 
 0. They ___expand___ into new code that will be run in the current scope, rather than<br> 
    processing a computation in a new scope (that of their definition, as with procedures)
-   - ___Hygienic___ expansion also assures that no accidental expansions take place (unlike C++)
+   - Built-in [`syntax-hash`](#Syntax-Hash) mechanism makes avoiding namespace conflicts trivial!
    - Macro argument names are automatically hashed to become unique symbols!
-     ```scheme
-     ;; The below macro (see [*]) clearly intends to expand into '2'.
-     ;; However, unhygienic macro systems (like C++) would expand 'a' into 'b' (the arg),
-     ;;   then that 'b' into 1. Since Scheme is hygienic though, the 'a' & 'b'
-     ;;   in the macro's definition will be hashed & hence _not_ confused with the 'b' 
-     ;;   passed to <my-macro>
-     (define-syntax my-macro
-        (syntax-rules ()
-          ((_ a b) a)))
-     (define b 2)
-     (my-macro b 1) ; [*]
-     ```
 1. They do ___not___ evaluate their arguments (unlike procedures)
    - Hence macros can accept, and expand into, arbitrary code and data patterns!
 2. They do _NOT_ have a recursive expansion limit (as does procedural non-tail-recursion)
    - Hence recursive expansions _MAY_ cause a segmentation fault if they infinitely expand
      - ___NOTE__: Such is an indication of a **USER** error however, and **NOT** an interpreter error!_
+
+
+
+
+
+
+
+------------------------
+# Heist Macro System, Procedures vs. Macros
+One of Scheme's most powerful features is its flexible run-time macro system!<br>
+
+For those in the know: 
+* While R5RS+ Scheme supports hygienic macros, R4RS (Heist Scheme's base) makes this _optional_.<br>
+* Unhygienic macros were selected after experimenting with CL, Clojure, & Scheme, finding:<br>
+  1. Hygiene's pros are easier to emulate w/o it than non-hygiene's pros are to emulate with it
+  2. Forsaking hygiene enables more extensive control when meta-programming
+
+Macros are identical to procedures, except for 3 key features:<br>
+
+0. They ___expand___ into new code that will be run in the current scope, rather than<br> 
+   processing a computation in a new scope (that of their definition, as with procedures)
+   - Built-in [`syntax-hash`](#Syntax-Hash) mechanism makes avoiding namespace conflicts trivial!
+   - Macro argument names are automatically hashed to become unique symbols!
+1. They do ___not___ evaluate their arguments (unlike procedures)
+   - Hence macros can accept, and expand into, arbitrary code and data patterns!
+2. They do _NOT_ have a recursive expansion limit (as does procedural non-tail-recursion)
+   - Hence recursive expansions _MAY_ cause a segmentation fault if they infinitely expand
+     - ___NOTE__: Such is an indication of a **USER** error however, and **NOT** an interpreter error!_
+
 
 
 
@@ -808,9 +833,9 @@ Other primitives of this nature include:<br>
     - `<pattern>` = `(<any-symbol> <expression-to-match-against>)`
     - `<template>` = `<expression-to-expand-into>`
   - _Note: Literals & `<key>`s in patterns must be matched exactly to expand!_
-  - _Note: `...` is **always** a reserved `<key>` name!_
+  - _Note: `...` and `syntax-hash` are **always** reserved `<key>` names!_
 
-#### Variadic Matching & Hygienic Expansion:
+#### Variadic Matching & Expansion:
 ##### Heist Scheme's Powerful Macro System Enables Matching & Constructing Arbitrarily Complex Expressions!
 * _For Patterns:_
   - `<obj> ...` Matches 1 or more entities
@@ -834,6 +859,69 @@ Other primitives of this nature include:<br>
     ((a b) (c d)) ... ; Constructs 1+ pairs of pairs of variadic matches <a>, <b>, <c>, & <d>
     ((a ...) ...)     ; Constructs 1+ expressions of 1+ variadic matches <a>
     ```
+
+
+------------------------
+## Syntax-Hash:
+
+#### Use: ___Hash Local Macro Template Identifiers to Avoid Expansion Name Conflicts!___
+
+#### Form: `(syntax-hash <symbol>)`
+* _**ONLY** valid in `syntax-rules` or `core-syntax` templates!_
+* _Expander replaces `syntax-hash` expression, and every instance of `<symbol>`,<br>
+  with a hashed version of `<symbol>` unique to the expansion instance!_
+  - _Similar to [`gensym`](#Gensym) but specialized for macro expansions!_
+
+#### Shorthand: ``` `@<symbol> => (syntax-hash <symbol>)```
+
+#### Example:
+```scheme
+
+  ;; Note the name conflict in the following:
+  ;;   The <a> gets expanded to <b>, but the expansion then reads that <b> as 10
+  ;;     due to the rebinding of <b> by <let>, thus the result is 20 and not 15
+
+  (define-syntax my-macro
+    (syntax-rules ()
+      ((_ a) 
+        (let ((b 10))
+          (+ a b))))) ; expands to (+ b b) => (+ 10 10)
+
+  (define b 5)
+  (write (my-macro 5)) ; 20
+
+
+
+  ;; We can resolve this by binding our <b> in the macro to a UNIQUE identifier.
+  ;;   We COULD solve this using <gensym>:
+
+  (define-syntax my-macro
+   (syntax-rules ()
+     ((_ a) 
+       (eval 
+         `(let ((,(gensym) 10)) ; form the expression by splicing in a unique symbol,
+             (+ a ,(gensym 1))) ; then evaluate the expression in the local environment
+         'local-environment))))
+
+  (define b 5)
+  (write (my-macro 5)) ; 15
+
+
+
+  ;; HOWEVER, this is a tad verbose for our purposes. Enter <syntax-hash>:
+  ;;   a FAST alternative to <gensym> specialized ONLY for macro expansions!
+  ;; => NOTE: we can use the "`@" reader macro to be even more concise!
+
+  (define-syntax my-macro
+    (syntax-rules ()
+      ((_ a) 
+        (let ((`@b 10)) ; `@b => (syntax-hash b) & binds <hashed-b> to 10
+          (+ a b)))))   ; expands to (+ b <hashed-b>) => (+ 5 10)
+
+  (define b 5)
+  (write (my-macro 5)) ; 15
+```
+
 
 ------------------------
 ## Core-Syntax:

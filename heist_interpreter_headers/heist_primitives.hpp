@@ -4627,7 +4627,7 @@ namespace heist {
           "\n     (gensym <optional-instance-#-to-reference>)" << FCN_ERR("gensym",args));
       return decremented_hashed_gensym_arg((size_type)args[0].num.extract_inexact(),args);
     }
-    return hygienically_hashed_gensym_arg();
+    return new_hashed_gensym_arg();
   }
 
 

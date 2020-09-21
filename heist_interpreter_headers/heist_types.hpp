@@ -110,7 +110,7 @@ namespace heist {
     size_type GENSYM_HASH_IDX_1 = 0, GENSYM_HASH_IDX_2 = 0;
 
     /******************************************************************************
-    * THE GLOBAL MACRO LABEL REGISTRY & HYGIENIC-MACROS/CPS HASH INDICES
+    * THE GLOBAL MACRO LABEL REGISTRY & MACRO/CPS HASH INDICES
     ******************************************************************************/
 
     std::vector<scm_string> MACRO_LABEL_REGISTRY; // optimizes procedure analysis
@@ -129,8 +129,8 @@ namespace heist {
     * THE GLOBAL REGISTRY OF READER MACROS
     ******************************************************************************/
 
-    std::vector<scm_string> SHORTHAND_READER_MACRO_REGISTRY({",@","`",",","'"});
-    std::vector<scm_string> LONGHAND_READER_MACRO_REGISTRY({"unquote-splicing","quasiquote","unquote","quote"});
+    std::vector<scm_string> SHORTHAND_READER_MACRO_REGISTRY({"`@",",@","`",",","'"});
+    std::vector<scm_string> LONGHAND_READER_MACRO_REGISTRY({"syntax-hash","unquote-splicing","quasiquote","unquote","quote"});
 
     /******************************************************************************
     * MAX VALUE FOR SIZE_TYPE
@@ -182,6 +182,7 @@ namespace heist {
     constexpr const char * const let_syn           = "let-syntax";
     constexpr const char * const letrec_syn        = "letrec-syntax";
     constexpr const char * const syn_rules         = "syntax-rules";
+    constexpr const char * const syn_hash          = "syntax-hash";
     constexpr const char * const define            = "define";
     constexpr const char * const begin             = "begin";
     constexpr const char * const if_t              = "if";
@@ -313,6 +314,7 @@ namespace heist {
   struct scm_macro {
     frame_var label;
     frame_vars keywords;
+    std::vector<frame_vars> hashed_template_ids; // hashed_template_ids[i] = syntax-hashed vars of templates[i]
     std::vector<scm_list> patterns, templates;
     scm_macro(frame_var u_label = "") noexcept : label(u_label) {}
     scm_macro(const scm_macro& m)     noexcept {*this = m;}
@@ -320,13 +322,15 @@ namespace heist {
     ~scm_macro()                      noexcept {}
     void operator=(const scm_macro& m)noexcept {
       if(this == &m) return;
-      label     = m.label,    keywords  = m.keywords;
-      patterns  = m.patterns, templates = m.templates;
+      label               = m.label,    keywords  = m.keywords;
+      patterns            = m.patterns, templates = m.templates;
+      hashed_template_ids = m.hashed_template_ids;
     }
     void operator=(scm_macro&& m) noexcept {
       if(this == &m) return;
-      label    = std::move(m.label),    keywords  = std::move(m.keywords);
-      patterns = std::move(m.patterns), templates = std::move(m.templates);
+      label               = std::move(m.label),    keywords  = std::move(m.keywords);
+      patterns            = std::move(m.patterns), templates = std::move(m.templates);
+      hashed_template_ids = std::move(m.hashed_template_ids);
     }
   };
 

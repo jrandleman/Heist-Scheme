@@ -3987,7 +3987,7 @@ namespace heist {
   ******************************************************************************/
 
   // Returns a freshly generated gensym symbol
-  scm_string hygienically_hashed_gensym_arg()noexcept{
+  scm_string new_hashed_gensym_arg()noexcept{
     if(G::GENSYM_HASH_IDX_1 != G::MAX_SIZE_TYPE)
       return symconst::gensym_prefix + std::to_string(G::GENSYM_HASH_IDX_2) + 
                                  '_' + std::to_string(G::GENSYM_HASH_IDX_1++);
