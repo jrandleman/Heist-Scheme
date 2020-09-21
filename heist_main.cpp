@@ -91,6 +91,7 @@
  *         * `                ; quasiquote
  *         * ,                ; unquote
  *         * ,@               ; unquote-splicing
+ *         * `@               ; syntax-hash
  *         * .                ; VARIADIC ARGS, cons LITERAL
  *         * #\               ; CHARACTER PREFIX
  *         * =>               ; APPLY CONDITION RESULT (FOR cond)
@@ -103,6 +104,7 @@
  *         * let-syntax       ; LOCALLY-SCOPED MACRO DEFINITION
  *         * letrec-syntax    ; LOCALLY-SCOPED RECURSIVE MACRO DEFINITION
  *         * syntax-rules     ; SYNTAX OBJECT
+ *         * syntax-hash      ; HASH A MACRO-TEMPLATE VAR TO AVOID COLLISION
  *         * lambda           ; ANONYMOUS PROCEDURE
  *         * define           ; BIND VARIABLE TO VALUE
  *         * set!             ; ASSIGN VARIABLE A NEW VALUE (MUTATATION)
