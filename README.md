@@ -702,7 +702,7 @@ Other primitives of this nature include:<br>
 
 ;; Becomes =>
 
-(lambda () ; Memoized promises!
+((lambda () ; Memoized promises!
   (define already-run? #f)
   (define result #f)
   (lambda ()
@@ -711,7 +711,7 @@ Other primitives of this nature include:<br>
         (begin
           (set! already-run? #t)
           (set! result <exp>)
-          result))))
+          result)))))
 
 (<promise>)
 ```
