@@ -1245,34 +1245,37 @@ Other primitives of this nature include:<br>
 11. __Remainder__: Get the remainder of `(/ <number1> <number2>)`
     * `(remainder <number1> <number2>)`
 
-12. __Modulo__: `(modulo <number1> <number2>)`
+12. __Divmod__: Get a pair with the quotient and remainder of `<number1>` & `<number2>`
+    * `(divmod <number1> <number2>)`
 
-13. __Modulo Flonum__: Get the fractional portion of `<flonum>`
+13. __Modulo__: `(modulo <number1> <number2>)`
+
+14. __Modulo Flonum__: Get a pair with the integral & fractional portions of `<flonum>`
     * `(modf <flonum>)`
 
-14. __Exponent__: Get e raised to the power of `<number>`
+15. __Exponent__: Get e raised to the power of `<number>`
     * `(exp <number>)`
 
-15. __Natural Logarithm__: `(log <number>)`
+16. __Natural Logarithm__: `(log <number>)`
 
-16. __Square Root__: `(sqrt <number>)`
+17. __Square Root__: `(sqrt <number>)`
 
-17. __Greatest Common Denominator__: `(gcd <number1> <number2>)`
+18. __Greatest Common Denominator__: `(gcd <number1> <number2>)`
 
-18. __Least Common Multiple__: `(lcm <number1> <number2>)`
+19. __Least Common Multiple__: `(lcm <number1> <number2>)`
 
-19. __Extract Number's Numerator__: `(numerator <number>)`
+20. __Extract Number's Numerator__: `(numerator <number>)`
 
-20. __Extract Number's Denominator__: `(denominator <number>)`
+21. __Extract Number's Denominator__: `(denominator <number>)`
 
-21. __Generate a Log Procedure of a Certain Base__: `(make-log-base <number>)`
+22. __Generate a Log Procedure of a Certain Base__: `(make-log-base <number>)`
 
-22. __Psuedo-Random Number Generator__: Seeded *or* unseeded
+23. __Psuedo-Random Number Generator__: Seeded *or* unseeded
     * `(random)`, `(random <numeric-seed>)`
 
-23. __Coerce Inexact to Exact__: `(inexact->exact <number>)`
+24. __Coerce Inexact to Exact__: `(inexact->exact <number>)`
 
-24. __Coerce Exact to Inexact__: `(exact->inexact <number>)`
+25. __Coerce Exact to Inexact__: `(exact->inexact <number>)`
 
 
 ### Numeric Predicates:
@@ -1957,6 +1960,7 @@ Other primitives of this nature include:<br>
    * `(inline <procedure> <arg1> ... <argN>)`
 
 5. __Jump/Throw Value__: `(jump! <optional-arg>)`
+   * `<optional-arg>` defaults to [`(void)`](#Type-Predicates)
 
 6. __Catch Jumped/Thrown Value__: `(catch-jump <proc> <arg1> ... <argN>)`
 
