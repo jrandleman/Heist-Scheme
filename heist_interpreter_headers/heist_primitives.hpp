@@ -126,6 +126,16 @@ namespace heist {
     return data((args[0].num % args[1].num));
   }
 
+  // primitive "divmod" procedure
+  data primitive_DIVMOD(scm_list& args) {
+    confirm_no_numeric_primitive_errors(args, "divmod", "(divmod <num1> <num2>)");
+    confirm_2_args(args, "divmod", "(divmod <num1> <num2>)");
+    data divmod_pair = data(make_par());
+    divmod_pair.par->first = args[0].num.quotient(args[1].num);
+    divmod_pair.par->second = args[0].num % args[1].num;
+    return divmod_pair;
+  }
+
   // primitive "modulo" procedure
   data primitive_MODULO(scm_list& args) {
     confirm_no_numeric_primitive_errors(args, "modulo", "(modulo <num1> <num2>)");
@@ -5156,6 +5166,7 @@ namespace heist {
     std::make_pair(primitive_MIN,       "min"),
     std::make_pair(primitive_QUOTIENT,  "quotient"),
     std::make_pair(primitive_REMAINDER, "remainder"),
+    std::make_pair(primitive_DIVMOD,    "divmod"),
     std::make_pair(primitive_MODULO,    "modulo"),
     std::make_pair(primitive_EXP,       "exp"),
     std::make_pair(primitive_LOG,       "log"),
