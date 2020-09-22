@@ -1130,6 +1130,7 @@ namespace scm_numeric {
       for(size_type i = 0; i < nlen; ++i) aVec[i] = numerator[i];
       for(size_type i = 0; i < s.nlen; ++i) bVec[i] = s.numerator[i];
       BIGNUM_UNSIGNED_DIVIDE_core(aVec,bVec,quotient,remainder);
+      if(remainder.size() == 1 && remainder[0] == 0) return Snum(); // remainder is 0
       tmp.resize_numerator(remainder.size());
       for(size_type i = 0, n = remainder.size(); i < n; ++i) tmp.numerator[tmp.nlen++] = remainder[i];
       tmp.sign = sign;
@@ -1379,6 +1380,7 @@ namespace scm_numeric {
       for(size_type i = 0; i < nlen; ++i) aVec[i] = numerator[i];
       for(size_type i = 0; i < s.nlen; ++i) bVec[i] = s.numerator[i];
       BIGNUM_UNSIGNED_DIVIDE_core(aVec,bVec,quotient,remainder);
+      if(quotient.size() == 1 && quotient[0] == 0) return Snum(); // quotient is 0
       tmp.resize_numerator(quotient.size());
       for(size_type i = 0, n = quotient.size(); i < n; ++i) tmp.numerator[tmp.nlen++] = quotient[i];
       if(sign != s.sign) tmp.sign = signs::neg;
