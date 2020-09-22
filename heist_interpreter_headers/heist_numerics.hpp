@@ -504,8 +504,7 @@ namespace scm_numeric {
     // Coerce the given int string into float. Returns the success status.
     status coerce_int_to_float(inexact_t& num, const std::string& data_to_coerce, const bool data_is_neg) const noexcept;
     // Coerce the given fraction into float. Returns the success status.
-    status coerce_fraction_to_float(inexact_t& num,const exact_t numer, const size_type& numer_len,
-                                                   const exact_t denom, const size_type& denom_len,const bool data_is_neg) const noexcept;
+    status coerce_fraction_to_float(inexact_t& num) const noexcept;
 
     // Decompose the numerator into SIZE_TYPE_MAX factors (enables repeated squaring)
     std::pair<std::pair<size_type,size_type>,Snum::status> decompose_int_into_SIZE_TYPE_MAX() const noexcept;
@@ -587,7 +586,7 @@ namespace scm_numeric {
   Snum Snum::to_inexact() const noexcept {
     if(stat != status::success || is_float || is_zero()) return *this;
     Snum tmp;
-    tmp.stat = coerce_fraction_to_float(tmp.float_num,numerator,nlen,denominator,dlen,is_neg());
+    tmp.stat = coerce_fraction_to_float(tmp.float_num);
     if(tmp.stat != status::success) {
       tmp.set_failed_status(); return tmp;
     }
@@ -956,8 +955,8 @@ namespace scm_numeric {
     } else {
       inexact_t converted_float = 0;
       if(is_float && !s.is_float)
-        tmp.stat = coerce_fraction_to_float(converted_float, s.numerator, s.nlen, s.denominator, s.dlen, s.is_neg());
-      else tmp.stat = coerce_fraction_to_float(converted_float, numerator, nlen, denominator, dlen, is_neg());
+        tmp.stat = s.coerce_fraction_to_float(converted_float);
+      else tmp.stat = coerce_fraction_to_float(converted_float);
       if(tmp.stat != status::success) {
         tmp.set_failed_status();return tmp;
       }
@@ -1031,8 +1030,8 @@ namespace scm_numeric {
     } else {
       inexact_t converted_float = 0;
       if(is_float && !s.is_float)
-        tmp.stat = coerce_fraction_to_float(converted_float, s.numerator, s.nlen, s.denominator, s.dlen, s.is_neg());
-      else tmp.stat = coerce_fraction_to_float(converted_float, numerator, nlen, denominator, dlen, is_neg());
+        tmp.stat = s.coerce_fraction_to_float(converted_float);
+      else tmp.stat = coerce_fraction_to_float(converted_float);
       if(tmp.stat != status::success) {
         tmp.set_failed_status(); return tmp;
       }
@@ -1102,7 +1101,7 @@ namespace scm_numeric {
       inexact_t div_res;
       bool exact_division = !tmp.is_float;
       if(exact_division) { // coerce fractional to floating-point
-        tmp.stat = coerce_fraction_to_float(div_res,tmp.numerator,tmp.nlen,tmp.denominator,tmp.dlen,tmp.is_neg());
+        tmp.stat = tmp.coerce_fraction_to_float(div_res);
         if(tmp.stat != status::success) {
           tmp.set_failed_status();return tmp;
         }
@@ -1180,7 +1179,7 @@ namespace scm_numeric {
 
     // Coerce Fractional Power to Float
     if(!pow.is_float && (pow.dlen != 1 || pow.denominator[0] != 1)) { 
-      tmp.stat = coerce_fraction_to_float(pow.float_num,pow.numerator,pow.nlen,pow.denominator,pow.dlen,pow.is_neg());
+      tmp.stat = pow.coerce_fraction_to_float(pow.float_num);
       if(tmp.stat != status::success) {
         tmp.set_failed_status();return tmp;
       }
@@ -1231,7 +1230,7 @@ namespace scm_numeric {
 
     // Coerce Int Base to Float, then Float-Float Exponentiation
     } else {
-      tmp.stat = coerce_fraction_to_float(base_flt,numerator,nlen,denominator,dlen,is_neg());
+      tmp.stat = coerce_fraction_to_float(base_flt);
       if(tmp.stat != status::success) {
         tmp.set_failed_status();return tmp;
       }
@@ -1266,7 +1265,7 @@ namespace scm_numeric {
       // Coerce this' Fractional to Float as Needed
       if(is_float) lhs = float_num;
       else {
-        tmp.stat = coerce_fraction_to_float(lhs, numerator, nlen, denominator, dlen, is_neg());
+        tmp.stat = coerce_fraction_to_float(lhs);
         if(tmp.stat != status::success) {
           tmp.set_failed_status(); return tmp;
         }
@@ -1275,7 +1274,7 @@ namespace scm_numeric {
       // Coerce s' Fractional to Float as Needed
       if(s.is_float) rhs = s.float_num;
       else {
-        tmp.stat = coerce_fraction_to_float(rhs, s.numerator, s.nlen, s.denominator, s.dlen, s.is_neg());
+        tmp.stat = s.coerce_fraction_to_float(rhs);
         if(tmp.stat != status::success) {
           tmp.set_failed_status(); return tmp;
         }
@@ -1345,7 +1344,7 @@ namespace scm_numeric {
     if(tmp.is_float) {
       ln_base = tmp.float_num;
     } else {
-      tmp.stat = coerce_fraction_to_float(ln_base,tmp.numerator,tmp.nlen,tmp.denominator,tmp.dlen,false); // ln args are never < 0
+      tmp.stat = tmp.coerce_fraction_to_float(ln_base);
       if(tmp.stat != status::success) {
         if(tmp.is_pos_inf()) tmp.set_pinf();
         else                 tmp.stat = status::nan;
@@ -1646,7 +1645,7 @@ namespace scm_numeric {
       // return !numerator.empty() && ((*numerator.rbegin() & 1) == 0); 
       return nlen && (numerator[nlen-1] & 1) == 0;
     inexact_t num = 0;
-    auto coerced=coerce_fraction_to_float(num,numerator,nlen,denominator,dlen,is_neg());
+    auto coerced = coerce_fraction_to_float(num);
     if(coerced == status::pinf || coerced == status::ninf) return true;
     return (coerced == status::success) && (std::fmod(num,2) == 0);
   }
@@ -1851,16 +1850,14 @@ namespace scm_numeric {
     if(div_res.is_float) {
       div_flt = div_res.float_num;
     } else {
-      auto div_coercion = coerce_fraction_to_float(div_flt, div_res.numerator,div_res.nlen, 
-                                                            div_res.denominator,div_res.dlen,div_res.is_neg());
+      auto div_coercion = div_res.coerce_fraction_to_float(div_flt);
       if(div_coercion != status::success)return std::make_pair(std::make_pair(0,0), div_coercion);
     }
     // Coerce remainder Result to a Float
     if(mod_res.is_float) {
       mod_flt = mod_res.float_num;
     } else {
-      auto mod_coercion = coerce_fraction_to_float(mod_flt,mod_res.numerator,mod_res.nlen,
-                                                           mod_res.denominator,mod_res.dlen,mod_res.is_neg());
+      auto mod_coercion = mod_res.coerce_fraction_to_float(mod_flt);
       if(mod_coercion != status::success)return std::make_pair(std::make_pair(0,0), mod_coercion);
     }
     // Cast Floats to 'size_type's => THE LOSS OF PRECISION IS INTENTIONAL.
@@ -1898,7 +1895,7 @@ namespace scm_numeric {
     if(tmp.is_float)
       flt_val = tmp.is_neg() ? -tmp.float_num : tmp.float_num;
     else {
-      tmp.stat = coerce_fraction_to_float(flt_val,tmp.numerator,tmp.nlen,tmp.denominator,tmp.dlen,tmp.is_neg());
+      tmp.stat = tmp.coerce_fraction_to_float(flt_val);
       if(tmp.stat != status::success) {
         tmp.set_failed_status(); return tmp;
       }
@@ -2163,7 +2160,7 @@ namespace scm_numeric {
     if(is_float)
       flt_val = is_neg() ? -float_num : float_num;
     else {
-      tmp.stat = coerce_fraction_to_float(flt_val,numerator,nlen,denominator,dlen,is_neg());
+      tmp.stat = coerce_fraction_to_float(flt_val);
       if(tmp.stat != status::success) {
         tmp.set_failed_status(); return tmp;
       }
@@ -2692,26 +2689,25 @@ namespace scm_numeric {
   }
 
 
-  // Coerce the given fraction string into float. Returns the success status, 
+  // Coerce *this number (a confirmed fraction) into a float. Returns the success status, 
   // IE whether became a float as requested, OR resulted in +- inf.
-  Snum::status Snum::coerce_fraction_to_float(inexact_t& num,const exact_t numer, const size_type& numer_len,
-                                                             const exact_t denom, const size_type& denom_len,
-                                                             const bool data_is_neg)const noexcept{
+  Snum::status Snum::coerce_fraction_to_float(inexact_t& num)const noexcept{
+    const bool data_is_neg = is_neg();
     num = 0;
-    if(denom_len == 1 && denom[0] == 0) return status::nan;         // n/0 = NaN
-    if(numer_len == 1 && numer[0] == 0) return status::success;     // 0/n = 0
-    if(unsigned_arrays_are_equal(numer,numer_len,denom,denom_len)){ // n/n = 1
+    if(dlen == 1 && denominator[0] == 0) return status::nan;        // n/0 = NaN
+    if(nlen == 1 && numerator[0] == 0) return status::success;      // 0/n = 0
+    if(unsigned_arrays_are_equal(numerator,nlen,denominator,dlen)){ // n/n = 1
       num = 1 - 2 * data_is_neg; // data_is_neg ? -1 : 1
       return status::success;
     }
     
-    // Coerce the numerator & denominator to inexact_t's
+    // Coerce the numeratorator & denominator to inexact_t's
     inexact_t num_double, den_double;
-    const auto num_coercion_res = coerce_int_to_float(num_double, convert_exact_to_string(numer,numer_len), data_is_neg);
-    const auto den_coercion_res = coerce_int_to_float(den_double, convert_exact_to_string(denom,denom_len), data_is_neg);
+    const auto num_coercion_res = coerce_int_to_float(num_double, convert_exact_to_string(numerator,nlen), data_is_neg);
+    const auto den_coercion_res = coerce_int_to_float(den_double, convert_exact_to_string(denominator,dlen), data_is_neg);
     // Check for the success status of either conversion
-    if(den_coercion_res != status::success) { // denom is inf
-      if(num_coercion_res != status::success) // numer is inf
+    if(den_coercion_res != status::success) { // denominator is inf
+      if(num_coercion_res != status::success) // numerator is inf
         return status::nan;   // inf/inf = NaN
       return status::success; // n/inf = 0
     } else if(num_coercion_res != status::success) {
