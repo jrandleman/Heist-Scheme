@@ -2157,12 +2157,14 @@ namespace scm_numeric {
     }
     // Coerce Fractional to Float as Needed
     inexact_t flt_val = 0;
-    if(is_float)
-      flt_val = is_neg() ? -float_num : float_num;
-    else {
-      tmp.stat = coerce_fraction_to_float(flt_val);
-      if(tmp.stat != status::success) {
-        tmp.set_failed_status(); return tmp;
+    if(!is_zero()) {
+      if(is_float)
+        flt_val = is_neg() ? -float_num : float_num;
+      else {
+        tmp.stat = coerce_fraction_to_float(flt_val);
+        if(tmp.stat != status::success) {
+          tmp.set_failed_status(); return tmp;
+        }
       }
     }
     // retrieve the cpp fcn's value
