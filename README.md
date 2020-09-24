@@ -1315,7 +1315,7 @@ Other primitives of this nature include:<br>
 ### Trigonometry Procedures:
 0. __Regular__: `(sin <number>)`, `(cos <number>)`, `(tan <number>)`
 
-1. __Inverse__: `(asin <number>)`, `(acos <number>)`, `(atan <number>)`
+1. __Inverse__: `(asin <number>)`, `(acos <number>)`, `(atan <number>)`, `(atan2 <number1> <number2>)`
 
 2. __Hyperbolic__: `(sinh <number>)`, `(cosh <number>)`, `(tanh <number>)`
 

@@ -389,6 +389,13 @@ namespace heist {
     return data(args[0].num.atan());
   }
 
+  // primitive "atan2" procedure
+  data primitive_ATAN2(scm_list& args) {
+    confirm_no_numeric_primitive_errors(args, "atan2", "(atan2 <num1> <num2>)");
+    confirm_2_args(args, "atan2", "(atan2 <num1> <num2>)");
+    return data(args[0].num.atan2(args[1].num));
+  }
+
   // primitive "sinh" procedure
   data primitive_SINH(scm_list& args) {
     confirm_unary_numeric(args, "sinh", "(sinh <num>)");
@@ -5204,6 +5211,7 @@ namespace heist {
     std::make_pair(primitive_ASIN,  "asin"),
     std::make_pair(primitive_ACOS,  "acos"),
     std::make_pair(primitive_ATAN,  "atan"),
+    std::make_pair(primitive_ATAN2, "atan2"),
     std::make_pair(primitive_SINH,  "sinh"),
     std::make_pair(primitive_COSH,  "cosh"),
     std::make_pair(primitive_TANH,  "tanh"),

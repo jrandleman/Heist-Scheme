@@ -333,6 +333,7 @@ namespace scm_numeric {
     Snum asinh() const noexcept {return UNDERLYING_CPP_GENERIC_FCN(9);}
     Snum acosh() const noexcept {return UNDERLYING_CPP_GENERIC_FCN(10);}
     Snum atanh() const noexcept {return UNDERLYING_CPP_GENERIC_FCN(11);}
+    Snum atan2(const Snum& denom)const noexcept;
 
 
     // ************************** COMPARISON OPERATORS **************************
@@ -516,6 +517,8 @@ namespace scm_numeric {
     Snum ROUNDING_GENERIC_FCN(const size_type ROUNDING_TYPE_ID) const noexcept;
     // Generic cpp-fcn-invocation template
     Snum UNDERLYING_CPP_GENERIC_FCN(const size_type CPP_FCN_TYPE_ID) const noexcept;
+    // Float Extraction for underlying cpp-fcn invocations
+    bool extract_float_val(Snum& tmp, inexact_t& value) const noexcept;
 
     // Returns whether big-int a > big-int b
     bool big_int_gt(const exact_t a, const size_type& a_len, const exact_t b, const size_type& b_len) const noexcept;
@@ -2144,6 +2147,18 @@ namespace scm_numeric {
   * UNDERLYING CPP-INVOCATION HELPER FUNCTION
   ******************************************************************************/
 
+  // Returns whether succeeded
+  bool Snum::extract_float_val(Snum& tmp, inexact_t& value) const noexcept {
+    if(is_float) {
+      value = is_neg() ? -float_num : float_num;
+      return true;
+    }
+    tmp.stat = coerce_fraction_to_float(value);
+    if(tmp.stat != status::success) return false;
+    return true;
+  }
+
+
   // Generic cpp-fcn-invocation template
   Snum Snum::UNDERLYING_CPP_GENERIC_FCN(const size_type CPP_FCN_TYPE_ID) const noexcept {
     Snum tmp;
@@ -2158,15 +2173,8 @@ namespace scm_numeric {
     }
     // Coerce Fractional to Float as Needed
     inexact_t flt_val = 0;
-    if(!is_zero()) {
-      if(is_float)
-        flt_val = is_neg() ? -float_num : float_num;
-      else {
-        tmp.stat = coerce_fraction_to_float(flt_val);
-        if(tmp.stat != status::success) {
-          tmp.set_failed_status(); return tmp;
-        }
-      }
+    if(!is_zero() && !extract_float_val(tmp,flt_val)) {
+      tmp.set_failed_status(); return tmp;
     }
     // retrieve the cpp fcn's value
     switch(CPP_FCN_TYPE_ID) {
@@ -2189,6 +2197,28 @@ namespace scm_numeric {
       case 12: flt_val = std::exp(flt_val); break; // exp
     }
     tmp.float_num = flt_val;
+    tmp.adjust_float_invariants();
+    return tmp;
+  }
+
+  /******************************************************************************
+  * UNDERLYING CPP-ATAN2-INVOCATION HELPER FUNCTION
+  ******************************************************************************/
+
+  Snum Snum::atan2(const Snum& denom) const noexcept {
+    Snum tmp;
+    if(stat != status::success || denom.stat != status::success || (is_zero() && denom.is_zero())) {
+      tmp.stat = status::nan; return tmp;
+    }
+    // Coerce Fractional to Float as Needed
+    inexact_t numer_val = 0, denom_val = 0;
+    if(!is_zero() && !extract_float_val(tmp,numer_val)){
+      tmp.set_failed_status(); return tmp;
+    }
+    if(!denom.is_zero() && !denom.extract_float_val(tmp,denom_val)){
+      tmp.set_failed_status(); return tmp;
+    }
+    tmp.float_num = std::atan2(numer_val,denom_val);
     tmp.adjust_float_invariants();
     return tmp;
   }
