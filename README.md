@@ -861,7 +861,7 @@ Other primitives of this nature include:<br>
           (+ a b))))) ; expands to (+ b b) => (+ 10 10)
 
   (define b 5)
-  (write (my-macro 5)) ; 20
+  (write (my-macro b)) ; 20
 
 
 
@@ -877,7 +877,7 @@ Other primitives of this nature include:<br>
          'local-environment))))
 
   (define b 5)
-  (write (my-macro 5)) ; 15
+  (write (my-macro b)) ; 15
 
 
 
@@ -892,7 +892,7 @@ Other primitives of this nature include:<br>
           (+ a b)))))   ; expands to (+ b <hashed-b>) => (+ 5 10)
 
   (define b 5)
-  (write (my-macro 5)) ; 15
+  (write (my-macro b)) ; 15
 ```
 
 
