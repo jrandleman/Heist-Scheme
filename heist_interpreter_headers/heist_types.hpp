@@ -498,7 +498,7 @@ namespace heist {
         case types::bol: if(bol.val) return "#t"; return "#f";
         case types::env: return "#<environment>";
         case types::del: return "#<delay>";
-        case types::prm: return "#<primitive>";
+        case types::prm: return "#<primitive-function-pointer>";
         case types::exe: return "#<procedure-body>";
         case types::cal: return "#<recursion-count>";
         case types::fip: return "#<input-port>";
@@ -539,7 +539,7 @@ namespace heist {
     constexpr const char* type_name() const noexcept {
       constexpr const char* const type_names[] = {
         "null", "expression", "pair", "number", "string", "character", "symbol", "vector",
-        "boolean", "environment", "delay", "primitive", "execution-procedure", 
+        "boolean", "environment", "delay", "primitive-function-pointer", "execution-procedure", 
         "recursive-call-count", "input-port", "output-port", "void", "syntax-rules", 
         "undefined"
       };
