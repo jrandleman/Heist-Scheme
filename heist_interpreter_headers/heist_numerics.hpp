@@ -2547,6 +2547,7 @@ namespace scm_numeric {
     void convert_string_to_exactVec(const std::string&, exactVec_t&)noexcept;
     exactVec_t baseVec;
     convert_string_to_exactVec(bnum,baseVec);
+    if(is_neg) return Snum("-1") * BASE_10_HORNER_SCHEME(baseVec,base);
     return BASE_10_HORNER_SCHEME(baseVec,base);
   }
 
