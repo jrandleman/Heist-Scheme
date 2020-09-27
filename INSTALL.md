@@ -7,7 +7,7 @@
 =================================
 ```
 
-## INSTALLING THE INTERPRETER _(reinstall in new dir's to reset filepath!)_:
+## INSTALLING THE INTERPRETER IN A NEW DIRECTORY:
 
 ### With `python3`, ___AND___ `clang++` OR `g++`:
 0. OPEN THE `/heist_installation/` FOLDER
@@ -36,7 +36,7 @@
         `-O3`'s (as expected) & its runtime is nearly as fast
 
 
-
+-------
 SETTING UP BETTER COMMAND-LINE INTERFACE -- FOR BASH & ZSH:
 ------------------------------------------------------------
 
@@ -48,7 +48,7 @@ SETTING UP BETTER COMMAND-LINE INTERFACE -- FOR BASH & ZSH:
 3. NOW, WRITING `heist` FROM ANYWHERE IN THE TERMINAL LAUNCHES THE INTERPRETER!
 
 
-
+-------
 SETTING UP A BUILD SYSTEM -- FOR SUBLIME TEXT:
 -----------------------------------------------
 
