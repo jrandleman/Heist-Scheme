@@ -328,18 +328,6 @@ namespace heist {
   * READER NUMBER PARSING FUNCTIONS
   ******************************************************************************/
 
-  // Determine whether char is a valid numeric char
-  constexpr bool is_valid_number_char(const char& c, const int& base) noexcept {
-    return scm_numeric::is_base_digit(c,base) || c=='.' || c=='/' || (base==10 && (c=='e' || c=='E'));
-  }
-
-  // Confirms whether input[i] is the valid start of a radix-less number literal
-  constexpr bool is_valid_number_start(const char& c, const char& c2, const int& base) noexcept {
-    return scm_numeric::is_base_digit(c,base) || 
-           (c2 && (c=='.' || c=='-' || c=='+') 
-               && (scm_numeric::is_base_digit(c2,base) || (c!='.'&&c2=='.')));
-  }
-
   // Returns the lowercase char of the radix if IS a valid radix, else returns 0
   // #e=exact, #i=inexact, #b=binary, #o=octal, #d=decimal, #x=hexadecimal
   constexpr char is_valid_number_radix(const char& c, const char& c2) noexcept {
@@ -372,26 +360,13 @@ namespace heist {
     return 0; // '0' denotes to deduce the precision
   }
 
-  // Returns whether at an irrational constant, +nan.0 +inf.o -inf.0
-  bool is_irrational_const(const size_type& i, const scm_string& input) noexcept {
-    return input[i+4]=='.' && input[i+5]=='0' && 
-           (input[i]=='+' || input[i]=='-') && 
-           ((input[i+1]=='n' && input[i+2]=='a' && input[i+3]=='n') || 
-            (input[i+1]=='i' && input[i+2]=='n' && input[i+3]=='f'));
-  }
 
   // Check whether data is a number. 
   //   => NOTE: 2.0.0 is a valid Scheme symbol
   //            -> Hence must confirm is numeric & NOT symbol prior extraction
   bool data_is_number(size_type& i, const scm_string& input, num_type& exp) noexcept {
     const size_type n = input.size();
-    // check for irrationality
-    if(n-i >= 6 && is_irrational_const(i,input)) { // "+inf.0".size() = 6
-      exp = num_type(input.substr(i,6));
-      i += 5;
-      return true;
-    }
-    
+
     // check for radices -- may contain both an exactness radix & #-base radix
     const char radix1 = is_valid_number_radix(input[i],input[i+1]);
     const char radix2 = radix1 ? is_valid_number_radix(input[i+2],input[i+3]) : 0;
@@ -401,44 +376,23 @@ namespace heist {
     const int  base = radix_numerical_base(radix1,radix2);
     const char prec = radix_numerical_prec(radix1,radix2);
     
-    // parse the number after the radix
-    const auto num_start = i + ((radix1 && radix2) ? 4 : radix1 ? 2 : 0); // mv past radices
-    if(is_valid_number_start(input[num_start],input[num_start+1],base)){
-      // account for sign
-      scm_string num = (input[num_start]=='-') ? "-" : "";
-      size_type period_freq = 0, div_freq = 0, expt_freq = 0;
-      size_type j = num_start + (input[num_start]=='-' || input[num_start]=='+');
-      
-      // parse number
-      while(j<n && period_freq<2 && div_freq<2 && expt_freq<2 && is_valid_number_char(input[j],base)) {
-        if(input[j]=='.') {
-          ++period_freq;
-          if(div_freq || expt_freq) return false;
-        } else if(input[j]=='/') {
-          ++div_freq;
-          if(!scm_numeric::is_base_digit(input[j+1],base) || period_freq || expt_freq) return false;
-        } else if(base == 10 && (input[j]=='e' || input[j]=='E')) {
-          ++expt_freq;
-          if(input[j+1] == '+' || input[j+1] == '-') num += input[j++];
-          if(!scm_numeric::is_base_digit(input[j+1],base) || div_freq) return false;
-        }
-        num += input[j++];
-      }
-      
-      // invalid number if ambiguous precision specification
-      if(period_freq == 2 || div_freq == 2 || expt_freq == 2) 
-        return false;
-      
-      // if parsed a valid number
-      if(j==n || IS_END_OF_WORD(input[j],input[j+1])) {
-        bool parsing_nan = (num == "+nan.0" || num == "-nan.0");
-        exp = (base!=10) ? num_type(num,base) : num_type(num);          // base
-        if(prec) exp = (prec=='e') ? exp.to_exact() : exp.to_inexact(); // prec
-        i = j-1;
-        return (parsing_nan || !exp.is_nan()); // whether successful numeric ctor
-      }
+    // parse the number after the radix/base
+    size_type j = i + ((radix1 && radix2) ? 4 : radix1 ? 2 : 0); // mv past radices
+    scm_string num;
+    while(j < n && !IS_END_OF_WORD(input[j],input[j+1])) num += input[j++];
+    // check if parsed +nan.0 (special case)
+    bool parsing_NaN = num == "+nan.0" || num == "-nan.0";
+    if(parsing_NaN) {
+      exp = num_type("+nan.0");
+      i = j - 1;
+      return true;
     }
-    return false;
+    // evaluate the parsed non-NaN token
+    exp = (base!=10) ? num_type(num,base) : num_type(num); // base
+    if(prec) exp = (prec=='e') ? exp.to_exact() : exp.to_inexact(); // prec
+    if(exp.is_nan()) return false; // if failed number ctor (NaN already accounted for)
+    i = j - 1;
+    return true;
   }
 
   /******************************************************************************

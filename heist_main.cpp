@@ -16,9 +16,9 @@
  *             -> faster compile-time than -O3, smaller binary, & close runtime
  *
  * ON COMPILE TIME:
- *   0. Full -O3 compilation takes about 30s. Be patient. Compilation
+ *   0. Full -O3 compilation takes about 40s. Be patient. Compilation
  *      time has been traded for FAST runtime.
- *   1. -Os compilation takes about 20s. Generated binary is smaller than
+ *   1. -Os compilation takes about 30s. Generated binary is smaller than
  *      -O3's (as expected) & its runtime is nearly as fast
  */
 
@@ -45,12 +45,9 @@
 
 /***
  * NUMBER SYSTEM:
- *   - EXACT INTERGERS (UNBOUND)
- *   - EXACT FRACTIONS (> LDBL_DIG <cfloat> DIGITS = COLLAPSE TO INEXACT FLOAT)
+ *   - EXACT FRACTIONS/INTERGERS (UNBOUND)
  *   - INEXACT FLOATS  (LONG DOUBLE)
- *   - UNSUPPORTED NUMERICS:
- *     > NUMBER::RECTANGULAR, NUMBER::POLAR, NUMBER::COMPLEX
- *     > S F D L INEXACT PRECISIONS (ALWAYS LDBL_DIG DIGITS)
+ *   - COMPLEX NUMBERS (PAIRS OF EITHER ABOVE EXACTNESS)
  *
  * CHARS: USE ASCII ENCODING
  *

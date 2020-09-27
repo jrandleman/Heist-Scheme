@@ -7,8 +7,7 @@
 =================================
 ```
 
-INSTALLING THE INTERPRETER:
-----------------------------
+## INSTALLING THE INTERPRETER _(reinstall in new dir's to reset filepath!)_:
 
 ### With `python3`, ___AND___ `clang++` OR `g++`:
 0. OPEN THE `/heist_installation/` FOLDER
@@ -31,9 +30,9 @@ INSTALLING THE INTERPRETER:
       - `-Os`: [RECOMMENDED FOR MOST BUILDS] optimizes for binary's size
         * faster compile-time than `-O3`, smaller binary, & close runtime
    1. ON COMPILE TIME:
-      - Full `-O3` compilation takes about 30s. Be patient.
+      - Full `-O3` compilation takes about 40s. Be patient.
         * Compilation time has been traded for FAST runtime.
-      - `-Os` compilation takes about 20s. Generated binary is smaller than<br>
+      - `-Os` compilation takes about 30s. Generated binary is smaller than<br>
         `-O3`'s (as expected) & its runtime is nearly as fast
 
 

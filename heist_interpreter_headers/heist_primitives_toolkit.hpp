@@ -172,11 +172,24 @@ namespace heist {
                                            const char* primitive_name, 
                                            const char* format) {
     if(args.empty())
-      THROW_ERR('\''<<primitive_name<<" received no arguments!\n     "<<format
-        <<FCN_ERR(primitive_name,args));
+      THROW_ERR('\''<<primitive_name<<" received no arguments!\n     "
+        << format << FCN_ERR(primitive_name,args));
     if(auto idx = confirm_only_args_of_type(args,types::num); idx != G::MAX_SIZE_TYPE)
       THROW_ERR('\''<<primitive_name<<" received non-numeric argument: "
         <<PROFILE(args[idx])<<"!\n     "<<format<<FCN_ERR(primitive_name,args));
+  }
+
+  // Confirm given >= 1 arg & ONLY real numeric args
+  void confirm_no_real_numeric_primitive_errors(const scm_list& args, 
+                                                const char* primitive_name, 
+                                                const char* format) {
+    if(args.empty())
+      THROW_ERR('\''<<primitive_name<<" received no arguments!\n     "
+        << format << FCN_ERR(primitive_name,args));
+    for(const auto& arg : args)
+      if(!arg.is_type(types::num) || !arg.num.is_real())
+        THROW_ERR('\''<<primitive_name<<" received non-real-numeric argument: "
+          <<PROFILE(arg)<<"!\n     "<<format<<FCN_ERR(primitive_name,args));
   }
 
 
@@ -190,10 +203,23 @@ namespace heist {
   // Confirm given 1 numeric arg
   void confirm_unary_numeric(const scm_list& args, const char* primitive_name, 
                                                    const char* format){
-    confirm_no_numeric_primitive_errors(args, primitive_name, format);
     if(args.size() != 1) 
-        THROW_ERR('\'' << primitive_name << " didn't receive 1 argument (given "
-          <<args.size()<<")!\n     "<<format<<FCN_ERR(primitive_name,args));
+      THROW_ERR('\'' << primitive_name << " didn't receive 1 argument (given "
+        <<args.size()<<")!\n     "<<format<<FCN_ERR(primitive_name,args));
+    if(!args[0].is_type(types::num))
+      THROW_ERR('\''<<primitive_name<<" received non-numeric argument: "
+        <<PROFILE(args[0])<<"!\n     "<<format<<FCN_ERR(primitive_name,args));
+  }
+
+  // Confirm given 1 numeric arg
+  void confirm_unary_real_numeric(const scm_list& args, const char* primitive_name, 
+                                                   const char* format){
+    if(args.size() != 1) 
+      THROW_ERR('\'' << primitive_name << " didn't receive 1 argument (given "
+        <<args.size()<<")!\n     "<<format<<FCN_ERR(primitive_name,args));
+    if(!args[0].is_type(types::num) || !args[0].num.is_real())
+      THROW_ERR('\''<<primitive_name<<" received non-real-numeric argument: "
+        <<PROFILE(args[0])<<"!\n     "<<format<<FCN_ERR(primitive_name,args));
   }
 
   /******************************************************************************

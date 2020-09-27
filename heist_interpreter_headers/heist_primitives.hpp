@@ -59,7 +59,7 @@ namespace heist {
 
   // primitive "abs" procedure
   data primitive_ABS(scm_list& args) {
-    confirm_unary_numeric(args, "abs", "(abs <num>)");
+    confirm_unary_real_numeric(args, "abs", "(abs <real>)");
     return data(args[0].num.abs());
   }
 
@@ -73,7 +73,7 @@ namespace heist {
   // primitive "expt-mod" procedure [more efficient (modulo (expt x y) z)]
   data primitive_EXPT_MOD(scm_list& args) {
     // Confirm valid arguments
-    static constexpr const char * const format = "\n     (expt-mod <num1> <num2> <num3>)";
+    static constexpr const char * const format = "\n     (expt-mod <real1> <real2> <real3>)";
     if(args.size() != 3)
       THROW_ERR("'expt-mod invalid # of args given!" << format << FCN_ERR("expt-mod",args));
     for(size_type i = 0; i < 3; ++i)
@@ -94,7 +94,7 @@ namespace heist {
 
   // primitive "max" procedure
   data primitive_MAX(scm_list& args) {
-    confirm_no_numeric_primitive_errors(args, "max", "(max <num1> <num2> ...)");
+    confirm_no_real_numeric_primitive_errors(args, "max", "(max <real1> <real2> ...)");
     num_type max = args[0].num;
     for(size_type i = 1, n = args.size(); i < n; ++i)
       if(args[i].num > max)
@@ -104,7 +104,7 @@ namespace heist {
 
   // primitive "min" procedure
   data primitive_MIN(scm_list& args) {
-    confirm_no_numeric_primitive_errors(args, "min", "(min <num1> <num2> ...)");
+    confirm_no_real_numeric_primitive_errors(args, "min", "(min <real1> <real2> ...)");
     num_type min = args[0].num;
     for(size_type i = 1, n = args.size(); i < n; ++i)
       if(args[i].num < min)
@@ -114,22 +114,22 @@ namespace heist {
 
   // primitive "quotient" procedure
   data primitive_QUOTIENT(scm_list& args) {
-    confirm_no_numeric_primitive_errors(args, "quotient", "(quotient <num1> <num2>)");
-    confirm_2_args(args, "quotient", "(quotient <num1> <num2>)");
+    confirm_no_real_numeric_primitive_errors(args, "quotient", "(quotient <real1> <real2>)");
+    confirm_2_args(args, "quotient", "(quotient <real1> <real2>)");
     return data(args[0].num.quotient(args[1].num));
   }
 
   // primitive "remainder" procedure
   data primitive_REMAINDER(scm_list& args) {
-    confirm_no_numeric_primitive_errors(args, "remainder", "(remainder <num1> <num2>)");
-    confirm_2_args(args, "remainder", "(remainder <num1> <num2>)");
+    confirm_no_real_numeric_primitive_errors(args, "remainder", "(remainder <real1> <real2>)");
+    confirm_2_args(args, "remainder", "(remainder <real1> <real2>)");
     return data((args[0].num % args[1].num));
   }
 
   // primitive "divmod" procedure
   data primitive_DIVMOD(scm_list& args) {
-    confirm_no_numeric_primitive_errors(args, "divmod", "(divmod <num1> <num2>)");
-    confirm_2_args(args, "divmod", "(divmod <num1> <num2>)");
+    confirm_no_real_numeric_primitive_errors(args, "divmod", "(divmod <real1> <real2>)");
+    confirm_2_args(args, "divmod", "(divmod <real1> <real2>)");
     data divmod_pair = data(make_par());
     divmod_pair.par->first = args[0].num.quotient(args[1].num);
     divmod_pair.par->second = args[0].num % args[1].num;
@@ -138,8 +138,8 @@ namespace heist {
 
   // primitive "modulo" procedure
   data primitive_MODULO(scm_list& args) {
-    confirm_no_numeric_primitive_errors(args, "modulo", "(modulo <num1> <num2>)");
-    confirm_2_args(args, "modulo", "(modulo <num1> <num2>)");
+    confirm_no_real_numeric_primitive_errors(args, "modulo", "(modulo <real1> <real2>)");
+    confirm_2_args(args, "modulo", "(modulo <real1> <real2>)");
     return data(args[0].num.modulo(args[1].num));
   }
 
@@ -151,8 +151,19 @@ namespace heist {
 
   // primitive "log" procedure -- NATURAL LOGARITHM
   data primitive_LOG(scm_list& args) {
-    confirm_unary_numeric(args, "log", "(log <num>)");
-    return data(args[0].num.log());
+    if(args.empty() || args.size() > 2)
+      THROW_ERR("'log didn't recieve correct number of args!"
+        << "\n     (log <num> <optional-base>)" << FCN_ERR("log", args));
+    if(!args[0].is_type(types::num))
+      THROW_ERR("'log 1st <num> arg "<<PROFILE(args[0])<<" isn't a number!"
+        << "\n     (log <num> <optional-base>)" << FCN_ERR("log", args));
+    // Perform natural log if only given one number
+    if(args.size() == 1) return data(args[0].num.log());
+    // Perform log base conversion
+    if(!args[1].is_type(types::num))
+      THROW_ERR("'log 2nd <base> arg "<<PROFILE(args[1])<<" isn't a number!"
+        << "\n     (log <num> <optional-base>)" << FCN_ERR("log", args));
+    return data(args[0].num.log() / args[1].num.log());
   }
 
   // primitive "sqrt" procedure
@@ -164,7 +175,7 @@ namespace heist {
   // primitive "gcd" procedure
   data primitive_GCD(scm_list& args) {
     if(args.empty()) return num_type();
-    confirm_no_numeric_primitive_errors(args, "gcd", "(gcd <num1> <num2> ...)");
+    confirm_no_real_numeric_primitive_errors(args, "gcd", "(gcd <real1> <real2> ...)");
     if(args.size() == 1) return args[0];
     // GCD is associative
     num_type gcd_val(args[0].num);
@@ -176,7 +187,7 @@ namespace heist {
   // primitive "lcm" procedure
   data primitive_LCM(scm_list& args) {
     if(args.empty()) return num_type("1");
-    confirm_no_numeric_primitive_errors(args, "lcm", "(lcm <num1> <num2> ...)");
+    confirm_no_real_numeric_primitive_errors(args, "lcm", "(lcm <real1> <real2> ...)");
     if(args.size() == 1) return args[0];
     // LCM is associative
     num_type lcm_val(args[0].num);
@@ -188,7 +199,7 @@ namespace heist {
   // primitive "modf" procedure
   // (define (modf num) (cons (truncate num) (remainder num (truncate num))))
   data primitive_MODF(scm_list& args) {
-    confirm_unary_numeric(args, "modf", "(modf <num>)");
+    confirm_unary_real_numeric(args, "modf", "(modf <real>)");
     data num_pair = data(make_par());
     if(args[0].num.is_integer()) {
       num_pair.par->first  = args[0];
@@ -203,30 +214,78 @@ namespace heist {
   }
 
   /******************************************************************************
+  * COMPLEX NUMBER PRIMITIVES
+  ******************************************************************************/
+
+  // primitive "make-polar" procedure
+  data primitive_MAKE_POLAR(scm_list& args) {
+    confirm_no_real_numeric_primitive_errors(args, "make-polar", "(make-polar <real-mag> <real-ang>)");
+    confirm_2_args(args, "make-polar", "(make-polar <real-mag> <real-ang>)");
+    return num_type::make_polar(args[0].num,args[1].num);
+  }
+
+  // primitive "make-rectangular" procedure
+  data primitive_MAKE_RECTANGULAR(scm_list& args) {
+    confirm_no_real_numeric_primitive_errors(args, "make-rectangular", "(make-polar <real-real> <real-imag>)");
+    confirm_2_args(args, "make-rectangular", "(make-rectangular <real-real> <real-imag>)");
+    return num_type::make_rectangular(args[0].num,args[1].num);
+  }
+
+  // primitive "real-part" procedure
+  data primitive_REAL_PART(scm_list& args) {
+    confirm_unary_numeric(args, "real-part", "(real-part <num>)");
+    return args[0].num.real_part();
+  }
+
+  // primitive "imag-part" procedure
+  data primitive_IMAG_PART(scm_list& args) {
+    confirm_unary_numeric(args, "imag-part", "(imag-part <num>)");
+    return args[0].num.imag_part();
+  }
+
+  // primitive "magnitude" procedure
+  data primitive_MAGNITUDE(scm_list& args) {
+    confirm_unary_numeric(args, "magnitude", "(magnitude <num>)");
+    return args[0].num.magnitude();
+  }
+
+  // primitive "angle" procedure
+  data primitive_ANGLE(scm_list& args) {
+    confirm_unary_numeric(args, "angle", "(angle <num>)");
+    return args[0].num.angle();
+  }
+
+  // primitive "conjugate" procedure
+  data primitive_CONJUGATE(scm_list& args) {
+    confirm_unary_numeric(args, "conjugate", "(conjugate <num>)");
+    return args[0].num.conjugate();
+  }
+
+  /******************************************************************************
   * MISCELLANEOUS NUMERIC PREDICATE PRIMITIVES 
   ******************************************************************************/
 
   // primitive "odd?" procedure
   data primitive_ODDP(scm_list& args) {
-    confirm_unary_numeric(args, "odd?", "(odd? <num>)");
+    confirm_unary_real_numeric(args, "odd?", "(odd? <real>)");
     return data(boolean(args[0].num.is_odd()));
   }
 
   // primitive "even?" procedure
   data primitive_EVENP(scm_list& args) {
-    confirm_unary_numeric(args, "even?", "(even? <num>)");
+    confirm_unary_real_numeric(args, "even?", "(even? <real>)");
     return data(boolean(args[0].num.is_even()));
   }
 
   // primitive "positive?" procedure
   data primitive_POSITIVEP(scm_list& args) {
-    confirm_unary_numeric(args, "positive?", "(positive? <num>)");
+    confirm_unary_real_numeric(args, "positive?", "(positive? <real>)");
     return data(boolean(args[0].num.is_pos()));
   }
 
   // primitive "negative?" procedure
   data primitive_NEGATIVEP(scm_list& args) {
-    confirm_unary_numeric(args, "negative?", "(negative? <num>)");
+    confirm_unary_real_numeric(args, "negative?", "(negative? <real>)");
     return data(boolean(args[0].num.is_neg()));
   }
 
@@ -238,20 +297,21 @@ namespace heist {
 
   // primitive "infinite?" procedure
   data primitive_INFINITEP(scm_list& args) {
-    confirm_unary_numeric(args, "infinite?", "(infinite? <num>)");
+    confirm_unary_real_numeric(args, "infinite?", "(infinite? <real>)");
     return data(boolean(args[0].num.is_pos_inf() || 
                         args[0].num.is_neg_inf()));
   }
 
   // primitive "finite?" procedure (same as primitive "real?")
   data primitive_FINITEP(scm_list& args) {
-    confirm_unary_numeric(args, "finite?", "(finite? <num>)");
-    return data(boolean(args[0].num.is_real()));
+    confirm_unary_real_numeric(args, "finite?", "(finite? <real>)");
+    return data(boolean(args[0].num.is_real() && !args[0].num.is_nan() && 
+                        !args[0].num.is_pos_inf() && !args[0].num.is_neg_inf()));
   }
 
   // primitive "nan?" procedure
   data primitive_NANP(scm_list& args) {
-    confirm_unary_numeric(args, "nan?", "(nan? <num>)");
+    confirm_unary_real_numeric(args, "nan?", "(nan? <real>)");
     return data(boolean(args[0].num.is_nan()));
   }
 
@@ -261,25 +321,25 @@ namespace heist {
 
   // primitive "ceiling" procedure -- ROUNDS UP
   data primitive_CEILING(scm_list& args) {
-    confirm_unary_numeric(args, "ceiling", "(ceiling <num>)");
+    confirm_unary_real_numeric(args, "ceiling", "(ceiling <real>)");
     return data(args[0].num.ceil());
   }
 
   // primitive "floor" procedure -- ROUNDS DOWN
   data primitive_FLOOR(scm_list& args) {
-    confirm_unary_numeric(args, "floor", "(floor <num>)");
+    confirm_unary_real_numeric(args, "floor", "(floor <real>)");
     return data(args[0].num.floor());
   }
 
   // primitive "truncate" procedure -- ROUNDS TOWARDS ZERO
   data primitive_TRUNCATE(scm_list& args) {
-    confirm_unary_numeric(args, "truncate", "(truncate <num>)");
+    confirm_unary_real_numeric(args, "truncate", "(truncate <real>)");
     return data(args[0].num.trunc());
   }
 
   // primitive "round" procedure -- ROUNDS TOWARDS THE NEAREST INT
   data primitive_ROUND(scm_list& args) {
-    confirm_unary_numeric(args, "round", "(round <num>)");
+    confirm_unary_real_numeric(args, "round", "(round <real>)");
     return data(args[0].num.round());
   }
 
@@ -319,13 +379,13 @@ namespace heist {
 
   // primitive "numerator" procedure
   data primitive_NUMERATOR(scm_list& args) {
-    confirm_unary_numeric(args, "numerator", "(numerator <num>)");
+    confirm_unary_real_numeric(args, "numerator", "(numerator <real>)");
     return data(args[0].num.extract_numerator());
   }
 
   // primitive "denominator" procedure
   data primitive_DENOMINATOR(scm_list& args) {
-    confirm_unary_numeric(args, "denominator", "(denominator <num>)");
+    confirm_unary_real_numeric(args, "denominator", "(denominator <real>)");
     return data(args[0].num.extract_denominator());
   }
 
@@ -334,7 +394,7 @@ namespace heist {
   data primitive_MAKE_LOG_BASE(scm_list& args) {
     auto env = args.rbegin()->env;
     args.pop_back();
-    confirm_unary_numeric(args, "make-log-base", "(make-log-base <num>)");
+    confirm_unary_real_numeric(args, "make-log-base", "(make-log-base <real>)");
     scm_list new_log(3);
     new_log[0] = symconst::lambda;
     new_log[1] = scm_list(1, "num");
@@ -391,8 +451,8 @@ namespace heist {
 
   // primitive "atan2" procedure
   data primitive_ATAN2(scm_list& args) {
-    confirm_no_numeric_primitive_errors(args, "atan2", "(atan2 <num1> <num2>)");
-    confirm_2_args(args, "atan2", "(atan2 <num1> <num2>)");
+    confirm_no_real_numeric_primitive_errors(args, "atan2", "(atan2 <real1> <real2>)");
+    confirm_2_args(args, "atan2", "(atan2 <real1> <real2>)");
     return data(args[0].num.atan2(args[1].num));
   }
 
@@ -438,77 +498,77 @@ namespace heist {
 
   // primitive "logand" procedure
   data primitive_LOGAND(scm_list& args) {
-    confirm_no_numeric_primitive_errors(args, "logand", "(logand <num1> <num2>)");
-    confirm_2_args(args, "logand", "(logand <num1> <num2>)");
+    confirm_no_real_numeric_primitive_errors(args, "logand", "(logand <real1> <real2>)");
+    confirm_2_args(args, "logand", "(logand <real1> <real2>)");
     return data(args[0].num & args[1].num);
   }
 
   // primitive "logor" procedure
   data primitive_LOGOR(scm_list& args) {
-    confirm_no_numeric_primitive_errors(args, "logor", "(logor <num1> <num2>)");
-    confirm_2_args(args, "logor", "(logor <num1> <num2>)");
+    confirm_no_real_numeric_primitive_errors(args, "logor", "(logor <real1> <real2>)");
+    confirm_2_args(args, "logor", "(logor <real1> <real2>)");
     return data(args[0].num | args[1].num);
   }
 
   // primitive "logxor" procedure
   data primitive_LOGXOR(scm_list& args) {
-    confirm_no_numeric_primitive_errors(args, "logxor", "(logxor <num1> <num2>)");
-    confirm_2_args(args, "logxor", "(logxor <num1> <num2>)");
+    confirm_no_real_numeric_primitive_errors(args, "logxor", "(logxor <real1> <real2>)");
+    confirm_2_args(args, "logxor", "(logxor <real1> <real2>)");
     return data(args[0].num ^ args[1].num);
   }
 
   // primitive "lognot" procedure
   data primitive_LOGNOT(scm_list& args) {
-    confirm_unary_numeric(args, "lognot", "(lognot <num>)");
+    confirm_unary_real_numeric(args, "lognot", "(lognot <real>)");
     return data(~args[0].num);
   }
 
   // primitive "loglsl" procedure
   data primitive_LOGLSL(scm_list& args) {
-    confirm_no_numeric_primitive_errors(args, "loglsl", "(loglsl <num> <shift-amount>)");
-    confirm_2_args(args, "loglsl", "(loglsl <num> <shift-amount>)");
+    confirm_no_real_numeric_primitive_errors(args, "loglsl", "(loglsl <real> <shift-amount>)");
+    confirm_2_args(args, "loglsl", "(loglsl <real> <shift-amount>)");
     return data(args[0].num << args[1].num);
   }
 
   // primitive "loglsr" procedure
   data primitive_LOGLSR(scm_list& args) {
-    confirm_no_numeric_primitive_errors(args, "loglsr", "(loglsr <num> <shift-amount>)");
-    confirm_2_args(args, "loglsr", "(loglsr <num> <shift-amount>)");
+    confirm_no_real_numeric_primitive_errors(args, "loglsr", "(loglsr <real> <shift-amount>)");
+    confirm_2_args(args, "loglsr", "(loglsr <real> <shift-amount>)");
     return data(args[0].num >> args[1].num);
   }
 
   // primitive "logasr" procedure
   data primitive_LOGASR(scm_list& args) {
-    confirm_no_numeric_primitive_errors(args, "logasr", "(logasr <num> <shift-amount>)");
-    confirm_2_args(args, "logasr", "(logasr <num> <shift-amount>)");
+    confirm_no_real_numeric_primitive_errors(args, "logasr", "(logasr <real> <shift-amount>)");
+    confirm_2_args(args, "logasr", "(logasr <real> <shift-amount>)");
     return data(args[0].num.asr(args[1].num));
   }
 
   // primitive "logbit?" procedure
   data primitive_LOGBITP(scm_list& args) {
-    confirm_no_numeric_primitive_errors(args, "logbit?", "(logbit? <num> <bit-No>)");
-    confirm_2_args(args, "logbit?", "(logbit? <num> <bit-No>)");
+    confirm_no_real_numeric_primitive_errors(args, "logbit?", "(logbit? <real> <bit-No>)");
+    confirm_2_args(args, "logbit?", "(logbit? <real> <bit-No>)");
     return data((args[0].num >> args[1].num) & 1);
   }
 
   // primitive "logbit1" procedure
   data primitive_LOGBIT1(scm_list& args) {
-    confirm_no_numeric_primitive_errors(args, "logbit1", "(logbit1 <num> <bit-No>)");
-    confirm_2_args(args, "logbit1", "(logbit1 <num> <bit-No>)");
+    confirm_no_real_numeric_primitive_errors(args, "logbit1", "(logbit1 <real> <bit-No>)");
+    confirm_2_args(args, "logbit1", "(logbit1 <real> <bit-No>)");
     return data(args[0].num | (1 << args[1].num));
   }
 
   // primitive "logbit0" procedure
   data primitive_LOGBIT0(scm_list& args) {
-    confirm_no_numeric_primitive_errors(args, "logbit0", "(logbit0 <num> <bit-No>)");
-    confirm_2_args(args, "logbit0", "(logbit0 <num> <bit-No>)");
+    confirm_no_real_numeric_primitive_errors(args, "logbit0", "(logbit0 <real> <bit-No>)");
+    confirm_2_args(args, "logbit0", "(logbit0 <real> <bit-No>)");
     return data(args[0].num & ~(1 << args[1].num));
   }
 
   // primitive "logbit~" procedure
   data primitive_LOGBIT_CMPL(scm_list& args) {
-    confirm_no_numeric_primitive_errors(args, "logbit~", "(logbit~ <num> <bit-No>)");
-    confirm_2_args(args, "logbit~", "(logbit~ <num> <bit-No>)");
+    confirm_no_real_numeric_primitive_errors(args, "logbit~", "(logbit~ <real> <bit-No>)");
+    confirm_2_args(args, "logbit~", "(logbit~ <real> <bit-No>)");
     return data(args[0].num ^ (1 << args[1].num));
   }
 
@@ -520,10 +580,10 @@ namespace heist {
   data primitive_RANDOM(scm_list& args) {
     if(args.size() > 1)
       THROW_ERR("'random received more than 1 arg:" 
-        "\n     (random <optional-numeric-seed>)" << FCN_ERR("random",args));
-    if(args.size()==1 && !args[0].is_type(types::num))
-      THROW_ERR("'random received non-numeric arg " << PROFILE(args[0])
-        << ":\n     (random <optional-numeric-seed>)" << FCN_ERR("random",args));
+        "\n     (random <optional-real-numeric-seed>)" << FCN_ERR("random",args));
+    if(args.size()==1 && (!args[0].is_type(types::num) || !args[0].num.is_real()))
+      THROW_ERR("'random received non-real-numeric arg " << PROFILE(args[0])
+        << ":\n     (random <optional-real-numeric-seed>)" << FCN_ERR("random",args));
     if(args.empty())
       return data(num_type::random());
     return data(num_type::random(args[0].num));
@@ -544,7 +604,7 @@ namespace heist {
 
   // primitive ">" procedure:
   data primitive_GT(scm_list& args) {
-    confirm_no_numeric_primitive_errors(args, ">", "(> <num1> <num2> ...)");
+    confirm_no_real_numeric_primitive_errors(args, ">", "(> <real1> <real2> ...)");
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
       if(args[i].num <= args[i+1].num) 
         return G::FALSE_DATA_BOOLEAN;
@@ -553,7 +613,7 @@ namespace heist {
 
   // primitive "<" procedure:
   data primitive_LT(scm_list& args) {
-    confirm_no_numeric_primitive_errors(args, "<", "(< <num1> <num2> ...)");
+    confirm_no_real_numeric_primitive_errors(args, "<", "(< <real1> <real2> ...)");
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
       if(args[i].num >= args[i+1].num) 
         return G::FALSE_DATA_BOOLEAN;
@@ -562,7 +622,7 @@ namespace heist {
 
   // primitive ">=" procedure:
   data primitive_GTE(scm_list& args) {
-    confirm_no_numeric_primitive_errors(args, ">=", "(>= <num1> <num2> ...)");
+    confirm_no_real_numeric_primitive_errors(args, ">=", "(>= <real1> <real2> ...)");
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
       if(args[i].num < args[i+1].num) 
         return G::FALSE_DATA_BOOLEAN;
@@ -571,7 +631,7 @@ namespace heist {
 
   // primitive "<=" procedure:
   data primitive_LTE(scm_list& args) {
-    confirm_no_numeric_primitive_errors(args, "<=", "(<= <num1> <num2> ...)");
+    confirm_no_real_numeric_primitive_errors(args, "<=", "(<= <real1> <real2> ...)");
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
       if(args[i].num > args[i+1].num) 
         return G::FALSE_DATA_BOOLEAN;
@@ -2759,11 +2819,18 @@ namespace heist {
   }
 
   // primitive "real?" procedure:
-  // => "real" denotes a # that's neither NaN nor Inf
+  // => "real" denotes a non-complex number -> NOTE hence +nan.0 is "real"
   data primitive_REALP(scm_list& args) {
     confirm_given_one_arg(args, "real?");
     return data(boolean(
       args[0].is_type(types::num) && args[0].num.is_real()));
+  }
+
+  // primitive "complex?" procedure:
+  data primitive_COMPLEXP(scm_list& args) {
+    confirm_given_one_arg(args, "complex?");
+    return data(boolean(
+      args[0].is_type(types::num) && args[0].num.is_complex()));
   }
 
   // primitive "rational?" procedure:
@@ -3763,6 +3830,9 @@ namespace heist {
     // Alter precision as needed
     if(no_NUMBER_TO_STRING_precision_change_needed(args,number_as_string))
       return make_str(number_as_string);
+    if(!args[0].num.is_real())
+      THROW_ERR("'number->string only real numbers can be converted using a precision!"
+        "\n     => " << PROFILE(args[0]) << " is complex!" << format << FCN_ERR("number->string", args));
     const auto dec_pos = number_as_string.find(".");
     if(dec_pos == scm_string::npos) return make_str(number_as_string);
     const auto current_precision = number_as_string.size()-dec_pos-1;
@@ -5183,6 +5253,15 @@ namespace heist {
     std::make_pair(primitive_GCD,       "gcd"),
     std::make_pair(primitive_LCM,       "lcm"),
     std::make_pair(primitive_MODF,      "modf"),
+    std::make_pair(primitive_MODF,      "modf"),
+
+    std::make_pair(primitive_MAKE_POLAR,       "make-polar"),
+    std::make_pair(primitive_MAKE_RECTANGULAR, "make-rectangular"),
+    std::make_pair(primitive_REAL_PART,        "real-part"),
+    std::make_pair(primitive_IMAG_PART,        "imag-part"),
+    std::make_pair(primitive_MAGNITUDE,        "magnitude"),
+    std::make_pair(primitive_ANGLE,            "angle"),
+    std::make_pair(primitive_CONJUGATE,        "conjugate"),
 
     std::make_pair(primitive_ODDP,      "odd?"),
     std::make_pair(primitive_EVENP,     "even?"),
@@ -5429,6 +5508,7 @@ namespace heist {
     std::make_pair(primitive_CHARP,                "char?"),
     std::make_pair(primitive_NUMBERP,              "number?"),
     std::make_pair(primitive_REALP,                "real?"),
+    std::make_pair(primitive_COMPLEXP,             "complex?"),
     std::make_pair(primitive_RATIONALP,            "rational?"),
     std::make_pair(primitive_STRINGP,              "string?"),
     std::make_pair(primitive_SYMBOLP,              "symbol?"),

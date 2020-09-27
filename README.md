@@ -7,7 +7,7 @@
 
 ------------------------
 # Using Heist Scheme:
-=> _See [`INSTALL.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/INSTALL.md) for step-by-step initial installation instructions!_<br>
+=> _See [`INSTALL.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/INSTALL.md) for step-by-step initial/new-directory installation instructions!_<br>
 => _Tested on OSX & Linux with Clang++ & G++, but **should** work on Windows (adheres C++17 standard)_<br>
 
 0. Compiling the Interpreter: `$ clang++ -std=c++17 -O3 -o heist_main heist_main.cpp`
@@ -42,7 +42,7 @@
 1. [Heist Command-Line Flags](#Heist-Command-Line-Flags)
 2. [Heist Primitive Data Types](#Heist-Primitive-Data-Types)
 3. [Heist Numerics](#Heist-Numerics)
-   - [3 Number Types](#3-Number-Types)
+   - [4 Number Types](#4-Number-Types)
    - [2 Prefix Types](#2-Prefix-Types)
 4. [Heist Macro System, Procedures vs. Macros](#Heist-Macro-System-Procedures-vs-Macros)
 5. [Heist Commenting](#Heist-Commenting)
@@ -85,6 +85,7 @@
      * [Numeric Rounding](#Numeric-Rounding)
      * [Trigonometry Procedures](#Trigonometry-Procedures)
      * [Logical Bitwise Operations](#Logical-Bitwise-Operations)
+     * [Complex Number Operations](#Complex-Number-Operations)
    - [Equality Predicates](#Equality-Predicates)
    - [Character Procedures](#Character-Procedures)
      * [General](#General-1)
@@ -205,7 +206,7 @@
 
 ------------------------
 # Heist Numerics
-### 3 Number Types:
+### 4 Number Types:
 0. Exact/Ratnum (rational number)
    * Has a numerator and a denominator (automatically reduced to simplest form!)
    * _Special Case_: denominator of `1` creates a ___BigInt___ of arbitrary size
@@ -228,6 +229,17 @@
    * Negative Infinity: `-inf.0`
    * NaN: `+nan.0`, `-nan.0`
      - _Both `+nan.0` & `-nan.0` resolve to the same NaN object!_
+3. Complex Numbers:
+   * Both the real and imaginary components will match in exactness
+   * Supports `+inf.0` or `-inf.0` components (_`+nan.0` is unique & never complex!_)
+   * _Special Case_: imaginary value of `0` becomes a real (non-complex) number!
+   ```scheme
+   3/4+1/2i
+   3/4+0.5i ; becomes 0.75+0.5i to match exactness
+   -i       ; valid complex number!
+   -44+0i   ; becomes -44
+   ```
+
 
 ### 2 Prefix Types:
 0. Radix:
@@ -1220,35 +1232,35 @@ Other primitives of this nature include:<br>
 
 4. __Equality Comparisons__:
    * `(= <number1> <number2> ...)`
-   * `(< <number1> <number2> ...)`
-   * `(> <number1> <number2> ...)`
-   * `(<= <number1> <number2> ...)`
-   * `(>= <number1> <number2> ...)`
+   * `(< <real1> <real2> ...)`
+   * `(> <real1> <real2> ...)`
+   * `(<= <real1> <real2> ...)`
+   * `(>= <real1> <real2> ...)`
 
-5. __Absolute Value__: `(abs <number>)`
+5. __Absolute Value__: `(abs <real>)`
 
 6. __Exponentiation__: Raise `<number1>` to the power of `<number2>`
    * `(expt <number1> <number2>)`
 
-7. __Exponentiation Modulo__: Raise `<number1>` to the power of `<number2>` modulo `<number3>`
-   * `(expt-mod <number1> <number2> <number3>)`
+7. __Exponentiation Modulo__: Raise `<real1>` to the power of `<real2>` modulo `<real3>`
+   * `(expt-mod <real1> <real2> <real3>)`
 
 8. __Maximum__: Get the maximum value
-   * `(max <number1> <number2> ...)`
+   * `(max <real1> <real2> ...)`
 
 9. __Minimum__: Get the minimum value
-   * `(min <number1> <number2> ...)`
+   * `(min <real1> <real2> ...)`
 
-10. __Quotient__: Get the quotient of `(/ <number1> <number2>)`
-    * `(quotient <number1> <number2>)`
+10. __Quotient__: Get the quotient of `(/ <real1> <real2>)`
+    * `(quotient <real1> <real2>)`
 
-11. __Remainder__: Get the remainder of `(/ <number1> <number2>)`
-    * `(remainder <number1> <number2>)`
+11. __Remainder__: Get the remainder of `(/ <real1> <real2>)`
+    * `(remainder <real1> <real2>)`
 
-12. __Divmod__: Get a pair with the quotient and remainder of `<number1>` & `<number2>`
-    * `(divmod <number1> <number2>)`
+12. __Divmod__: Get a pair with the quotient and remainder of `<real1>` & `<real2>`
+    * `(divmod <real1> <real2>)`
 
-13. __Modulo__: `(modulo <number1> <number2>)`
+13. __Modulo__: `(modulo <real1> <real2>)`
 
 14. __Modulo Flonum__: Get a pair with the integral & fractional portions of `<flonum>`
     * `(modf <flonum>)`
@@ -1256,22 +1268,23 @@ Other primitives of this nature include:<br>
 15. __Exponent__: Get e raised to the power of `<number>`
     * `(exp <number>)`
 
-16. __Natural Logarithm__: `(log <number>)`
+16. __Logarithm__: `(log <number> <optional-base>)`
+    * Defaults to the natural logarithm!
 
 17. __Square Root__: `(sqrt <number>)`
 
-18. __Greatest Common Denominator__: `(gcd <number1> <number2>)`
+18. __Greatest Common Denominator__: `(gcd <real1> <real2>)`
 
-19. __Least Common Multiple__: `(lcm <number1> <number2>)`
+19. __Least Common Multiple__: `(lcm <real1> <real2>)`
 
-20. __Extract Number's Numerator__: `(numerator <number>)`
+20. __Extract Number's Numerator__: `(numerator <real>)`
 
-21. __Extract Number's Denominator__: `(denominator <number>)`
+21. __Extract Number's Denominator__: `(denominator <real>)`
 
-22. __Generate a Log Procedure of a Certain Base__: `(make-log-base <number>)`
+22. __Generate a Log Procedure of a Certain Base__: `(make-log-base <real>)`
 
 23. __Psuedo-Random Number Generator__: Seeded *or* unseeded
-    * `(random)`, `(random <numeric-seed>)`
+    * `(random)`, `(random <real-seed>)`
 
 24. __Coerce Inexact to Exact__: `(inexact->exact <number>)`
 
@@ -1279,21 +1292,21 @@ Other primitives of this nature include:<br>
 
 
 ### Numeric Predicates:
-0. __Odd Predicate__: `(odd? <number>)`
+0. __Odd Predicate__: `(odd? <real>)`
 
-1. __Even Predicate__: `(even? <number>)`
+1. __Even Predicate__: `(even? <real>)`
 
-2. __Positive Predicate__: `(positive? <number>)`
+2. __Positive Predicate__: `(positive? <real>)`
 
-3. __Negative Predicate__: `(negative? <number>)`
+3. __Negative Predicate__: `(negative? <real>)`
 
 4. __Zero Predicate__: `(zero? <number>)`
 
-5. __Infinite Predicate__: `(infinite? <number>)`
+5. __Infinite Predicate__: `(infinite? <real>)`
 
-6. __Finite Predicate__: `(finite? <number>)`
+6. __Finite Predicate__: `(finite? <real>)`
 
-7. __NaN Predicate__: `(nan? <number>)`
+7. __NaN Predicate__: `(nan? <real>)`
 
 8. __Exact Number Predicate__: `(exact? <number>)`
 
@@ -1303,19 +1316,19 @@ Other primitives of this nature include:<br>
 
 
 ### Numeric Rounding:
-0. __Round Number Up to Nearest Integer__: `(ceiling <number>)`
+0. __Round Number Up to Nearest Integer__: `(ceiling <real>)`
 
-1. __Round Number Down to Nearest Integer__: `(floor <number>)`
+1. __Round Number Down to Nearest Integer__: `(floor <real>)`
 
-2. __Round Number Towards Zero__: `(truncate <number>)`
+2. __Round Number Towards Zero__: `(truncate <real>)`
 
-3. __Round Number__: `(round <number>)`
+3. __Round Number__: `(round <real>)`
 
 
 ### Trigonometry Procedures:
 0. __Regular__: `(sin <number>)`, `(cos <number>)`, `(tan <number>)`
 
-1. __Inverse__: `(asin <number>)`, `(acos <number>)`, `(atan <number>)`, `(atan2 <number1> <number2>)`
+1. __Inverse__: `(asin <number>)`, `(acos <number>)`, `(atan <number>)`, `(atan2 <real1> <real2>)`
 
 2. __Hyperbolic__: `(sinh <number>)`, `(cosh <number>)`, `(tanh <number>)`
 
@@ -1323,27 +1336,37 @@ Other primitives of this nature include:<br>
 
 
 ### Logical Bitwise Operations:
-0. __And__: `(logand <number1> <number2>)`
+0. __And__: `(logand <real1> <real2>)`
 
-1. __Or__: `(logor <number1> <number2>)`
+1. __Or__: `(logor <real1> <real2>)`
 
-2. __Xor__: `(logxor <number1> <number2>)`
+2. __Xor__: `(logxor <real1> <real2>)`
 
-3. __Not__: `(lognot <number>)`
+3. __Not__: `(lognot <real>)`
 
-4. __Logical Shift Left__: `(loglsl <number> <shift-amount>)`
+4. __Logical Shift Left__: `(loglsl <real> <shift-amount>)`
 
-5. __Logical Shift Right__: `(loglsr <number> <shift-amount>)`
+5. __Logical Shift Right__: `(loglsr <real> <shift-amount>)`
 
-6. __Arithmetic Shift Right__: `(logasr <number> <shift-amount>)`
+6. __Arithmetic Shift Right__: `(logasr <real> <shift-amount>)`
 
-7. __Confirm Nth Bit is 1__: `(logbit? <number> <n>)`
+7. __Confirm Nth Bit is 1__: `(logbit? <real> <n>)`
 
-8. __Set Nth Bit to 1__: `(logbit1 <number> <n>)`
+8. __Set Nth Bit to 1__: `(logbit1 <real> <n>)`
 
-9. __Set Nth Bit to 0__: `(logbit0 <number> <n>)`
+9. __Set Nth Bit to 0__: `(logbit0 <real> <n>)`
 
-10. __Complement Nth Bit__: `(logbit~ <number> <n>)`
+10. __Complement Nth Bit__: `(logbit~ <real> <n>)`
+
+
+### Complex Number Operations:
+0. Generate: `(make-rectangular <real-real> <real-imag>)`
+1. Generate from polar values: `(make-polar <real-magnitude> <real-angle>)`
+2. Get real part: `(real-part <number>)`
+3. Get imaginary part: `(imag-part <number>)`
+4. Get polar magnitude: `(magnitude <number>)`
+5. Get polar angle: `(angle <number>)`
+6. Get conjugate: `(conjugate <number>)`
 
 
 
@@ -1719,35 +1742,37 @@ Other primitives of this nature include:<br>
 
 9. __Real Predicate__: `(real? <obj>)`
 
-10. __Rational Number Predicate__: `(rational? <obj>)`
+10. __Complex Predicate__: `(complex? <obj>)`
 
-11. __String Predicate__: `(string? <obj>)`
+11. __Rational Number Predicate__: `(rational? <obj>)`
 
-12. __Symbol Predicate__: `(symbol? <obj>)`
+12. __String Predicate__: `(string? <obj>)`
 
-13. __Boolean Predicate__: `(boolean? <obj>)`
+13. __Symbol Predicate__: `(symbol? <obj>)`
 
-14. __Atom Predicate__: `(atom? <obj>)`
+14. __Boolean Predicate__: `(boolean? <obj>)`
 
-15. __Procedure Predicate__: `(procedure? <obj>)`
+15. __Atom Predicate__: `(atom? <obj>)`
 
-16. __Cps-Procedure Predicate__: `(cps-procedure? <obj>)`
+16. __Procedure Predicate__: `(procedure? <obj>)`
 
-17. __Input-Port Predicate__: `(input-port? <obj>)`
+17. __Cps-Procedure Predicate__: `(cps-procedure? <obj>)`
 
-18. __Output-Port Predicate__: `(output-port? <obj>)`
+18. __Input-Port Predicate__: `(input-port? <obj>)`
 
-19. __Eof-Object Predicate__: `(eof-object? <obj>)`
+19. __Output-Port Predicate__: `(output-port? <obj>)`
 
-20. __Stream-Pair Predicate__: `(stream-pair? <obj>)`
+20. __Eof-Object Predicate__: `(eof-object? <obj>)`
 
-21. __Empty-Stream Predicate__: `(stream-null? <obj>)`
+21. __Stream-Pair Predicate__: `(stream-pair? <obj>)`
 
-22. __Stream Predicate__: `(stream? <obj>)`
+22. __Empty-Stream Predicate__: `(stream-null? <obj>)`
 
-23. __Syntax-Rules Object Predicate__: `(syntax-rules-object? <obj>)`
+23. __Stream Predicate__: `(stream? <obj>)`
 
-24. __Sequence Predicate__: `(seq? <obj>)`
+24. __Syntax-Rules Object Predicate__: `(syntax-rules-object? <obj>)`
+
+25. __Sequence Predicate__: `(seq? <obj>)`
 
 
 
