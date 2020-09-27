@@ -150,8 +150,8 @@ namespace scm_numeric {
 
     // ********************** PRECISION CONVERSION METHODS **********************
 
-    Snum to_inexact()          const noexcept {Snum tmp; tmp.real = real.to_inexact(), tmp.imag = imag.to_inexact(); return tmp;}
-    Snum to_exact()            const noexcept {Snum tmp; tmp.real = real.to_exact(),   tmp.imag = imag.to_exact();   return tmp;}
+    Snum to_inexact()          const noexcept {return Snum(real.to_inexact(), imag.to_inexact());}
+    Snum to_exact()            const noexcept {return Snum(real.to_exact(), imag.to_exact());}
     Snum extract_numerator()   const noexcept {if(imag.is_zero()) return real.extract_numerator(); return Snum_real("+nan.0");}
     Snum extract_denominator() const noexcept {if(imag.is_zero()) return real.extract_denominator(); return Snum_real("+nan.0");}
 
