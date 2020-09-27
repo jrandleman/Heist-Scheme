@@ -443,17 +443,18 @@ namespace heist {
     return data(args[0].num.acos());
   }
 
-  // primitive "atan" procedure
+  // primitive "atan" procedure (supports atan2)
   data primitive_ATAN(scm_list& args) {
-    confirm_unary_numeric(args, "atan", "(atan <num>)");
-    return data(args[0].num.atan());
-  }
-
-  // primitive "atan2" procedure
-  data primitive_ATAN2(scm_list& args) {
-    confirm_no_real_numeric_primitive_errors(args, "atan2", "(atan2 <real1> <real2>)");
-    confirm_2_args(args, "atan2", "(atan2 <real1> <real2>)");
-    return data(args[0].num.atan2(args[1].num));
+    static constexpr const char * const format = 
+      "\n     (atan <num>)\n     (atan <real> <real>) ; atan2 in C++";
+    if(args.empty() || args.size() > 2)
+      THROW_ERR("'atan recieved incorrect # of args!" << format << FCN_ERR("atan",args));
+    if(!args[0].is_type(types::num))
+      THROW_ERR("'atan 1st arg " << PROFILE(args[0]) << " isn't a number!" 
+        << format << FCN_ERR("atan",args));
+    if(args.size() == 1) return data(args[0].num.atan()); // atan
+    confirm_no_real_numeric_primitive_errors(args, "atan", format);
+    return data(args[0].num.atan2(args[1].num)); // atan2
   }
 
   // primitive "sinh" procedure
@@ -5292,7 +5293,6 @@ namespace heist {
     std::make_pair(primitive_ASIN,  "asin"),
     std::make_pair(primitive_ACOS,  "acos"),
     std::make_pair(primitive_ATAN,  "atan"),
-    std::make_pair(primitive_ATAN2, "atan2"),
     std::make_pair(primitive_SINH,  "sinh"),
     std::make_pair(primitive_COSH,  "cosh"),
     std::make_pair(primitive_TANH,  "tanh"),
