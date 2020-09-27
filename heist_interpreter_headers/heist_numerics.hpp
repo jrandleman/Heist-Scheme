@@ -310,11 +310,11 @@ namespace scm_numeric {
     // overloaded equality/comparison operators
     bool operator==(const Snum& s) const noexcept {return real == s.real && imag == s.imag;}
     bool operator!=(const Snum& s) const noexcept {return real != s.real || imag != s.imag;}
-    bool operator< (const Snum& s) const noexcept {if(imag.is_zero() && s.imag.is_zero()) return real < s.real; return false;}
-    bool operator> (const Snum& s) const noexcept {if(imag.is_zero() && s.imag.is_zero()) return real > s.real; return false;}
+    bool operator< (const Snum& s) const noexcept {return imag.is_zero() && s.imag.is_zero() && real < s.real;}
+    bool operator> (const Snum& s) const noexcept {return imag.is_zero() && s.imag.is_zero() && real > s.real;}
     bool operator<=(const Snum& s) const noexcept {return !(*this > s);}
     bool operator>=(const Snum& s) const noexcept {return !(*this < s);}
-    bool operator!()                const noexcept {return is_zero();}
+    bool operator!()               const noexcept {return is_zero();}
 
     // overloaded friend equality/comparison operators
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
