@@ -116,6 +116,9 @@ namespace scm_numeric {
     // Given a C++ numeric real
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
     Snum(NumericData data) noexcept {*this = Snum_real(data);}
+    // Given 2 C++ numeric reals
+    template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
+    Snum(NumericData real_data, NumericData imag_data) noexcept {real = Snum_real(real_data), imag = Snum_real(imag_data);}
     // Given a string (w/ or w/o a radix base)
     Snum(const std::string& data) noexcept {construct_complex_number<false>(data);}
     Snum(const std::string& data, const int& base) noexcept {construct_complex_number<true>(data,base);}
@@ -481,8 +484,8 @@ namespace scm_numeric {
 
   Snum Snum::magnitude()const noexcept{
     if(is_nan()) return Snum_real("+nan.0"); 
-    if(imag.is_zero()) return real;
-    if(real.is_zero()) return imag;
+    if(imag.is_zero()) return real.abs();
+    if(real.is_zero()) return imag.abs();
     return (real.expt(2) + imag.expt(2)).sqrt();
   }
 
@@ -626,11 +629,11 @@ namespace scm_numeric {
     if(imag.is_zero()) return real.tan();
     return Snum((2*real).sin(),(2*imag).sinh()) / ((2*real).cos()+(2*imag).cosh());
   }
-  // asin(z) = -i * ln((1-z^2)^(1/2) + (z*i))
+  // asin(z) = -i * sqrt(ln((1-z^2)) + (z*i))
   Snum Snum::asin()  const noexcept {
     if(is_nan())       return Snum_real("+nan.0");
     if(imag.is_zero()) return real.asin();
-    return Snum(0,-1) * ((1 - expt(Snum_real(2))).expt(Snum_real("1/2")) + (*this * Snum(0,1))).log();
+    return Snum(0,-1) * ((1 - expt(Snum_real(2))).sqrt() + (*this * Snum(0,1))).log();
   }
   // acos(z) = (1/2)pi - asin(z)
   Snum Snum::acos()  const noexcept {
