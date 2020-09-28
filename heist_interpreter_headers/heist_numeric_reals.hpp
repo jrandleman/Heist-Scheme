@@ -1374,6 +1374,8 @@ namespace scm_numeric {
       return is_neg() || (is_zero() && s.is_pos());
     if(is_float && s.is_float)
       return (float_num * (1 - 2 * is_neg())) < (s.float_num * (1 - 2 * s.is_neg()));
+    else if(!is_float && !s.is_float && dlen == 1 && denominator[0] == 1 && s.dlen == 1 && s.denominator[0] == 1)
+      return big_int_lt(numerator,nlen,s.numerator,s.nlen) ^ is_neg();
     else if(!is_float && !s.is_float) {
       size_type lhs_len = 0, rhs_len = 0;
       exact_t lhs = new exact_val_t [nlen + s.dlen];
@@ -1397,6 +1399,8 @@ namespace scm_numeric {
       return is_pos() || (is_zero() && s.is_neg());
     if(is_float && s.is_float)
       return (float_num * (1 - 2 * is_neg())) > (s.float_num * (1 - 2 * s.is_neg()));
+    else if(!is_float && !s.is_float && dlen == 1 && denominator[0] == 1 && s.dlen == 1 && s.denominator[0] == 1)
+      return big_int_gt(numerator,nlen,s.numerator,s.nlen) ^ is_neg();
     else if(!is_float && !s.is_float) {
       size_type lhs_len = 0, rhs_len = 0;
       exact_t lhs = new exact_val_t [nlen + s.dlen];
