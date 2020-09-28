@@ -629,7 +629,7 @@ namespace scm_numeric {
     if(imag.is_zero()) return real.tan();
     return Snum((2*real).sin(),(2*imag).sinh()) / ((2*real).cos()+(2*imag).cosh());
   }
-  // asin(z) = -i * sqrt(ln((1-z^2)) + (z*i))
+  // asin(z) = -i * ln(sqrt(1-z^2) + (z*i))
   Snum Snum::asin()  const noexcept {
     if(is_nan())       return Snum_real("+nan.0");
     if(imag.is_zero()) return real.asin();
