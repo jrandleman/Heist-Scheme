@@ -573,7 +573,11 @@ namespace scm_numeric {
   // => w^z = [(r^c) * exp(-d * theta)] * [cos(d*ln(r) + c*theta) + isin(d*ln(r) + c*theta)]
   Snum Snum::expt(const Snum& s) const noexcept {
     if(is_nan() || s.is_nan()) return Snum_real("+nan.0");
-    if(is_real() && s.is_real()) return real.expt(s.real);
+    if(is_real() && s.is_real()) {
+      // if NaN (ie sqrt(-1)), could have a complex result (attempted below)
+      if(auto result = real.expt(s.real); !result.is_nan()) 
+        return result;
+    }
     Snum_real r = magnitude().real, t = angle().real;
     Snum_real trig_arg = (s.imag * r.log()) + (s.real * t);
     return r.expt(s.real) * (-s.imag * t).exp() * Snum(trig_arg.cos(), trig_arg.sin());
@@ -592,8 +596,8 @@ namespace scm_numeric {
 
   // sqrt function
   Snum Snum::sqrt() const noexcept {
-    if(is_nan())       return Snum_real("+nan.0");
-    if(imag.is_zero()) return real.sqrt();
+    if(is_nan()) return Snum_real("+nan.0");
+    if(imag.is_zero() && !real.is_neg()) return real.sqrt();
     return expt(Snum_real(0.5L));
   }
 
@@ -610,6 +614,11 @@ namespace scm_numeric {
   /******************************************************************************
   * TRIGONOMETRIC METHODS
   ******************************************************************************/
+
+  // NOTE: THE FOLLOWING OPERATIONS HAVE DOMAIN LIMITS FOR REALS:
+  //       => asin, acos, acosh, atanh
+  //       Where bypassing their limits results in a complex result!
+  //       => Hence (for reals) we attempt the op, retrying as complex if NaN
 
   // sin(a+bi) = sin(a)cosh(b) + cos(a)sinh(b)i
   Snum Snum::sin()   const noexcept {
@@ -631,14 +640,18 @@ namespace scm_numeric {
   }
   // asin(z) = -i * ln(sqrt(1-z^2) + (z*i))
   Snum Snum::asin()  const noexcept {
-    if(is_nan())       return Snum_real("+nan.0");
-    if(imag.is_zero()) return real.asin();
+    if(is_nan()) return Snum_real("+nan.0");
+    if(imag.is_zero()) {
+      if(auto result = real.asin(); !result.is_nan()) 
+        return result;
+    }
     return Snum(0,-1) * ((1 - expt(Snum_real(2))).sqrt() + (*this * Snum(0,1))).log();
   }
   // acos(z) = (1/2)pi - asin(z)
   Snum Snum::acos()  const noexcept {
-    if(is_nan())       return Snum_real("+nan.0");
-    if(imag.is_zero()) return real.acos();
+    if(is_nan()) return Snum_real("+nan.0");
+    if(auto result = real.acos(); !result.is_nan()) 
+        return result;
     return std::acos(0.0L) - asin();
   }
   // atan(z) = (1/(2i))ln((i-z)/(i+z))
@@ -679,14 +692,16 @@ namespace scm_numeric {
   }
   // acosh(z) = ln(z + sqrt(z + 1) * sqrt(z - 1))
   Snum Snum::acosh() const noexcept {
-    if(is_nan())       return Snum_real("+nan.0");
-    if(imag.is_zero()) return real.acosh();
+    if(is_nan()) return Snum_real("+nan.0");
+    if(auto result = real.acosh(); !result.is_nan()) 
+        return result;
     return (*this + ((*this + 1).sqrt() * (*this - 1).sqrt())).log();
   }
   // atanh(z) = (1/2) * ln((1+z)/(1-z))
   Snum Snum::atanh() const noexcept {
-    if(is_nan())       return Snum_real("+nan.0");
-    if(imag.is_zero()) return real.atanh();
+    if(is_nan()) return Snum_real("+nan.0");
+    if(auto result = real.atanh(); !result.is_nan()) 
+        return result;
     return Snum_real("1/2") * ((1 + *this) / (1 - *this)).log();
   }
 
