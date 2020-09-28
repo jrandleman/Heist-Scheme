@@ -641,7 +641,7 @@ namespace scm_numeric {
     if(imag.is_zero()) return real.acos();
     return std::acos(0.0L) - asin();
   }
-  // atan(z) = (1/2i)ln((i-z)/(i+z))
+  // atan(z) = (1/(2i))ln((i-z)/(i+z))
   Snum Snum::atan()  const noexcept {
     if(is_nan())       return Snum_real("+nan.0");
     if(imag.is_zero()) return real.atan();
