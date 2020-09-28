@@ -497,8 +497,8 @@ namespace scm_numeric {
     }
     if(real.is_zero()) {
       if(imag.is_neg())
-        return Snum_real(-1.0L * std::acos(-1.0L)/2.0L); // (angle 0-ni) = -pi/2
-      return Snum_real(std::acos(-1.0L)/2.0L);           // (angle 0+ni) = pi/2
+        return Snum_real(-1.0L * std::acos(0.0L)); // (angle 0-ni) = -pi/2
+      return Snum_real(std::acos(0.0L));           // (angle 0+ni) = pi/2
     }
     if(imag.is_zero()) {
       if(real.is_neg())
@@ -519,7 +519,7 @@ namespace scm_numeric {
     if(imag.is_pos_inf() || imag.is_neg_inf())
       return real.str() + imag.str() + 'i';
     if(imag.is_neg())
-      return real.str() + '-' + (-1 * imag).str() + 'i';
+      return real.str() + '-' + (-imag).str() + 'i';
     return real.str() + '+' + imag.str() + 'i';
   }
 
@@ -532,7 +532,7 @@ namespace scm_numeric {
     if(imag.is_pos_inf() || imag.is_neg_inf())
       return real.str(base) + imag.str() + 'i';
     if(imag.is_neg())
-      return real.str(base) + '-' + (-1 * imag).str(base) + 'i';
+      return real.str(base) + '-' + (-imag).str(base) + 'i';
     return real.str(base) + '+' + imag.str(base) + 'i';
   }
 
@@ -597,7 +597,10 @@ namespace scm_numeric {
   // sqrt function
   Snum Snum::sqrt() const noexcept {
     if(is_nan()) return Snum_real("+nan.0");
-    if(imag.is_zero() && !real.is_neg()) return real.sqrt();
+    if(imag.is_zero()) {
+      if(!real.is_neg()) return real.sqrt();
+      return Snum(Snum_real(),(-real).sqrt());
+    }
     return expt(Snum_real(0.5L));
   }
 
@@ -606,7 +609,7 @@ namespace scm_numeric {
     if(is_nan() || (imag.is_zero() && real.is_zero())) return Snum_real("+nan.0");
     if(imag.is_zero()) {
       if(real.is_pos()) return real.log();
-      return Snum((real * -1).log(), std::acos(-1.0L)); // ln(-n) = ln(n)+(pi)i
+      return Snum((-real).log(), std::acos(-1.0L)); // ln(-n) = ln(n)+(pi)i
     }
     return Snum(Snum_real("1/2") * (real.expt(2)+imag.expt(2)).log(), angle().real);
   }
@@ -641,17 +644,22 @@ namespace scm_numeric {
   // asin(z) = -i * ln(sqrt(1-z^2) + (z*i))
   Snum Snum::asin()  const noexcept {
     if(is_nan()) return Snum_real("+nan.0");
-    if(imag.is_zero()) {
+    if(imag.is_zero())
       if(auto result = real.asin(); !result.is_nan()) 
         return result;
-    }
     return Snum(0,-1) * ((1 - expt(Snum_real(2))).sqrt() + (*this * Snum(0,1))).log();
   }
   // acos(z) = (1/2)pi - asin(z)
   Snum Snum::acos()  const noexcept {
     if(is_nan()) return Snum_real("+nan.0");
-    if(auto result = real.acos(); !result.is_nan()) 
+    if(imag.is_zero()) {
+      if(auto result = real.acos(); !result.is_nan()) 
         return result;
+      // if real is beyond upper bound of 1, real of result is always 0
+      auto result = std::acos(0.0L) - asin();
+      if(real > 1) return Snum(Snum_real(),result.imag);
+      return result;
+    }
     return std::acos(0.0L) - asin();
   }
   // atan(z) = (1/(2i))ln((i-z)/(i+z))
@@ -693,14 +701,16 @@ namespace scm_numeric {
   // acosh(z) = ln(z + sqrt(z + 1) * sqrt(z - 1))
   Snum Snum::acosh() const noexcept {
     if(is_nan()) return Snum_real("+nan.0");
-    if(auto result = real.acosh(); !result.is_nan()) 
+    if(imag.is_zero())
+      if(auto result = real.acosh(); !result.is_nan()) 
         return result;
     return (*this + ((*this + 1).sqrt() * (*this - 1).sqrt())).log();
   }
   // atanh(z) = (1/2) * ln((1+z)/(1-z))
   Snum Snum::atanh() const noexcept {
     if(is_nan()) return Snum_real("+nan.0");
-    if(auto result = real.atanh(); !result.is_nan()) 
+    if(imag.is_zero())
+      if(auto result = real.atanh(); !result.is_nan()) 
         return result;
     return Snum_real("1/2") * ((1 + *this) / (1 - *this)).log();
   }
