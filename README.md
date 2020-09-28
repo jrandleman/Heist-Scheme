@@ -135,7 +135,7 @@
 * Limits non-tail recursion to depth of 1000 by default
   - _See [`set-max-recursion-depth!`](#Interpreter-Invariants-Manipulation) primitive to change this_
 * Embeddable in >= C++17
-* `"heist:core:"` symbol prefix is reserved for internal use!
+* `"heist:"` symbol prefix is reserved for internal use!
 
 ## Conventions:
 * `?` suffix denotes a predicate procedure
