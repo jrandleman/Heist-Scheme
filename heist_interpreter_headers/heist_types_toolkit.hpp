@@ -73,6 +73,43 @@ namespace heist {
   #define THROW_ERR(...) ({PRINT_ERR(__VA_ARGS__); throw heist::SCM_EXCEPT::EVAL;})
 
   /******************************************************************************
+  * PLATFORM IDENTIFICATION
+  ******************************************************************************/
+
+  #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__) || defined(_WIN64)
+    #define HEIST_PLATFORM data("windows")
+    #ifdef _WIN64
+      #define HEIST_EXACT_PLATFORM data("windows-64")
+    #else
+      #define HEIST_EXACT_PLATFORM data("windows-32")
+    #endif
+  #elif __APPLE__
+    #define HEIST_PLATFORM data("apple")
+    #include <TargetConditionals.h>
+    #if TARGET_IPHONE_SIMULATOR
+      #define HEIST_EXACT_PLATFORM data("apple-ios-simulator")
+    #elif TARGET_OS_IPHONE
+      #define HEIST_EXACT_PLATFORM data("apple-ios")
+    #elif TARGET_OS_MAC
+      #define HEIST_EXACT_PLATFORM data("apple-osx")
+    #else
+      #define HEIST_EXACT_PLATFORM data("apple")
+    #endif
+  #elif __linux__
+    #define HEIST_PLATFORM       data("linux")
+    #define HEIST_EXACT_PLATFORM data("linux")
+  #elif __unix__
+    #define HEIST_PLATFORM       data("unix")
+    #define HEIST_EXACT_PLATFORM data("unix")
+  #elif defined(_POSIX_VERSION)
+    #define HEIST_PLATFORM       data("posix")
+    #define HEIST_EXACT_PLATFORM data("posix")
+  #else
+    #define HEIST_PLATFORM       data(boolean(false))
+    #define HEIST_EXACT_PLATFORM data(boolean(false))
+  #endif
+
+  /******************************************************************************
   * LIST PRINTING HELPER FUNCTIONS
   ******************************************************************************/
 

@@ -4244,6 +4244,8 @@ namespace heist {
     define_variable("fl-max",       num_type(num_type::INEXACT_MAX),       G::GLOBAL_ENVIRONMENT_POINTER);
     define_variable("fl-min",       num_type(num_type::INEXACT_MIN),       G::GLOBAL_ENVIRONMENT_POINTER);
     define_variable("fl-epsilon",   num_type(num_type::INEXACT_EPSILON),   G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("heist-platform",       HEIST_PLATFORM,       G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("heist-exact-platform", HEIST_EXACT_PLATFORM, G::GLOBAL_ENVIRONMENT_POINTER);
     define_variable("stream-null",          symconst::emptylist,    G::GLOBAL_ENVIRONMENT_POINTER);
     define_variable(symconst::null_env,     symconst::null_env,     G::GLOBAL_ENVIRONMENT_POINTER);
     define_variable(symconst::local_env,    symconst::local_env,    G::GLOBAL_ENVIRONMENT_POINTER);
@@ -4595,6 +4597,8 @@ int main(int argc, char* argv[]) {
 #endif // @ONLY-COMPILER
 #undef afmt
 #undef HEIST_DIRECTORY_FILE_PATH
+#undef HEIST_PLATFORM
+#undef HEIST_EXACT_PLATFORM
 #undef ERR_HEADER
 #undef BAD_SYNTAX
 #undef EXP_ERR

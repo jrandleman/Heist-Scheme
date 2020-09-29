@@ -1133,6 +1133,16 @@ Other primitives of this nature include:<br>
    * Interpreted Scripts: passed at the cmd-line after the script name
    * Compiled Script: passed to the executable of the compiled C++ file
 
+9. __General Current Platform Name__: `heist-platform`
+   * Possible results: `'windows` | `'apple` | `'linux` | `'unix` | `'posix` | `#f`
+
+10. __Specific Current Platform Name__: `heist-exact-platform`
+    * Possible results: 
+      - `'windows-64` | `'windows-32`
+      - `'apple-ios-simulator` | `'apple-ios` | `'apple-osx` | `'apple`
+      - `'linux` | `'unix` | `'posix`
+      - `#f`
+
 
 
 
