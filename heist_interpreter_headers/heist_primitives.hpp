@@ -4848,6 +4848,65 @@ namespace heist {
   }
 
   /******************************************************************************
+  * JSON PARSING AND GENERATION PRIMITIVES
+  ******************************************************************************/
+
+  // -:- WARNING: THIS DOES __NOT__ FULLY VALIDATE THE JSON STRING GIVEN IS VALID JSON -:-
+  //     IT ONLY:
+  //       0. CONVERTS THE TEXT AS IF IT WERE JSON
+  //       1. THROWS AN ERROR IF JSON IS OBVIOUSLY MALFORMED (IE INCOMPLETE STRING/ARRAY, ETC)
+
+  // CONVERTING JSON STRINGS TO A PARSABLE SCHEME DATA STRUCT:
+  // ,              -> <space>
+  // true           -> #t
+  // false          -> #f
+  // null           -> '()
+  // [...]          -> [vector ...]
+  // <string>:<obj> -> (list <string> <obj>)
+
+  data primitive_JSON_TO_SCM(scm_list& args) {
+    if(args.size() != 1 || !args[0].is_type(types::str))
+      THROW_ERR("'json->scm didn't recieve 1 string arg!" 
+        "\n     (json->scm <string>)" << FCN_ERR("json->scm", args));
+    if(args[0].str->empty()) return G::VOID_DATA_OBJECT;
+    scm_string json = *args[0].str, input = *args[0].str;
+    heist_json_parser::convert_json_to_scm(json,input);
+    try { // Try parsing the converted json expression, & throw an error as needed
+      scm_list abstract_syntax_tree;
+      // Return AST if successfully parsed an expression
+      parse_input_exp(std::move(json),abstract_syntax_tree);
+      if(abstract_syntax_tree.empty()) return G::VOID_DATA_OBJECT;
+      return data_cast(scm_eval(scm_list_cast(abstract_syntax_tree[0]),G::GLOBAL_ENVIRONMENT_POINTER));
+    } catch(const READER_ERROR& read_error) {
+      heist_json_parser::print_json_reader_error_alert();
+      if(is_non_repl_reader_error(read_error))
+           alert_non_repl_reader_error(G::CURRENT_OUTPUT_PORT,read_error,input);
+      else alert_reader_error(G::CURRENT_OUTPUT_PORT,read_error,input);
+      throw SCM_EXCEPT::READ;
+    } catch(const size_type& read_error_index) {
+      heist_json_parser::print_json_reader_error_alert();
+      alert_reader_error(G::CURRENT_OUTPUT_PORT,read_error_index,input);
+      throw SCM_EXCEPT::READ;
+    }
+  }
+
+
+  data primitive_SCM_TO_JSON(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (scm->json <obj>)"
+      "\n     <obj> ::= <string>"
+      "\n             | <number>"
+      "\n             | <'()>    ; empty list becomes <null>" 
+      "\n             | <alist>  ; becomes a <map> (keys must be strings!)"
+      "\n             | <vector> ; becomes an <array>"
+      "\n             | <boolean>";
+    if(args.size() != 1)
+      THROW_ERR("'scm->json didn't recieve 1 arg!" 
+        << format << FCN_ERR("scm->json", args));
+    return make_str(convert_scm_to_json(args[0],args,format));
+  }
+
+  /******************************************************************************
   * MATHEMATICAL CONSTANTS
   ******************************************************************************/
 
@@ -5662,6 +5721,9 @@ namespace heist {
     std::make_pair(primitive_SET_RUNTIME_SYNTAX_BANG, "set-runtime-syntax!"),
 
     std::make_pair(primitive_DEFINE_READER_SYNTAX, "define-reader-syntax"),
+
+    std::make_pair(primitive_JSON_TO_SCM, "json->scm"),
+    std::make_pair(primitive_SCM_TO_JSON, "scm->json"),
   };
 
   frame_vals primitive_procedure_objects()noexcept{

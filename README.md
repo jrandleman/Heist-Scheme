@@ -116,6 +116,7 @@
    - [Gensym](#Gensym)
    - [Scm->Cps Procedures](#Scm-Cps-Procedures)
    - [Syntax Procedures](#Syntax-Procedures)
+   - [JSON Interop](#JSON-Interop)
 10. [Heist Mathematical Flonum Constants](#Heist-Mathematical-Flonum-Constants)
 11. [Heist Minimalist REPL Example](#Heist-Minimalist-REPL-Example)
 
@@ -2081,10 +2082,28 @@ Other primitives of this nature include:<br>
 
 
 
+------------------------
+## JSON Interop:
+0. __Convert JSON String to a Scheme Datum__: `(json->scm <string>)`
+   * Note: arrays -> vectors, null -> `'()`, & maps -> alists (of key-value lists)
+
+1. __Convert Scheme Datum to a JSON String__: `(scm->json <obj>)`
+   ```
+   (scm->json <obj>)
+   <obj> ::= <string>
+           | <number>
+           | <'()>    ; empty list becomes <null>
+           | <alist>  ; becomes a <map> (keys must be strings!)
+           | <vector> ; becomes an <array>
+           | <boolean>
+   ```
 
 
 
------------------------- 
+
+
+
+------------------------
 # Heist Mathematical Flonum Constants
 0. __e__: `fl-e`
 

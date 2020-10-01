@@ -26,6 +26,7 @@ namespace heist {
   bool     data_is_continuation_parameter(const data& d)noexcept;
   bool     expand_macro_if_in_env(const sym_type&,const scm_list&,env_type&,scm_list&);
   void     parse_input_exp(scm_string&& input, scm_list& abstract_syntax_tree);
+  void     skip_string_literal(size_type& i, const scm_string& input)noexcept;
   void     set_default_global_environment();
   data     data_cast(const scm_list& l)noexcept;
   scm_list scm_list_cast(const data& d)noexcept;
@@ -4138,6 +4139,208 @@ namespace heist {
     // Register new reader macro
     G::SHORTHAND_READER_MACRO_REGISTRY.push_back(shorthand);
     G::LONGHAND_READER_MACRO_REGISTRY.push_back(longhand);
+  }
+
+  /******************************************************************************
+  * JSON PARSER PRIMITIVE HELPER FUNCTIONS
+  ******************************************************************************/
+
+  // -:- WARNING: THIS DOES __NOT__ FULLY VALIDATE THE JSON STRING GIVEN IS VALID JSON -:-
+  //     IT ONLY:
+  //       0. CONVERTS THE TEXT AS IF IT WERE JSON
+  //       1. THROWS AN ERROR IF JSON IS OBVIOUSLY MALFORMED (IE INCOMPLETE STRING/ARRAY, ETC)
+
+  // JSON KEYS: only strings
+  // JSON VALUES:
+  //   0. string
+  //   1. number (fraction -> long double, NaN/Inf -> null)
+  //   2. object (alist)
+  //   3. array (vector)
+  //   4. boolean
+  //   5. null (empty list)
+
+  // CONVERTING JSON STRINGS TO A PARSABLE SCHEME DATA STRUCT:
+  // ,              -> <space>
+  // true           -> #t
+  // false          -> #f
+  // null           -> '()
+  // [...]          -> [vector ...]
+  // <string>:<obj> -> (list <string> <obj>)
+
+  namespace heist_json_parser {
+    void throw_malformed_json_error(const char* reason, const scm_string& original_json) {
+      THROW_ERR("'json->scm malformed JSON (" << reason << "!)"
+        "\n     JSON STRING: \"" << original_json << "\""
+        "\n     (json->scm <string>)" << FCN_ERR("json->scm", scm_list(1,original_json)));
+    }
+
+
+    void print_json_reader_error_alert() {
+      std::cerr << '\n' << afmt(heist::AFMT_131) << "-----------" 
+        << afmt(heist::AFMT_01) << "--------------\n"
+        << afmt(heist::AFMT_131) << "> JSON->SCM" 
+        << afmt(heist::AFMT_01) << " READER ERROR:" << afmt(heist::AFMT_0);
+    }
+
+
+    // PRECONDITION: delimiter = '[' | '{'
+    // POSTCONDITION: ')' is added after the final closing end-delimiter
+    void add_closing_paren_after_array_or_object_value(size_type i,      const char& delimiter, 
+                                                       scm_string& json, const scm_string& original_json){
+      ++i; // skip past opening delimiter
+      const char end_delimiter = delimiter == '[' ? ']' : '}';
+      long long delimiter_count = 1;
+      // Find end of expression
+      for(size_type n = json.size(); i < n && delimiter_count; ++i) {
+        if(json[i] == delimiter) {
+          ++delimiter_count;
+        } else if(json[i] == end_delimiter) {
+          --delimiter_count;
+        } else if(is_non_escaped_double_quote(i,json)) {
+          skip_string_literal(i,json); 
+        } 
+      }
+      if(i == json.size()) { // verify not at the end of the JSON
+        char issue[] = "missing a closing '}'";
+        if(delimiter == '[') issue[19] = ']';
+        throw_malformed_json_error(issue,original_json);
+      }
+      json.insert(i+1,")");
+    }
+
+
+    void prepend_string_key_with_list(size_type& i, scm_string& json, const scm_string& original_json){
+      size_type j = i;
+      for(; j; --j) {
+        if(isspace(json[j])) continue;
+        if(json[j] == '"') break;
+        throw_malformed_json_error("non-string key detected",original_json);
+      }
+      while(j && j-1 && !is_non_escaped_double_quote(--j,json));
+      if(!j) throw_malformed_json_error("non-string key detected",original_json);
+      json.insert(j,"(list ");
+      i += 6;
+    }
+
+
+    // POST CONDITION: 'i' is where the original ':' was in the string (relatively)
+    void parse_json_key_val_pair(size_type& i, scm_string& json, const scm_string& original_json) {
+      json[i] = ' ';
+      prepend_string_key_with_list(i,json,original_json);
+      const size_type n = json.size();
+      while(i < n && isspace(json[i])) ++i; // mv up to the value
+      if(i == n) throw_malformed_json_error("missing value detected",original_json);
+      size_type j = i;
+      // Insert ')' after array or object
+      if(json[j] == '{' || json[j] == '[') {
+        add_closing_paren_after_array_or_object_value(j,json[j],json,original_json);
+      // Insert ')' after string
+      } else if(json[j] == '"') {
+        skip_string_literal(j,json);
+        json.insert(j+1, ")");
+      } else {
+        while(j < n && !isspace(json[j]) && json[j] != ',' && json[j] != '}' && json[j] != ']') ++j;
+        json.insert(j, ")");
+      }
+      --i; // mv 1 space prior the next value to parse
+    }
+
+
+    void convert_json_to_scm(scm_string& json, const scm_string& original_json) {
+      for(size_type i = 0; i < json.size(); ++i) {
+        if(isspace(json[i])) continue;
+        if(is_non_escaped_double_quote(i,json)) {
+          skip_string_literal(i,json); 
+          continue;
+        }
+        // Whitespace commas
+        if(json[i] == ',') {
+          json[i] = ' ';
+        // Add 'vector ' prefix to arrays
+        } else if(json[i] == '[') {
+          json.insert(i+1, "vector ");
+          i += 7;
+        // Add 'list ' prefix to objects
+        } else if(json[i] == '{') {
+          json.insert(i+1, "list ");
+          i += 5;
+        // Convert nulls to the empty list
+        } else if(i+3 < json.size() && json[i]=='n' && json[i+1]=='u' && json[i+2]=='l' && json[i+3]=='l') {
+          json[i] = '\'', json[i+1] = '(', json[i+2] = ')', json[i+3] = ' ';
+          i += 4;
+        // Convert true -> #t
+        } else if(i+3 < json.size() && json[i]=='t' && json[i+1]=='r' && json[i+2]=='u' && json[i+3]=='e') {
+          json[i] = '#', json[i+1] = 't', json[i+2] = ' ', json[i+3] = ' ';
+          i += 4;
+        // Convert false -> #f
+        } else if(i+4 < json.size() && json[i]=='f' && json[i+1]=='a' && json[i+2]=='l' && json[i+3]=='s' && json[i+4]=='e') {
+          json[i] = '#', json[i+1] = 'f', json[i+2] = ' ', json[i+3] = ' ', json[i+4] = ' ';
+          i += 5;
+        // Convert key-value pairs to regular pairs
+        } else if(json[i] == ':') {
+          parse_json_key_val_pair(i,json,original_json);
+        }
+      }
+    }
+  } // End of namespace heist_json_parser
+
+  /******************************************************************************
+  * JSON GENERATOR PRIMITIVE HELPER FUNCTION
+  ******************************************************************************/
+
+  scm_string convert_scm_to_json(data& d, const scm_list& args, const char* format) {
+    // Convert Empty List
+    if(data_is_the_empty_expression(d)) {
+      return "null";
+    // Convert Strings
+    } else if(d.is_type(types::str)) {
+      return d.write();
+    // Convert Numbers
+    } else if(d.is_type(types::num)) {
+      // Coerce fractions to flonums
+      if(d.num.is_exact() && !d.num.is_integer())
+        return d.num.to_inexact().str();
+      return d.num.str();
+    // Convert boolean
+    } else if(d.is_type(types::bol)) {
+      if(d.bol.val) return "true";
+      return "false";
+    // Convert Vectors -> Array
+    } else if(d.is_type(types::vec)) {
+      scm_string vec_json(1,'[');
+      for(size_type i = 0, n = d.vec->size(); i < n; ++i) {
+        vec_json += convert_scm_to_json(d.vec->operator[](i),args,format);
+        if(i+1 < n) vec_json += ", ";
+      }
+      return vec_json + ']';
+    // Convert Alist -> Map
+    } else if(d.is_type(types::par)) {
+      scm_string map_json(1,'{');
+      scm_list alist_exp;
+      shallow_unpack_list_into_exp(d,alist_exp);
+      for(size_type i = 0, n = alist_exp.size(); i < n; ++i) {
+        if(!alist_exp[i].is_type(types::par))
+          THROW_ERR("scm->json invalid alist " << PROFILE(d) << " elt"
+            "\n     " << PROFILE(alist_exp[i]) << " can't convert to a map!"
+            << format << FCN_ERR("scm->json", args));
+        scm_list item;
+        shallow_unpack_list_into_exp(alist_exp[i],item);
+        if(item.size() != 2)
+          THROW_ERR("scm->json invalid alist " << PROFILE(d) << " key-value pair"
+            "\n     " << PROFILE(alist_exp[i]) << " can't convert to a map!"
+            << format << FCN_ERR("scm->json", args));
+        if(!item[0].is_type(types::str))
+          THROW_ERR("scm->json invalid alist " << PROFILE(d) << " key"
+            "\n     " << PROFILE(alist_exp[i]) << " isn't a string!"
+            << format << FCN_ERR("scm->json", args));
+        map_json += item[0].write() + ": " + convert_scm_to_json(item[1],args,format);
+        if(i+1 < n) map_json += ", ";
+      }
+      return map_json + '}';
+    } else {
+      THROW_ERR("'scm->json invalid scheme datum " << PROFILE(d)
+        << " can't be converted into JSON!" << format << FCN_ERR("scm->json", args));
+    }
   }
 } // End of namespace heist
 #endif
