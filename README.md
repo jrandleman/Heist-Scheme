@@ -283,7 +283,7 @@ One of Scheme's most powerful features is its flexible run-time macro system!<br
 For those in the know: 
 * While R5RS+ Scheme supports hygienic macros, R4RS (Heist Scheme's base) makes this _optional_.<br>
 * Unhygienic macros were selected after experimenting with CL, Clojure, & Scheme, finding:<br>
-  1. Hygiene's pros are easier to emulate w/o it than non-hygiene's pros are to emulate with it
+  1. Hygiene's pros are easier to emulate w/o it than non-hygiene's pros are to emulate with hygiene
   2. Forsaking hygiene enables more extensive control when meta-programming
 
 Macros are identical to procedures, except for 3 key features:<br>
