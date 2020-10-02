@@ -82,7 +82,7 @@ namespace heist {
           << format << FCN_ERR("expt-mod",args));
     // Perform Repeated Squares
     auto &x = args[0].num, &z = args[2].num;
-    auto y_bitstr = args[1].num.str(2);
+    auto y_bitstr = args[1].num.to_exact().str(2);
     num_type f("1");
     // For each bit, from left to right
     for(size_type i = 0, n = y_bitstr.size(); i < n; ++i) {
