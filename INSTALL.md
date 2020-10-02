@@ -41,7 +41,7 @@ SETTING UP BETTER COMMAND-LINE INTERFACE -- FOR BASH & ZSH:
 ------------------------------------------------------------
 
 0. OPEN THE FILE:
-   * FOR BASH: `~/.bash_aliases` (OR `~/.bashrc`)
+   * FOR BASH: `~/.bashrc`
    * FOR ZSH: `~/.zshrc`
 1. WRITE: `alias heist='<HEIST_DIRECTORY_FILE_PATH>/heist_main'`
 2. SAVE THE FILE, CLOSE THE CURRENT TERMINAL WINDOW, & RELAUNCH THE TERMINAL

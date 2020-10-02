@@ -36,7 +36,7 @@ def getSublimeTextBuildSystem(pathToInterpreter):
 
 def makeFilePathHeader(pathToInterpreter):
   return """/***
- * ALIAS FOR THE REPL TO PUT IN `~/.bash_aliases` OR `~/.zshrc`:
+ * ALIAS FOR THE REPL TO PUT IN `~/.bashrc` OR `~/.zshrc`:
  *   """ + getHeistInterpreterAlias(pathToInterpreter) + """
  */
 
@@ -75,7 +75,7 @@ def dispatchCompilation(pathToInterpreter):
     alertCompileErr("\n>>> Neither Clang++ Nor G++ detected!\n", 1)
     return
   print(">>> Successful Compilation!\n>>> Run \"./heist_main\" to start the REPL!\n")
-  print(">>> Alias to add to \"~/.zshrc\" or \"~/.bash_aliases\" to launch Heist-Scheme:")
+  print(">>> Alias to add to \"~/.zshrc\" or \"~/.bashrc\" to launch Heist-Scheme:")
   print("    " + getHeistInterpreterAlias(pathToInterpreter))
   print(">>> SublimeText Build System JSON:" + getSublimeTextBuildSystem(pathToInterpreter) + "\n")
 

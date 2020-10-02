@@ -5,7 +5,7 @@
 int main() {
   FILE* fp = fopen("../heist_interpreter_headers/HEIST_FILEPATH.hpp", "w");
   fprintf(fp, "/***\n"
-              " * ALIAS FOR THE REPL TO PUT IN `~/.bash_aliases` OR `~/.zshrc`:\n"
+              " * ALIAS FOR THE REPL TO PUT IN `~/.bashrc` OR `~/.zshrc`:\n"
               " *   alias heist='%s/heist_main'\n"
               " */\n\n"
               "/***\n"
