@@ -1920,8 +1920,15 @@ Other primitives of this nature include:<br>
 11. __Generate Input Port__: `(open-input-file <filename-string>)`
 
 12. __Generate Output Port__: `(open-output-file <filename-string>)`
+    * _Only works to create files that don't already exist!_
 
-13. __Close Port__: `(close-port <input-or-output-port>)`
+13. __Generate Output Append Port__: `(open-output-file+ <filename-string>)`
+    * _Both creates new files & appends to existing files!_
+
+14. __Destructively Generate Output Port__: `(open-output-file! <filename-string>)`
+    * _Equivalent to `(begin (delete-file! <filename-string>) (open-output-file <filename-string>))`_
+
+15. __Close Port__: `(close-port <input-or-output-port>)`
 
 
 
@@ -2092,9 +2099,9 @@ Other primitives of this nature include:<br>
    (scm->json <obj>)
    <obj> ::= <string>
            | <number>
-           | <'()>    ; empty list becomes <null>
-           | <alist>  ; becomes a <map> (keys must be strings!)
-           | <vector> ; becomes an <array>
+           | <'()>    ; -> <null>
+           | <alist>  ; -> <map> (keys must be string | number | null | bool!)
+           | <vector> ; -> <array>
            | <boolean>
    ```
 

@@ -4171,7 +4171,7 @@ namespace heist {
   data primitive_SLURP_FILE(scm_list& args){
     // confirm given a filename string & slurp file if so
     confirm_given_one_arg(args,"slurp-file","<filename-string>");
-    FILE* ins = confirm_valid_input_file(args[0],"slurp-file","(slurp-file <filename-string>)",args);
+    FILE* ins = confirm_valid_input_file(args[0],"slurp-file","\n     (slurp-file <filename-string>)",args);
     scm_string buffer;
     int ch = 0;
     while((ch = fgetc(ins)) != EOF) buffer += ch; // slurp entire file
@@ -4293,7 +4293,7 @@ namespace heist {
     return iport(G::PORT_REGISTRY.size()-1);
   }
 
-  data primitive_OPEN_OUTPUT_FILE(scm_list& args){
+  data primitive_OPEN_OUTPUT_FILE(scm_list& args){ // open iff filename dne
     // extract the environment
     auto env = args.rbegin()->env;
     args.pop_back();
@@ -4301,6 +4301,29 @@ namespace heist {
     confirm_given_one_arg(args,"open-output-file","<filename-string>");
     G::PORT_REGISTRY.push_back(confirm_valid_output_file(args[0],"open-output-file",
       "\n     (open-output-file <filename-string>)",args));
+    return oport(G::PORT_REGISTRY.size()-1);
+  }
+
+  data primitive_OPEN_OUTPUT_FILE_PLUS(scm_list& args){ // open via "append"
+    // extract the environment
+    auto env = args.rbegin()->env;
+    args.pop_back();
+    // confirm given a filename string
+    confirm_given_one_arg(args,"open-output-file+","<filename-string>");
+    G::PORT_REGISTRY.push_back(confirm_valid_output_append_file(args[0],"open-output-file+",
+      "\n     (open-output-file+ <filename-string>)",args));
+    return oport(G::PORT_REGISTRY.size()-1);
+  }
+
+  data primitive_OPEN_OUTPUT_FILE_BANG(scm_list& args){ // deletes if exists, and opens anew
+    // extract the environment
+    auto env = args.rbegin()->env;
+    args.pop_back();
+    // confirm given a filename string, & rm file if exists
+    confirm_given_one_string_arg(args, "open-output-file!", "\n     (open-output-file! <filename-string>)");
+    std::remove(args[0].str->c_str());
+    G::PORT_REGISTRY.push_back(confirm_valid_output_file(args[0],"open-output-file!",
+      "\n     (open-output-file! <filename-string>)",args));
     return oport(G::PORT_REGISTRY.size()-1);
   }
 
@@ -4869,12 +4892,11 @@ namespace heist {
       THROW_ERR("'json->scm didn't recieve 1 string arg!" 
         "\n     (json->scm <string>)" << FCN_ERR("json->scm", args));
     if(args[0].str->empty()) return G::VOID_DATA_OBJECT;
-    scm_string json = *args[0].str, input = *args[0].str;
-    heist_json_parser::convert_json_to_scm(json,input);
+    scm_string input = *args[0].str;
     try { // Try parsing the converted json expression, & throw an error as needed
       scm_list abstract_syntax_tree;
       // Return AST if successfully parsed an expression
-      parse_input_exp(std::move(json),abstract_syntax_tree);
+      parse_input_exp(heist_json_parser::convert_json_to_scm(*args[0].str,input),abstract_syntax_tree);
       if(abstract_syntax_tree.empty()) return G::VOID_DATA_OBJECT;
       return data_cast(scm_eval(scm_list_cast(abstract_syntax_tree[0]),G::GLOBAL_ENVIRONMENT_POINTER));
     } catch(const READER_ERROR& read_error) {
@@ -4896,9 +4918,9 @@ namespace heist {
       "\n     (scm->json <obj>)"
       "\n     <obj> ::= <string>"
       "\n             | <number>"
-      "\n             | <'()>    ; empty list becomes <null>" 
-      "\n             | <alist>  ; becomes a <map> (keys must be strings!)"
-      "\n             | <vector> ; becomes an <array>"
+      "\n             | <'()>    ; -> <null>" 
+      "\n             | <alist>  ; -> <map> (keys must be string | number | null | bool!)"
+      "\n             | <vector> ; -> <array>"
       "\n             | <boolean>";
     if(args.size() != 1)
       THROW_ERR("'scm->json didn't recieve 1 arg!" 
@@ -5261,14 +5283,15 @@ namespace heist {
     primitive_CONVERT_LIST_STREAM, primitive_STREAM_FOLD,
     primitive_STREAM_FOLD_RIGHT, 
 
-    primitive_CALL_WITH_INPUT_FILE, primitive_CALL_WITH_OUTPUT_FILE,
-    primitive_WITH_INPUT_FROM_FILE, primitive_WITH_OUTPUT_TO_FILE,
-    primitive_OPEN_INPUT_FILE,      primitive_OPEN_OUTPUT_FILE,
-    primitive_LOAD,                 primitive_CATCH_JUMP,
-    primitive_INLINE,               primitive_CALL_CE, 
-    primitive_CPS_EVAL,             primitive_CPS_LOAD, 
-    primitive_EXPAND,               primitive_TRACE, 
-    primitive_RUNTIME_SYNTAXP,      primitive_SET_RUNTIME_SYNTAX_BANG, 
+    primitive_CALL_WITH_INPUT_FILE,  primitive_CALL_WITH_OUTPUT_FILE,
+    primitive_WITH_INPUT_FROM_FILE,  primitive_WITH_OUTPUT_TO_FILE,
+    primitive_OPEN_INPUT_FILE,       primitive_OPEN_OUTPUT_FILE, 
+    primitive_OPEN_OUTPUT_FILE_PLUS, primitive_OPEN_OUTPUT_FILE_BANG, 
+    primitive_LOAD,                  primitive_CATCH_JUMP,
+    primitive_INLINE,                primitive_CALL_CE, 
+    primitive_CPS_EVAL,              primitive_CPS_LOAD, 
+    primitive_EXPAND,                primitive_TRACE, 
+    primitive_RUNTIME_SYNTAXP,       primitive_SET_RUNTIME_SYNTAX_BANG, 
   };
 
 #ifndef HEIST_CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
@@ -5677,6 +5700,8 @@ namespace heist {
     std::make_pair(primitive_WITH_OUTPUT_TO_FILE,   "with-output-to-file"),
     std::make_pair(primitive_OPEN_INPUT_FILE,       "open-input-file"),
     std::make_pair(primitive_OPEN_OUTPUT_FILE,      "open-output-file"),
+    std::make_pair(primitive_OPEN_OUTPUT_FILE_PLUS, "open-output-file+"),
+    std::make_pair(primitive_OPEN_OUTPUT_FILE_BANG, "open-output-file!"),
     std::make_pair(primitive_CLOSE_PORT,            "close-port"),
 
     std::make_pair(primitive_LOAD,          "load"),

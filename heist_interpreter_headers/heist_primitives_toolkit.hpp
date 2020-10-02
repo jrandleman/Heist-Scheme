@@ -3588,21 +3588,20 @@ namespace heist {
     if(!filename.is_type(types::str))
       THROW_ERR('\'' << name << ' ' << PROFILE(filename)
         << " is not a filename string:" << format << FCN_ERR(name,args));
-    // confirm given a valid io filename string
-    bool exists = confirm_file_exists(filename.str->c_str());
+    // if OUTPUT (write), confirm file doesn't exist
+    if(confirm_file_exists(filename.str->c_str()) && file_open_type[0] == 'w')
+      THROW_ERR('\'' << name << " file \"" << *filename.str 
+        << "\" already exists!" << format << FCN_ERR(name,args));
+    // open the file
     FILE* fp = fopen(filename.str->c_str(), file_open_type);
     // if INPUT, confirm file isnt null
     if(fp == nullptr && file_open_type[0] == 'r')
       THROW_ERR('\'' << name << " file \"" << *filename.str
         << "\" doesn't exist (invalid for input):"<<format<<FCN_ERR(name,args));
-    // if OUTPUT, confirm file doesn't exist
-    if((fp == nullptr || exists) && file_open_type[0] == 'w')
+    // if OUTPUT (write), confirm file doesn't exist
+    if(fp == nullptr)
       THROW_ERR('\'' << name << " file \"" << *filename.str 
-        << "\" already exists!" << format << FCN_ERR(name,args));
-    // if OUTPUT, confirm file doesn't exist
-    if((fp == nullptr || !exists) && file_open_type[0] == 'a')
-      THROW_ERR('\'' << name << " file \"" << *filename.str 
-        << "\" already exists!" << format << FCN_ERR(name,args));
+        << "\" couldn't be opened!" << format << FCN_ERR(name,args));
     return fp;
   }
 
@@ -3618,6 +3617,13 @@ namespace heist {
   FILE* confirm_valid_output_file(const data& filename, const char* name, 
                                   const char* format,   const scm_list& args) {
     return confirm_valid_io_file(filename, name, format, "w", args);
+  }
+
+
+  // Returns a file pointer if 'filename' is a file we have permission to append
+  FILE* confirm_valid_output_append_file(const data& filename, const char* name, 
+                                         const char* format,   const scm_list& args) {
+    return confirm_valid_io_file(filename, name, format, "a", args);
   }
 
 
@@ -4246,7 +4252,7 @@ namespace heist {
     }
 
 
-    void convert_json_to_scm(scm_string& json, const scm_string& original_json) {
+    scm_string convert_json_to_scm(scm_string json, const scm_string& original_json) {
       for(size_type i = 0; i < json.size(); ++i) {
         if(isspace(json[i])) continue;
         if(is_non_escaped_double_quote(i,json)) {
@@ -4281,12 +4287,29 @@ namespace heist {
           parse_json_key_val_pair(i,json,original_json);
         }
       }
+      return json;
     }
   } // End of namespace heist_json_parser
 
   /******************************************************************************
   * JSON GENERATOR PRIMITIVE HELPER FUNCTION
   ******************************************************************************/
+
+  scm_string convert_scm_to_json(data&,const scm_list&,const char*);
+  void convert_scm_to_json_write_map_pair(scm_string& map_json, scm_list& item, 
+                                          const scm_list& args, const char* format){
+    if(item[0].is_type(types::str)) {
+      map_json += item[0].write() + ": " + convert_scm_to_json(item[1],args,format);
+    } else if(item[0].is_type(types::num)) {
+      map_json += '"' + item[0].write() + "\": " + convert_scm_to_json(item[1],args,format);
+    } else if(item[0].is_type(types::bol)) {
+      if(item[0].bol.val) map_json += "\"true\": " + convert_scm_to_json(item[1],args,format);
+      else                map_json += "\"false\": " + convert_scm_to_json(item[1],args,format);
+    } else {
+      map_json += "\"null\": " + convert_scm_to_json(item[1],args,format);
+    }
+  }
+
 
   scm_string convert_scm_to_json(data& d, const scm_list& args, const char* format) {
     // Convert Empty List
@@ -4329,11 +4352,12 @@ namespace heist {
           THROW_ERR("scm->json invalid alist " << PROFILE(d) << " key-value pair"
             "\n     " << PROFILE(alist_exp[i]) << " can't convert to a map!"
             << format << FCN_ERR("scm->json", args));
-        if(!item[0].is_type(types::str))
+        if(!item[0].is_type(types::str) && !item[0].is_type(types::num) && 
+           !item[0].is_type(types::bol) && !data_is_the_empty_expression(item[0]))
           THROW_ERR("scm->json invalid alist " << PROFILE(d) << " key"
-            "\n     " << PROFILE(alist_exp[i]) << " isn't a string!"
+            "\n     " << PROFILE(alist_exp[i]) << " isn't a string|number|null|bool!"
             << format << FCN_ERR("scm->json", args));
-        map_json += item[0].write() + ": " + convert_scm_to_json(item[1],args,format);
+        convert_scm_to_json_write_map_pair(map_json,item,args,format);
         if(i+1 < n) map_json += ", ";
       }
       return map_json + '}';
