@@ -4874,11 +4874,6 @@ namespace heist {
   * JSON PARSING AND GENERATION PRIMITIVES
   ******************************************************************************/
 
-  // -:- WARNING: THIS DOES __NOT__ FULLY VALIDATE THE JSON STRING GIVEN IS VALID JSON -:-
-  //     IT ONLY:
-  //       0. CONVERTS THE TEXT AS IF IT WERE JSON
-  //       1. THROWS AN ERROR IF JSON IS OBVIOUSLY MALFORMED (IE INCOMPLETE STRING/ARRAY, ETC)
-
   // CONVERTING JSON STRINGS TO A PARSABLE SCHEME DATA STRUCT:
   // ,              -> <space>
   // true           -> #t
@@ -4925,7 +4920,7 @@ namespace heist {
     if(args.size() != 1)
       THROW_ERR("'scm->json didn't recieve 1 arg!" 
         << format << FCN_ERR("scm->json", args));
-    return make_str(convert_scm_to_json(args[0],args,format));
+    return make_str(heist_json_generator::convert_scm_to_json(args[0],args,format));
   }
 
   /******************************************************************************

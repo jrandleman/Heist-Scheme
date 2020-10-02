@@ -4151,11 +4151,6 @@ namespace heist {
   * JSON PARSER PRIMITIVE HELPER FUNCTIONS
   ******************************************************************************/
 
-  // -:- WARNING: THIS DOES __NOT__ FULLY VALIDATE THE JSON STRING GIVEN IS VALID JSON -:-
-  //     IT ONLY:
-  //       0. CONVERTS THE TEXT AS IF IT WERE JSON
-  //       1. THROWS AN ERROR IF JSON IS OBVIOUSLY MALFORMED (IE INCOMPLETE STRING/ARRAY, ETC)
-
   // JSON KEYS: only strings
   // JSON VALUES:
   //   0. string
@@ -4252,7 +4247,42 @@ namespace heist {
     }
 
 
+    bool char_is_valid_json_separator(const char& c)noexcept{
+      return isspace(c) || c=='[' || c==']' || c=='{' || c=='}' || c==',' || c==':';
+    }
+
+
+    // VALID TOKENS: <string>, <number>, [], {}, <,>, <:>, null, true, false
+    void validate_given_json(const scm_string& json) {
+      for(size_type i = 0, n = json.size(); i < n; ++i) {
+        // skip strings
+        if(is_non_escaped_double_quote(i,json)) {
+          skip_string_literal(i,json); 
+          continue;
+        }
+        // skip separators
+        if(char_is_valid_json_separator(json[i])) continue;
+        // skip null/true
+        if(i+3 < n && 
+          ((json[i]=='n' && json[i+1]=='u' && json[i+2]=='l' && json[i+3]=='l') || 
+           (json[i]=='t' && json[i+1]=='r' && json[i+2]=='u' && json[i+3]=='e'))) {
+          i += 3;
+        // skip false
+        } else if(i+4 < n && json[i]=='f' && json[i+1]=='a' && json[i+2]=='l' && json[i+3]=='s' && json[i+4]=='e') {
+          i += 4;
+        // confirm a number, and skip if so
+        } else {
+          scm_string possible_num;
+          while(i < n && !char_is_valid_json_separator(json[i])) possible_num += json[i++];
+          if(num_type(possible_num).is_nan())
+            throw_malformed_json_error(("invalid JSON token detected: \"" + possible_num + '"').c_str(), json);
+        }
+      }
+    }
+
+
     scm_string convert_json_to_scm(scm_string json, const scm_string& original_json) {
+      validate_given_json(json);
       for(size_type i = 0; i < json.size(); ++i) {
         if(isspace(json[i])) continue;
         if(is_non_escaped_double_quote(i,json)) {
@@ -4295,76 +4325,83 @@ namespace heist {
   * JSON GENERATOR PRIMITIVE HELPER FUNCTION
   ******************************************************************************/
 
-  scm_string convert_scm_to_json(data&,const scm_list&,const char*);
-  void convert_scm_to_json_write_map_pair(scm_string& map_json, scm_list& item, 
-                                          const scm_list& args, const char* format){
-    if(item[0].is_type(types::str)) {
-      map_json += item[0].write() + ": " + convert_scm_to_json(item[1],args,format);
-    } else if(item[0].is_type(types::num)) {
-      map_json += '"' + item[0].write() + "\": " + convert_scm_to_json(item[1],args,format);
-    } else if(item[0].is_type(types::bol)) {
-      if(item[0].bol.val) map_json += "\"true\": " + convert_scm_to_json(item[1],args,format);
-      else                map_json += "\"false\": " + convert_scm_to_json(item[1],args,format);
-    } else {
-      map_json += "\"null\": " + convert_scm_to_json(item[1],args,format);
+  namespace heist_json_generator {
+    scm_string convert_scm_to_json(data&,const scm_list&,const char*);
+    void convert_scm_to_json_write_map_pair(scm_string& map_json, scm_list& item, 
+                                            const scm_list& args, const char* format){
+      if(item[0].is_type(types::str)) {
+        map_json += item[0].write() + ": " + convert_scm_to_json(item[1],args,format);
+      } else if(item[0].is_type(types::num)) {
+        map_json += '"' + item[0].write() + "\": " + convert_scm_to_json(item[1],args,format);
+      } else if(item[0].is_type(types::bol)) {
+        if(item[0].bol.val) map_json += "\"true\": " + convert_scm_to_json(item[1],args,format);
+        else                map_json += "\"false\": " + convert_scm_to_json(item[1],args,format);
+      } else {
+        map_json += "\"null\": " + convert_scm_to_json(item[1],args,format);
+      }
     }
-  }
 
 
-  scm_string convert_scm_to_json(data& d, const scm_list& args, const char* format) {
-    // Convert Empty List
-    if(data_is_the_empty_expression(d)) {
-      return "null";
-    // Convert Strings
-    } else if(d.is_type(types::str)) {
-      return d.write();
-    // Convert Numbers
-    } else if(d.is_type(types::num)) {
-      // Coerce fractions to flonums
-      if(d.num.is_exact() && !d.num.is_integer())
-        return d.num.to_inexact().str();
-      return d.num.str();
-    // Convert boolean
-    } else if(d.is_type(types::bol)) {
-      if(d.bol.val) return "true";
-      return "false";
-    // Convert Vectors -> Array
-    } else if(d.is_type(types::vec)) {
-      scm_string vec_json(1,'[');
-      for(size_type i = 0, n = d.vec->size(); i < n; ++i) {
-        vec_json += convert_scm_to_json(d.vec->operator[](i),args,format);
-        if(i+1 < n) vec_json += ", ";
-      }
-      return vec_json + ']';
-    // Convert Alist -> Map
-    } else if(d.is_type(types::par)) {
-      scm_string map_json(1,'{');
-      scm_list alist_exp;
-      shallow_unpack_list_into_exp(d,alist_exp);
-      for(size_type i = 0, n = alist_exp.size(); i < n; ++i) {
-        if(!alist_exp[i].is_type(types::par))
-          THROW_ERR("scm->json invalid alist " << PROFILE(d) << " elt"
-            "\n     " << PROFILE(alist_exp[i]) << " can't convert to a map!"
-            << format << FCN_ERR("scm->json", args));
-        scm_list item;
-        shallow_unpack_list_into_exp(alist_exp[i],item);
-        if(item.size() != 2)
-          THROW_ERR("scm->json invalid alist " << PROFILE(d) << " key-value pair"
-            "\n     " << PROFILE(alist_exp[i]) << " can't convert to a map!"
-            << format << FCN_ERR("scm->json", args));
-        if(!item[0].is_type(types::str) && !item[0].is_type(types::num) && 
-           !item[0].is_type(types::bol) && !data_is_the_empty_expression(item[0]))
-          THROW_ERR("scm->json invalid alist " << PROFILE(d) << " key"
-            "\n     " << PROFILE(alist_exp[i]) << " isn't a string|number|null|bool!"
-            << format << FCN_ERR("scm->json", args));
-        convert_scm_to_json_write_map_pair(map_json,item,args,format);
-        if(i+1 < n) map_json += ", ";
-      }
-      return map_json + '}';
-    } else {
-      THROW_ERR("'scm->json invalid scheme datum " << PROFILE(d)
-        << " can't be converted into JSON!" << format << FCN_ERR("scm->json", args));
+    bool datum_is_a_valid_json_map_key(const data& d)noexcept{
+      return d.is_type(types::str) || d.is_type(types::num) || 
+             d.is_type(types::bol) || data_is_the_empty_expression(d);
     }
-  }
+
+
+    scm_string convert_scm_to_json(data& d, const scm_list& args, const char* format) {
+      // Convert Empty List
+      if(data_is_the_empty_expression(d)) {
+        return "null";
+      // Convert Strings
+      } else if(d.is_type(types::str)) {
+        return d.write();
+      // Convert Numbers
+      } else if(d.is_type(types::num)) {
+        // Coerce fractions to flonums
+        if(d.num.is_exact() && !d.num.is_integer())
+          return d.num.to_inexact().str();
+        return d.num.str();
+      // Convert boolean
+      } else if(d.is_type(types::bol)) {
+        if(d.bol.val) return "true";
+        return "false";
+      // Convert Vectors -> Array
+      } else if(d.is_type(types::vec)) {
+        scm_string vec_json(1,'[');
+        for(size_type i = 0, n = d.vec->size(); i < n; ++i) {
+          vec_json += convert_scm_to_json(d.vec->operator[](i),args,format);
+          if(i+1 < n) vec_json += ", ";
+        }
+        return vec_json + ']';
+      // Convert Alist -> Map
+      } else if(d.is_type(types::par)) {
+        scm_string map_json(1,'{');
+        scm_list alist_exp;
+        shallow_unpack_list_into_exp(d,alist_exp);
+        for(size_type i = 0, n = alist_exp.size(); i < n; ++i) {
+          if(!alist_exp[i].is_type(types::par))
+            THROW_ERR("scm->json invalid alist " << PROFILE(d) << " elt"
+              "\n     " << PROFILE(alist_exp[i]) << " can't convert to a map!"
+              << format << FCN_ERR("scm->json", args));
+          scm_list item;
+          shallow_unpack_list_into_exp(alist_exp[i],item);
+          if(item.size() != 2)
+            THROW_ERR("scm->json invalid alist " << PROFILE(d) << " key-value pair"
+              "\n     " << PROFILE(alist_exp[i]) << " can't convert to a map!"
+              << format << FCN_ERR("scm->json", args));
+          if(!datum_is_a_valid_json_map_key(item[0]))
+            THROW_ERR("scm->json invalid alist " << PROFILE(d) << " key"
+              "\n     " << PROFILE(alist_exp[i]) << " isn't a string|number|null|bool!"
+              << format << FCN_ERR("scm->json", args));
+          convert_scm_to_json_write_map_pair(map_json,item,args,format);
+          if(i+1 < n) map_json += ", ";
+        }
+        return map_json + '}';
+      } else {
+        THROW_ERR("'scm->json invalid scheme datum " << PROFILE(d)
+          << " can't be converted into JSON!" << format << FCN_ERR("scm->json", args));
+      }
+    }
+  } // End of namespace heist_json_generator
 } // End of namespace heist
 #endif
