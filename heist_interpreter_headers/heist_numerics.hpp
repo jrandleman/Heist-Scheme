@@ -540,28 +540,38 @@ namespace scm_numeric {
   * MULTIPLICATION AND DIVIDE
   ******************************************************************************/
 
-  // z1 * z2 = (r1*r2)L(theta1 + theta2)
+  // (x+yi)(u+vi) = (xu-yv)+(xv+yu)i
   Snum Snum::operator*(const Snum& s) const noexcept {
     if(is_nan() || s.is_nan()) return Snum_real("+nan.0");
     bool this_is_real = is_real(), s_is_real = s.is_real();
     if(this_is_real && s_is_real) return real * s.real;
     if(this_is_real)              return Snum(real * s.real, real * s.imag);
     if(s_is_real)                 return Snum(real * s.real, imag * s.real);
-    auto new_r = magnitude().real * s.magnitude().real;
-    auto new_theta = angle().real + s.angle().real;
-    return Snum(new_r * new_theta.cos(), new_r * new_theta.sin());
+    return Snum((real*s.real)-(imag*s.imag), (real*s.imag)+(imag*s.real));
+    // // THE BELOW IS AN ALTERNATIVE IMPLEMENTATION, 
+    // // BUT IT DOESN'T PRESERVE EXACTNESS AS WELL AS THE ABOVE
+    // // ------------------------------------------------------
+    // // z1 * z2 = (r1*r2)L(theta1 + theta2)
+    // auto new_r = magnitude().real * s.magnitude().real;
+    // auto new_theta = angle().real + s.angle().real;
+    // return Snum(new_r * new_theta.cos(), new_r * new_theta.sin());
   }
 
 
-  // z1 / z2 = (r1/r2)L(theta1 - theta2)
+  // (a+bi)(c+di) = [(ac+bd)/(c*c+d*d)]+[(bc-ad)/(c*c+d*d)]i
   Snum Snum::operator/(const Snum& s) const noexcept {
     if(is_nan() || s.is_nan()) return Snum_real("+nan.0");
     bool this_is_real = is_real(), s_is_real = s.is_real();
     if(this_is_real && s_is_real) return real / s.real;
     if(s_is_real)                 return Snum(real / s.real, imag / s.real);
-    auto new_r = magnitude().real / s.magnitude().real;
-    auto new_theta = angle().real - s.angle().real;
-    return Snum(new_r * new_theta.cos(), new_r * new_theta.sin());
+    auto denom = (s.real*s.real)+(s.imag*s.imag);
+    return Snum(((real*s.real)+(imag*s.imag))/denom, ((imag*s.real)-(real*s.imag))/denom);
+    // // THE BELOW IS AN ALTERNATIVE IMPLEMENTATION, 
+    // // BUT IT DOESN'T PRESERVE EXACTNESS AS WELL AS THE ABOVE
+    // // ------------------------------------------------------
+    // auto new_r = magnitude().real / s.magnitude().real;
+    // auto new_theta = angle().real - s.angle().real;
+    // return Snum(new_r * new_theta.cos(), new_r * new_theta.sin());
   }
 
   /******************************************************************************
