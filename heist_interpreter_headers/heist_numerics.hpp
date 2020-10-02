@@ -217,10 +217,10 @@ namespace scm_numeric {
     Snum  operator-()const noexcept{return Snum(-real, -imag);}
     Snum  operator- (const Snum& s) const noexcept{return *this + -s;}
     Snum& operator-=(const Snum& s)noexcept{*this = *this - s; return *this;}
-    // z1 * z2 = (r1*r2)L(theta1 + theta2)
+    // (x+yi)(u+vi) = (xu-yv)+(xv+yu)i
     Snum  operator* (const Snum& s) const noexcept;
     Snum& operator*=(const Snum& s)noexcept{*this = *this * s; return *this;}
-    // z1 / z2 = (r1/r2)L(theta1 - theta2)
+    // (a+bi)(c+di) = [(ac+bd)/(c*c+d*d)]+[(bc-ad)/(c*c+d*d)]i
     Snum  operator/ (const Snum& s) const noexcept;
     Snum& operator/=(const Snum& s)noexcept{*this = *this / s; return *this;}
     Snum  operator% (const Snum& s) const noexcept{if(imag.is_zero() && s.imag.is_zero()) return real % s.real; return Snum_real("+nan.0");}
@@ -569,6 +569,7 @@ namespace scm_numeric {
     // // THE BELOW IS AN ALTERNATIVE IMPLEMENTATION, 
     // // BUT IT DOESN'T PRESERVE EXACTNESS AS WELL AS THE ABOVE
     // // ------------------------------------------------------
+    // // z1 / z2 = (r1/r2)L(theta1 - theta2)
     // auto new_r = magnitude().real / s.magnitude().real;
     // auto new_theta = angle().real - s.angle().real;
     // return Snum(new_r * new_theta.cos(), new_r * new_theta.sin());
