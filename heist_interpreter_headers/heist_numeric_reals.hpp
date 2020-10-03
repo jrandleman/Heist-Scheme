@@ -2214,7 +2214,6 @@ namespace scm_numeric {
 
     bool found_decimal=false, found_division=false, found_exponential=false;
     size_type i = 0;
-    if(str[i] == '-' || str[i] == '+') ++i; // mv past sign
 
     while(str[i]) {
       if(str[i] == '/') {
