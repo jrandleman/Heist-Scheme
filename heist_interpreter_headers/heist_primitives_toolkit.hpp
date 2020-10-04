@@ -3167,6 +3167,264 @@ namespace heist {
   }
 
   /******************************************************************************
+  * FORMATTING PRIMITIVE HELPERS
+  ******************************************************************************/
+
+  // SPRINTF TOKEN TYPE
+  struct sprintf_token_t { 
+    enum class token_t {a, wa, s, ws, c, wc, b, wb, n};
+    token_t token = token_t::a;
+    // invariants for more number detail
+    enum class exactness_t {exact, inexact, dflt};
+    exactness_t exactness = exactness_t::dflt;
+    int precision = -1; // -1 denotes 'default'
+    int base      = 10;
+    // ctor
+    sprintf_token_t(token_t t = token_t::a) noexcept : token(t){}
+  };
+
+  using sprintf_tokens_t = std::vector<sprintf_token_t>;
+
+
+  // DIGIT PARSING HELPERS
+  // => PRECONDITION: isdigit(c1)
+  int extract_up_to_2_digits(char c1, char c2, size_type& i)noexcept{
+    int val = 0;
+    if(isdigit(c2)) {
+      val = (10 * (c1-'0')) + (c2-'0');
+      i += 2;
+    } else {
+      val = c1-'0';
+      ++i;
+    }
+    return val;
+  }
+
+  bool is_sprintf_exact(char c)noexcept{
+    return c == 'e' || c == 'E';
+  }
+
+  bool is_sprintf_inexact(char c)noexcept{
+    return c == 'i' || c == 'I';
+  }
+
+  bool is_potential_detailed_number(char c)noexcept{
+    return is_sprintf_exact(c) || is_sprintf_inexact(c) || c == '.' || isdigit(c);
+  }
+
+  bool is_invalid_detailed_number(char c, size_type i, size_type n)noexcept{
+    return ((is_sprintf_exact(c) || is_sprintf_inexact(c) || isdigit(c)) && i+1 == n) || (c == '.' && i+2 == n);
+  }
+
+
+  // ERROR HANDLING MACROS
+  #define throw_invalid_sprintf_token(...)\
+    THROW_ERR('\''<<name<<" invalid token detected: \"" << __VA_ARGS__ << '"'\
+      << format << FCN_ERR(name,args));
+
+  #define throw_invalid_sprintf_precision(...)\
+    THROW_ERR('\''<<name<<" precision: " << __VA_ARGS__\
+      << "\n     -> Must range [1,99]!" << format << FCN_ERR(name,args));
+
+
+  // FORMATTING MAIN HELPERS
+  void parse_sprintf_token_stream(scm_string input, sprintf_tokens_t& tokens, std::vector<scm_string>& split_str, 
+                                  const char* format, const char* name, scm_list& args){
+    size_type i = 0;
+    while(i < input.size()) {
+      if(input[i] == '%' && i+1 < input.size()) {
+        auto next_ch = input[i+1];
+        // parse escaped '%'
+        if(next_ch == '%') {
+          input.erase(++i,1);
+          continue;
+        }
+        // get split-string instance
+        split_str.push_back(input.substr(0,i));
+        // parse formatting
+        if(next_ch == 'a') {
+          tokens.push_back(sprintf_token_t::token_t::a), input = input.substr(i+2), i = 0;
+        } else if(next_ch == 's') {
+          tokens.push_back(sprintf_token_t::token_t::s), input = input.substr(i+2), i = 0;
+        } else if(next_ch == 'c') {
+          tokens.push_back(sprintf_token_t::token_t::c), input = input.substr(i+2), i = 0;
+        } else if(next_ch == 'b') {
+          tokens.push_back(sprintf_token_t::token_t::b), input = input.substr(i+2), i = 0;
+        } else if(next_ch == 'n') {
+          tokens.push_back(sprintf_token_t::token_t::n), input = input.substr(i+2), i = 0;
+        } else if(next_ch == 'w') {
+          if(i+2 == input.size()) throw_invalid_sprintf_token("%w");
+          auto write_ch = input[i+2];
+          if(write_ch == 'a') {
+            tokens.push_back(sprintf_token_t::token_t::wa), input = input.substr(i+3), i = 0;
+          } else if(write_ch == 's') {
+            tokens.push_back(sprintf_token_t::token_t::ws), input = input.substr(i+3), i = 0;
+          } else if(write_ch == 'c') {
+            tokens.push_back(sprintf_token_t::token_t::wc), input = input.substr(i+3), i = 0;
+          } else if(write_ch == 'b') {
+            tokens.push_back(sprintf_token_t::token_t::wb), input = input.substr(i+3), i = 0;
+          } else {
+            char bad_token[4] = {'%','w',write_ch,'\0'};
+            throw_invalid_sprintf_token(bad_token);
+          }
+        // number formatting with exactness/base/precision info
+        } else if(is_potential_detailed_number(next_ch)) {
+          size_type token_start = i++;
+          // confirm minimum # of chars available
+          if(is_invalid_detailed_number(next_ch,i,input.size()))
+            throw_invalid_sprintf_token(input.substr(token_start));
+          // parse exactness
+          sprintf_token_t num_token(sprintf_token_t::token_t::n);
+          if(is_sprintf_exact(input[i]))
+            num_token.exactness = sprintf_token_t::exactness_t::exact, ++i;
+          else if(is_sprintf_inexact(input[i]))
+            num_token.exactness = sprintf_token_t::exactness_t::inexact, ++i;
+          if(input[i] == 'n') {
+            tokens.push_back(num_token), input = input.substr(i+1), i = 0;
+            continue;
+          }
+          // parse base
+          if(isdigit(input[i])) {
+            int base = extract_up_to_2_digits(input[i],input[i+1],i);
+            if(base < 2 || base > 36)
+              THROW_ERR('\''<<name<<" invalid number base: " << base
+                << "\n     -> Must be in range of [2,36]!" << format 
+                << FCN_ERR(name,args));
+            num_token.base = base;
+            if(input[i] == 'n') {
+              tokens.push_back(num_token), input = input.substr(i+1), i = 0;
+              continue;
+            }
+          }
+          // parse precision
+          if(input[i] == '.') {
+            ++i;
+            if(!isdigit(input[i])) 
+              throw_invalid_sprintf_precision(input[i]-'0');
+            int prec = extract_up_to_2_digits(input[i],input[i+1],i);
+            if(prec < 1 || prec > 99) 
+              throw_invalid_sprintf_precision(prec);
+            num_token.precision = prec;
+          }
+          // finalize number parsing
+          if(input[i] != 'n')
+            throw_invalid_sprintf_token(input.substr(token_start,i+(i<input.size())));
+          tokens.push_back(num_token), input = input.substr(i+1), i = 0;
+        } else {
+          char bad_token[3] = {'%',next_ch,'\0'};
+          throw_invalid_sprintf_token(bad_token);
+        }
+      } else {
+        ++i;
+      } 
+    }
+    split_str.push_back(input);
+  }
+
+
+  #undef throw_invalid_sprintf_token
+  #undef throw_invalid_sprintf_precision
+
+  #define THROW_BAD_FORMAT_ARG(type_name)\
+    THROW_ERR('\''<<name<<" arg "<<PROFILE(args[i])<<" isn't a "\
+              type_name " (required by format token)!"\
+              <<format<<FCN_ERR(name,args));
+
+
+  scm_string generated_formatted_string(const scm_string& input, const char* format, const char* name, scm_list& args){
+    sprintf_tokens_t tokens; // extracted token data
+    std::vector<scm_string> split_str; // splits <input> at each token
+    parse_sprintf_token_stream(input, tokens, split_str, format, name, args);
+    if(args.size() != split_str.size())
+      THROW_ERR('\''<<name<<" Element count ("<<args.size()-1<<") doesn't match token count ("<<split_str.size()-1<<")!"
+        << format << FCN_ERR(name,args));
+    if(tokens.size() != split_str.size()-1)
+      THROW_ERR("-:- FATAL INTERPRETER ERROR -:- IMPROPER SPRINTF TOKEN PARSING -:-"
+        "\n     => !!! NUMBER OF TOKENS != TOTAL-SPLIT-STRINGS - 1 !!!"
+        "\n     => Please send your code to jrandleman@scu.edu to fix the interpreter's bug!");
+    scm_string formatted(split_str[0]);
+    for(size_type i = 1, n = split_str.size(); i < n; ++i) {
+      switch(tokens[i-1].token) {
+        case sprintf_token_t::token_t::a:  formatted += args[i].display(); break;
+        case sprintf_token_t::token_t::wa: formatted += args[i].write(); break;
+        case sprintf_token_t::token_t::s:  
+          if(!args[i].is_type(types::str)) THROW_BAD_FORMAT_ARG("string");
+          formatted += args[i].display(); break;
+        case sprintf_token_t::token_t::ws: 
+          if(!args[i].is_type(types::str)) THROW_BAD_FORMAT_ARG("string");
+          formatted += args[i].write(); break;
+        case sprintf_token_t::token_t::c:  
+          if(!args[i].is_type(types::chr)) THROW_BAD_FORMAT_ARG("character");
+          formatted += args[i].display(); break;
+        case sprintf_token_t::token_t::wc: 
+          if(!args[i].is_type(types::chr)) THROW_BAD_FORMAT_ARG("character");
+          formatted += args[i].write(); break;
+        case sprintf_token_t::token_t::b: 
+          if(!args[i].is_type(types::bol)) THROW_BAD_FORMAT_ARG("boolean");
+          formatted += args[i].display(); break;
+        case sprintf_token_t::token_t::wb: 
+          if(!args[i].is_type(types::bol)) THROW_BAD_FORMAT_ARG("boolean");
+          if(args[i].bol.val) formatted += "true";
+          else                formatted += "false"; break;
+        case sprintf_token_t::token_t::n: 
+          if(!args[i].is_type(types::num)) THROW_BAD_FORMAT_ARG("number");
+          num_type num = args[i].num;
+          // alter precision
+          if(tokens[i-1].precision != -1) {
+            if(!num.is_real())
+              THROW_ERR('\''<<name<<" arg number "<<num<<" must be real to change precisions!"
+                << format << FCN_ERR(name,args));
+            num_type::inexact_t prec_factor = std::pow(10.0L,num_type::inexact_t(tokens[i-1].precision));
+            num = std::trunc(num.extract_inexact() * prec_factor) / prec_factor;
+          }
+          // alter exactness
+          if(tokens[i-1].exactness == sprintf_token_t::exactness_t::exact)
+            num = num.to_exact();
+          else if(tokens[i-1].exactness == sprintf_token_t::exactness_t::inexact)
+            num = num.to_inexact();
+          // alter base
+          if(tokens[i-1].base != 10) formatted += num.str(tokens[i-1].base);
+          else                       formatted += num.str();
+      }
+      formatted += split_str[i];
+    }
+    return formatted;
+  }
+
+
+  #undef THROW_BAD_FORMAT_ARG
+
+
+  // DISPLAYF, WRITEF, PPRINTF VALIDATION
+  template<prm_type OUTPUT_FCN>
+  data generic_formatted_output_prm(scm_list& args, const char* format, const char* name) {
+    if(args.empty())
+      THROW_ERR('\''<<name<<" no args recieved!" << format << FCN_ERR(name,args));
+    if((!args[0].is_type(types::fop) || !args[0].fop.is_open()) && !args[0].is_type(types::str))
+      THROW_ERR('\''<<name<<" 1st arg "<<PROFILE(args[0])<<" isn't an open output port or string!" 
+        << format << FCN_ERR(name,args));
+    if(!args[0].is_type(types::str)) {
+      if(args.size() < 2)
+        THROW_ERR('\''<<name<<" not enough args (only recieved an open output port)!" 
+          << format << FCN_ERR(name,args));
+      if(!args[1].is_type(types::str))
+        THROW_ERR('\''<<name<<" 2nd arg "<<PROFILE(args[1])<<" isn't a string!" 
+          << format << FCN_ERR(name,args));
+    }
+    // no port
+    if(args[0].is_type(types::str)){
+      scm_list output_arg(1,make_str(generated_formatted_string(*args[0].str,format,name,args)));
+      return OUTPUT_FCN(output_arg);
+    }
+    // port
+    scm_list output_arg(2);
+    output_arg[1] = args[0];
+    args.erase(args.begin()); // rm port prior parsing formatted string
+    output_arg[0] = make_str(generated_formatted_string(*args[0].str,format,name,args));
+    return OUTPUT_FCN(output_arg);
+  }
+
+  /******************************************************************************
   * INPUT PRIMITIVE HELPERS
   ******************************************************************************/
 

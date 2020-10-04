@@ -4045,6 +4045,102 @@ namespace heist {
   }
 
   /******************************************************************************
+  * FORMATTING PRIMITIVES
+  ******************************************************************************/
+
+  // FORMATTING OPTIONS
+  // --------
+  // %a = display anything
+  // %wa = write anything
+  // --------
+  // %n = write number
+  // %En = %en = to-exact number ; same as "%n" (inexact->exact <number>)
+  // %In = %in = to-inexact number ; same as "%n" (exact->inexact <number>)
+  // %.#n = to-exact number ; same as "%n" (number->string <number> 10 <#>)
+  // %#n = number in base # [throws an error if <#> !in-range of [2,36]]
+  //       -> "%e2.5n" -> convert to point 5 precision, then make exact binary
+  // --------
+  // %s = display string
+  // %ws = write string
+  // --------
+  // %c = display char
+  // %wc = write char
+  // --------
+  // %b  = bool
+  // %wb = write "true" or "false" instead of "#t" or "#f"
+  // --------
+  // %%  = "%" (ie "%%c" prints "%c" (ie doesn't seek to replace %c with a character))
+
+  #define sprintf_formatting_token_format\
+    "\n     => <formatted-string> is like C's printf with unique formatting patterns:"\
+    "\n        ----------------------------------------------------------------------"\
+    "\n        %a = display anything"\
+    "\n        %wa = write anything"\
+    "\n        ----------------------------------------------------------------------"\
+    "\n        %n = number"\
+    "\n        %En = %en = number (coerced to exact)"\
+    "\n        %In = %in = number (coerced to inexact)"\
+    "\n        %.#n = number (with <#> digits of precision)"\
+    "\n        %#n = number (in base <#>)"\
+    "\n        -> IE: \"%e2.5n\": use 5 digits of precision & mk exact binary"\
+    "\n        ----------------------------------------------------------------------"\
+    "\n        %s = display string"\
+    "\n        %ws = write string"\
+    "\n        ----------------------------------------------------------------------"\
+    "\n        %c = display char"\
+    "\n        %wc = write char"\
+    "\n        ----------------------------------------------------------------------"\
+    "\n        %b  = bool"\
+    "\n        %wb = write \"true\" or \"false\" instead of \"#t\" or \"#f\""\
+    "\n        ----------------------------------------------------------------------"\
+    "\n        %%  = \"%\" (escapes a \"%\")"\
+    "\n        ----------------------------------------------------------------------"
+
+
+  // primitive "sprintf":
+  // -> Parse token stream
+  // -> Confirm token stream matches args
+  // -> Splice in formatted args and return as a new string
+  data primitive_SPRINTF(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (sprintf <formatted-string> <optional-arg1> <optional-arg2> ...)"
+      sprintf_formatting_token_format;
+    if(args.empty())
+      THROW_ERR("'sprintf no args recieved!" << format << FCN_ERR("sprintf",args));
+    if(!args[0].is_type(types::str))
+      THROW_ERR("'sprintf 1st arg "<<PROFILE(args[0])<<" isn't a string!" 
+        << format << FCN_ERR("sprintf",args));
+    return make_str(generated_formatted_string(*args[0].str,format,"sprintf",args));
+  }
+
+  // primitive "displayf":
+  data primitive_DISPLAYF(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (displayf <optional-output-port> <formatted-string> <optional-arg1> ...)"
+      sprintf_formatting_token_format;
+    return generic_formatted_output_prm<primitive_DISPLAY>(args,format,"displayf");
+  }
+
+  // primitive "writef":
+  data primitive_WRITEF(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (writef <optional-output-port> <formatted-string> <optional-arg1> ...)"
+      sprintf_formatting_token_format;
+    return generic_formatted_output_prm<primitive_WRITE>(args,format,"writef");
+  }
+
+  // primitive "pprintf" & "pretty-printf":
+  data primitive_PPRINTF(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (pprintf <optional-output-port> <formatted-string> <optional-arg1> ...)"
+      sprintf_formatting_token_format;
+    return generic_formatted_output_prm<primitive_PPRINT>(args,format,"pprintf");
+  }
+
+
+  #undef sprintf_formatting_token_format
+
+  /******************************************************************************
   * INPUT PRIMITIVES
   ******************************************************************************/
 
@@ -5747,6 +5843,12 @@ namespace heist {
     std::make_pair(primitive_DISPLAY,    "display"),
     std::make_pair(primitive_NEWLINE,    "newline"),
     std::make_pair(primitive_WRITE_CHAR, "write-char"),
+
+    std::make_pair(primitive_SPRINTF,  "sprintf"),
+    std::make_pair(primitive_DISPLAYF, "displayf"),
+    std::make_pair(primitive_WRITEF,   "writef"),
+    std::make_pair(primitive_PPRINTF,  "pprintf"),
+    std::make_pair(primitive_PPRINTF,  "pretty-printf"),
 
     std::make_pair(primitive_READ,        "read"),
     std::make_pair(primitive_READ_STRING, "read-string"),

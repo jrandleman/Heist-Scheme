@@ -109,6 +109,7 @@
    - [Delay Predicate & Force](#Delay-Predicate--Force)
    - [Type Coercion](#Type-Coercion)
    - [Output Procedures](#Output-Procedures)
+   - [Formatted Output Procedures](#Formatted-Output-Procedures)
    - [Input Procedures](#Input-Procedures)
    - [File & Port Procedures](#File--Port-Procedures)
    - [System Interface Procedures](#System-Interface-Procedures)
@@ -1898,6 +1899,50 @@ Other primitives of this nature include:<br>
 3. __Newline__: `(newline <optional-open-output-port-or-string>)`
 
 4. __Write-Char__: `(write-char <char> <optional-open-output-port-or-string>)`
+
+
+
+------------------------
+## Formatted Output Procedures:
+0. __Sprintf__: 
+   * `(sprintf <formatted-string> <optional-arg1> <optional-arg2> ...)`
+
+1. __Formatted-Display__: 
+   * `(displayf <optional-output-port> <formatted-string> <optional-arg1> ...)`
+
+2. __Formatted-Write__: 
+   * `(writef <optional-output-port> <formatted-string> <optional-arg1> ...)`
+
+3. __Formatted-Pretty-Print__: 
+   * `(pprintf <optional-output-port> <formatted-string> <optional-arg1> ...)`
+   * `(pretty-printf <optional-output-port> <formatted-string> <optional-arg1> ...)`
+
+### Formatting Guidelines:
+```
+=> <formatted-string> is like C's printf with unique formatting patterns:
+   ----------------------------------------------------------------------
+   %a = display anything
+   %wa = write anything
+   ----------------------------------------------------------------------
+   %n = number
+   %En = %en = number (coerced to exact)
+   %In = %in = number (coerced to inexact)
+   %.#n = number (with <#> digits of precision)
+   %#n = number (in base <#>)
+   -> IE: "%e2.5n": use 5 digits of precision & mk exact binary
+   ----------------------------------------------------------------------
+   %s = display string
+   %ws = write string
+   ----------------------------------------------------------------------
+   %c = display char
+   %wc = write char
+   ----------------------------------------------------------------------
+   %b  = bool
+   %wb = write "true" or "false" instead of "#t" or "#f"
+   ----------------------------------------------------------------------
+   %%  = "%" (escapes a "%")
+   ---------------------------------------------------------------------
+```
 
 
 
