@@ -1906,6 +1906,7 @@ Other primitives of this nature include:<br>
 ## Formatted Output Procedures:
 0. __Sprintf__: 
    * `(sprintf <formatted-string> <optional-arg1> <optional-arg2> ...)`
+   * Returns a new, formatted string!
 
 1. __Formatted-Display__: 
    * `(displayf <optional-output-port> <formatted-string> <optional-arg1> ...)`
