@@ -815,25 +815,6 @@ namespace heist {
   }
 
 
-  void confirm_proper_string_split_args(scm_list& args, scm_string& delimiter){
-    static constexpr const char * const format = 
-      "\n     (string-split <string-list> <optional-string-delimiter>)";
-    // confirm proper arg signature
-    if(args.empty() || args.size() > 2) 
-      THROW_ERR("'string-split recieved incorrect # of args (given " 
-        << args.size() << "):" << format << FCN_ERR("string-split", args));
-    if(!args[0].is_type(types::str))
-      THROW_ERR("'string-split 1st arg "<<PROFILE(args[0])<<" isn't a string:"
-        << format << FCN_ERR("string-split",args));
-    if(args.size() > 1) { // confirm proper delimiter
-      if(!args[1].is_type(types::str))
-        THROW_ERR("'string-split 2nd arg "<<PROFILE(args[1])<<" isn't a string:" 
-          << format << FCN_ERR("string-split", args));
-      delimiter = *args[1].str;
-    }
-  }
-
-
   data primitive_STRING_UNFOLD_template(scm_list& args, const bool& unfolding_right, 
                                               const char* name, const char* format){
     scm_list unfolded;
@@ -4525,5 +4506,43 @@ namespace heist {
     }
   }
 
+
+  void confirm_proper_string_split_args(scm_list& args,const char* name,const char* format,scm_string& delimiter){
+    // confirm proper arg signature
+    if(args.empty() || args.size() > 2) 
+      THROW_ERR('\''<<name<<" recieved incorrect # of args (given " 
+        << args.size() << "):" << format << FCN_ERR(name, args));
+    if(!args[0].is_type(types::str))
+      THROW_ERR('\''<<name<<" 1st arg "<<PROFILE(args[0])<<" isn't a string:"
+        << format << FCN_ERR(name, args));
+    if(args.size() > 1) { // confirm proper delimiter
+      if(!args[1].is_type(types::str))
+        THROW_ERR('\''<<name<<" 2nd arg "<<PROFILE(args[1])<<" isn't a string:" 
+          << format << FCN_ERR(name, args));
+      delimiter = *args[1].str;
+    }
+  }
+
+
+  data regex_split_empty_string(const scm_string& target) {
+    scm_list split;
+    for(const auto& ch : target)
+      split.push_back(make_str(scm_string(1,ch)));
+    return primitive_LIST_to_CONS_constructor(split.begin(),split.end());
+  }
+
+
+  data regex_split(scm_string target, const scm_string& regex){
+    if(regex.empty()) return regex_split_empty_string(target);
+    const std::regex reg(regex);
+    std::smatch reg_matches;
+    scm_list split;
+    while(std::regex_search(target, reg_matches, reg)) {
+      split.push_back(make_str(reg_matches.prefix().str()));
+      target = reg_matches.suffix().str();
+    }
+    split.push_back(make_str(target));
+    return primitive_LIST_to_CONS_constructor(split.begin(),split.end());
+  }
 } // End of namespace heist
 #endif

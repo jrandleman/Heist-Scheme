@@ -1013,9 +1013,11 @@ namespace heist {
 
   // primitive "string-split" procedure:
   data primitive_STRING_SPLIT(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (string-split <target-string> <optional-string-delimiter>)";
     scm_string delimiter("");
     scm_list strings_list;
-    confirm_proper_string_split_args(args,delimiter);
+    confirm_proper_string_split_args(args,"string-split",format,delimiter);
     // split the string into a list of strings
     const scm_string str(*args[0].str);
     const size_type delim_size = delimiter.size();
@@ -4973,6 +4975,21 @@ namespace heist {
     }
   }
 
+
+  // primitive "regex-split" procedure:
+  data primitive_REGEX_SPLIT(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (regex-split <target-string> <optional-regex-string>)";
+    scm_string delimiter("");
+    confirm_proper_string_split_args(args,"regex-split",format,delimiter);
+    // split the string into a list of strings
+    try {
+      return regex_split(*args[0].str,delimiter);
+    } catch(...) {
+      return throw_malformed_regex(args,format,"regex-split");
+    }
+  }
+
   /******************************************************************************
   * MATHEMATICAL CONSTANTS
   ******************************************************************************/
@@ -5799,6 +5816,7 @@ namespace heist {
     std::make_pair(primitive_REGEX_REPLACE,     "regex-replace"),
     std::make_pair(primitive_REGEX_REPLACE_ALL, "regex-replace-all"),
     std::make_pair(primitive_REGEX_MATCH,       "regex-match"),
+    std::make_pair(primitive_REGEX_SPLIT,       "regex-split"),
   };
 
   frame_vals primitive_procedure_objects()noexcept{

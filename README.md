@@ -1466,6 +1466,7 @@ Other primitives of this nature include:<br>
 
 9. __Replacement__: Replace `<string1>` between indices `<start1>` & `<end1>` with `<string2>`
    * `(string-replace <string1> <string2> <start1> <end1>)`
+   * _See [`regex-replace`](#Regex) & [`regex-replace-all`](#Regex) for a regex-based alternative!_
 
 10. __String Contains Substring__: Get index of 1st instance
     * `(string-contains <string> <sub-string>)`
@@ -1480,6 +1481,8 @@ Other primitives of this nature include:<br>
 13. __Split String Into a List of Substrings__:
     * `<string-delimiter>` defaults to `""`
     * `(string-split <string-list> <optional-string-delimiter>)`
+    * Enables splitting with delimiters using regex-significant chars more easily!
+      - _See [`regex-split`](#Regex) for a regex-based alternative!_
 
 14. __Swap String Pointers__: `(string-swap! <string1> <string2>)`
 
@@ -1488,7 +1491,7 @@ Other primitives of this nature include:<br>
 16. __Confirm String is Empty__: `(string-empty? <string>)`
 
 17. __Copy String__: Copy `<source-string>` to `<target-string>` from `<target-start-idx>`
-  * `(string-copy! <target-string> <target-start-idx> <source-string>)`
+    * `(string-copy! <target-string> <target-start-idx> <source-string>)`
 
 
 ### String Predicates:
@@ -1508,21 +1511,25 @@ Other primitives of this nature include:<br>
 
 
 ### Regex:
-0. __Regex Replace 1st Instance__: 
+0. __Replace 1st Regex Instance__: 
    * `(regex-replace <target-string> <regex-string> <replacement-string>)`
    * `(regex-replace <target-string> <regex-string> <procedure>)`
      - `<procedure> ::= (lambda (<prefix>, <suffix>, <match1>, ...) <body>)`
      - `<procedure>` _must_ return a string to replace the match!
 
-1. __Regex Replace All Instances__: 
+1. __Replace All Regex Instances__: 
    * `(regex-replace-all <target-string> <regex-string> <replacement-string>)`
    * `(regex-replace-all <target-string> <regex-string> <procedure>)`
      - `<procedure> ::= (lambda (<prefix>, <suffix>, <match1>, ...) <body>)`
      - `<procedure>` _must_ return a string to replace the match!
 
-2. __Regex Get Alist of All Matches__: `(regex-match <target-string> <regex-string>)`
+2. __Get Alist of All Regex Matches__: `(regex-match <target-string> <regex-string>)`
    * Returned alist's sublists have the position & match substring instance!
    * If `<regex-string>` has multiple substrings per match, becomes a 2nd order alist!
+
+3. __Regex Split String Into a List of Substrings__:
+   * `<regex-string>` defaults to `""` to split into char-strings
+   * `(regex-split <string-list> <optional-regex-string>)`
 
 
 
