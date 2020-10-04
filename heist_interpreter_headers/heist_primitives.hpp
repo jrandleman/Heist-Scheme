@@ -4082,7 +4082,7 @@ namespace heist {
     "\n        %In = %in = number (coerced to inexact)"\
     "\n        %.#n = number (with <#> digits of precision)"\
     "\n        %#n = number (in base <#>)"\
-    "\n        -> IE: \"%e2.5n\": use 5 digits of precision & mk exact binary"\
+    "\n        -> IE: \"%e2.5n\": use 5 digits of precision & mk exact in binary"\
     "\n        ----------------------------------------------------------------------"\
     "\n        %s = display string"\
     "\n        %ws = write string"\

@@ -1929,7 +1929,7 @@ Other primitives of this nature include:<br>
    %In = %in = number (coerced to inexact)
    %.#n = number (with <#> digits of precision)
    %#n = number (in base <#>)
-   -> IE: "%e2.5n": use 5 digits of precision & mk exact binary
+   -> IE: "%e2.5n": use 5 digits of precision & mk exact in binary
    ----------------------------------------------------------------------
    %s = display string
    %ws = write string
