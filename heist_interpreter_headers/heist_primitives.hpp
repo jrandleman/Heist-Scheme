@@ -3974,7 +3974,6 @@ namespace heist {
         return make_str(*args[1].str + args[0].pprint());
       }
     }
-    G::LAST_PRINTED_TO_STDOUT = (outs == stdout && is_port);
     return G::VOID_DATA_OBJECT;
   }
 
@@ -3990,7 +3989,6 @@ namespace heist {
         return make_str(*args[1].str + args[0].write());
       }
     }
-    G::LAST_PRINTED_TO_STDOUT = (outs == stdout && is_port);
     return G::VOID_DATA_OBJECT;
   }
 
@@ -4001,7 +3999,6 @@ namespace heist {
     if(is_port) {
       fputc('\n', outs);
       fflush(outs);
-      G::LAST_PRINTED_NEWLINE_TO_STDOUT = G::LAST_PRINTED_TO_STDOUT = (outs == stdout);
     } else {
       return make_str(*args[0].str + '\n');
     }
@@ -4029,7 +4026,6 @@ namespace heist {
     if(is_port) {
       fputc(args[0].chr, outs);
       fflush(outs);
-      G::LAST_PRINTED_TO_STDOUT = (outs == stdout);
     } else {
       return make_str(*args[1].str + char(args[0].chr));
     }
@@ -4924,6 +4920,56 @@ namespace heist {
   }
 
   /******************************************************************************
+  * REGEX PRIMITIVES
+  ******************************************************************************/
+
+  // primitive "regex-replace": replaces 1st instance w/ a string or using the given procedure
+  // (regex-replace <target-string> <regex-string> <replacement-string>)
+  // (regex-replace <target-string> <regex-string> <procedure>)
+  //   => <procedure> ::= (lambda (<prefix>, <suffix>, <match1>, ...) <body>)
+  data primitive_REGEX_REPLACE(scm_list& args) {
+    auto env = args.rbegin()->env;
+    args.pop_back();
+    static constexpr const char * const format = 
+      "\n     (regex-replace <target-string> <regex-string> <replacement-string>)"
+      "\n     (regex-replace <target-string> <regex-string> <procedure>)"
+      "\n     -> <procedure> ::= (lambda (<prefix>, <suffix>, <match1>, ...) <body>)";
+    confirm_n_args_and_first_2_args_are_strings(args,3,format,"regex-replace");
+    return regex_primitive_replace_application(args,format,"regex-replace",env,regex_replace,regex_replace_fcn);
+  }
+
+
+  // primitive "regex-replace-all": replaces all instances w/ a string or using the given procedure
+  // (regex-replace <target-string> <regex-string> <replacement-string>)
+  // (regex-replace <target-string> <regex-string> <procedure>)
+  //   => <procedure> ::= (lambda (<prefix>, <suffix>, <match1>, ...) <body>)
+  data primitive_REGEX_REPLACE_ALL(scm_list& args) {
+    auto env = args.rbegin()->env;
+    args.pop_back();
+    static constexpr const char * const format = 
+      "\n     (regex-replace-all <target-string> <regex-string> <replacement-string>)"
+      "\n     (regex-replace-all <target-string> <regex-string> <procedure>)"
+      "\n     -> <procedure> ::= (lambda (<prefix>, <suffix>, <match1>, ...) <body>)";
+    confirm_n_args_and_first_2_args_are_strings(args,3,format,"regex-replace-all");
+    return regex_primitive_replace_application(args,format,"regex-replace-all",env,regex_replace_all,regex_replace_all_fcn);
+  }
+
+
+  // primitive "regex-match"
+  // => returns an alist of the matched substrings
+  //    -> each sublist begins with the position, followed by all match
+  data primitive_REGEX_MATCH(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (regex-match <target-string> <regex-string>)";
+    confirm_n_args_and_first_2_args_are_strings(args,2,format,"regex-match");
+    try {
+      return get_regex_matches(*args[0].str,*args[1].str);
+    } catch(...) {
+      return throw_malformed_regex(args,format,"regex-match");
+    }
+  }
+
+  /******************************************************************************
   * MATHEMATICAL CONSTANTS
   ******************************************************************************/
 
@@ -5287,6 +5333,7 @@ namespace heist {
     primitive_CPS_EVAL,              primitive_CPS_LOAD, 
     primitive_EXPAND,                primitive_TRACE, 
     primitive_RUNTIME_SYNTAXP,       primitive_SET_RUNTIME_SYNTAX_BANG, 
+    primitive_REGEX_REPLACE,         primitive_REGEX_REPLACE_ALL, 
   };
 
 #ifndef HEIST_CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
@@ -5744,6 +5791,10 @@ namespace heist {
 
     std::make_pair(primitive_JSON_TO_SCM, "json->scm"),
     std::make_pair(primitive_SCM_TO_JSON, "scm->json"),
+
+    std::make_pair(primitive_REGEX_REPLACE,     "regex-replace"),
+    std::make_pair(primitive_REGEX_REPLACE_ALL, "regex-replace-all"),
+    std::make_pair(primitive_REGEX_MATCH,       "regex-match"),
   };
 
   frame_vals primitive_procedure_objects()noexcept{

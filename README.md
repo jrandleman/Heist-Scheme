@@ -93,6 +93,7 @@
    - [String Procedures](#String-Procedures)
      * [General](#General-2)
      * [String Predicates](#String-Predicates)
+     * [Regex](#Regex)
    - [List/Pair Procedures](#ListPair-Procedures)
      * [Accessors](#Accessors)
      * [List Constructors](#List-Constructors)
@@ -1504,6 +1505,24 @@ Other primitives of this nature include:<br>
    * `(string-ci>? <string1> <string2> ...)`
    * `(string-ci<=? <string1> <string2> ...)`
    * `(string-ci>=? <string1> <string2> ...)`
+
+
+### Regex:
+0. __Regex Replace 1st Instance__: 
+   * `(regex-replace <target-string> <regex-string> <replacement-string>)`
+   * `(regex-replace <target-string> <regex-string> <procedure>)`
+     - `<procedure> ::= (lambda (<prefix>, <suffix>, <match1>, ...) <body>)`
+     - `<procedure>` _must_ return a string to replace the match!
+
+1. __Regex Replace All Instances__: 
+   * `(regex-replace-all <target-string> <regex-string> <replacement-string>)`
+   * `(regex-replace-all <target-string> <regex-string> <procedure>)`
+     - `<procedure> ::= (lambda (<prefix>, <suffix>, <match1>, ...) <body>)`
+     - `<procedure>` _must_ return a string to replace the match!
+
+2. __Regex Get Alist of All Matches__: `(regex-match <target-string> <regex-string>)`
+   * Returned alist's sublists have the position & match substring instances!
+   * If `<regex-string>` has multiple substrings per match, becomes a 2nd order alist!
 
 
 

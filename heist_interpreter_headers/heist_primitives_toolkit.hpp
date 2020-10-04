@@ -4,6 +4,8 @@
 #ifndef HEIST_PRIMITIVES_TOOLKIT_HPP_
 #define HEIST_PRIMITIVES_TOOLKIT_HPP_
 
+#include <regex>
+
 /******************************************************************************
 * PRIMITIVE HELPER ENUMERATIONS & FUNCTION PROTOTYPES
 ******************************************************************************/
@@ -50,6 +52,7 @@ namespace heist {
   bool        data_is_the_empty_expression(const data& d)noexcept;
   void        shallow_unpack_list_into_exp(data& curr_pair, scm_list& args_list)noexcept;
   void        primitive_UNFOLD_template(scm_list&,scm_list&,const char*,const char* format);
+  frame_var   procedure_name(const scm_list& p)noexcept;
   scm_string  escape_chars(const scm_string& str)noexcept;
   scm_string  unescape_chars(const scm_string& str)noexcept;
   num_type    primitive_guarenteed_list_length(const data& d)noexcept;
@@ -3166,19 +3169,14 @@ namespace heist {
   data primitive_display_port_logic(const data& obj, FILE*& outs)noexcept{
     if(obj.is_type(types::chr)) {
       fputc(obj.chr, outs);
-      if(obj.chr == '\n') // account for printing a newline
-        G::LAST_PRINTED_NEWLINE_TO_STDOUT = (outs == stdout);
     } else if(obj.is_type(types::str)) {
       if(!obj.str->empty()) {
         fputs(obj.str->c_str(), outs);
-        if(*obj.str->rbegin() == '\n') // account for printed newlines
-          G::LAST_PRINTED_NEWLINE_TO_STDOUT = (outs == stdout);  
       }
     } else if(!obj.is_type(types::dne)) {
       fputs(obj.display().c_str(), outs);
     }
     fflush(outs);
-    G::LAST_PRINTED_TO_STDOUT = (outs == stdout);
     return G::VOID_DATA_OBJECT;
   }
 
@@ -4403,5 +4401,124 @@ namespace heist {
       }
     }
   } // End of namespace heist_json_generator
+
+  /******************************************************************************
+  * REGEX PRIMITIVE HELPER FUNCTIONS
+  ******************************************************************************/
+
+  void confirm_n_args_and_first_2_args_are_strings(const scm_list& args, const size_type& total_args, 
+                                                   const char* format, const char* name) {
+    if(args.size() != total_args)
+      THROW_ERR('\''<<name<<" didn't receive "<<total_args<<" args!"
+        << format << FCN_ERR(name, args));
+    if(!args[0].is_type(types::str))
+      THROW_ERR('\''<<name<<" 1st arg "<<PROFILE(args[0])<<" isn't a string!"
+        << format << FCN_ERR(name, args));
+    if(!args[1].is_type(types::str))
+      THROW_ERR('\''<<name<<" 2nd arg "<<PROFILE(args[1])<<" isn't a string!"
+        << format << FCN_ERR(name, args));
+  }
+
+
+  data throw_malformed_regex(const scm_list& args, const char* format, const char* name) {
+    THROW_ERR('\''<<name<<" malformed regex string " << args[1].write() << '!'
+      << format << FCN_ERR(name, args));
+    return data(); // never triggered, due to the above throw
+  }
+
+
+  data get_regex_matches(const scm_string& str, const scm_string& regex) {
+    std::regex reg(regex);
+    std::sregex_iterator currentMatch(str.begin(), str.end(), reg), lastMatch;
+    scm_list matches;
+    while(currentMatch != lastMatch) { // <lastMatch> implicit assignment as an iterator to ".end()"
+      scm_list match_instance;
+      if(currentMatch->size() == 1) { // alist (1 substring per regex match)
+        match_instance.push_back(num_type(currentMatch->position()));
+        match_instance.push_back(make_str(currentMatch->str()));
+        matches.push_back(primitive_LIST_to_CONS_constructor(match_instance.begin(),match_instance.end()));
+      } else { // 2nd order alist (more than 1 substring per regex match)
+        for(size_type i = 0, n = currentMatch->size(); i < n; ++i) {
+          scm_list submatch_instance(2);
+          submatch_instance[0] = num_type(currentMatch->position(i));
+          submatch_instance[1] = make_str(currentMatch->str(i));
+          match_instance.push_back(primitive_LIST_to_CONS_constructor(submatch_instance.begin(),submatch_instance.end()));
+        }
+        matches.push_back(primitive_LIST_to_CONS_constructor(match_instance.begin(),match_instance.end()));
+      }
+      ++currentMatch;
+    }
+    return primitive_LIST_to_CONS_constructor(matches.begin(),matches.end());
+  }
+
+
+  data regex_replace(const scm_string& target, const scm_string& regex, const scm_string& replacement){
+    std::smatch reg_matches;
+    while(std::regex_search(target, reg_matches, std::regex(regex)))
+      return reg_matches.prefix().str() + replacement + reg_matches.suffix().str();
+    return make_str(target);
+  }
+
+
+  data regex_replace_all(const scm_string& target, const scm_string& regex, const scm_string& replacement){
+    return make_str(scm_string(std::regex_replace(target, std::regex(regex), replacement)));
+  }
+
+
+  template<bool REPLACE_ONE>
+  data regex_replace_fcn_generic(scm_string target, const scm_string& regex, 
+                                 const scm_list& args,const char* format, const char* name,
+                                 scm_list& procedure, env_type& env){
+    const std::regex reg(regex);
+    std::smatch reg_matches;
+    while(std::regex_search(target, reg_matches, reg)) {
+      // save prefix, suffix, and matches
+      scm_list reg_args;
+      reg_args.push_back(make_str(reg_matches.prefix().str()));
+      reg_args.push_back(make_str(reg_matches.suffix().str()));
+      for(std::size_t i = 0, n = reg_matches.size(); i < n; ++i)
+        reg_args.push_back(make_str(reg_matches.str(i)));
+      // pass to given procedure & confirm returned a string
+      data result = data_cast(execute_application(procedure,reg_args,env));
+      if(!result.is_type(types::str))
+        THROW_ERR('\''<<name<<" procedure \""<<procedure_name(procedure).substr(1) // skip prefixing ' '
+          <<"\" didn't return a string (returned "<<PROFILE(result)<<")!"<<format<<FCN_ERR(name,args));
+      // replace as often as needed
+      if constexpr (REPLACE_ONE) {
+        return make_str(scm_string(reg_matches.prefix().str() + *result.str + reg_matches.suffix().str()));
+      } else {
+        target = reg_matches.prefix().str() + *result.str + reg_matches.suffix().str();
+      }
+    }
+    return make_str(scm_string(target));
+  }
+
+  auto regex_replace_all_fcn = regex_replace_fcn_generic<false>;
+  auto regex_replace_fcn     = regex_replace_fcn_generic<true>;
+
+
+  // dipatch for "regex-replace" & "regex-replace-all"
+  data regex_primitive_replace_application(scm_list& args, const char* format, const char* name, env_type& env, 
+                                           decltype(regex_replace) str_replace, decltype(regex_replace_fcn) fcn_replace){
+    if(args[2].is_type(types::str)) {
+      try {
+        return str_replace(*args[0].str,*args[1].str,*args[2].str);
+      } catch(...) {
+        return throw_malformed_regex(args,format,name);
+      }
+    } else if(primitive_data_is_a_procedure(args[2])) {
+      try {
+        return fcn_replace(*args[0].str,*args[1].str,args,format,name,args[2].exp,env);
+      } catch(const SCM_EXCEPT& err) {
+        throw err; // thrown by the procedure
+      } catch(...) {
+        return throw_malformed_regex(args,format,name);
+      }
+    } else {
+      THROW_ERR('\''<<name<<" last arg "<<PROFILE(args[2])<<" isn't a <string> or <procedure>!"
+        << format << FCN_ERR(name,args));
+    }
+  }
+
 } // End of namespace heist
 #endif

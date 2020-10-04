@@ -16,7 +16,7 @@
  *             -> faster compile-time than -O3, smaller binary, & close runtime
  *
  * ON COMPILE TIME:
- *   0. Full -O3 compilation takes about 40s. Be patient. Compilation
+ *   0. Full -O3 compilation takes about 45s. Be patient. Compilation
  *      time has been traded for FAST runtime.
  *   1. -Os compilation takes about 30s. Generated binary is smaller than
  *      -O3's (as expected) & its runtime is nearly as fast
@@ -4325,13 +4325,11 @@ namespace heist {
 #ifndef HEIST_CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
 #ifndef HEIST_INTERPRETING_COMPILED_AST // @ONLY-INTERPRETER
 void print_repl_newline(const bool& printed_data)noexcept{ // after printing data
-  if(!heist::G::LAST_PRINTED_NEWLINE_TO_STDOUT&&(printed_data||heist::G::LAST_PRINTED_TO_STDOUT))
-    putchar('\n');
-  heist::G::LAST_PRINTED_NEWLINE_TO_STDOUT = heist::G::LAST_PRINTED_TO_STDOUT = false;
+  if(printed_data) putchar('\n');
 }
 
 void print_repl_newline()noexcept{ // after printing an error
-  putchar('\n'), heist::G::LAST_PRINTED_NEWLINE_TO_STDOUT=heist::G::LAST_PRINTED_TO_STDOUT=false;
+  putchar('\n');
 }
 
 void account_for_whether_printed_data(const heist::scm_list& val,bool& printed_data)noexcept{
