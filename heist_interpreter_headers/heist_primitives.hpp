@@ -377,6 +377,12 @@ namespace heist {
     return data(boolean(args[0].num.is_integer()));
   }
 
+  // primitive "bigint?" procedure
+  data primitive_BIGINTP(scm_list& args) {
+    confirm_unary_numeric(args, "bigint?", "(bigint? <num>)");
+    return data(boolean(args[0].num.is_integer() && args[0].num.is_exact()));
+  }
+
   // primitive "numerator" procedure
   data primitive_NUMERATOR(scm_list& args) {
     confirm_unary_real_numeric(args, "numerator", "(numerator <real>)");
@@ -5428,6 +5434,7 @@ namespace heist {
     std::make_pair(primitive_EXACTP,                  "exact?"),
     std::make_pair(primitive_INEXACTP,                "inexact?"),
     std::make_pair(primitive_INTEGERP,                "integer?"),
+    std::make_pair(primitive_BIGINTP,                 "bigint?"),
     std::make_pair(primitive_NUMERATOR,               "numerator"),
     std::make_pair(primitive_DENOMINATOR,             "denominator"),
     std::make_pair(primitive_MAKE_LOG_BASE,           "make-log-base"),

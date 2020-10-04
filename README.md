@@ -1326,6 +1326,9 @@ Other primitives of this nature include:<br>
 
 10. __Integer Predicate__: `(integer? <number>)`
 
+11. __Big-Integer Predicate__: `(bigint? <number>)`
+    * Equivalent to `(and (integer? <number>) (exact? <number>))`
+
 
 ### Numeric Rounding:
 0. __Round Number Up to Nearest Integer__: `(ceiling <real>)`
