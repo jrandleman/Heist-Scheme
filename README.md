@@ -1521,7 +1521,7 @@ Other primitives of this nature include:<br>
      - `<procedure>` _must_ return a string to replace the match!
 
 2. __Regex Get Alist of All Matches__: `(regex-match <target-string> <regex-string>)`
-   * Returned alist's sublists have the position & match substring instances!
+   * Returned alist's sublists have the position & match substring instance!
    * If `<regex-string>` has multiple substrings per match, becomes a 2nd order alist!
 
 
