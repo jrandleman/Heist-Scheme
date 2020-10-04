@@ -3974,6 +3974,7 @@ namespace heist {
         return make_str(*args[1].str + args[0].pprint());
       }
     }
+    G::LAST_PRINTED_TO_STDOUT = (outs == stdout && is_port);
     return G::VOID_DATA_OBJECT;
   }
 
@@ -3989,6 +3990,7 @@ namespace heist {
         return make_str(*args[1].str + args[0].write());
       }
     }
+    G::LAST_PRINTED_TO_STDOUT = (outs == stdout && is_port);
     return G::VOID_DATA_OBJECT;
   }
 
@@ -3999,6 +4001,7 @@ namespace heist {
     if(is_port) {
       fputc('\n', outs);
       fflush(outs);
+      G::LAST_PRINTED_NEWLINE_TO_STDOUT = G::LAST_PRINTED_TO_STDOUT = (outs == stdout);
     } else {
       return make_str(*args[0].str + '\n');
     }
@@ -4026,6 +4029,7 @@ namespace heist {
     if(is_port) {
       fputc(args[0].chr, outs);
       fflush(outs);
+      G::LAST_PRINTED_TO_STDOUT = (outs == stdout);
     } else {
       return make_str(*args[1].str + char(args[0].chr));
     }

@@ -4325,11 +4325,13 @@ namespace heist {
 #ifndef HEIST_CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
 #ifndef HEIST_INTERPRETING_COMPILED_AST // @ONLY-INTERPRETER
 void print_repl_newline(const bool& printed_data)noexcept{ // after printing data
-  if(printed_data) putchar('\n');
+  if(printed_data || (!heist::G::LAST_PRINTED_NEWLINE_TO_STDOUT && heist::G::LAST_PRINTED_TO_STDOUT))
+    putchar('\n');
+  heist::G::LAST_PRINTED_NEWLINE_TO_STDOUT = heist::G::LAST_PRINTED_TO_STDOUT = false;
 }
 
 void print_repl_newline()noexcept{ // after printing an error
-  putchar('\n');
+  putchar('\n'), heist::G::LAST_PRINTED_NEWLINE_TO_STDOUT=heist::G::LAST_PRINTED_TO_STDOUT=false;
 }
 
 void account_for_whether_printed_data(const heist::scm_list& val,bool& printed_data)noexcept{

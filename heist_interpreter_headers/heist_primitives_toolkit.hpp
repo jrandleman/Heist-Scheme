@@ -3169,14 +3169,19 @@ namespace heist {
   data primitive_display_port_logic(const data& obj, FILE*& outs)noexcept{
     if(obj.is_type(types::chr)) {
       fputc(obj.chr, outs);
+      if(obj.chr == '\n') // account for printing a newline
+        G::LAST_PRINTED_NEWLINE_TO_STDOUT = (outs == stdout);
     } else if(obj.is_type(types::str)) {
       if(!obj.str->empty()) {
         fputs(obj.str->c_str(), outs);
+        if(*obj.str->rbegin() == '\n') // account for printed newlines
+          G::LAST_PRINTED_NEWLINE_TO_STDOUT = (outs == stdout);  
       }
     } else if(!obj.is_type(types::dne)) {
       fputs(obj.display().c_str(), outs);
     }
     fflush(outs);
+    G::LAST_PRINTED_TO_STDOUT = (outs == stdout);
     return G::VOID_DATA_OBJECT;
   }
 
@@ -4473,11 +4478,11 @@ namespace heist {
     std::smatch reg_matches;
     while(std::regex_search(target, reg_matches, reg)) {
       // save prefix, suffix, and matches
-      scm_list reg_args;
-      reg_args.push_back(make_str(reg_matches.prefix().str()));
-      reg_args.push_back(make_str(reg_matches.suffix().str()));
+      scm_list reg_args(2 + reg_matches.size());
+      reg_args[0] = make_str(reg_matches.prefix().str());
+      reg_args[1] = make_str(reg_matches.suffix().str());
       for(std::size_t i = 0, n = reg_matches.size(); i < n; ++i)
-        reg_args.push_back(make_str(reg_matches.str(i)));
+        reg_args[i+2] = make_str(reg_matches.str(i));
       // pass to given procedure & confirm returned a string
       data result = data_cast(execute_application(procedure,reg_args,env));
       if(!result.is_type(types::str))
