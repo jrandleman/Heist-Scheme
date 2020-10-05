@@ -1,12 +1,12 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- heist_main.cpp
+// Author: Jordan Randleman -- jrandleman@scu.edu -- heist.cpp
 // => Main execution and AST evaluation for the C++ Heist Scheme Interpreter
 
-#ifndef HEIST_MAIN_CPP_
-#define HEIST_MAIN_CPP_
+#ifndef HEIST_CPP_
+#define HEIST_CPP_
 
 /***
  * COMPILE: 
- *   $ clang++ -std=c++17 -O3 -o heist_main heist_main.cpp
+ *   $ clang++ -std=c++17 -O3 -o heist heist.cpp
  *
  * FLAG DESCRIPTIONS:
  *   0. "-std=c++17": [REQUIRED] compile using the C++17 standard

@@ -10,7 +10,7 @@
 //   2) defun  // define C++ Heist primitive
 //   3) defvar // define a global Heist variable
 
-#include "heist_main.cpp"
+#include "heist.cpp"
 
 namespace heist {
   // Evaluate Heist Scheme Expression in String

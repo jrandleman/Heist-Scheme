@@ -12,24 +12,24 @@ COMPILE_WITH_WARNINGS = len(sys.argv) == 2 and sys.argv[1] == "-debug"
 ###############################################################################
 
 if COMPILE_WITH_WARNINGS:
-  clangCompilationCmd = "clang++ -std=c++17 -O3 -Wall -Wextra -o ../heist_main ../heist_main.cpp"
-  gccCompilationCmd = "g++ -std=c++17 -Wno-psabi -O3 -Wall -Wextra -o ../heist_main ../heist_main.cpp"
+  clangCompilationCmd = "clang++ -std=c++17 -O3 -Wall -Wextra -o ../heist ../heist.cpp"
+  gccCompilationCmd = "g++ -std=c++17 -Wno-psabi -O3 -Wall -Wextra -o ../heist ../heist.cpp"
 else:
-  clangCompilationCmd = "clang++ -std=c++17 -O3 -o ../heist_main ../heist_main.cpp"
-  gccCompilationCmd = "g++ -std=c++17 -Wno-psabi -O3 -o ../heist_main ../heist_main.cpp"
+  clangCompilationCmd = "clang++ -std=c++17 -O3 -o ../heist ../heist.cpp"
+  gccCompilationCmd = "g++ -std=c++17 -Wno-psabi -O3 -o ../heist ../heist.cpp"
 
 ###############################################################################
 # Generate Aliases & Header File w/ Path to Interpreter
 ###############################################################################
 
 def getHeistInterpreterAlias(pathToInterpreter):
-  return "alias heist='" + pathToInterpreter + "/heist_main'"
+  return "alias heist='" + pathToInterpreter + "/heist'"
 
 
 def getSublimeTextBuildSystem(pathToInterpreter):
   return """
     {
-      \"cmd\": [\"""" + pathToInterpreter + """/heist_main\", \"-nansi\", \"-script\", \"$file\"],
+      \"cmd\": [\"""" + pathToInterpreter + """/heist\", \"-nansi\", \"-script\", \"$file\"],
       \"file_regex\": \"^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$\",
     }"""
 
@@ -52,7 +52,7 @@ def makeFilePathHeader(pathToInterpreter):
 
 def alertCompileErr(message, result):
   if(result != 0):
-    print(message + ">>> Proceed with manual compilation of \"heist_main.cpp\" using C++17!\n")
+    print(message + ">>> Proceed with manual compilation of \"heist.cpp\" using C++17!\n")
     return True
   return False
 
@@ -74,7 +74,7 @@ def dispatchCompilation(pathToInterpreter):
   else:
     alertCompileErr("\n>>> Neither Clang++ Nor G++ detected!\n", 1)
     return
-  print(">>> Successful Compilation!\n>>> Run \"./heist_main\" to start the REPL!\n")
+  print(">>> Successful Compilation!\n>>> Run \"./heist\" to start the REPL!\n")
   print(">>> Alias to add to \"~/.zshrc\" or \"~/.bashrc\" to launch Heist-Scheme:")
   print("    " + getHeistInterpreterAlias(pathToInterpreter))
   print(">>> SublimeText Build System JSON:" + getSublimeTextBuildSystem(pathToInterpreter) + "\n")

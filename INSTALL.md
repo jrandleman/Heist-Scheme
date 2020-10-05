@@ -22,7 +22,7 @@
 1. COMPILE AND RUN `heist_installer.cpp` USING THE `-std=c++17` FLAG
    - This generates a file named `HEIST_FILEPATH.hpp` in `/heist_interpreter_headers/`
      * Any instance of `<HEIST_DIRECTORY_FILE_PATH>` below refers to the string in this file
-2. COMPILE THE INTERPRETER: `$ clang++ -std=c++17 -O3 -o heist_main heist_main.cpp`<br>
+2. COMPILE THE INTERPRETER: `$ clang++ -std=c++17 -O3 -o heist heist.cpp`<br>
    0. FLAG DESCRIPTIONS:
       - `-std=c++17`: [REQUIRED] compile using the C++17 standard
       - `-O3`: [RECOMMENDED FOR FASTEST EXECUTION] maximum optimization
@@ -43,7 +43,7 @@ SETTING UP BETTER COMMAND-LINE INTERFACE -- FOR BASH & ZSH:
 0. OPEN THE FILE:
    * FOR BASH: `~/.bashrc`
    * FOR ZSH: `~/.zshrc`
-1. WRITE: `alias heist='<HEIST_DIRECTORY_FILE_PATH>/heist_main'`
+1. WRITE: `alias heist='<HEIST_DIRECTORY_FILE_PATH>/heist'`
 2. SAVE THE FILE, CLOSE THE CURRENT TERMINAL WINDOW, & RELAUNCH THE TERMINAL
 3. NOW, WRITING `heist` FROM ANYWHERE IN THE TERMINAL LAUNCHES THE INTERPRETER!
 
@@ -56,7 +56,7 @@ SETTING UP A BUILD SYSTEM -- FOR SUBLIME TEXT:
 1. WRITE:
     ```json
     {
-      "cmd": ["<HEIST_DIRECTORY_FILE_PATH>/heist_main", "-nansi", "-script", "$file"],
+      "cmd": ["<HEIST_DIRECTORY_FILE_PATH>/heist", "-nansi", "-script", "$file"],
       "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
     }
     ```
