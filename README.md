@@ -1514,7 +1514,7 @@ Other primitives of this nature include:<br>
    * `(string-ci>=? <string1> <string2> ...)`
 
 
-### Regex:
+### Regex: (uses [ECMAScript Syntax](https://www.cplusplus.com/reference/regex/ECMAScript/))
 0. __Replace 1st Regex Instance__: 
    * `(regex-replace <target-string> <regex-string> <replacement-string>)`
    * `(regex-replace <target-string> <regex-string> <procedure>)`
