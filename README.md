@@ -1146,6 +1146,9 @@ Other primitives of this nature include:<br>
       - `'linux` | `'unix` | `'posix`
       - `#f`
 
+11. __Get Heist Interpreter Directory__: `heist-dirname`
+    * String to the Heist-Scheme interpreter's directory
+
 
 
 
@@ -2034,14 +2037,11 @@ Other primitives of this nature include:<br>
 6. __Get Parent Directory__: Given a filepath string, get a string of its parent directory
    * `(dirname <filepath-string>)`
 
-7. __Get Heist Interpreter Directory__: Get a string to the Heist-Scheme interpreter's directory
-   * `(heist-dirname)`
+7. __Compile a File__: `(compile <filename-string> <optional-compiled-filename>)`
 
-8. __Compile a File__: `(compile <filename-string> <optional-compiled-filename>)`
+8. __Cps-Compile a File__: `(cps-compile <filename-string> <optional-compiled-filename>)`
 
-9. __Cps-Compile a File__: `(cps-compile <filename-string> <optional-compiled-filename>)`
-
-10. __Get Seconds Since Epoch__: `(seconds-since-epoch)`
+9. __Get Seconds Since Epoch__: `(seconds-since-epoch)`
 
 
 
