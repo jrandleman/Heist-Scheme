@@ -3365,7 +3365,8 @@ namespace heist {
         case sprintf_token_t::token_t::wb: 
           if(!args[i].is_type(types::bol)) THROW_BAD_FORMAT_ARG("boolean");
           if(args[i].bol.val) formatted += "true";
-          else                formatted += "false"; break;
+          else                formatted += "false"; 
+          break;
         case sprintf_token_t::token_t::n: 
           if(!args[i].is_type(types::num)) THROW_BAD_FORMAT_ARG("number");
           num_type num = args[i].num;
