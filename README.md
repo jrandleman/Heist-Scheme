@@ -180,7 +180,7 @@
 2. With CPS Evaluation: `-cps`
 3. Disable ANSI Colors: `-nansi`
 4. Case Insensitivity:  `-ci`
-
+5. Interpreter Version: `--version`
 
 
 

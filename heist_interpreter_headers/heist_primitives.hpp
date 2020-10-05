@@ -4609,7 +4609,8 @@ namespace heist {
                   "\n> Compile Script:      -compile <script-filename> <optional-compiled-filename>"
                   "\n> With CPS Evaluation: -cps"
                   "\n> Disable ANSI Colors: -nansi"
-                  "\n> Case Insensitivity:  -ci");
+                  "\n> Case Insensitivity:  -ci"
+                  "\n> Interpreter Version: --version");
   }
 
   // Returns a string of the current working directory

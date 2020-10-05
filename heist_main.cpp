@@ -4410,7 +4410,8 @@ void POPULATE_ARGV_REGISTRY(int argc,int& i,char* argv[]) {
 
 
 bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
-                                     int& compile_pos,std::string& compile_as)noexcept{
+                                     int& compile_pos,std::string& compile_as,
+                                     bool& found_version_flag)noexcept{
   if(argc == 1) return true;
   
   constexpr const char * const cmd_line_options = 
@@ -4419,6 +4420,7 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
     "\n> With CPS Evaluation: -cps"
     "\n> Disable ANSI Colors: -nansi"
     "\n> Case Insensitivity:  -ci"
+    "\n> Interpreter Version: --version"
     "\n> Terminating Heist Scheme Interpretation.\n\n";
 
   // Validate argument layout
@@ -4431,6 +4433,10 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
   for(int i = 1; i < argc; ++i) {
     if(std::string cmd_flag(argv[i]); cmd_flag == "-ci") {
       heist::G::USING_CASE_SENSITIVE_SYMBOLS = false;
+    } else if(cmd_flag == "--version") {
+      found_version_flag = true;
+      puts("Heist Scheme Version 5.0\nTarget: " HEIST_EXACT_PLATFORM "\nInstalledDir: " HEIST_DIRECTORY_FILE_PATH);
+      return true;
     } else if(cmd_flag == "-nansi") {
       heist::G::USING_ANSI_ESCAPE_SEQUENCES = false;
     } else if(cmd_flag == "-cps") {
@@ -4544,8 +4550,11 @@ int main(int argc, char* argv[]) {
   // Validate arguments
   int script_pos = -1, compile_pos = -1;
   std::string compile_as = "HEIST_COMPILER_OUTPUT.cpp";
-  if(!confirm_valid_command_line_args(argc,argv,script_pos,compile_pos,compile_as)) 
+  bool found_version_flag = false;
+  if(!confirm_valid_command_line_args(argc,argv,script_pos,compile_pos,compile_as,found_version_flag)) 
     return 1;
+  // "--version" triggers an immediate exit
+  if(found_version_flag) return 0;
   // Set up the environment (allocates & fills G::GLOBAL_ENVIRONMENT_POINTER)
   heist::set_default_global_environment();
   // Interpret a Script (as needed)
