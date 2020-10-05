@@ -93,7 +93,7 @@
    - [String Procedures](#String-Procedures)
      * [General](#General-2)
      * [String Predicates](#String-Predicates)
-     * [Regex](#Regex)
+     * [Regex](#regex-uses-ecmascript-syntax)
    - [List/Pair Procedures](#ListPair-Procedures)
      * [Accessors](#Accessors)
      * [List Constructors](#List-Constructors)
@@ -1470,7 +1470,7 @@ Other primitives of this nature include:<br>
 
 9. __Replacement__: Replace `<string1>` between indices `<start1>` & `<end1>` with `<string2>`
    * `(string-replace <string1> <string2> <start1> <end1>)`
-   * _See [`regex-replace`](#Regex) & [`regex-replace-all`](#Regex) for a regex-based alternative!_
+   * _See [`regex-replace`](#regex-uses-ecmascript-syntax) & [`regex-replace-all`](#regex-uses-ecmascript-syntax) for a regex-based alternative!_
 
 10. __String Contains Substring__: Get index of 1st instance
     * `(string-contains <string> <sub-string>)`
@@ -1486,7 +1486,7 @@ Other primitives of this nature include:<br>
     * `<string-delimiter>` defaults to `""`
     * `(string-split <target-string> <optional-string-delimiter>)`
     * Enables splitting with delimiters using regex-significant chars more easily!
-      - _See [`regex-split`](#Regex) for a regex-based alternative!_
+      - _See [`regex-split`](#regex-uses-ecmascript-syntax) for a regex-based alternative!_
 
 14. __Swap String Pointers__: `(string-swap! <string1> <string2>)`
 
