@@ -380,7 +380,7 @@ namespace heist {
   // primitive "bigint?" procedure
   data primitive_BIGINTP(scm_list& args) {
     confirm_unary_numeric(args, "bigint?", "(bigint? <num>)");
-    return data(boolean(args[0].num.is_integer() && args[0].num.is_exact()));
+    return data(boolean(args[0].num.is_exact() && args[0].num.is_integer()));
   }
 
   // primitive "numerator" procedure
@@ -651,52 +651,28 @@ namespace heist {
 
   // primitive "eq?" procedure:
   data primitive_EQP(scm_list& args) {
-    if(args.empty())
-      THROW_ERR("'eq? received no arguments: (eq? <obj1> <obj2> ...)" << FCN_ERR("eq?", args));
-    // compare types & values
-    for(size_type i = 0, n = args.size(); i+1 < n; ++i) {
-      if(args[i].type != args[i+1].type) 
+    if(args.empty()) THROW_ERR("'eq? received no arguments: (eq? <obj1> <obj2> ...)" << FCN_ERR("eq?", args));
+    for(size_type i = 0, n = args.size(); i+1 < n; ++i)
+      if(!args[i].eq(args[i+1])) 
         return G::FALSE_DATA_BOOLEAN;
-      if(args[i].is_type(types::str)) { // compare strings via pointers
-        if(args[i].str != args[i+1].str)
-          return G::FALSE_DATA_BOOLEAN;
-      } else if(!prm_compare_atomic_values(args[i],args[i+1],args[i].type)) {
-        return G::FALSE_DATA_BOOLEAN;
-      }
-    }
     return G::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "eqv?" procedure:
   data primitive_EQVP(scm_list& args) {
-    if(args.empty())
-      THROW_ERR("'eqv? received no arguments: (eqv? <obj1> <obj2> ...)" << FCN_ERR("eqv?", args));
-    // compare types & values
+    if(args.empty()) THROW_ERR("'eqv? received no arguments: (eqv? <obj1> <obj2> ...)" << FCN_ERR("eqv?", args));
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
-      if(args[i].type != args[i+1].type || !prm_compare_atomic_values(args[i],args[i+1],args[i].type))
+      if(!args[i].eqv(args[i+1])) 
         return G::FALSE_DATA_BOOLEAN;
     return G::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "equal?" procedure:
   data primitive_EQUALP(scm_list& args) {
-    if(args.empty())
-      THROW_ERR("'equal? received no arguments: (equal? <obj1> <obj2> ...)" << FCN_ERR("equal?", args));
-    for(size_type i = 0, n = args.size(); i+1 < n; ++i) {
-      if(args[i].type != args[i+1].type) // compare types
+    if(args.empty()) THROW_ERR("'equal? received no arguments: (equal? <obj1> <obj2> ...)" << FCN_ERR("equal?", args));
+    for(size_type i = 0, n = args.size(); i+1 < n; ++i)
+      if(!args[i].equal(args[i+1])) 
         return G::FALSE_DATA_BOOLEAN;
-      if(args[i].is_type(types::exp)) { // compare sub-lists
-        if(!prm_compare_EXPRs(args[i].exp,args[i+1].exp))
-          return G::FALSE_DATA_BOOLEAN;
-      } else if(args[i].is_type(types::par)) {
-        if(!prm_compare_PAIRs(args[i].par,args[i+1].par))
-          return G::FALSE_DATA_BOOLEAN;
-      } else if(args[i].is_type(types::vec)) {
-        if(!prm_compare_VECTs(args[i].vec,args[i+1].vec))
-          return G::FALSE_DATA_BOOLEAN;
-      } else if(!prm_compare_atomic_values(args[i],args[i+1],args[i].type))
-          return G::FALSE_DATA_BOOLEAN; // compare values
-    }
     return G::TRUE_DATA_BOOLEAN;
   }
 

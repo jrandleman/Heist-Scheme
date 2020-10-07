@@ -45,10 +45,6 @@ namespace heist {
 
 
   //          -- FROM PRIMITIVES & ITS TOOLKIT
-  bool        prm_compare_PAIRs(const par_type& p1, const par_type& p2)noexcept;
-  bool        prm_compare_VECTs(const vec_type& v1, const vec_type& v2)noexcept;
-  bool        prm_compare_EXPRs(const scm_list& l1, const scm_list& l2)noexcept;
-  bool        prm_compare_SNTXs(const syn_type& s1, const syn_type& s2)noexcept;
   bool        data_is_the_empty_expression(const data& d)noexcept;
   void        shallow_unpack_list_into_exp(data& curr_pair, scm_list& args_list)noexcept;
   void        primitive_UNFOLD_template(scm_list&,scm_list&,const char*,const char* format);
@@ -60,18 +56,6 @@ namespace heist {
   scm_list    primitive_read_from_port(FILE* outs, FILE* ins);
   constexpr bool IS_OPEN_PAREN(const char& c) noexcept;
   constexpr bool IS_CLOSE_PAREN(const char& c) noexcept;
-
-  /******************************************************************************
-  * INTERNAL PRIMITIVE CONSTANT VALUES
-  ******************************************************************************/
-
-  namespace G {
-    const auto FALSE_DATA_BOOLEAN    = data(boolean(false));
-    const auto TRUE_DATA_BOOLEAN     = data(boolean(true));
-    const auto VOID_DATA_OBJECT      = data(types::dne);
-    const auto VOID_DATA_EXPRESSION  = scm_list(1,VOID_DATA_OBJECT);
-    const auto EMPTY_LIST_EXPRESSION = scm_list(1,symconst::emptylist);
-  } // End of namespace G
 
   /******************************************************************************
   * PRIMITIVE ARGUMENT ANALYSIS HELPERS
@@ -224,109 +208,6 @@ namespace heist {
     if(!args[0].is_type(types::num) || !args[0].num.is_real())
       THROW_ERR('\''<<primitive_name<<" received non-real-numeric argument: "
         <<PROFILE(args[0])<<"!\n     "<<format<<FCN_ERR(primitive_name,args));
-  }
-
-  /******************************************************************************
-  * EQUALITY PRIMITIVE HELPERS
-  ******************************************************************************/
-
-  bool prm_comparing_primitives(const scm_list& l1, const scm_list& l2)noexcept{
-    return l1.size() == 3 && l1[0].is_type(types::sym) && l2[0].is_type(types::sym) &&
-      l1[0].sym == l2[0].sym && l1[0].sym == symconst::primitive;
-  }
-
-
-  bool prm_compare_atomic_values(const data& v1,const data& v2,const types& t)noexcept{
-    switch(t) {
-      case types::undefined: case types::dne: case types::exe: return true;
-      case types::num: return v1.num == v2.num && v1.num.is_exact() == v2.num.is_exact();
-      case types::chr: return v1.chr == v2.chr;
-      case types::str: return *v1.str == *v2.str;
-      case types::sym: return v1.sym == v2.sym;
-      case types::bol: return v1.bol.val == v2.bol.val;
-      case types::par: return v1.par == v2.par;
-      case types::vec: return v1.vec == v2.vec;
-      case types::prm: return v1.prm == v2.prm;
-      case types::del: return v1.del == v2.del;
-      case types::env: return v1.env == v2.env;
-      case types::cal: return v1.cal == v2.cal;
-      case types::fip: return v1.fip.port_idx == v2.fip.port_idx;
-      case types::fop: return v1.fop.port_idx == v2.fop.port_idx;
-      case types::syn: return prm_compare_SNTXs(v1.syn, v2.syn);
-      case types::exp: return prm_compare_EXPRs(v1.exp, v2.exp);
-      default:         return false;
-    }
-  }
-
-
-  bool prm_compare_EXPRs(const scm_list& l1, const scm_list& l2)noexcept{
-    if(l1.size() != l2.size())          return false;
-    if(prm_comparing_primitives(l1,l2)) return l1[1].prm == l2[1].prm;
-    for(size_type i = 0, n = l1.size(); i < n; ++i) {
-      if(l1[i].type != l2[i].type) return false; // compare types
-      if(l1[i].is_type(types::exp)) {            // compare sub-lists
-        if(!prm_compare_EXPRs(l1[i].exp,l2[i].exp))
-          return false;
-      } else if(l1[i].is_type(types::par)) {
-        if(!prm_compare_PAIRs(l1[i].par,l2[i].par))
-          return false;
-      } else if(l1[i].is_type(types::vec)) {
-        if(!prm_compare_VECTs(l1[i].vec,l2[i].vec))
-          return false;
-      } else if(!prm_compare_atomic_values(l1[i],l2[i],l1[i].type))
-        return false;                            // compare values
-    }
-    return true;
-  }
-
-
-  bool prm_compare_PAIRs(const par_type& p1, const par_type& p2)noexcept{
-    if(!p1 || !p2 || p1->first.type != p2->first.type || p1->second.type != p2->second.type)
-      return false;
-    auto& p1_car = p1->first, &p2_car = p2->first;
-    auto& p1_cdr = p1->second, &p2_cdr = p2->second;
-    // Compare cars
-    if(p1_car.is_type(types::exp)) {
-      if(!prm_compare_EXPRs(p1_car.exp, p2_car.exp)) return false;
-    } else if(p1_car.is_type(types::par)) { 
-      if(!prm_compare_PAIRs(p1_car.par, p2_car.par)) return false;
-    } else if(p1_car.is_type(types::vec)) {
-      if(!prm_compare_VECTs(p1_car.vec, p2_car.vec)) return false;
-    } else if(!prm_compare_atomic_values(p1_car, p2_car, p1_car.type)) return false;
-    // Compare cdrs
-    if(p1_cdr.is_type(types::exp)) {
-      if(!prm_compare_EXPRs(p1_cdr.exp, p2_cdr.exp)) return false;
-    } else if(p1_cdr.is_type(types::par)) {
-      if(!prm_compare_PAIRs(p1_cdr.par, p2_cdr.par)) return false;
-    } else if(p1_cdr.is_type(types::vec)) {
-      if(!prm_compare_VECTs(p1_cdr.vec, p2_cdr.vec)) return false;
-    } else if(!prm_compare_atomic_values(p1_cdr, p2_cdr, p1_cdr.type)) return false;
-    return true;
-  }
-
-
-  bool prm_compare_VECTs(const vec_type& v1, const vec_type& v2)noexcept{
-    return prm_compare_EXPRs(*v1, *v2);
-  }
-
-
-  bool prm_compare_SNTXs(const syn_type& s1, const syn_type& s2)noexcept{
-    frame_var label;
-    frame_vars keywords;
-    std::vector<scm_list> patterns;
-    std::vector<scm_list> templates;
-    if(s1.label != s2.label || s1.patterns.size()  != s2.patterns.size()
-                            || s1.keywords.size()  != s2.keywords.size()
-                            || s1.templates.size() != s2.templates.size()){
-      return false;
-    }
-    for(size_type i = 0, n = s1.keywords.size(); i < n; ++i)
-      if(s1.keywords[i] != s2.keywords[i]) return false;
-    for(size_type i = 0, n = s1.patterns.size(); i < n; ++i)
-      if(!prm_compare_EXPRs(s1.patterns[i], s2.patterns[i])) return false;
-    for(size_type i = 0, n = s1.templates.size(); i < n; ++i)
-      if(!prm_compare_EXPRs(s1.templates[i], s2.templates[i])) return false;
-    return true;
   }
 
   /******************************************************************************

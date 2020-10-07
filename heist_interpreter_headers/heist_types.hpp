@@ -264,6 +264,15 @@ namespace heist {
   scm_string pretty_print(const data& d)                 noexcept; // pretty-printer
 
   /******************************************************************************
+  * DATA EQUALITY HELPER FUNCTION PROTOTYPES
+  ******************************************************************************/
+
+  bool prm_compare_atomic_values(const data& v1,const data& v2,const enum class types& t)noexcept;
+  bool prm_compare_PAIRs(const par_type& p1, const par_type& p2)noexcept;
+  bool prm_compare_VECTs(const vec_type& v1, const vec_type& v2)noexcept;
+  bool prm_compare_EXPRs(const scm_list& l1, const scm_list& l2)noexcept;
+
+  /******************************************************************************
   * DATA TYPE STRUCTS
   ******************************************************************************/
 
@@ -334,12 +343,17 @@ namespace heist {
     }
   };
 
-  // data_obj.type        => current type enum
-  // data_obj.type_name() => current type's name (string)
-  // data_obj.<T>         => current type <T> value
-  // data_obj.is_type(T)  => data_obj.type == T
-  // data_obj.write()     => data_obj's value as a machine-readable string
-  // data_obj.display()   => data_obj's value as a human-readable string
+  // data_obj.type                 => current type enum
+  // data_obj.type_name()          => current type's name (string)
+  // data_obj.<T>                  => current type <T> value
+  // data_obj.is_type(T)           => data_obj.type == T
+  // data_obj.write()              => data_obj's value as a machine-readable string
+  // data_obj.display()            => data_obj's value as a human-readable string
+  // data_obj.pprint()             => .write() with auto-indentation for lists
+  // data_obj.eq(datum)            => eq? shallow equality
+  // data_obj.eqv(datum)           => eqv? shallow equality + deep equality for strings
+  // data_obj.equal(datum)         => equal? deep equality
+  // data_obj.is_self_evaluating() => core evaluator should reflect datum
   struct data {
     // current type & value held by data object
     types type = types::undefined;
@@ -544,6 +558,37 @@ namespace heist {
         "undefined"
       };
       return type_names[int(type) * (type!=types::sym || sym[0])]; // idx 0 for '() typename
+    }
+
+    bool eq(const data& d) const noexcept { // eq?
+      if(type != d.type) return false;
+      if(type == types::str) return str == d.str;
+      return prm_compare_atomic_values(*this,d,type);
+    }
+
+    bool eqv(const data& d) const noexcept { // eqv?
+      if(type != d.type) return false;
+      return prm_compare_atomic_values(*this,d,type);
+    }
+
+    bool equal(const data& d) const noexcept { // equal?
+      if(type != d.type) return false;
+      switch(type) {
+        case types::exp: return prm_compare_EXPRs(exp,d.exp);
+        case types::par: return prm_compare_PAIRs(par,d.par);
+        case types::vec: return prm_compare_VECTs(vec,d.vec);
+        default: return prm_compare_atomic_values(*this,d,type);
+      }
+    }
+
+    bool is_self_evaluating() const noexcept { // for the core evaluator
+      switch(type) {
+        case types::num: case types::str: case types::chr: 
+        case types::par: case types::vec: case types::bol:
+        case types::syn: case types::dne: case types::fip: 
+        case types::fop: case types::del: return true;
+        default: return false;
+      }
     }
 
     // constructors

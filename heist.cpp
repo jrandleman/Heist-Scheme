@@ -949,12 +949,7 @@ namespace heist {
   ******************************************************************************/
 
   bool is_self_evaluating(const scm_list& exp)noexcept{
-    return exp.size() == 1 && 
-           (exp[0].is_type(types::num) || exp[0].is_type(types::str) || 
-            exp[0].is_type(types::chr) || exp[0].is_type(types::par) || 
-            exp[0].is_type(types::vec) || exp[0].is_type(types::bol) ||
-            exp[0].is_type(types::syn) || exp[0].is_type(types::dne) || 
-            exp[0].is_type(types::undefined));
+    return exp.size() == 1 && exp[0].is_self_evaluating();
   }
 
   bool is_variable(const scm_list& exp)noexcept{return exp[0].is_type(types::sym);}
@@ -2800,12 +2795,7 @@ namespace heist {
     if(is_primitive_symbolic_literal(pat_entity))
        return !is_primitive_symbolic_literal(arg_entity) || pat_entity.sym != arg_entity.sym;
     if(pat_entity.is_type(types::sym) || pat_entity.is_type(types::exp)) return false;
-    if(pat_entity.type != arg_entity.type)                               return true;
-    if(pat_entity.is_type(types::par))
-      return !prm_compare_PAIRs(pat_entity.par, arg_entity.par);
-    if(pat_entity.is_type(types::vec))
-      return !prm_compare_VECTs(pat_entity.vec, arg_entity.vec);
-    return !prm_compare_atomic_values(pat_entity, arg_entity, pat_entity.type);
+    return !pat_entity.equal(arg_entity);
   }
 
 
@@ -4245,8 +4235,8 @@ namespace heist {
     define_variable("fl-max",       num_type(num_type::INEXACT_MAX),       G::GLOBAL_ENVIRONMENT_POINTER);
     define_variable("fl-min",       num_type(num_type::INEXACT_MIN),       G::GLOBAL_ENVIRONMENT_POINTER);
     define_variable("fl-epsilon",   num_type(num_type::INEXACT_EPSILON),   G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("heist-platform",       HEIST_PLATFORM,       G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("heist-exact-platform", HEIST_EXACT_PLATFORM, G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("heist-platform",       HEIST_PLATFORM,         G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("heist-exact-platform", HEIST_EXACT_PLATFORM,   G::GLOBAL_ENVIRONMENT_POINTER);
     define_variable("stream-null",          symconst::emptylist,    G::GLOBAL_ENVIRONMENT_POINTER);
     define_variable(symconst::null_env,     symconst::null_env,     G::GLOBAL_ENVIRONMENT_POINTER);
     define_variable(symconst::local_env,    symconst::local_env,    G::GLOBAL_ENVIRONMENT_POINTER);
