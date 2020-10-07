@@ -586,7 +586,7 @@ namespace heist {
         case types::num: case types::str: case types::chr: 
         case types::par: case types::vec: case types::bol:
         case types::syn: case types::dne: case types::fip: 
-        case types::fop: case types::del: return true;
+        case types::fop: case types::del: case types::undefined: return true;
         default: return false;
       }
     }
