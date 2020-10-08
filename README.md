@@ -1952,10 +1952,10 @@ Other primitives of this nature include:<br>
 
 13. __Alist to Hash-Map__: `(alist->hmap <alist>)`
 
-14. __Stream->List Conversion__: `(stream->list <stream> <size>)`
+14. __Stream to List__: `(stream->list <stream> <size>)`
     * Convert the 1st `<size>` elts of `<stream>` into a list!
 
-15. __List->Stream Conversion__: `(list->stream <list>)`
+15. __List to Stream__: `(list->stream <list>)`
 
 
 
