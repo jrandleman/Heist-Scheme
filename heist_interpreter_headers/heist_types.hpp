@@ -270,10 +270,19 @@ namespace heist {
   scm_string pretty_print(const data& d)                 noexcept; // pretty-printer
 
   /******************************************************************************
+  * FUNDAMENTAL SCHEME DATUM INTERNAL UNION TYPES
+  ******************************************************************************/
+
+  // enum of "struct data" types
+  // => expression, pair, number, string, character, symbol, vector, boolean, environment, delay, primitive fcn ptr, 
+  //    execution procedure, recursive call counter, input port, output port, does-not-exist, syntax-rules, hash-map, undefined value
+  enum class types {exp=1, par, num, str, chr, sym, vec, bol, env, del, prm, exe, cal, fip, fop, dne, syn, map, undefined};
+
+  /******************************************************************************
   * DATA EQUALITY HELPER FUNCTION PROTOTYPES
   ******************************************************************************/
 
-  bool prm_compare_atomic_values(const data& v1,const data& v2,const enum class types& t)noexcept;
+  bool prm_compare_atomic_values(const data& v1,const data& v2,const types& t)noexcept;
   bool prm_compare_PAIRs(const par_type& p1, const par_type& p2)noexcept;
   bool prm_compare_VECTs(const vec_type& v1, const vec_type& v2)noexcept;
   bool prm_compare_EXPRs(const scm_list& l1, const scm_list& l2)noexcept;
@@ -282,11 +291,6 @@ namespace heist {
   /******************************************************************************
   * DATA TYPE STRUCTS
   ******************************************************************************/
-
-  // enum of "struct data" types
-  // => expression, pair, number, string, character, symbol, vector, boolean, environment, delay, primitive fcn ptr, 
-  //    execution procedure, recursive call counter, input port, output port, does-not-exist, syntax-rules, hash-map, undefined value
-  enum class types {exp=1, par, num, str, chr, sym, vec, bol, env, del, prm, exe, cal, fip, fop, dne, syn, map, undefined};
 
   // boolean struct (differentiates from 'chr_type')
   struct boolean {
