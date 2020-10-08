@@ -1245,12 +1245,6 @@ Other primitives of this nature include:<br>
 19. __Interleave__: Form a stream by interleaving elts of either `<stream>`
     * `(stream-interleave <stream1> <stream2>)`
 
-20. __Stream->List Conversion__: Convert the 1st `<size>` elts of `<stream>` into a list
-    * `(stream->list <stream> <size>)`
-
-21. __List->Stream Conversion__: Convert `<list>` into a stream
-    * `(list->stream <list>)`
-
 
 
 ------------------------
@@ -1957,6 +1951,11 @@ Other primitives of this nature include:<br>
 12. __Hash-Map to Alist__: `(hmap->alist <hash-map>)`
 
 13. __Alist to Hash-Map__: `(alist->hmap <alist>)`
+
+14. __Stream->List Conversion__: `(stream->list <stream> <size>)`
+    * Convert the 1st `<size>` elts of `<stream>` into a list!
+
+15. __List->Stream Conversion__: `(list->stream <list>)`
 
 
 
