@@ -5021,15 +5021,13 @@ namespace heist {
   data primitive_SOWN_GENSYM(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (sown-gensym <seed>)"
-      "\n     => <seed> = number | char | symbol | boolean";
+      "\n     => <seed> = number | symbol | boolean";
     if(args.size() != 1)
       THROW_ERR("'sown-gensym recieved incorrect # of args!" 
         << format << FCN_ERR("sown-gensym",args));
-    if(!args[0].is_type(types::num) && !args[0].is_type(types::chr) && 
-       !args[0].is_type(types::sym) && !args[0].is_type(types::bol)) {
+    if(!args[0].is_type(types::num) && !args[0].is_type(types::sym) && !args[0].is_type(types::bol))
       THROW_ERR("'sown-gensym arg "<<PROFILE(args[0])<<" isn't a valid 'sown-gensym key!" 
         << format << FCN_ERR("sown-gensym",args));
-    }
     return symconst::gensym_prefix + scm_string("SOWN-") + args[0].write();
   }
 

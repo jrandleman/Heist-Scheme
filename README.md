@@ -2165,7 +2165,7 @@ Other primitives of this nature include:<br>
    * etc.
 
 1. __Generate a Seeded Symbol__: `(sown-gensym <seed>)`
-   * `<seed>` = number | char | symbol | boolean
+   * `<seed>` = number | symbol | boolean
 
 
 
