@@ -21,15 +21,16 @@
 # Features:
 0. Unhygienic & Reader Macros
 1. Tail-Call Optimization
-2. Opt-In Dynamic Scoping (see the [`call/ce`](#control-flow-procedures) & [`inline`](#control-flow-procedures) application primitives)
-3. Opt-In Continuations & [`call/cc`](#Scm-Cps-Procedures) (see [`scm->cps`](#Scm-Cps))
-4. Native Even Streams (Lists w/ Delayed Car & Cdr)
-5. Generic Algorithms (Polymorphic Algorithm Primitives)
-6. SRFI Primitives (List, Vector, String, etc.)
-7. Eval (Evaluate Symbolic Data as Code)
-8. String I/O (Read/Write Compatibility w/ Strings as Ports)
-9. Recursive Depth Control
-10. And More!
+2. First-Class Hash-Maps (see [`hmap`](#Hash-Map-Procedures) & [`$`](#Hmap-Literal))
+3. Opt-In Dynamic Scoping (see the [`call/ce`](#control-flow-procedures) & [`inline`](#control-flow-procedures) application primitives)
+4. Opt-In Continuations & [`call/cc`](#Scm-Cps-Procedures) (see [`scm->cps`](#Scm-Cps))
+5. Native Even Streams (Lists w/ Delayed Car & Cdr)
+6. Generic Algorithms (Polymorphic Algorithm Primitives)
+7. SRFI Primitives (List, Vector, String, etc.)
+8. Eval (Evaluate Symbolic Data as Code)
+9. String I/O (Read/Write Compatibility w/ Strings as Ports)
+10. Recursive Depth Control
+11. And More!
 
 ------------------------ 
 # Table of Contents
@@ -67,6 +68,7 @@
    - [Scons](#Scons)
    - [Stream](#Stream)
    - [Vector-Literal](#Vector-Literal)
+   - [Hmap-Literal](#Hmap-Literal)
    - [Define-Syntax, Let-Syntax, Letrec-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax)
    - [Syntax-Rules](#Syntax-Rules)
    - [Syntax-Hash](#Syntax-Hash)
@@ -100,6 +102,7 @@
      * [List Predicates](#List-Predicates)
      * [List Seeking Procedures](#List-Seeking-Procedures)
    - [Vector Procedures](#Vector-Procedures)
+   - [Hash-Map Procedures](#Hash-Map-Procedures)
    - [Generic Sequence, List|Vector|String, Algorithmic Procedures](#Generic-Sequence-ListVectorString-Algorithmic-Procedures)
      * [General](#General-3)
      * [Sorting Procedures](#Sorting-Procedures)
@@ -195,12 +198,13 @@
 4. Char (have the `#\` prefix, `#\h #\e #\l #\l #\o`) (uses `ascii` encoding!)
 5. Boolean (true or false, `#t` or`#f`)
 6. Vector (quoted literal `'#(1 2 3)`, or primitive `(vector 1 2 3)`)
-7. Input Port, Output Port ([see port primitives](#File--Port-Procedures))
-8. Syntax-Rules Object (see [`syntax-rules`](#Define-Syntax-Let-Syntax-Letrec-Syntax) special form)
-9. Delayed Data (see [`delay`](#Delay) special form)
-10. Procedure (via primitives or the [`lambda`](#Lambda) special form)
-11. Void Data [`(void)`](#Type-Predicates)
-12. Undefined Data [`(undefined)`](#Type-Predicates)
+7. Hash-Map (quoted literal `'$(a 1 b 2)`, or primitive `(hmap 'a 1 'b 2)`)
+8. Input Port, Output Port ([see port primitives](#File--Port-Procedures))
+9. Syntax-Rules Object (see [`syntax-rules`](#Define-Syntax-Let-Syntax-Letrec-Syntax) special form)
+10. Delayed Data (see [`delay`](#Delay) special form)
+11. Procedure (via primitives or the [`lambda`](#Lambda) special form)
+12. Void Data [`(void)`](#Type-Predicates)
+13. Undefined Data [`(undefined)`](#Type-Predicates)
 
 
 
@@ -385,6 +389,7 @@ Other primitives of this nature include:<br>
   `(append (list '<obj1> (quote ...) '<objN>) <objN+1>)`
 * Empty List: `(quote ())` => `'()` _(unique value, ONLY one returning `#t` for `null?` primitive!)_
 * Vector: `(quote #(<obj1> <obj2> ...))` => `(vector '<obj1> '<obj2> (quote ...))`
+* Hash-Map: `(quote $(<key> <val> ...))` => `(hmap '<key> '<val> (quote ...))`
 * Syntax: `(quote <syntax>)` => `<syntax-as-symbol>`
 * Else: `(quote <any-other-obj>)` => `<any-other-obj>`
 
@@ -394,6 +399,7 @@ Other primitives of this nature include:<br>
 'hello          ; => hello
 '(1 2 3)        ; => (list 1 2 3)
 '#(hello there) ; => (vector 'hello 'there)
+'$(a 1 b 2)     ; => (hmap 'a 1 'b 2)
 ''double        ; => (quote (quote double)) => (list 'quote 'double)
 '(define a 12)  ; => (list 'define 'a '12) ; quoted code becomes a list of data!
 ```
@@ -780,6 +786,24 @@ Other primitives of this nature include:<br>
 '(vector-literal <obj1> <obj2> <obj3> ...)
 ;; Becomes =>
 (vector '<obj1> '<obj2> '<obj3> '...)
+```
+
+
+------------------------
+## Hmap-Literal:
+
+#### Use: ___Longhand Variant of the `$` Hashmap-Literal Shorthand!___
+* _Hence, like `$`, `hmap-literal` **must** be quoted to form a hash-map object!_
+
+#### Form: `'(hmap-literal <obj1> <obj2> <obj3> ...)`
+
+#### Transformation:
+```scheme
+'$(<key1> <val1> <key2> <val2> ...)
+;; Becomes =>
+'(hmap-literal <key1> <val1> <key2> <val2> ...)
+;; Becomes =>
+(hmap '<key1> '<val1> '<key2> '<val2> '...)
 ```
 
 
@@ -1646,6 +1670,47 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
+## Hash-Map Procedures:
+#### Keys ::= `symbol` | `string` | `number` | `character` | `boolean`
+0. __Constructor__: `(hmap <key1> <value1> <key2> <value2> ...)`
+
+1. __Extract Key List__: `(hmap-keys <hash-map>)`
+
+2. __Extract Value List__: `(hmap-vals <hash-map>)`
+
+3. __Determine if Key in Hash-Map__: `(hmap-key? <hash-map> <key>)`
+
+4. __Determine if Viable Key Type__: `(hmap-hashable? <obj>)`
+
+5. __Access Value__: `(hmap-ref <hash-map> <key>)`
+
+6. __Set/Create Association__: `(hmap-set! <hash-map> <key> <value>)`
+
+7. __Delete Association__: `(hmap-delete! <hash-map> <key>)`
+
+8. __Total Entries__: `(hmap-length <hash-map>)`
+
+9. __Allocate a New Copy__: `(hmap-copy <hash-map>)`
+
+10. __Merge Hash-Maps into a New Copy__: `(hmap-merge <hash-map-1> <hash-map-2>)`
+    * _Note: if both maps share a key, `<hash-map-1>`'s value takes precedence_
+
+11. __Merge `<hash-map-2>` into `<hash-map-1>`__: `(hmap-merge! <hash-map-1> <hash-map-2>)`
+    * _Note: if both maps share a key, `<hash-map-1>`'s value takes precedence_
+
+12. __Iterate Over Key-Value Pairs__: `(hmap-for-each <procedure> <hash-map>)` 
+
+13. __Iterate Over Keys Pairs__: `(hmap-for-each-key <procedure> <hash-map>)` 
+
+14. __Iterate Over Values Pairs__: `(hmap-for-each-val <procedure> <hash-map>)` 
+
+15. __Map Procedure Over Values into a New Hash-Map__: `(hmap-map <procedure> <hash-map>)`
+
+16. __Mutative Map Procedure Over Values__: `(hmap-map! <procedure> <hash-map>)`
+
+
+
+------------------------
 ## Generic Sequence, List|Vector|String, Algorithmic Procedures:
 ### General:
 0. __Generate Empty Variant of Sequence__: `(empty <sequence>)`
@@ -1780,43 +1845,45 @@ Other primitives of this nature include:<br>
 
 6. __Vector Predicate__: `(vector? <obj>)`
 
-7. __Character Predicate__: `(char? <obj>)`
+7. __Hash-Map Predicate__: `(hmap? <obj>)`
 
-8. __Number Predicate__: `(number? <obj>)`
+8. __Character Predicate__: `(char? <obj>)`
 
-9. __Real Predicate__: `(real? <obj>)`
+9. __Number Predicate__: `(number? <obj>)`
 
-10. __Complex Predicate__: `(complex? <obj>)`
+10. __Real Predicate__: `(real? <obj>)`
 
-11. __Rational Number Predicate__: `(rational? <obj>)`
+11. __Complex Predicate__: `(complex? <obj>)`
 
-12. __String Predicate__: `(string? <obj>)`
+12. __Rational Number Predicate__: `(rational? <obj>)`
 
-13. __Symbol Predicate__: `(symbol? <obj>)`
+13. __String Predicate__: `(string? <obj>)`
 
-14. __Boolean Predicate__: `(boolean? <obj>)`
+14. __Symbol Predicate__: `(symbol? <obj>)`
 
-15. __Atom Predicate__: `(atom? <obj>)`
+15. __Boolean Predicate__: `(boolean? <obj>)`
 
-16. __Procedure Predicate__: `(procedure? <obj>)`
+16. __Atom Predicate__: `(atom? <obj>)`
 
-17. __Cps-Procedure Predicate__: `(cps-procedure? <obj>)`
+17. __Procedure Predicate__: `(procedure? <obj>)`
 
-18. __Input-Port Predicate__: `(input-port? <obj>)`
+18. __Cps-Procedure Predicate__: `(cps-procedure? <obj>)`
 
-19. __Output-Port Predicate__: `(output-port? <obj>)`
+19. __Input-Port Predicate__: `(input-port? <obj>)`
 
-20. __Eof-Object Predicate__: `(eof-object? <obj>)`
+20. __Output-Port Predicate__: `(output-port? <obj>)`
 
-21. __Stream-Pair Predicate__: `(stream-pair? <obj>)`
+21. __Eof-Object Predicate__: `(eof-object? <obj>)`
 
-22. __Empty-Stream Predicate__: `(stream-null? <obj>)`
+22. __Stream-Pair Predicate__: `(stream-pair? <obj>)`
 
-23. __Stream Predicate__: `(stream? <obj>)`
+23. __Empty-Stream Predicate__: `(stream-null? <obj>)`
 
-24. __Syntax-Rules Object Predicate__: `(syntax-rules-object? <obj>)`
+24. __Stream Predicate__: `(stream? <obj>)`
 
-25. __Sequence Predicate__: `(seq? <obj>)`
+25. __Syntax-Rules Object Predicate__: `(syntax-rules-object? <obj>)`
+
+26. __Sequence Predicate__: `(seq? <obj>)`
 
 
 
@@ -1886,6 +1953,10 @@ Other primitives of this nature include:<br>
 10. __String to List__: `(string->list <string>)`
 
 11. __List to String__: `(list->string <list>)`
+
+12. __Hash-Map to Alist__: `(hmap->alist <hash-map>)`
+
+13. __Alist to Hash-Map__: `(alist->hmap <alist>)`
 
 
 

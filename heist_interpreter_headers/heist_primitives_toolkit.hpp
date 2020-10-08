@@ -714,6 +714,71 @@ namespace heist {
   }
 
   /******************************************************************************
+  * HASH-MAP PRIMITIVE HELPERS
+  ******************************************************************************/
+
+  void hmap_confirm_unary_map(const char* name, const char* format, scm_list& args){
+    if(args.size() != 1) 
+      THROW_ERR('\''<<name<<" didn't receive 1 arg!" 
+        << format << FCN_ERR(name, args));
+    if(!args[0].is_type(types::map))
+      THROW_ERR('\''<<name<<" arg "<<PROFILE(args[0])<<" isn't a hash-map!" 
+        << format << FCN_ERR(name, args));
+  }
+
+
+  #define HEIST_HASH_MAP_KEY_FORMAT\
+    "\n     => <key> ::= <number>"\
+    "\n                | <string>"\
+    "\n                | <character>"\
+    "\n                | <symbol>"\
+    "\n                | <boolean>"
+
+  void hmap_confirm_valid_map_key(const char* name, const char* format, scm_list& args,size_type total_args){
+    if(args.size() != total_args) 
+      THROW_ERR('\''<<name<<" didn't receive "<<total_args<<" args!" 
+        << format << HEIST_HASH_MAP_KEY_FORMAT << FCN_ERR(name, args));
+    if(!args[0].is_type(types::map))
+      THROW_ERR('\''<<name<<" arg "<<PROFILE(args[0])<<" isn't a hash-map!" 
+        << format << HEIST_HASH_MAP_KEY_FORMAT << FCN_ERR(name, args));
+    if(!map_data::hashable(args[1]))
+      THROW_ERR('\''<<name<<" arg "<<PROFILE(args[1])<<" isn't a valid hashable key!" 
+        << format << HEIST_HASH_MAP_KEY_FORMAT << FCN_ERR(name, args));
+  }
+
+
+  void hmap_confirm_binary_map_key(const char* name, const char* format, scm_list& args){
+    hmap_confirm_valid_map_key(name,format,args,2);
+  }
+
+
+  void hmap_confirm_ternary_map_key_val(const char* name, const char* format, scm_list& args){
+    hmap_confirm_valid_map_key(name,format,args,3);
+  }
+
+
+  void hmap_confirm_given_2_maps(const char* name, const char* format, scm_list& args){
+    if(args.size() != 2) 
+      THROW_ERR('\''<<name<<" didn't receive 2 args!" 
+        << format << FCN_ERR(name, args));
+    for(size_type i = 0; i < 2; ++i)
+      if(!args[i].is_type(types::map))
+        THROW_ERR('\''<<name<<" arg #"<<i+1<<' '<<PROFILE(args[i])<<" isn't a hash-map!" 
+          << format << FCN_ERR(name, args));
+  }
+
+
+  void hmap_confirm_binary_procedure_map(const char* name, const char* format, scm_list& args){
+    if(args.size() != 2)
+      THROW_ERR('\''<<name<<" didn't receive 2 args!"
+        << format << FCN_ERR(name,args));
+    primitive_confirm_data_is_a_procedure(args[0],name,format,args);
+    if(!args[1].is_type(types::map))
+      THROW_ERR('\''<<name<<" 2nd arg "<<PROFILE(args[1])<<" isn't a hash-map!"
+        << format << FCN_ERR(name,args));
+  }
+
+  /******************************************************************************
   * PAIR PRIMITIVE HELPERS
   ******************************************************************************/
 
@@ -1139,7 +1204,7 @@ namespace heist {
     if constexpr (MAKING_A_LIST) {
       return make_sequence(iota_vals.begin(), iota_vals.end());
     } else {
-      return make_sequence(iota_vals);
+      return make_sequence(std::move(iota_vals));
     }
   }
 
@@ -1176,7 +1241,7 @@ namespace heist {
     return primitive_LIST_to_CONS_constructor(par_as_exp.rbegin(),par_as_exp.rend());
   }
 
-  template<typename SEQ_CPP_CTOR, typename SEQUENCE_PTR, typename SEQUENCE_CTOR>
+  template<typename SEQ_CPP_CTOR, typename SEQUENCE_CTOR, typename SEQUENCE_PTR>
   data primitive_reverse_STATIC_SEQUENCE_logic(data& d, SEQUENCE_PTR seq_ptr, 
                                                SEQUENCE_CTOR make_sequence)noexcept{
     return make_sequence(SEQ_CPP_CTOR((d.*seq_ptr)->rbegin(),(d.*seq_ptr)->rend()));
@@ -1755,8 +1820,8 @@ namespace heist {
     return n;
   }
 
-  template<data(*primitive_vector_logic)(scm_list&,decltype(make_vec),scm_list&,const char*,const char*),
-           data(*primitive_string_logic)(scm_string&,decltype(make_str),scm_list&,const char*,const char*),
+  template<data(*primitive_vector_logic)(scm_list&,vec_type(*)(scm_list&&),scm_list&,const char*,const char*),
+           data(*primitive_string_logic)(scm_string&,str_type(*)(scm_string&&),scm_list&,const char*,const char*),
            data(*primitive_list_logic)(scm_list&,decltype(primitive_LIST_to_CONS_constructor<scm_node>),scm_list&,const char*,const char*)>
   data primitive_take_drop_template(scm_list& args,const char* name,const char* format){
     if(args.size() != 2) 
@@ -1855,8 +1920,8 @@ namespace heist {
 
 
   // ************************ "take-while" "drop-while" "...-right-while" helper ************************
-  template<data(*primitive_vector_logic)(scm_list&,decltype(make_vec),scm_list&,env_type&),
-           data(*primitive_string_logic)(scm_string&,decltype(make_str),scm_list&,env_type&),
+  template<data(*primitive_vector_logic)(scm_list&,vec_type(*)(scm_list&&),scm_list&,env_type&),
+           data(*primitive_string_logic)(scm_string&,str_type(*)(scm_string&&),scm_list&,env_type&),
            data(*primitive_list_logic)(scm_list&,decltype(primitive_LIST_to_CONS_constructor<scm_node>),scm_list&,env_type&)>
   data primitive_take_drop_while_template(scm_list& args,const char* name,const char* format){
     auto env = args.rbegin()->env;

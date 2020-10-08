@@ -54,6 +54,7 @@
  * R4RS EXTENSIONS:
  *   - OPT-IN DYNAMIC SCOPING  ; call/ce & inline FUNCTION APPLICATIONS
  *   - OPT-IN CONTINUATIONS    ; "scm->cps" SPECIAL FORM W/ call/cc
+ *   - FIRST-CLASS HASH-MAPS   ; "hmap" PRIMITIVE & "$(" LITERAL PREFIX
  *   - NATIVE EVEN STREAMS     ; LISTS WITH DELAYED CAR & CDR
  *   - GENERIC ALGORITHMS      ; POLYMORPHIC ALGORITHM PRIMITIVES
  *   - SRFI PRIMITIVES         ; LIST, VECTOR, STRING, ETC.
@@ -68,6 +69,7 @@
  *   - STRING I/O              ; READ/WRITE COMPATIBILITY W/ STRINGS AS PORTS
  *   - RECURSIVE DEPTH CONTROL ; SET THE INTERPRETER'S MAX RECURSION DEPTH
  *   - VECTOR-LITERAL          ; LONG-HAND VARIANT OF THE #( PREFIX
+ *   - HMAP-LITERAL            ; LONG-HAND VARIANT OF THE $( PREFIX
  *   - AND MORE!
  */
 
@@ -119,6 +121,7 @@
  *         * scons            ; STREAM-PAIR CONSTRUCTION
  *         * stream           ; STREAM CONSTRUCTION
  *         * vector-literal   ; LONGHAND OF #( PREFIX
+ *         * hmap-literal     ; LONGHAND OF $( PREFIX
  *         * cps-quote        ; RETURNS DATA AS CPS-EXPANDED QUOTED LIST
  *         * scm->cps         ; SCOPED CPS TRANSFORMATION
  *
@@ -828,6 +831,17 @@ namespace heist {
            is_vector_literal(exp[1].exp);
   }
 
+  // Quoting a hash-map literal is a special case of quotation
+  bool is_hmap_literal(const scm_list& exp)noexcept{
+    return is_tagged_list(exp,symconst::map_literal);
+  }
+
+  // Confirm whether quoting a vector literal
+  bool quoting_an_hmap_literal(const scm_list& exp)noexcept{
+    return exp[1].is_type(types::exp) && !exp[1].exp.empty() && 
+           is_hmap_literal(exp[1].exp);
+  }
+
   // Returns whether data is the (.) symbol
   bool data_is_dot_operator(const data& d)noexcept{
     return d.is_type(types::sym) && d.sym == symconst::period;
@@ -869,25 +883,42 @@ namespace heist {
   }
 
 
-  // Analyzes the quote's vector literal & returns its execution procedure
-  exe_type analyze_quoted_vector_literal(scm_list& exp) {
+  // Analyzes the quote's vector/hmap literal & returns its execution procedure
+  template <bool IS_VECTOR_LITERAL>
+  exe_type analyze_quoted_vh_literal(scm_list& exp, const char* name) {
     scm_list args(exp.begin()+1,exp.end());
     if(is_quoted_cons(args, symconst::quote))
-      THROW_ERR("'vector-literal had an unexpected dot (.)! -- ANALYZE_QUOTED_VECTOR_LITERAL"
-        << EXP_ERR(exp));
+      THROW_ERR('\''<<name<<" had an unexpected dot (.)!"<<EXP_ERR(exp));
     // return an empty vector if given no args
-    if(no_args_given(args)) 
-      return [](env_type&){return scm_list(1,make_vec(scm_list()));};
+    if(no_args_given(args)) {
+      if constexpr (IS_VECTOR_LITERAL)
+        return [](env_type&){return scm_list(1,make_vec(scm_list()));};
+      else
+        return [](env_type&){return scm_list(1,make_map(map_data()));};
+    }
     // quote each item in the vector
-    scm_list vector_literal(args.size()+1);
-    vector_literal[0] = symconst::vector;
+    scm_list literal(args.size()+1);
+    if constexpr (IS_VECTOR_LITERAL) 
+      literal[0] = symconst::vector;
+    else
+      literal[0] = symconst::hmap;
     for(size_type i = 0, n = args.size(); i < n; ++i) {
-      vector_literal[i+1] = scm_list(2);
-      vector_literal[i+1].exp[0] = symconst::quote;
-      vector_literal[i+1].exp[1] = args[i];
+      literal[i+1] = scm_list(2);
+      literal[i+1].exp[0] = symconst::quote;
+      literal[i+1].exp[1] = args[i];
     }
     // return analyzed vector
-    return scm_analyze(std::move(vector_literal));
+    return scm_analyze(std::move(literal));
+  }
+
+
+  exe_type analyze_quoted_vector_literal(scm_list& exp) {
+    return analyze_quoted_vh_literal<true>(exp,"vector-literal");
+  }
+
+
+  exe_type analyze_quoted_hmap_literal(scm_list& exp) {
+    return analyze_quoted_vh_literal<false>(exp,"hmap-literal");
   }
 
 
@@ -897,8 +928,10 @@ namespace heist {
       THROW_ERR("'quote form expects one argument: (quote <quoted-data>)!"<<EXP_ERR(exp));
     
     // Quote vector literals as needed
-    if(quoting_a_vector_literal(exp))
-      return analyze_quoted_vector_literal(exp[1].exp);
+    if(quoting_a_vector_literal(exp)) return analyze_quoted_vector_literal(exp[1].exp);
+
+    // Quote hmap literals as needed
+    if(quoting_an_hmap_literal(exp)) return analyze_quoted_hmap_literal(exp[1].exp);
     
     // Get quoted data
     auto quoted_data = text_of_quotation(exp);
@@ -1696,16 +1729,23 @@ namespace heist {
   // Handle appending 'atomic' or 'list_star' data to a quasiquote expression
   scm_list quasiquote_append_non_list(scm_list& spliceable_data, scm_list& quote_val,
                                       const scm_list& exp,        const bool& is_dotted_list, 
-                                      const bool& quoting_vector, const bool& not_last_elt) {
+                                      const bool& quoting_vector, const bool& quoting_hmap, 
+                                      const bool& not_last_elt) {
     static constexpr const char * const bad_vector = 
       "'quasiquote can't append [via ,@] an improper list to a vector!\n     Tried to splice in: ";
+    static constexpr const char * const bad_hmap = 
+      "'quasiquote can't append [via ,@] an improper list to an hmap!\n     Tried to splice in: ";
     static constexpr const char * const mid_splice = 
       "'quasiquote can't splice [via ,@] an improper list into the middle of a list!\n     Tried to splice in: ";
     // confirm not splicing a list_star/atomic into a vector nor mid-list
-    if(quoting_vector && is_dotted_list)
-      THROW_ERR(bad_vector<<"(list_star "<<spliceable_data[0]<<' '<<spliceable_data[1]<<')'<<EXP_ERR(exp));
-    if(quoting_vector)
+    if(quoting_vector) {
+      if(is_dotted_list) THROW_ERR(bad_vector<<"(list_star "<<spliceable_data[0]<<' '<<spliceable_data[1]<<')'<<EXP_ERR(exp));
       THROW_ERR(bad_vector<<spliceable_data[0]<<" of type \""<<spliceable_data[0].type_name()<<'"'<<EXP_ERR(exp));
+    }
+    if(quoting_hmap) {
+      if(is_dotted_list) THROW_ERR(bad_hmap<<"(list_star "<<spliceable_data[0]<<' '<<spliceable_data[1]<<')'<<EXP_ERR(exp));
+      THROW_ERR(bad_hmap<<spliceable_data[0]<<" of type \""<<spliceable_data[0].type_name()<<'"'<<EXP_ERR(exp));
+    }
     if(not_last_elt && is_dotted_list)
       THROW_ERR(mid_splice<<"(list_star "<<spliceable_data[0]<<' '<<spliceable_data[1]<<')'<<EXP_ERR(exp));
     if(not_last_elt)
@@ -1726,16 +1766,23 @@ namespace heist {
   // Tag <quote_val> w/ 'vector 'list* or 'list as per <quoted_exp>
   void tag_quote_val(scm_list& quoted_exp, scm_list& quote_val, const scm_list& exp) {
     const bool is_vector      = is_vector_literal(quoted_exp);
+    const bool is_hmap        = is_hmap_literal(quoted_exp);
     const bool is_dotted_list = is_quoted_cons(quoted_exp,symconst::quasiquote);
-    if(is_vector && is_dotted_list) 
-      THROW_ERR("'quasiquote found unexpected dot (.) in 'vector-literal! -- ANALYZE_QUOTE_VECTOR"<<EXP_ERR(exp));
+    if(is_dotted_list && (is_hmap || is_vector)) {
+      if(is_vector) THROW_ERR("'quasiquote found unexpected dot (.) in 'vector-literal! -- ANALYZE_QUOTE_VECTOR"<<EXP_ERR(exp));
+      THROW_ERR("'quasiquote found unexpected dot (.) in 'hmap-literal! -- ANALYZE_QUOTE_HMAP"<<EXP_ERR(exp));
+    }
     if(is_vector) {
       quoted_exp.erase(quoted_exp.begin(),quoted_exp.begin()+1); // erase 'vector-literal tag
       quote_val.push_back(symconst::vector);
-    } else if(is_dotted_list)
+    } else if(is_hmap) {
+      quoted_exp.erase(quoted_exp.begin(),quoted_exp.begin()+1); // erase 'hmap-literal tag
+      quote_val.push_back(symconst::hmap);
+    } else if(is_dotted_list) {
       quote_val.push_back(symconst::list_star);
-    else
+    } else {
       quote_val.push_back(symconst::list);
+    }
   }
 
 
@@ -1743,8 +1790,9 @@ namespace heist {
   // Also quotes each piece of data as needed.
   void unquote_quasiquote_template(scm_list& quote_val, scm_list& quoted_exp, env_type& env, 
                                    const scm_list& exp, const size_type& nested_level){
-    // Account for whether splicing into a vector
+    // Account for whether splicing into a vector/hmap
     bool quoting_a_vector = (quote_val[0].sym == symconst::vector);
+    bool quoting_an_hmap  = (quote_val[0].sym == symconst::hmap);
     
     // Wrap 'quote' around each obj in the expression, and expand unquote/unquote-splicing instances
     for(size_type i = 0, n = quoted_exp.size(); i < n; ++i) {
@@ -1778,7 +1826,7 @@ namespace heist {
           // If splicing in a list_star or atom
           if(unsplice_stat == unsplice_status::list_star || unsplice_stat == unsplice_status::atom) {
             quote_val = quasiquote_append_non_list(spliceable_data, quote_val, exp,
-                        (unsplice_stat == unsplice_status::list_star), quoting_a_vector, (i != n-1));
+                        (unsplice_stat == unsplice_status::list_star), quoting_a_vector, quoting_an_hmap, (i != n-1));
             return;
           // Otherwise (splicing a list), splice in data as-is
           } else {
@@ -4205,6 +4253,7 @@ namespace heist {
     else if(is_letrec_syntax(exp))   return analyze_letrec_syntax(exp,tail_call,cps_block);
     else if(is_syntax_rules(exp))    return analyze_syntax_rules(exp);
     else if(is_vector_literal(exp))         THROW_ERR("Misplaced keyword 'vector-literal outside of a quotation! -- ANALYZE"   <<EXP_ERR(exp));
+    else if(is_hmap_literal(exp))           THROW_ERR("Misplaced keyword 'hmap-literal outside of a quotation! -- ANALYZE"     <<EXP_ERR(exp));
     else if(is_unquote(exp))                THROW_ERR("Misplaced keyword 'unquote outside of 'quasiquote ! -- ANALYZE"         <<EXP_ERR(exp));
     else if(is_unquote_splicing(exp))       THROW_ERR("Misplaced keyword 'unquote-splicing outside of 'quasiquote ! -- ANALYZE"<<EXP_ERR(exp));
     else if(is_application(exp))     return analyze_application(exp,tail_call,cps_block);

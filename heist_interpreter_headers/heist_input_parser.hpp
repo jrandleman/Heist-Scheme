@@ -301,27 +301,39 @@ namespace heist {
   * READER VECTOR LITERAL EXPANSION
   ******************************************************************************/
 
-  // Return whether input[i] is at a non-char start of a vector literal
-  bool is_vector_literal(const size_type& i, const scm_string& input) noexcept {
-    return (i+2<input.size() && input[i]=='#' && IS_OPEN_PAREN(input[i+1]) && 
+  template<char literal_prefix>
+  bool is_vector_or_hmap_literal(const size_type& i, const scm_string& input) noexcept {
+    return (i+2<input.size() && input[i]==literal_prefix && IS_OPEN_PAREN(input[i+1]) && 
            (i<2 || input[i-1]!='\\' || input[i-2]!='#'));
   }
 
   // #(<...>) => (vector-literal <...>)
-  void expand_vector_literals(scm_string& input) noexcept {
+  // $(<...>) => (hmap-literal <...>)
+  template<char literal_prefix,size_type prefix_expansion_length>
+  void expand_vector_or_hmap_literals(scm_string& input, const char* prefix_expansion) noexcept {
     for(size_type i = 0; i < input.size(); ++i) {
       // dont expand vector literals w/in strings
       if(is_non_escaped_double_quote(i,input)) {
         skip_string_literal(i,input); 
         continue;
       }
-      // if at # in a non-char #( (IE _NOT_ at the # in #\#)
-      if(is_vector_literal(i,input)) {
-        input.erase(i,1);                     // erase #
-        input.insert(i+1, "vector-literal "); // splice in "vector-literal " after (
-        i += 15;                              // mv past "(vector-literal"
+      // if at <literal_prefix> in a non-char <literal_prefix>( (IE _NOT_ at the <literal_prefix> in #\<literal_prefix>)
+      if(is_vector_or_hmap_literal<literal_prefix>(i,input)) {
+        input.erase(i,1);                    // erase <literal_prefix>
+        input.insert(i+1, prefix_expansion); // splice in <prefix_expansion> after (
+        i += prefix_expansion_length;        // mv past "(<prefix_expansion>"
       }
     }
+  }
+
+  // #(<...>) => (vector-literal <...>)
+  void expand_vector_literals(scm_string& input) noexcept {
+    return expand_vector_or_hmap_literals<'#',sizeof("vector-literal ")-1>(input,"vector-literal ");
+  }
+
+  // $(<...>) => (hmap-literal <...>)
+  void expand_hmap_literals(scm_string& input) noexcept {
+    return expand_vector_or_hmap_literals<'$',sizeof("hmap-literal ")-1>(input,"hmap-literal ");
   }
 
   /******************************************************************************
@@ -473,6 +485,7 @@ namespace heist {
     strip_comments_and_redundant_whitespace(input);
     if(!G::USING_CASE_SENSITIVE_SYMBOLS) render_input_cAsE_iNsEnSiTiVe(input);
     expand_vector_literals(input);         // #(<exp>) => (vector-literal <exp>)
+    expand_hmap_literals(input);           // $(<exp>) => (hmap-literal <exp>)
     expand_reader_macro_shorthands(input); // '<exp>   => (quote <exp>)
     return true;
   }

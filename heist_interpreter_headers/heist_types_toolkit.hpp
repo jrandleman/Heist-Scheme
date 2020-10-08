@@ -332,6 +332,23 @@ namespace heist {
   }
 
   /******************************************************************************
+  * HASH-TABLE PRINTING HELPER FUNCTIONS
+  ******************************************************************************/
+
+  // Stringify hash-map
+  template<DATA_PRINTER to_str>
+  scm_string cio_hmap_str(const map_type& map_object)noexcept{
+    scm_string map_str("$(");
+    for(const auto& keyval : map_object->val)
+      map_str += (map_data::unhash_key(keyval.first).*to_str)() + ' ' + (keyval.second.*to_str)() + ' ';
+    if(map_str.size() > 2)
+      *map_str.rbegin() = ')';
+    else
+      map_str.push_back(')');
+    return map_str;
+  }
+
+  /******************************************************************************
   * PRETTY PRINTING HELPER FUNCTIONS
   ******************************************************************************/
 
@@ -517,6 +534,7 @@ namespace heist {
       case types::str: return *v1.str == *v2.str;
       case types::sym: return v1.sym == v2.sym;
       case types::bol: return v1.bol.val == v2.bol.val;
+      case types::map: return v1.map == v2.map;
       case types::par: return v1.par == v2.par;
       case types::vec: return v1.vec == v2.vec;
       case types::prm: return v1.prm == v2.prm;
@@ -538,16 +556,15 @@ namespace heist {
     for(size_type i = 0, n = l1.size(); i < n; ++i) {
       if(l1[i].type != l2[i].type) return false; // compare types
       if(l1[i].is_type(types::exp)) {            // compare sub-lists
-        if(!prm_compare_EXPRs(l1[i].exp,l2[i].exp))
-          return false;
+        if(!prm_compare_EXPRs(l1[i].exp,l2[i].exp)) return false;
       } else if(l1[i].is_type(types::par)) {
-        if(!prm_compare_PAIRs(l1[i].par,l2[i].par))
-          return false;
+        if(!prm_compare_PAIRs(l1[i].par,l2[i].par)) return false;
       } else if(l1[i].is_type(types::vec)) {
-        if(!prm_compare_VECTs(l1[i].vec,l2[i].vec))
-          return false;
+        if(!prm_compare_VECTs(l1[i].vec,l2[i].vec)) return false;
+      } else if(l1[i].is_type(types::map)) {
+        if(!prm_compare_HMAPs(l1[i].map,l2[i].map)) return false;
       } else if(!prm_compare_atomic_values(l1[i],l2[i],l1[i].type))
-        return false;                            // compare values
+        return false; // compare values
     }
     return true;
   }
@@ -565,6 +582,8 @@ namespace heist {
       if(!prm_compare_PAIRs(p1_car.par, p2_car.par)) return false;
     } else if(p1_car.is_type(types::vec)) {
       if(!prm_compare_VECTs(p1_car.vec, p2_car.vec)) return false;
+    } else if(p1_car.is_type(types::map)) {
+      if(!prm_compare_HMAPs(p1_car.map, p2_car.map)) return false;
     } else if(!prm_compare_atomic_values(p1_car, p2_car, p1_car.type)) return false;
     // Compare cdrs
     if(p1_cdr.is_type(types::exp)) {
@@ -573,6 +592,8 @@ namespace heist {
       if(!prm_compare_PAIRs(p1_cdr.par, p2_cdr.par)) return false;
     } else if(p1_cdr.is_type(types::vec)) {
       if(!prm_compare_VECTs(p1_cdr.vec, p2_cdr.vec)) return false;
+    } else if(p1_cdr.is_type(types::map)) {
+      if(!prm_compare_HMAPs(p1_cdr.map, p2_cdr.map)) return false;
     } else if(!prm_compare_atomic_values(p1_cdr, p2_cdr, p1_cdr.type)) return false;
     return true;
   }
@@ -599,6 +620,22 @@ namespace heist {
       if(!prm_compare_EXPRs(s1.patterns[i], s2.patterns[i])) return false;
     for(size_type i = 0, n = s1.templates.size(); i < n; ++i)
       if(!prm_compare_EXPRs(s1.templates[i], s2.templates[i])) return false;
+    return true;
+  }
+
+
+  bool prm_compare_HMAPs(const map_type& m1, const map_type& m2)noexcept{
+    if(m1->val.size() != m2->val.size()) return false;
+    for(auto p1=m1->val.begin(), end=m1->val.end(), p2=m2->val.begin(); p1 != end; ++p1, ++p2){
+      if(p1->first != p2->first) return false;
+      if(p1->second.type != p2->second.type) return false;
+      switch(p1->second.type) {
+        case types::par: if(!prm_compare_PAIRs(p1->second.par,p2->second.par)) return false; break;
+        case types::vec: if(!prm_compare_VECTs(p1->second.vec,p2->second.vec)) return false; break;
+        case types::map: if(!prm_compare_HMAPs(p1->second.map,p2->second.map)) return false; break;
+        default: if(!prm_compare_atomic_values(p1->second,p2->second,p1->second.type)) return false;
+      }
+    }
     return true;
   }
 } // End of namespace heist

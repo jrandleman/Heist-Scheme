@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <functional>
 #include <tuple>
+#include <unordered_map>
 #include <vector>
 #include "heist_numerics.hpp"
 #include "heist_garbage_collector.hpp"
@@ -168,6 +169,7 @@ namespace heist {
     constexpr const char * const stream            = "stream";
     constexpr const char * const scons             = "scons";
     constexpr const char * const vec_literal       = "vector-literal";
+    constexpr const char * const map_literal       = "hmap-literal";
     constexpr const char * const delay             = "delay";
     constexpr const char * const quote             = "quote";
     constexpr const char * const quasiquote        = "quasiquote";
@@ -203,6 +205,7 @@ namespace heist {
     constexpr const char * const list              = "list";
     constexpr const char * const list_star         = "list*";
     constexpr const char * const vector            = "vector";
+    constexpr const char * const hmap              = "hmap";
   } // End namespace symconst
 
   /******************************************************************************
@@ -242,6 +245,7 @@ namespace heist {
   using fip_type = struct iport;                       // file input port
   using fop_type = struct oport;                       // file output port
   using syn_type = struct scm_macro;                   // syntax-rules object
+  using map_type = tgc_ptr<struct map_data>;           // hash-map
 
   /******************************************************************************
   * GLOBAL ENVIRONMENT POINTER
@@ -260,6 +264,8 @@ namespace heist {
   scm_string cio_vect_str(const vec_type& vector_object) noexcept; // to print vectors
   template<DATA_PRINTER to_str>
   scm_string cio_expr_str(const exp_type& exp_object)    noexcept; // to print expressions
+  template<DATA_PRINTER to_str>
+  scm_string cio_hmap_str(const map_type& map_object)    noexcept; // to print hash-maps
   scm_string escape_chars(const scm_string& str)         noexcept; // to escape string special characters
   scm_string pretty_print(const data& d)                 noexcept; // pretty-printer
 
@@ -271,6 +277,7 @@ namespace heist {
   bool prm_compare_PAIRs(const par_type& p1, const par_type& p2)noexcept;
   bool prm_compare_VECTs(const vec_type& v1, const vec_type& v2)noexcept;
   bool prm_compare_EXPRs(const scm_list& l1, const scm_list& l2)noexcept;
+  bool prm_compare_HMAPs(const map_type& m1, const map_type& m2)noexcept;
 
   /******************************************************************************
   * DATA TYPE STRUCTS
@@ -278,8 +285,8 @@ namespace heist {
 
   // enum of "struct data" types
   // => expression, pair, number, string, character, symbol, vector, boolean, environment, delay, primitive fcn ptr, 
-  //    execution procedure, recursive call counter, input port, output port, does-not-exist, syntax-rules, undefined value
-  enum class types {exp=1, par, num, str, chr, sym, vec, bol, env, del, prm, exe, cal, fip, fop, dne, syn, undefined};
+  //    execution procedure, recursive call counter, input port, output port, does-not-exist, syntax-rules, hash-map, undefined value
+  enum class types {exp=1, par, num, str, chr, sym, vec, bol, env, del, prm, exe, cal, fip, fop, dne, syn, map, undefined};
 
   // boolean struct (differentiates from 'chr_type')
   struct boolean {
@@ -375,6 +382,7 @@ namespace heist {
       fip_type fip; // file input port
       fop_type fop; // file output port
       syn_type syn; // syntax-rules object
+      map_type map; // hash-map smrt ptr
     };
 
     // check whether data is of a type
@@ -401,6 +409,7 @@ namespace heist {
           case types::fip: fip = d.fip; return;
           case types::fop: fop = d.fop; return;
           case types::syn: syn = d.syn; return;
+          case types::map: map = d.map; return;
           default:                      return;
         }
       } else {
@@ -422,6 +431,7 @@ namespace heist {
           case types::fip: new (this) data(d.fip); return;
           case types::fop: new (this) data(d.fop); return;
           case types::syn: new (this) data(d.syn); return;
+          case types::map: new (this) data(d.map); return;
           case types::dne: new (this) data(d.type);return;
           default:         new (this) data();      return; // types::undefined
         }
@@ -449,6 +459,7 @@ namespace heist {
           case types::fip: fip = std::move(d.fip); return;
           case types::fop: fop = std::move(d.fop); return;
           case types::syn: syn = std::move(d.syn); return;
+          case types::map: map = std::move(d.map); return;
           default:                                 return;
         }
       } else {
@@ -470,6 +481,7 @@ namespace heist {
           case types::fip: new (this) data(std::move(d.fip)); return;
           case types::fop: new (this) data(std::move(d.fop)); return;
           case types::syn: new (this) data(std::move(d.syn)); return;
+          case types::map: new (this) data(std::move(d.map)); return;
           case types::dne: new (this) data(std::move(d.type));return;
           default:         new (this) data();                 return; // types::undefined
         }
@@ -507,6 +519,7 @@ namespace heist {
         case types::par: return cio_list_str<&data::write>(*this);
         case types::vec: return cio_vect_str<&data::write>(vec);
         case types::exp: return cio_expr_str<&data::write>(exp);
+        case types::map: return cio_hmap_str<&data::write>(map);
         case types::num: return num.str();
         case types::str: return '"' + escape_chars(*str) + '"';
         case types::bol: if(bol.val) return "#t"; return "#f";
@@ -530,6 +543,7 @@ namespace heist {
         case types::par: return cio_list_str<&data::display>(*this);
         case types::vec: return cio_vect_str<&data::display>(vec);
         case types::exp: return cio_expr_str<&data::display>(exp);
+        case types::map: return cio_hmap_str<&data::display>(map);
         default:         return write();
       }
     }
@@ -539,6 +553,7 @@ namespace heist {
         case types::par: return pretty_print(*this);
         case types::vec: return cio_vect_str<&data::pprint>(vec);
         case types::exp: return cio_expr_str<&data::pprint>(exp);
+        case types::map: return cio_hmap_str<&data::pprint>(map);
         default:         return write();
       }
     }
@@ -554,7 +569,7 @@ namespace heist {
       constexpr const char* const type_names[] = {
         "null", "expression", "pair", "number", "string", "character", "symbol", "vector",
         "boolean", "environment", "delay", "primitive-function-pointer", "execution-procedure", 
-        "recursive-call-count", "input-port", "output-port", "void", "syntax-rules", 
+        "recursive-call-count", "input-port", "output-port", "void", "syntax-rules", "hash-map",
         "undefined"
       };
       return type_names[int(type) * (type!=types::sym || sym[0])]; // idx 0 for '() typename
@@ -577,6 +592,7 @@ namespace heist {
         case types::exp: return prm_compare_EXPRs(exp,d.exp);
         case types::par: return prm_compare_PAIRs(par,d.par);
         case types::vec: return prm_compare_VECTs(vec,d.vec);
+        case types::map: return prm_compare_HMAPs(map,d.map);
         default: return prm_compare_atomic_values(*this,d,type);
       }
     }
@@ -586,7 +602,8 @@ namespace heist {
         case types::num: case types::str: case types::chr: 
         case types::par: case types::vec: case types::bol:
         case types::syn: case types::dne: case types::fip: 
-        case types::fop: case types::del: case types::undefined: return true;
+        case types::fop: case types::del: case types::map: 
+        case types::undefined: return true;
         default: return false;
       }
     }
@@ -611,6 +628,7 @@ namespace heist {
     data(const fip_type& new_value) noexcept : type(types::fip), fip(new_value) {}
     data(const fop_type& new_value) noexcept : type(types::fop), fop(new_value) {}
     data(const syn_type& new_value) noexcept : type(types::syn), syn(new_value) {}
+    data(const map_type& new_value) noexcept : type(types::map), map(new_value) {}
 
     data(par_type&& new_value) noexcept : type(types::par), par(std::move(new_value)) {}
     data(str_type&& new_value) noexcept : type(types::str), str(std::move(new_value)) {}
@@ -628,6 +646,7 @@ namespace heist {
     data(num_type&& new_value) noexcept : type(types::num), num(std::move(new_value)) {}
     data(exp_type&& new_value) noexcept : type(types::exp), exp(std::move(new_value)) {}
     data(chr_type&& new_value) noexcept : type(types::chr), chr(std::move(new_value)) {}
+    data(map_type&& new_value) noexcept : type(types::map), map(std::move(new_value)) {}
 
     data(const types& t) noexcept : type(t) {} // to set 'dne
     data(types&& t)      noexcept : type(t) {} // to set 'dne
@@ -647,6 +666,7 @@ namespace heist {
         case types::cal: cal.~cal_type(); return;
         case types::exe: exe.~exe_type(); return;
         case types::syn: syn.~syn_type(); return;
+        case types::map: map.~map_type(); return;
         default:                          return;
       }
     }
@@ -674,16 +694,48 @@ namespace heist {
     ~delay_data()                   noexcept {}
   };
 
+  // hash-map structure
+  struct map_data {
+    std::unordered_map<sym_type,struct data> val;
+    static bool hashable(const data& key)noexcept{
+      return key.type==types::num||key.type==types::str||key.type==types::chr||
+             key.type==types::sym||key.type==types::bol;
+    }
+    static data unhash_key(sym_type key)noexcept{ // unhash a key back into a datum
+      types t = types(*key.rbegin());
+      key.pop_back();
+      switch(t) {
+        case types::sym: return key;
+        case types::num: return num_type(key);
+        case types::str: return str_type(key);
+        case types::bol: return boolean(key[1] == 't');
+        case types::chr: return key[0];
+        default:  return data();
+      }
+    }
+    static sym_type hash_key(const data& key)noexcept{
+      return key.display()+char(key.type);
+    }
+    auto& operator[](const data& key)noexcept{ // PRECONDITION: hashable(key)
+      return val[hash_key(key)];
+    }
+  };
+
   /******************************************************************************
   * DATA TYPE GC CONSTRUCTORS
   ******************************************************************************/
 
   frame_ptr make_frame(const frame_t& o)                noexcept{return frame_ptr(o);}
+  frame_ptr make_frame(frame_t&& o)                     noexcept{return frame_ptr(std::move(o));}
   str_type make_str(const scm_string& o)                noexcept{return str_type(o);}
+  str_type make_str(scm_string&& o)                     noexcept{return str_type(std::move(o));}
   vec_type make_vec(const scm_list& o)                  noexcept{return vec_type(o);}
+  vec_type make_vec(scm_list&& o)                       noexcept{return vec_type(std::move(o));}
   del_type make_del(const scm_list& l,const env_type& e)noexcept{return del_type(delay_data(l,e));}
   cal_type make_cal(const size_type& o)                 noexcept{return cal_type(o);}
   par_type make_par()                                   noexcept{return par_type(scm_pair());}
+  map_type make_map(const map_data& m)                  noexcept{return map_type(map_data(m));}
+  map_type make_map(map_data&& m)                       noexcept{return map_type(map_data(std::move(m)));}
   env_type make_env()                                   noexcept{return env_type(environment());}
 
 } // End of namespace heist
