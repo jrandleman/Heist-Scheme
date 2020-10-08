@@ -1931,8 +1931,8 @@ Other primitives of this nature include:<br>
 ## Type Coercion:
 0. __Char to Integer__: `(char->int <char>)`
 
-1. __Integer to Char__: `<int>` must be in range of [0,255]
-   * `(int->char <int>)`
+1. __Integer to Char__: `(int->char <int>)`
+   * `<int>` must be in range of [0,255]!
 
 2. __Number to String__: `(number->string <number> <optional-radix> <optional-precision>)`
 
