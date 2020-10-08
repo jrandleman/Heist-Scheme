@@ -1700,11 +1700,11 @@ Other primitives of this nature include:<br>
 
 12. __Iterate Over Key-Value Pairs__: `(hmap-for-each <procedure> <hash-map>)` 
 
-13. __Iterate Over Keys Pairs__: `(hmap-for-each-key <procedure> <hash-map>)` 
+13. __Iterate Over Keys__: `(hmap-for-each-key <procedure> <hash-map>)` 
 
-14. __Iterate Over Values Pairs__: `(hmap-for-each-val <procedure> <hash-map>)` 
+14. __Iterate Over Values__: `(hmap-for-each-val <procedure> <hash-map>)` 
 
-15. __Map Procedure Over Values into a New Hash-Map__: `(hmap-map <procedure> <hash-map>)`
+15. __Map Procedure Over Values Making a New Hash-Map__: `(hmap-map <procedure> <hash-map>)`
 
 16. __Mutative Map Procedure Over Values__: `(hmap-map! <procedure> <hash-map>)`
 
