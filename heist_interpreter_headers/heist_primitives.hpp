@@ -1209,12 +1209,12 @@ namespace heist {
   data primitive_HMAP(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (hmap <key1> <val1> <key2> <val2> ...)" HEIST_HASH_MAP_KEY_FORMAT;
+    if(args.empty()) return make_map(map_data());
     if(args.size() & 1) 
-      THROW_ERR("'hmap recieved uneven # of args!"
-        << format << FCN_ERR("hmap", args));
+      THROW_ERR("'hmap recieved uneven # of args!"<<format<<FCN_ERR("hmap",args));
     map_data hmap;
     // verify all keys are hashable
-    for(size_type i = 0, n = args.size(); i < n; i += 2) {
+    for(size_type i = args.size()-2; i != G::MAX_SIZE_TYPE-1; i -= 2) {
       if(!map_data::hashable(args[i]))
         THROW_ERR("'hmap key " << PROFILE(args[i]) << " isn't hashable!"
           << format << FCN_ERR("hmap", args));
