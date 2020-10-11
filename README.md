@@ -1281,7 +1281,7 @@ Other primitives of this nature include:<br>
 ## OOP Reflection Primitives:
 ### Object Primitives:
 0. __Functional Property Access__: `(.. <object> <property-symbol-1> ...)`
-   * IE `person.sibling.age` ::= `(.. person 'sibling 'age)`
+   * IE `person.sibling.age` = `(.. person 'sibling 'age)`
 
 1. __Class Name__: `(object-class-name <object>)`
 
