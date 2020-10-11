@@ -27,7 +27,7 @@
 5. [Opt-In Continuations](#Scm-Cps)
 6. [Native Even Streams](#Stream-Primitives) (Lists w/ Delayed Car & Cdr)
 7. [Generic Algorithms](#Generic-Sequence-ListVectorString-Algorithmic-Procedures) (Polymorphic Algorithm Primitives)
-8. SRFI Primitives (List, Vector, String, etc.)
+8. [SRFI Primitives](#String-Procedures) (List, Vector, String, etc.)
 9. [Eval](#evalapply--symbol-append) (Evaluate Symbolic Data as Code)
 10. [String I/O](#Output-Procedures) (Read/Write Compatibility w/ Strings as Ports)
 11. [Recursive Depth Control](#Interpreter-Invariants-Manipulation)
