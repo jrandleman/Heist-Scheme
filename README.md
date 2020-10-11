@@ -19,7 +19,7 @@
 
 ------------------------
 # Features:
-0. Tail-Call Optimization
+0. [Tail-Call Optimization](#quick-overview)
 1. [Unhygienic & Reader Macros](#Heist-Macro-System-Procedures-vs-Macros)
 2. [OOP Support](#Defclass)
 3. [First-Class Hash-Maps](#Hash-Map-Procedures)
@@ -31,7 +31,7 @@
 9. [Eval](#evalapply--symbol-append) (Evaluate Symbolic Data as Code)
 10. [String I/O](#Output-Procedures) (Read/Write Compatibility w/ Strings as Ports)
 11. [Recursive Depth Control](#Interpreter-Invariants-Manipulation)
-12. And More!
+12. [A](#Curry)[n](#Tlambda)[d](#Control-Flow-Procedures) [M](#Gensym)[o](#JSON-Interop)[r](#compose--bind)[e](#System-Interface-Procedures)[!](#Syntax-Procedures)
 
 ------------------------ 
 # Table of Contents
