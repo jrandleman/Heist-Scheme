@@ -19,8 +19,8 @@
 
 ------------------------
 # Features:
-0. [Unhygienic & Reader Macros](#Heist-Macro-System-Procedures-vs-Macros)
-1. Tail-Call Optimization
+0. Tail-Call Optimization
+1. [Unhygienic & Reader Macros](#Heist-Macro-System-Procedures-vs-Macros)
 2. [OOP Support](#Defclass)
 3. [First-Class Hash-Maps](#Hash-Map-Procedures)
 4. [Opt-In Dynamic Scoping](#control-flow-procedures)
