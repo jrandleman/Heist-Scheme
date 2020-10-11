@@ -52,6 +52,7 @@
  * CHARS: USE ASCII ENCODING
  *
  * R4RS EXTENSIONS:
+ *   - OBJECT SYSTEM           ; defclass
  *   - OPT-IN DYNAMIC SCOPING  ; call/ce & inline FUNCTION APPLICATIONS
  *   - OPT-IN CONTINUATIONS    ; "scm->cps" SPECIAL FORM W/ call/cc
  *   - FIRST-CLASS HASH-MAPS   ; "hmap" PRIMITIVE & "$(" LITERAL PREFIX
@@ -120,6 +121,7 @@
  *         * do               ; ITERATION CONSTRUCT ('LOOP' MECHANISM)
  *         * scons            ; STREAM-PAIR CONSTRUCTION
  *         * stream           ; STREAM CONSTRUCTION
+ *         * defclass         ; CLASS PROTOTYPE DEFINITION
  *         * vector-literal   ; LONGHAND OF #( PREFIX
  *         * hmap-literal     ; LONGHAND OF $( PREFIX
  *         * cps-quote        ; RETURNS DATA AS CPS-EXPANDED QUOTED LIST
