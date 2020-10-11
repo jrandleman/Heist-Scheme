@@ -21,16 +21,17 @@
 # Features:
 0. Unhygienic & Reader Macros
 1. Tail-Call Optimization
-2. First-Class Hash-Maps (see [`hmap`](#Hash-Map-Procedures) & [`$`](#Hmap-Literal))
-3. Opt-In Dynamic Scoping (see the [`call/ce`](#control-flow-procedures) & [`inline`](#control-flow-procedures) application primitives)
-4. Opt-In Continuations & [`call/cc`](#Scm-Cps-Procedures) (see [`scm->cps`](#Scm-Cps))
-5. Native Even Streams (Lists w/ Delayed Car & Cdr)
-6. Generic Algorithms (Polymorphic Algorithm Primitives)
-7. SRFI Primitives (List, Vector, String, etc.)
-8. Eval (Evaluate Symbolic Data as Code)
-9. String I/O (Read/Write Compatibility w/ Strings as Ports)
-10. Recursive Depth Control
-11. And More!
+2. OOP Support
+3. First-Class Hash-Maps (see [`hmap`](#Hash-Map-Procedures) & [`$`](#Hmap-Literal))
+4. Opt-In Dynamic Scoping (see the [`call/ce`](#control-flow-procedures) & [`inline`](#control-flow-procedures) application primitives)
+5. Opt-In Continuations & [`call/cc`](#Scm-Cps-Procedures) (see [`scm->cps`](#Scm-Cps))
+6. Native Even Streams (Lists w/ Delayed Car & Cdr)
+7. Generic Algorithms (Polymorphic Algorithm Primitives)
+8. SRFI Primitives (List, Vector, String, etc.)
+9. Eval (Evaluate Symbolic Data as Code)
+10. String I/O (Read/Write Compatibility w/ Strings as Ports)
+11. Recursive Depth Control
+12. And More!
 
 ------------------------ 
 # Table of Contents
@@ -75,11 +76,15 @@
    - [Core-Syntax](#Core-Syntax)
    - [Cps-Quote](#Cps-Quote)
    - [Scm->Cps](#Scm-Cps)
+   - [Defclass](#Defclass)
    - [Defstruct](#Defstruct)
    - [Curry](#Curry)
    - [Tlambda](#Tlambda)
 8. [Heist Primitive Variables](#Heist-Primitive-Variables)
 9. [Heist Primitive Procedures](#Heist-Primitive-Procedures)
+   - [OOP Reflection Primitives](#OOP-Reflection-Primitives)
+     * [Object Primitives](#Object-Primitives)
+     * [Prototype Primitives](#Prototype-Primitives)
    - [Stream Primitives](#Stream-Primitives)
    - [Numeric Primitives](#Numeric-Primitives)
      * [General](#General)
@@ -107,7 +112,8 @@
      * [General](#General-3)
      * [Sorting Procedures](#Sorting-Procedures)
    - [Type Predicates](#Type-Predicates)
-   - [Eval/Apply, Symbol-Append, & Typeof](#evalapply-symbol-append--typeof)
+   - [Eval/Apply & Symbol-Append](#evalapply--symbol-append)
+   - [Typeof & Deep-Copying](#typeof--deep-copying)
    - [Compose & Bind](#compose--bind)
    - [Delay Predicate & Force](#Delay-Predicate--Force)
    - [Type Coercion](#Type-Coercion)
@@ -152,19 +158,19 @@
 ## Metaprogramming Advantages:
 * Code is data (parentheses construct an Abstract Syntax Tree)
   - Hence Macro System enables direct manipulation of the AST
-  - Quotation ([`quote`](#Quotation)) Converts Code to Data, Eval ([`eval`](#evalapply-symbol-append--typeof)) Converts Data to Code
+  - Quotation ([`quote`](#Quotation)) Converts Code to Data, Eval ([`eval`](#evalapply-symbol-append)) Converts Data to Code
   - Reader ([`read`](#Input-Procedures)) takes input and parses it into a quoted list of symbolic data
-    * Hence [`read`](#Input-Procedures) and [`eval`](#evalapply-symbol-append--typeof) may be combined for a custom repl!
+    * Hence [`read`](#Input-Procedures) and [`eval`](#evalapply-symbol-append) may be combined for a custom repl!
 
 ## Notation:
 * Function (or "procedure") calls are denoted by parens:
   - in C++: `myFunc(0,'a',"hello")`
   - in Heist Scheme: `(myFunc 0 #\a "hello")`
-* _Nearly_ every character can be used in a variable name!
+* _Nearly_ every character (except `.`) can be used in a variable name!
   - Unless, of course, the combination could be interpreted as a<br>
     primitive data type (ie `1000` is an invalid variable name)
-  - Hence can do things like name a factorial function `!` as if
-    it were a primitive!
+  - Hence can do things like name a factorial function `!` as if it were a primitive!
+  - This excludes `.` though, given it denotes property access for [objects](#Defclass)
 
 ## Namespacing:
 * Lisp 1: variables & procedures share a single namespace
@@ -350,7 +356,7 @@ may ___only___ be validly used in the scope of a [`scm->cps`](#scm-cps) block __
 Other primitives of this nature include:<br>
 
 0. [`load`](#system-interface-procedures) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-load`](#system-interface-procedures)
-1. [`eval`](#evalapply-symbol-append--typeof) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-eval`](#evalapply-symbol-append--typeof)
+1. [`eval`](#evalapply-symbol-append) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-eval`](#evalapply-symbol-append)
 2. [`compile`](#system-interface-procedures) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-compile`](#system-interface-procedures)
 3. Bind `id` as the continuation of a procedure: [`cps->scm`](#scm-cps-procedures)
    * for passing a procedure defined in a [`scm->cps`](#scm-cps) block as an argument<br>
@@ -948,11 +954,36 @@ Other primitives of this nature include:<br>
   - _Note: Form is as if [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax) and [`syntax-rules`](#syntax-rules) were merged!_
 
 #### Analysis-Time Advantanges:
-* Interpreter's [`eval`](#evalapply-symbol-append--typeof) seperates expression analysis (declaration) & execution (invocation):
+* Interpreter's [`eval`](#evalapply-symbol-append) seperates expression analysis (declaration) & execution (invocation):
   - [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax) macros, bound to an environment, dynamically expand at **run-time**
     * _Hence **run-time** macros in a [`lambda`](#lambda) body are re-expanded **upon every invocation!**_
   - [`core-syntax`](#core-syntax) macros, only bound to the **global environment**, expand at **analysis-time**
     * _Hence **analysis-time** macros in a [`lambda`](#lambda) body expand **in the [`lambda`](#lambda) declaration only once!**_
+
+### Example Demostrating Subtlety of Analysis-Time vs Run-Time:
+```scheme
+
+;; Note how the below core-syntax is registered w/o calling the lambda
+;; => This is because core-syntax evaluates at analysis time, and calls
+;;    are at run-time!
+
+(lambda ()
+  (core-syntax mac1 () ; PROCESSED INTO GLOBAL SCOPE AT ANALYSIS-TIME
+    ((_) 99)))
+(display (mac1)) ; VALID CALL: 99
+
+
+
+;; Meanwhile the define-syntax is only invoked at runtime, and hence is 
+;;   never registered below (& even if it were, it'd be bound to the lambda's
+;;   local scope)
+
+(lambda ()
+  (define-syntax mac2 
+    (syntax-rules () ; PROCESSED INTO LOCAL SCOPE AT RUN-TIME
+      ((_) 99))))
+(display (mac2)) ; ERROR: <mac2> NOT DEFINED
+```
 
 
 ------------------------
@@ -969,7 +1000,7 @@ Other primitives of this nature include:<br>
 
 #### Use: ___Convert Code to CPS & Evaluate the Result!___
 * _Hence returns an unary procedure, accepting the "topmost" continuation!_
-* _Enables use of [`call/cc`](#scm-cps-procedures), [`cps-eval`](#evalapply-symbol-append--typeof), [`cps-load`](#system-interface-procedures), & [`cps->scm`](#scm-cps-procedures) primitives!_
+* _Enables use of [`call/cc`](#scm-cps-procedures), [`cps-eval`](#evalapply-symbol-append), [`cps-load`](#system-interface-procedures), & [`cps->scm`](#scm-cps-procedures) primitives!_
 * _Automatically wraps entire program (& passed [`id`](#general-3)) if [`-cps`](#Heist-Command-Line-Flags) cmd-line flag used!_
 * _Enables opt-in continuations for their benefits w/o their overhead when unused!_
   - _Optimizes the cps transformation as well for reasonable speed!_
@@ -1042,22 +1073,88 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
+## Defclass:
+
+#### Use: ___Define Class Prototypes for Object-Oriented Programming!___
+* _`Defclass` creates a class prototype (think JavaScript) from which Objects are made!_
+
+#### Form:
+```
+     (defclass <class-name> (<inheritance-list>) <member-or-method-instances>)
+     => <member-or-method-instance> ::= (<member-name> <default-value>)
+                                      | ((<method-name> <arg1> <arg2> ...) <body> ...)
+                                      | ((make-<class-name> <arg> ...) <body> ...) ; ctor!
+```
+
+#### Inheritance Prototype List:
+0. Leftmost Precedence: if inherited prototypes share members with names,<br>
+   the leftmost inherited prototype has precedence!
+1. Dynamically inherit prototypes via the [`proto-inherit`](#Prototype-Primitives) & [`proto-priority-inherit`](#Prototype-Primitives) primitives!
+   - Can also [dynamically add properties to prototypes](#Prototype-Primitives), which existing objects get access to!
+
+#### Constructor:
+0. User-defined `make-<class-name>` ctor is optional, if undefined will be generated
+   - Generated ctor is either nullary or accepts a member name-value [`hash-map`](#Hash-Map-Procedures)!
+   - Default ctor is always available via `default:make-<class-name>`
+1. Default values from class-prototypes are [`deep-copied`](#typeof--deep-copying) to objects upon construction
+
+#### Generated Predicate & Setters:
+0. Class Object Predicate `(<class-name>? <obj>)` is generated by default
+1. Object member-setter methods are generated by default:
+   - IE if there's a member named `value`, a method called `set-value!` is generated
+
+#### Method Access to Object Members:
+0. Like C++, `this` is implicitly passed as a method argument upon invocation
+1. Unlike C++, object members ___must___ be referenced via `this.<member>` in methods
+   - Enables methods to also reference external variables with members' names
+
+#### Value Semantics & Property Access:
+0. Passed by reference (as are [strings](#String-Procedures), [pairs](#ListPair-Procedures), [vectors](#Vector-Procedures), and [hash-maps](#Hash-Map-Procedures))
+   - May be deep-copied via the [`copy`](#typeof--deep-copying) primitive
+1. Traditional OOP Access, Member: `person.name`, Method: `(person.greet <friend's name>)`
+   - Functional [`..`](#Object-Primitives) Access: `(.. person 'name)` & `((.. person 'greet) <friend's name>)`
+   - [Reader](#Input-Procedures) evals property chains as 1 symbol, which are parsed by the core evaluator!
+
+#### Example:
+```scheme
+(defclass node ()
+  (left '())
+  (right '())
+  (val 0)
+  ((leaf?)
+    (and (null? this.left) (null? this.right))))
+
+(define root (make-node))
+(root.set-left! (make-node))
+(root.left.set-val! 42)
+
+(display root.val) ; 0
+(newline)
+(display root.left.val) ; 42
+(newline)
+(display (root.leaf?)) ; #f
+(newline)
+(display (root.left.leaf?)) ; #t
+```
+
+
+------------------------
 ## Defstruct:
 
-#### Use: ___Define Objects for Object-Oriented Programming!___
+#### Use: ___Define Struct-Objects via Vectors for Lightweight Message-Passing OOP!___
 * _Note: `defstruct` is actually a macro directly defined **in** Heist Scheme!_
 
 #### Form: `(defstruct <name> <member-name1> <member-name2> ...)`
 
 #### Procedures Generated:
 0. Constructor: `(make-<name> <member-value1> <member-value2> ...)`
-1. Getter: `(<name>-<member-name> <object>)`
-2. Setter: `(set-<name>-<member-name>! <object> <new-val>)`
-3. Predicate: `(<name>? <object>)`
+1. Getter: `(<name>-<member-name> <struct-object>)`
+2. Setter: `(set-<name>-<member-name>! <struct-object> <new-val>)`
+3. Predicate: `(<name>? <struct-object>)`
 4. Analysis (get quoted list of `<member>` names): `(<name>>slots)`
 5. Method-Generator: `(defmethod-<name> (<method-name> <arg1> <arg2>) <body> ...)`
    - Advantages of Methods Over Procedures:
-     1. `<object>` argument is automatically defined as `this`
+     1. `<struct-object>` argument is automatically defined as `this`
      2. Member setters don't need the object or struct name in their invocation
      3. Member setters may be invoked just by using the member name
    - Example:
@@ -1151,7 +1248,7 @@ Other primitives of this nature include:<br>
 
 6. __The Empty Stream:__ `stream-null` (equivalent to `'()`)
 
-7. __Optional Environment Arg Flags for [`Eval`](#evalapply-symbol-append--typeof), [`Load`](#system-interface-procedures), [`Cps-Eval`](#evalapply-symbol-append--typeof), [`Cps-Load`](#system-interface-procedures):__
+7. __Optional Environment Arg Flags for [`Eval`](#evalapply-symbol-append), [`Load`](#system-interface-procedures), [`Cps-Eval`](#evalapply-symbol-append), [`Cps-Load`](#system-interface-procedures):__
    * Null Environment, all effects are sandboxed: `null-environment`
    * Local Environment, using local bindings: `local-environment`
    * Global Environment, using global bindings: `global-environment`
@@ -1161,14 +1258,14 @@ Other primitives of this nature include:<br>
    * Compiled Script: passed to the executable of the compiled C++ file
 
 9. __General Current Platform Name__: `heist-platform`
-   * Possible results: `'windows` | `'apple` | `'linux` | `'unix` | `'posix` | `#f`
+   * Possible results: `'windows` | `'apple` | `'linux` | `'unix` | `'posix` | `'unknown`
 
 10. __Specific Current Platform Name__: `heist-exact-platform`
     * Possible results: 
       - `'windows-64` | `'windows-32`
       - `'apple-ios-simulator` | `'apple-ios` | `'apple-osx` | `'apple`
       - `'linux` | `'unix` | `'posix`
-      - `#f`
+      - `'unknown`
 
 11. __Get Heist Interpreter Directory__: `heist-dirname`
     * String to the Heist-Scheme interpreter's directory
@@ -1181,6 +1278,51 @@ Other primitives of this nature include:<br>
 ### _As if `define`d via `lambda`_
 
 
+## OOP Reflection Primitives:
+### Object Primitives:
+0. __Functional Property Access__: `(.. <object> <property-symbol-1> ...)`
+   * IE `person.sibling.age` ::= `(.. person 'sibling 'age)`
+
+1. __Class Name__: `(object-class-name <object>)`
+
+2. __Class Prototype__: `(object-proto <object>)`
+
+3. __Object Members Hash-Map__: `(object-members <object>)`
+   * Returns a [`hash-map`](#Hash-Map-Procedures) of member names & values
+
+4. __Object Methods Hash-Map__: `(object-methods <object>)`
+   * Returns a [`hash-map`](#Hash-Map-Procedures) of method names & values
+   * Method values already have `<object>` bound as `this`!
+
+
+### Prototype Primitives:
+0. __Class Name__: `(proto-class-name <class-prototype>)`
+
+1. __Prototype Member Names List__: `(proto-members <class-prototype>)`
+
+2. __Prototype Method Names List__: `(proto-methods <class-prototype>)`
+
+3. __Inherited Prototypes List__: `(proto-inheritances <class-prototype>)`
+
+4. __Dynamically Add New Member__: 
+   * `(proto-new-member! <class-prototype> <member-name-symbol> <default-value>)`
+
+5. __Dynamically Add New Method__: 
+   * `(proto-new-method! <class-prototype> <method-name-symbol> <procedure-value>)`
+
+6. __Dynamically Inherit__:
+   * `(proto-inherit! <class-prototype> <class-proto-to-inherit-1> ...)`
+   * Args maintain leftmost-precedence in name conflicts
+   * Args have ___lower___ name-conflict precedence than existing inheritances
+
+7. __Dynamically Inherit With Priority__:
+   * `(proto-priority-inherit! <class-prototype> <class-proto-to-inherit-1> ...)`
+   * Args maintain leftmost-precedence in name conflicts
+   * Args have ___higher___ name-conflict precedence than existing inheritances
+
+
+
+------------------------
 ## Stream Primitives:
 0. __Get Length of Stream__: `(stream-length <stream>)`
 
@@ -1736,10 +1878,10 @@ Other primitives of this nature include:<br>
     * `(for-each <procedure> <sequence1> <sequence2> ...)`
 
 11. __Copy__: Generate a freshly allocated copy of `<sequence>`
-    * `(copy <sequence>)`
+    * `(seq-copy <sequence>)`
 
 12. __Mutating Copy__: Copy `<source-sequence>` to `<dest-sequence>`
-    * `(copy! <dest-sequence> <source-sequence>)`
+    * `(seq-copy! <dest-sequence> <source-sequence>)`
 
 13. __Count Elts With a Property__: `(count <predicate?> <sequence>)`
 
@@ -1879,10 +2021,14 @@ Other primitives of this nature include:<br>
 
 26. __Sequence Predicate__: `(seq? <obj>)`
 
+27. __Object Predicate__: `(object? <obj>)`
+
+28. __Class Prototype Predicate__: `(class-prototype? <obj>)`
+
 
 
 ------------------------
-## Eval/Apply, Symbol-Append, & Typeof:
+## Eval/Apply & Symbol-Append:
 0. __Eval__: Run quoted data as code
    * `(eval <data> <optional-environment>)`
    * _Pass `'null-environment` to `eval` in the empty environment!_
@@ -1899,7 +2045,14 @@ Other primitives of this nature include:<br>
 
 3. __Append Symbols__: `(symbol-append <symbol-1> ... <symbol-N>)`
 
-4. __Get Typename Symbol__: `(typeof <obj>)`
+
+
+------------------------
+## Typeof & Deep-Copying:
+0. __Get Typename Symbol__: `(typeof <obj>)`
+
+1. __Deep-Copy Datum__: `(copy <obj>)`
+   * Deep-copy vectors, strings, proper/dotted/circular lists, hmaps, & objects!
 
 
 

@@ -1188,7 +1188,7 @@ namespace heist {
   }
 
   /******************************************************************************
-  * TYPEOF PRIMITIVE
+  * TYPEOF & DEEP-COPYING PRIMITIVES
   ******************************************************************************/
 
   data primitive_TYPEOF(scm_list& args) {
@@ -1199,6 +1199,14 @@ namespace heist {
     if(primitive_data_is_a_procedure(args[0])) return "#<procedure>";
     if(data_is_a_delay(args[0]))               return "#<delay>";
     return args[0].type_name();
+  }
+
+  data primitive_COPY(scm_list& args) {
+    if(args.size() != 1)
+      THROW_ERR("'copy recieved incorrect # of args!\n     (copy <obj>)" 
+        "\n     -> Deep-Copy: Vector | String | List/Dotted/Circular | Hmap | Object"
+        << FCN_ERR("copy", args));
+    return data::deep_copy(args[0]);
   }
 
   /******************************************************************************
@@ -2237,11 +2245,11 @@ namespace heist {
     }
   }
 
-  // primitive "copy" procedure:
-  data primitive_COPY(scm_list& args) {
-    confirm_given_one_sequence_arg(args,"copy");
-    switch(is_proper_sequence(args[0],args,"copy",
-      "\n     (copy <sequence>)" SEQUENCE_DESCRIPTION)) {
+  // primitive "seq-copy" procedure:
+  data primitive_SEQ_COPY(scm_list& args) {
+    confirm_given_one_sequence_arg(args,"seq-copy");
+    switch(is_proper_sequence(args[0],args,"seq-copy",
+      "\n     (seq-copy <sequence>)" SEQUENCE_DESCRIPTION)) {
       case heist_sequence::vec: return make_vec(*args[0].vec);
       case heist_sequence::str: return make_str(*args[0].str);
       case heist_sequence::nul: return data(symconst::emptylist);
@@ -2249,19 +2257,19 @@ namespace heist {
     }
   }
 
-  // primitive "copy!" procedure: 
+  // primitive "seq-copy!" procedure: 
   // NOTE: Copies elts from <source> over <dest>'s elts. 
   //       <dest>.size() is unaffected.
-  data primitive_COPY_BANG(scm_list& args) { // 
+  data primitive_SEQ_COPY_BANG(scm_list& args) { // 
     static constexpr const char * const format = 
-      "\n     (copy! <dest-sequence> <source-sequence>)" SEQUENCE_DESCRIPTION;
+      "\n     (seq-copy! <dest-sequence> <source-sequence>)" SEQUENCE_DESCRIPTION;
     if(args.size() != 2)
-      THROW_ERR("'copy! received incorrect # of args (given " 
-        << args.size() << "):" << format << FCN_ERR("copy!",args));
+      THROW_ERR("'seq-copy! received incorrect # of args (given " 
+        << args.size() << "):" << format << FCN_ERR("seq-copy!",args));
     if(args[0].type != args[1].type)
-      THROW_ERR("'copy! args have mismatched types!" 
-        << format << FCN_ERR("copy!",args));
-    switch(is_proper_sequence(args[0],args,"copy!",format)) {
+      THROW_ERR("'seq-copy! args have mismatched types!" 
+        << format << FCN_ERR("seq-copy!",args));
+    switch(is_proper_sequence(args[0],args,"seq-copy!",format)) {
       case heist_sequence::vec: return primitive_generic_STATIC_CONTAINER_copy_bang_logic(args[0].vec,args[1].vec);
       case heist_sequence::str: return primitive_generic_STATIC_CONTAINER_copy_bang_logic(args[0].str,args[1].str);
       case heist_sequence::nul: return data(types::dne);
@@ -3119,6 +3127,18 @@ namespace heist {
     return data(boolean(args[0].is_type(types::vec) || 
                         args[0].is_type(types::str) || 
                         data_is_proper_list(args[0])));
+  }
+
+  // primitive "object?" procedure:
+  data primitive_OBJECTP(scm_list& args) {
+    confirm_given_one_arg(args, "object?");
+    return boolean(args[0].is_type(types::obj));
+  }
+
+  // primitive "class-prototype?" procedure:
+  data primitive_CLASS_PROTOTYPEP(scm_list& args) {
+    confirm_given_one_arg(args, "class-prototype?");
+    return boolean(args[0].is_type(types::cls));
   }
 
   /******************************************************************************
@@ -5261,6 +5281,246 @@ namespace heist {
   }
 
   /******************************************************************************
+  * DEFCLASS OO SUPPORT INTERNAL PRIMITIVES
+  ******************************************************************************/
+
+  // primitive "heist:core:oo:set-member!" procedure:
+  data primitive_HEIST_CORE_OO_SET_MEMBER_BANG(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (heist:core:oo:set-member! <object> <member-name-symbol> <value>)";
+    validate_oo_member_setter(args,format);
+    // Search local members
+    for(size_type i = 0, n = args[0].obj->member_names.size(); i < n; ++i) {
+      if(args[0].obj->member_names[i] == args[1].sym) {
+        args[0].obj->member_values[i] = args[2];
+        return G::VOID_DATA_OBJECT;
+      }
+    }
+    // Search Prototype/Inherited Members
+    if(!search_prototype_and_inherited_members(args[0].obj->proto,args[1].sym))
+      THROW_ERR("'heist:core:oo:set-member! 2nd member-name arg "<<PROFILE(args[1])
+        <<" isn't a member of "<<PROFILE(args[0])<<'!'<<format<<FCN_ERR("heist:core:oo:set-member!",args));
+    // Confirm Member doesn't already exist as a local method
+    for(size_type i = 0, n = args[0].obj->method_names.size(); i < n; ++i) {
+      if(args[0].obj->method_names[i] == args[1].sym) {
+        THROW_ERR("'set-"<<args[1].sym<<"! member-name arg "<<PROFILE(args[1])
+        <<" is already defined as a method of "<<PROFILE(args[0])<<'!'
+        <<format<<FCN_ERR("'set-"+args[1].sym+'!',args));
+      }
+    }
+    // add the newly found member name & assign it the given value
+    args[0].obj->member_names.push_back(args[1].sym);
+    args[0].obj->member_values.push_back(args[2]);
+    return G::VOID_DATA_OBJECT;
+  }
+
+
+  // primitive "heist:core:oo:compare-classes" procedure:
+  data primitive_HEIST_CORE_OO_COMPARE_CLASSES(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (heist:core:oo:compare-classes <obj> <class-prototype>)";
+    if(args.size() != 2)
+      THROW_ERR("'heist:core:oo:compare-classes didn't receive 2 args!"
+        <<format<<FCN_ERR("heist:core:oo:compare-classes",args));
+    if(!args[1].is_type(types::cls))
+      THROW_ERR("'heist:core:oo:compare-classes 2nd arg "<<PROFILE(args[1])<<" isn't a class-prototype!"
+        <<format<<FCN_ERR("heist:core:oo:compare-classes",args));
+    if(!args[0].is_type(types::obj)) return G::FALSE_DATA_BOOLEAN;
+    return boolean(args[0].obj->proto == args[1].cls);
+  }
+
+
+  // primitive "heist:core:oo:make-object" procedure:
+  data primitive_HEIST_CORE_OO_MAKE_OBJECT(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (heist:core:oo:make-object <class-type-object> <optional-member-val-hmap>)";
+    if(args.empty() || args.size() > 2)
+      THROW_ERR("'heist:core:oo:make-object received improper # of args!" 
+        << format << FCN_ERR("heist:core:oo:make-object", args));
+    if(!args[0].is_type(types::cls))
+      THROW_ERR("'heist:core:oo:make-object 1st arg "<<PROFILE(args[0])<<" isn't a class-prototype!"
+        << format << FCN_ERR("heist:core:oo:make-object", args));
+    // create the object
+    auto& class_proto_obj = args[0].cls;
+    object_type obj;
+    // assign default values (deep copy members)
+    obj.proto = class_proto_obj; // ptr to the prototype object
+    for(size_type i = 0, n = class_proto_obj->member_values.size(); i < n; ++i)
+      obj.member_values.push_back(data::deep_copy(class_proto_obj->member_values[i]));
+    obj.member_names = class_proto_obj->member_names;
+    obj.method_names = class_proto_obj->method_names, obj.method_values = class_proto_obj->method_values;
+    // no args given
+    if(args.size() == 1) return make_obj(std::move(obj));
+    // assign given values 
+    if(!args[1].is_type(types::map))
+      THROW_ERR("'make-"<< class_proto_obj->class_name<<" arg "<<PROFILE(args[1]) 
+        << " isn't a hash-map of member names & vals!" << format 
+        << FCN_ERR("'make-"+class_proto_obj->class_name,args));
+    const size_type total_members = obj.member_names.size();
+    for(auto& keyval : args[1].map->val) {
+      auto key = map_data::unhash_key(keyval.first);
+      if(!key.is_type(types::sym))
+        THROW_ERR("'make-"<< class_proto_obj->class_name<<" member-name key "<<PROFILE(key) 
+          << " isn't a symbol!" << format << FCN_ERR("'make-"+class_proto_obj->class_name,args));
+      for(size_type i = 0; i < total_members; ++i) {
+        if(obj.member_names[i] == key.sym) {
+          obj.member_values[i] = keyval.second;
+          goto next_member;
+        }
+      }
+      THROW_ERR("'make-"<<class_proto_obj->class_name<<" member-name key "<<PROFILE(key) 
+        << " isn't a member name in class-obj "<<PROFILE(args[0])<<'!' 
+        << format << FCN_ERR("'make-"+class_proto_obj->class_name,args));
+      next_member: continue;
+    }
+    return make_obj(std::move(obj));
+  }
+
+  /******************************************************************************
+  * DEFCLASS OO GENERAL OBJECT ANALYSIS PRIMITIVES
+  ******************************************************************************/
+
+  data primitive_OBJECT_CLASS_NAME(scm_list& args) {
+    confirm_given_unary_object_arg(args,"object-class-name");
+    return args[0].obj->proto->class_name;
+  }
+
+  data primitive_OBJECT_PROTO(scm_list& args) {
+    confirm_given_unary_object_arg(args,"object-proto");
+    return args[0].obj->proto;
+  }
+
+  data primitive_OBJECT_MEMBERS(scm_list& args) {
+    confirm_given_unary_object_arg(args,"object-members");
+    map_data m;
+    for(size_type i = 0, n = args[0].obj->member_names.size(); i < n; ++i)
+      m.val[args[0].obj->member_names[i]+char(types::sym)] = args[0].obj->member_values[i];
+    return make_map(std::move(m));
+  }
+
+  data primitive_OBJECT_METHODS(scm_list& args) {
+    confirm_given_unary_object_arg(args,"object-methods");
+    map_data m;
+    for(size_type i = 0, n = args[0].obj->method_names.size(); i < n; ++i)
+      m.val[args[0].obj->method_names[i]+char(types::sym)] = extend_method_env_with_THIS_object(args[0],args[0].obj->method_values[i].exp);
+    return make_map(std::move(m));
+  }
+
+  // primitive ".." procedure:
+  data primitive_HEIST_CORE_OO_MEMBER_ACCESS(scm_list& args) {
+    static constexpr const char * const format = "\n     (.. <object> <property-1> ...)";
+    if(args.size() < 2)
+      THROW_ERR("'.. not enough args recieved!" << format << FCN_ERR("..",args));
+    data value = args[0];
+    // get the call value
+    for(size_type i = 1, n = args.size(); i < n; ++i) {
+      if(!value.is_type(types::obj))
+        THROW_ERR("'.. can't access property "<<PROFILE(args[i])<<" in non-object "
+          << PROFILE(value) << '!' << FCN_ERR("..",args));
+      if(!args[i].is_type(types::sym))
+        THROW_ERR("'.. can't access non-symbolic property "<<PROFILE(args[i])<<" in object "
+          << value << '!' << FCN_ERR("..",args));
+      // Search local members & methods, the proto, and the proto inheritances
+      bool is_member = false;
+      if(!seek_call_value_in_local_object(value,args[i].sym,is_member))
+        THROW_ERR("'.. "<<args[i].sym<<" isn't a property in object "
+          << value << '!' << FCN_ERR("..",args));
+      // if found a method, confirm at the last item in the call chain
+      if(!is_member && i+1 < n)
+        THROW_ERR("'.. can't access property "<<args[i].sym
+          <<" of method "<<PROFILE(value)<<'!'<< FCN_ERR("..",args));
+    }
+    return value;
+  }
+
+  /******************************************************************************
+  * DEFCLASS OO GENERAL CLASS-PROTOTYPE ANALYSIS PRIMITIVES
+  ******************************************************************************/
+
+  data primitive_PROTO_CLASS_NAME(scm_list& args) {
+    confirm_given_unary_class_prototype_arg(args,"proto-class-name");
+    return args[0].cls->class_name;
+  }
+
+  data primitive_PROTO_MEMBERS(scm_list& args) {
+    confirm_given_unary_class_prototype_arg(args,"proto-members");
+    scm_list member_names;
+    for(const auto& name : args[0].cls->member_names)
+      member_names.push_back(name);
+    return primitive_LIST_to_CONS_constructor(member_names.begin(),member_names.end());
+  }
+
+  data primitive_PROTO_METHODS(scm_list& args) {
+    confirm_given_unary_class_prototype_arg(args,"proto-methods");
+    scm_list method_names;
+    for(const auto& name : args[0].cls->method_names)
+      method_names.push_back(name);
+    return primitive_LIST_to_CONS_constructor(method_names.begin(),method_names.end());
+  }
+
+  data primitive_PROTO_INHERITANCES(scm_list& args) {
+    confirm_given_unary_class_prototype_arg(args,"proto-inheritances");
+    scm_list inheritances;
+    for(const auto& inheritance : args[0].cls->inheritance_chain)
+      inheritances.push_back(inheritance);
+    return primitive_LIST_to_CONS_constructor(inheritances.begin(),inheritances.end());
+  }
+
+  data primitive_PROTO_NEW_MEMBER_BANG(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (proto-new-member! <class-prototype> <member-name-symbol> <default-value>)";
+    confirm_proper_new_property_args(args,"proto-new-member!",format);
+    // Verify new member name isn't already the name of a member or method
+    confirm_new_property_name_doesnt_already_exist(args,"proto-new-member!",format);
+    // Define setter for the new member & the new member
+    define_setter_method_for_member(*args[0].cls,args[0].cls->defn_env,args[1].sym);
+    args[0].cls->member_names.push_back(args[1].sym);
+    args[0].cls->member_values.push_back(args[2]);
+    return G::VOID_DATA_OBJECT;
+  }
+
+  data primitive_PROTO_NEW_METHOD_BANG(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (proto-new-method! <class-prototype> <method-name-symbol> <procedure-value>)";
+    confirm_proper_new_property_args(args,"proto-new-method!",format);
+    primitive_confirm_data_is_a_procedure(args[2], "proto-new-method!", format, args);
+    // Verify new method name isn't already the name of a member or method
+    confirm_new_property_name_doesnt_already_exist(args,"proto-new-method!",format);
+    // Define the new method
+    args[0].cls->method_names.push_back(args[1].sym);
+    args[0].cls->method_values.push_back(args[2]);
+    return G::VOID_DATA_OBJECT;
+  }
+
+  data primitive_PROTO_INHERIT_BANG(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (proto-inherit! <class-prototype> <class-prototype-to-inherit-1> ...)";
+    validate_proto_dynamic_inheritance_args(args,"proto-inherit!",format);
+    std::vector<scm_string> class_inheritance_chain(1,args[0].cls->class_name);
+    // confirm no circular inheritance prior adding ANY of the inheritances
+    for(size_type i = 1, n = args.size(); i < n; ++i)
+      confirm_no_circular_inheritance(args[0].cls,args[i].cls,class_inheritance_chain,"proto-inherit!",format,args);
+    // insert at the back to NOT have name-conflict priority (still using left-precedence for the args)
+    for(size_type i = 1, n = args.size(); i < n; ++i)
+      args[0].cls->inheritance_chain.push_back(args[i].cls);
+    return G::VOID_DATA_OBJECT;
+  }
+
+  data primitive_PROTO_PRIORITY_INHERIT_BANG(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (proto-priority-inherit! <class-prototype> <class-prototype-to-inherit-1> ...)";
+    validate_proto_dynamic_inheritance_args(args,"proto-priority-inherit!",format);
+    std::vector<scm_string> class_inheritance_chain(1,args[0].cls->class_name);
+    // confirm no circular inheritance prior adding ANY of the inheritances
+    for(size_type i = 1, n = args.size(); i < n; ++i)
+      confirm_no_circular_inheritance(args[0].cls,args[i].cls,class_inheritance_chain,"proto-priority-inherit!",format,args);
+    // insert at the front to have name-conflict priority (still using left-precedence for the args)
+    for(size_type i = args.size(); i-- > 1;)
+      args[0].cls->inheritance_chain.insert(args[0].cls->inheritance_chain.begin(), args[i].cls);
+    return G::VOID_DATA_OBJECT;
+  }
+
+  /******************************************************************************
   * MATHEMATICAL CONSTANTS
   ******************************************************************************/
 
@@ -5451,19 +5711,19 @@ namespace heist {
   ;; => (defstruct <name> <member-name-1> ... <member-name-N>)
   ;;    -> CTOR: Returns a <name> object w/ member values of <member-val-1> ... <member-val-N>
   ;;             (make-<name> <member-val-1> ... <member-val-N>) 
-  ;;    -> GETTER: Returns <member-name> value (or #f if DNE) of <name> structure object <object>
-  ;;             (<name>-<member-name> <object>) 
-  ;;    -> SETTER: Sets <member-name> value to <new-val> of <name> structure object <object> (returns #f if dne)
-  ;;             (set-<name>-<member-name>! <object> <new-val>) 
-  ;;    -> PREDICATE: Returns whether <object> is a <name> struct
-  ;;             (<name>? <object>) 
+  ;;    -> GETTER: Returns <member-name> value (or #f if DNE) of <name> structure object <struct-object>
+  ;;             (<name>-<member-name> <struct-object>) 
+  ;;    -> SETTER: Sets <member-name> value to <new-val> of <name> structure object <struct-object> (returns #f if dne)
+  ;;             (set-<name>-<member-name>! <struct-object> <new-val>) 
+  ;;    -> PREDICATE: Returns whether <struct-object> is a <name> struct
+  ;;             (<name>? <struct-object>) 
   ;;    -> ANALYSIS: Returns a quoted list of <name> struct's member names
   ;;             (<name>>slots) 
   ;;    -> METHOD-GENERATOR: Defines an interface to create struct methods
   ;;             (defmethod-<name> (<method-name> <arg-1> ... <arg-N>) <body>)
-  ;;             => INVOKING METHODS: (<name>><method-name> <object> <arg-1> ... <arg-N>)
+  ;;             => INVOKING METHODS: (<name>><method-name> <struct-object> <arg-1> ... <arg-N>)
   ;;             => ADVANTAGES OF METHODS:
-  ;;                1) <object> ARG IS AUTOMATICALLY ADDED AS this
+  ;;                1) <struct-object> ARG IS AUTOMATICALLY ADDED AS this
   ;;                2) MEMBER SETTERS DON'T NEED THE OBJECT OR STRUCT NAME IN THE INVOCATION
   ;;                3) MEMBER GETTERS MAY BE INVOKED JUST BY USING THE MEMBER NAME
   ;;                >>> Suppose: (defstruct student name id) 
@@ -5795,6 +6055,7 @@ namespace heist {
     std::make_pair(primitive_SYMBOL_APPEND, "symbol-append"),
 
     std::make_pair(primitive_TYPEOF, "typeof"),
+    std::make_pair(primitive_COPY,   "copy"),
 
     std::make_pair(primitive_HMAP,             "hmap"),
     std::make_pair(primitive_HMAP_KEYS,        "hmap-keys"),
@@ -5896,8 +6157,8 @@ namespace heist {
     std::make_pair(primitive_MAP,               "map"),
     std::make_pair(primitive_MAP_BANG,          "map!"),
     std::make_pair(primitive_FOR_EACH,          "for-each"),
-    std::make_pair(primitive_COPY,              "copy"),
-    std::make_pair(primitive_COPY_BANG,         "copy!"),
+    std::make_pair(primitive_SEQ_COPY,          "seq-copy"),
+    std::make_pair(primitive_SEQ_COPY_BANG,     "seq-copy!"),
     std::make_pair(primitive_COUNT,             "count"),
     std::make_pair(primitive_REF,               "ref"),
     std::make_pair(primitive_SLICE,             "slice"),
@@ -5964,6 +6225,8 @@ namespace heist {
     std::make_pair(primitive_STREAMP,              "stream?"),
     std::make_pair(primitive_SYNTAX_RULES_OBJECTP, "syntax-rules-object?"),
     std::make_pair(primitive_SEQP,                 "seq?"),
+    std::make_pair(primitive_OBJECTP,              "object?"),
+    std::make_pair(primitive_CLASS_PROTOTYPEP,     "class-prototype?"),
 
     std::make_pair(primitive_EVAL,     "eval"),
     std::make_pair(primitive_CPS_EVAL, "heist:core:pass-continuation-cps-eval"),
@@ -6117,6 +6380,25 @@ namespace heist {
     std::make_pair(primitive_REGEX_REPLACE_ALL, "regex-replace-all"),
     std::make_pair(primitive_REGEX_MATCH,       "regex-match"),
     std::make_pair(primitive_REGEX_SPLIT,       "regex-split"),
+
+    std::make_pair(primitive_HEIST_CORE_OO_SET_MEMBER_BANG, "heist:core:oo:set-member!"),
+    std::make_pair(primitive_HEIST_CORE_OO_COMPARE_CLASSES, "heist:core:oo:compare-classes"),
+    std::make_pair(primitive_HEIST_CORE_OO_MAKE_OBJECT,     "heist:core:oo:make-object"),
+
+    std::make_pair(primitive_OBJECT_CLASS_NAME,           "object-class-name"),
+    std::make_pair(primitive_OBJECT_PROTO,                "object-proto"),
+    std::make_pair(primitive_OBJECT_MEMBERS,              "object-members"),
+    std::make_pair(primitive_OBJECT_METHODS,              "object-methods"),
+    std::make_pair(primitive_HEIST_CORE_OO_MEMBER_ACCESS, ".."),
+
+    std::make_pair(primitive_PROTO_CLASS_NAME,            "proto-class-name"),
+    std::make_pair(primitive_PROTO_MEMBERS,               "proto-members"),
+    std::make_pair(primitive_PROTO_METHODS,               "proto-methods"),
+    std::make_pair(primitive_PROTO_INHERITANCES,          "proto-inheritances"),
+    std::make_pair(primitive_PROTO_NEW_MEMBER_BANG,       "proto-new-member!"),
+    std::make_pair(primitive_PROTO_NEW_METHOD_BANG,       "proto-new-method!"),
+    std::make_pair(primitive_PROTO_INHERIT_BANG,          "proto-inherit!"),
+    std::make_pair(primitive_PROTO_PRIORITY_INHERIT_BANG, "proto-priority-inherit!"),
   };
 
   frame_vals primitive_procedure_objects()noexcept{

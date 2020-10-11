@@ -1,5 +1,5 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- heist_types_toolkit.hpp
-// => Defines string-serialization/equality helper fcns for Scheme data
+// => Defines string-serialization/equality/copying helper fcns for Scheme data
 // => Must link at BOTTOM of "heist_types.hpp" to inherit type definitions
 
 #ifndef HEIST_TYPES_TOOLKIT_HPP_
@@ -8,16 +8,19 @@
 namespace heist {
 
   /******************************************************************************
-  * PRINTING HELPER FUNCTION PROTOTYPES
+  * HELPER FUNCTION/TYPE PROTOTYPES
   ******************************************************************************/
 
-  sym_type  procedure_call_signature(const sym_type& name,const frame_vals& vals)noexcept;
-  frame_var procedure_name          (const scm_list& p)noexcept;
-  bool      is_primitive_procedure  (const scm_list& p)noexcept;
-  bool      is_compound_procedure   (const scm_list& p)noexcept;
-  bool      is_delay                (const scm_list& exp)noexcept;
-  bool      data_is_stream_pair     (const data& d)noexcept;
-  bool      data_is_proper_list     (const data& d)noexcept;
+  enum class list_status {ok, cyclic, no_null};
+
+  list_status primitive_list_is_acyclic_and_null_terminated(const data& curr_pair)noexcept;
+  sym_type    procedure_call_signature(const sym_type& name,const frame_vals& vals)noexcept;
+  frame_var   procedure_name          (const scm_list& p)noexcept;
+  bool        is_primitive_procedure  (const scm_list& p)noexcept;
+  bool        is_compound_procedure   (const scm_list& p)noexcept;
+  bool        is_delay                (const scm_list& exp)noexcept;
+  bool        data_is_stream_pair     (const data& d)noexcept;
+  bool        data_is_proper_list     (const data& d)noexcept;
 
   /******************************************************************************
   * ANSI ESCAPE SEQUENCE FORMATS & MACRO
@@ -117,8 +120,8 @@ namespace heist {
     #define HEIST_PLATFORM       "posix"
     #define HEIST_EXACT_PLATFORM "posix"
   #else
-    #define HEIST_PLATFORM       "#f"
-    #define HEIST_EXACT_PLATFORM "#f"
+    #define HEIST_PLATFORM       "unknown"
+    #define HEIST_EXACT_PLATFORM "unknown"
   #endif
 
   /******************************************************************************
@@ -535,6 +538,8 @@ namespace heist {
       case types::sym: return v1.sym == v2.sym;
       case types::bol: return v1.bol.val == v2.bol.val;
       case types::map: return v1.map == v2.map;
+      case types::cls: return v1.cls == v2.cls;
+      case types::obj: return v1.obj == v2.obj;
       case types::par: return v1.par == v2.par;
       case types::vec: return v1.vec == v2.vec;
       case types::prm: return v1.prm == v2.prm;
@@ -555,16 +560,14 @@ namespace heist {
     if(prm_comparing_primitives(l1,l2)) return l1[1].prm == l2[1].prm;
     for(size_type i = 0, n = l1.size(); i < n; ++i) {
       if(l1[i].type != l2[i].type) return false; // compare types
-      if(l1[i].is_type(types::exp)) {            // compare sub-lists
-        if(!prm_compare_EXPRs(l1[i].exp,l2[i].exp)) return false;
-      } else if(l1[i].is_type(types::par)) {
-        if(!prm_compare_PAIRs(l1[i].par,l2[i].par)) return false;
-      } else if(l1[i].is_type(types::vec)) {
-        if(!prm_compare_VECTs(l1[i].vec,l2[i].vec)) return false;
-      } else if(l1[i].is_type(types::map)) {
-        if(!prm_compare_HMAPs(l1[i].map,l2[i].map)) return false;
-      } else if(!prm_compare_atomic_values(l1[i],l2[i],l1[i].type))
-        return false; // compare values
+      switch(l1[i].type) {
+        case types::exp: if(!prm_compare_EXPRs(l1[i].exp,l2[i].exp)) return false; break;
+        case types::par: if(!prm_compare_PAIRs(l1[i].par,l2[i].par)) return false; break;
+        case types::vec: if(!prm_compare_VECTs(l1[i].vec,l2[i].vec)) return false; break;
+        case types::map: if(!prm_compare_HMAPs(l1[i].map,l2[i].map)) return false; break;
+        case types::obj: if(!prm_compare_OBJs (l1[i].obj,l2[i].obj)) return false; break;
+        default: if(!prm_compare_atomic_values(l1[i],l2[i],l1[i].type)) return false;
+      }
     }
     return true;
   }
@@ -576,25 +579,23 @@ namespace heist {
     auto& p1_car = p1->first, &p2_car = p2->first;
     auto& p1_cdr = p1->second, &p2_cdr = p2->second;
     // Compare cars
-    if(p1_car.is_type(types::exp)) {
-      if(!prm_compare_EXPRs(p1_car.exp, p2_car.exp)) return false;
-    } else if(p1_car.is_type(types::par)) { 
-      if(!prm_compare_PAIRs(p1_car.par, p2_car.par)) return false;
-    } else if(p1_car.is_type(types::vec)) {
-      if(!prm_compare_VECTs(p1_car.vec, p2_car.vec)) return false;
-    } else if(p1_car.is_type(types::map)) {
-      if(!prm_compare_HMAPs(p1_car.map, p2_car.map)) return false;
-    } else if(!prm_compare_atomic_values(p1_car, p2_car, p1_car.type)) return false;
+    switch(p1_car.type) {
+      case types::exp: if(!prm_compare_EXPRs(p1_car.exp,p2_car.exp)) return false; break;
+      case types::par: if(!prm_compare_PAIRs(p1_car.par,p2_car.par)) return false; break;
+      case types::vec: if(!prm_compare_VECTs(p1_car.vec,p2_car.vec)) return false; break;
+      case types::map: if(!prm_compare_HMAPs(p1_car.map,p2_car.map)) return false; break;
+      case types::obj: if(!prm_compare_OBJs (p1_car.obj,p2_car.obj)) return false; break;
+      default: if(!prm_compare_atomic_values(p1_car,p2_car,p1_car.type)) return false;
+    }
     // Compare cdrs
-    if(p1_cdr.is_type(types::exp)) {
-      if(!prm_compare_EXPRs(p1_cdr.exp, p2_cdr.exp)) return false;
-    } else if(p1_cdr.is_type(types::par)) {
-      if(!prm_compare_PAIRs(p1_cdr.par, p2_cdr.par)) return false;
-    } else if(p1_cdr.is_type(types::vec)) {
-      if(!prm_compare_VECTs(p1_cdr.vec, p2_cdr.vec)) return false;
-    } else if(p1_cdr.is_type(types::map)) {
-      if(!prm_compare_HMAPs(p1_cdr.map, p2_cdr.map)) return false;
-    } else if(!prm_compare_atomic_values(p1_cdr, p2_cdr, p1_cdr.type)) return false;
+    switch(p1_cdr.type) {
+      case types::exp: if(!prm_compare_EXPRs(p1_cdr.exp,p2_cdr.exp)) return false; break;
+      case types::par: if(!prm_compare_PAIRs(p1_cdr.par,p2_cdr.par)) return false; break;
+      case types::vec: if(!prm_compare_VECTs(p1_cdr.vec,p2_cdr.vec)) return false; break;
+      case types::map: if(!prm_compare_HMAPs(p1_cdr.map,p2_cdr.map)) return false; break;
+      case types::obj: if(!prm_compare_OBJs (p1_cdr.obj,p2_cdr.obj)) return false; break;
+      default: if(!prm_compare_atomic_values(p1_cdr,p2_cdr,p1_cdr.type)) return false;
+    }
     return true;
   }
 
@@ -633,10 +634,114 @@ namespace heist {
         case types::par: if(!prm_compare_PAIRs(p1->second.par,p2->second.par)) return false; break;
         case types::vec: if(!prm_compare_VECTs(p1->second.vec,p2->second.vec)) return false; break;
         case types::map: if(!prm_compare_HMAPs(p1->second.map,p2->second.map)) return false; break;
+        case types::obj: if(!prm_compare_OBJs(p1->second.obj,p2->second.obj))  return false; break;
         default: if(!prm_compare_atomic_values(p1->second,p2->second,p1->second.type)) return false;
       }
     }
     return true;
+  }
+
+
+  bool prm_compare_OBJs(const obj_type& o1, const obj_type& o2)noexcept{
+    if(o1->proto != o2->proto                               ||
+       o1->member_names.size()  != o2->member_names.size()  || 
+       o1->member_values.size() != o2->member_values.size() || 
+       o1->method_names.size()  != o2->method_names.size()  || 
+       o1->method_values.size() != o2->method_values.size()) return false;
+    for(size_type i = 0, n = o1->member_names.size(); i < n; ++i)
+      if(o1->member_names[i] != o2->member_names[i]) return false;
+    for(size_type i = 0, n = o1->method_names.size(); i < n; ++i)
+      if(o1->method_names[i] != o2->method_names[i]) return false;
+    for(size_type i = 0, n = o1->member_values.size(); i < n; ++i)
+      if(!o1->member_values[i].equal(o2->member_values[i])) return false;
+    for(size_type i = 0, n = o1->method_values.size(); i < n; ++i)
+      if(!o1->method_values[i].equal(o2->method_values[i])) return false;
+    return true;
+  }
+
+  /******************************************************************************
+  * DATA DEEP-LIST-COPYING HELPERS
+  ******************************************************************************/
+
+  void deep_copy_cycle_link(data& p, par_type& q, par_type& cycle_start)noexcept{
+    q->first = data::deep_copy(p.par->first);
+    p = p.par->second;
+    if(p.par != cycle_start) {
+      q->second = par_type(scm_pair());
+      q = q->second.par;
+    }
+  }
+
+
+  void deep_copy_list_until_cycle_start(data& p, par_type& q, par_type& cycle_start)noexcept{
+    while(p.par != cycle_start)
+      deep_copy_cycle_link(p,q,cycle_start);
+  }
+
+
+  data deep_copy_circular_list(const data& d) noexcept {
+    // find the start of the cycle
+    data slow = d, fast = d;
+    while(fast.is_type(types::par) && fast.par->second.is_type(types::par)) {
+      slow = slow.par->second;             // move 1 node/iteration
+      fast = fast.par->second.par->second; // move 2 nodes/iteration
+      if(slow.par == fast.par) break;
+    }
+    // By now fast.par is where the cycle starts
+    // -> Deep-Copy up to the cycle start, copy the cycle link, then copy again till cycle start
+    data root = par_type(scm_pair());
+    auto q = root.par;
+    auto p = d;
+    deep_copy_list_until_cycle_start(p,q,fast.par);
+    auto cycle_start = q;
+    deep_copy_cycle_link(p,q,fast.par); // deep-copy the cycle start
+    deep_copy_list_until_cycle_start(p,q,fast.par);
+    q->second = cycle_start;
+    return root;
+  }
+
+
+  data deep_copy_non_circular_list(const data& d) noexcept {
+    // note: guarenteed by data::deep_copy <d.type> ::= types::par
+    auto p = d;
+    data root = par_type(scm_pair());
+    auto q = root.par;
+    while(p.is_type(types::par)) {
+      q->first = data::deep_copy(p.par->first);
+      p = p.par->second;
+      if(p.is_type(types::par)) {
+        q->second = par_type(scm_pair());
+        q = q->second.par;
+      }
+    }
+    q->second = data::deep_copy(p);
+    return root;
+  }
+
+
+  data deep_copy_pair(const data& d) noexcept {
+    switch(primitive_list_is_acyclic_and_null_terminated(d)) {
+      case list_status::ok: 
+      case list_status::no_null: 
+        return deep_copy_non_circular_list(d);
+      default: return deep_copy_circular_list(d);
+    }
+  }
+
+  /******************************************************************************
+  * DATA DEEP-OBJECT-COPYING HELPER
+  ******************************************************************************/
+
+  data deep_copy_obj(const data& d) noexcept {
+    object_type o;
+    o.proto = d.obj->proto; // shallow copy the prototype (these are never deep copied!)
+    o.member_names = d.obj->member_names;
+    o.method_names = d.obj->method_names;
+    for(const auto& member_val : d.obj->member_values)
+      o.member_values.push_back(data::deep_copy(member_val));
+    for(const auto& method_val : d.obj->method_values)
+      o.method_values.push_back(data::deep_copy(method_val));
+    return obj_type(std::move(o));
   }
 } // End of namespace heist
 #endif

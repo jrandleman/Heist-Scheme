@@ -16,8 +16,7 @@
 
 namespace heist {
 
-  //         -- HELPER STATUS CODE ENUMERATIONS
-  enum class list_status {ok, cyclic, no_null};
+  // -- HELPER STATUS CODE ENUMERATIONS
   enum class heist_sequence {lis, nul, vec, str};
 
 
@@ -27,6 +26,7 @@ namespace heist {
   bool     prepare_string_for_AST_generation(scm_string& input);
   bool     data_is_continuation_parameter(const data& d)noexcept;
   bool     expand_macro_if_in_env(const sym_type&,const scm_list&,env_type&,scm_list&);
+  bool     seek_call_value_in_local_object(data& value, const scm_string& property, bool& is_member);
   void     parse_input_exp(scm_string&& input, scm_list& abstract_syntax_tree);
   void     skip_string_literal(size_type& i, const scm_string& input)noexcept;
   void     set_default_global_environment();
@@ -48,6 +48,8 @@ namespace heist {
   bool        data_is_the_empty_expression(const data& d)noexcept;
   void        shallow_unpack_list_into_exp(data& curr_pair, scm_list& args_list)noexcept;
   void        primitive_UNFOLD_template(scm_list&,scm_list&,const char*,const char* format);
+  void        define_setter_method_for_member(class_prototype& proto, env_type& env, const scm_string& member_name);
+  data        extend_method_env_with_THIS_object(data& calling_obj, scm_list& procedure);
   frame_var   procedure_name(const scm_list& p)noexcept;
   scm_string  escape_chars(const scm_string& str)noexcept;
   scm_string  unescape_chars(const scm_string& str)noexcept;
@@ -1290,7 +1292,7 @@ namespace heist {
   }
 
 
-  // ************************ "copy" helper ************************
+  // ************************ "seq-copy" helper ************************
   data primitive_list_copy_logic(const data& curr_pair)noexcept{
     if(!curr_pair.is_type(types::par)) return symconst::emptylist;
     data new_pair = data(make_par());
@@ -1300,7 +1302,7 @@ namespace heist {
   }
 
 
-  // ************************ "copy!" helper ************************
+  // ************************ "seq-copy!" helper ************************
   data primitive_generic_list_copy_bang_logic(data& dest_pair,data& source_pair)noexcept{
     if(!dest_pair.is_type(types::par) || !source_pair.is_type(types::par)) 
       return data(types::dne);
@@ -4748,6 +4750,121 @@ namespace heist {
     }
     split.push_back(make_str(target));
     return primitive_LIST_to_CONS_constructor(split.begin(),split.end());
+  }
+
+  /******************************************************************************
+  * OO INTERNAL PRIMITIVE HELPER FUNCTIONS
+  ******************************************************************************/
+
+  // Correct arg validation for primitive "heist:core:oo:set-member!":
+  void validate_oo_member_setter(scm_list& args, const char* format) {
+    if(args.size() != 3)
+      THROW_ERR("'heist:core:oo:set-member! didn't receive 3 args!"
+        <<format<<FCN_ERR("heist:core:oo:set-member!",args));
+    if(!args[0].is_type(types::obj))
+      THROW_ERR("'heist:core:oo:set-member! 1st object arg "<<PROFILE(args[0])<<" isn't an object!"
+        <<format<<FCN_ERR("heist:core:oo:set-member!",args));
+    if(!args[1].is_type(types::sym))
+      THROW_ERR("'heist:core:oo:set-member! 2nd member-name arg "<<PROFILE(args[1])<<" isn't a symbol!"
+        <<format<<FCN_ERR("heist:core:oo:set-member!",args));
+  }
+
+
+  // Returns whether found <sought_member> in <proto> or its inheritance chain
+  bool search_prototype_and_inherited_members(cls_type& proto, const scm_string& sought_member)noexcept{
+    // Search the prototype
+    for(size_type i = 0, n = proto->member_names.size(); i < n; ++i)
+      if(proto->member_names[i] == sought_member)
+        return true;
+    // Search the inherited prototypes (& in turn their inheritance chains as well)
+    // => NOTE that this traversal is (in part, along with inheritance registration) why we have LEFT-PRECEDENT INHERITANCE LIST ORDER
+    for(size_type i = 0, n = proto->inheritance_chain.size(); i < n; ++i)
+      if(search_prototype_and_inherited_members(proto->inheritance_chain[i],sought_member))
+        return true;
+    return false;
+  }
+
+  /******************************************************************************
+  * DEFCLASS OO GENERAL OBJECT ANALYSIS PRIMITIVES HELPER
+  ******************************************************************************/
+
+  void confirm_given_unary_object_arg(scm_list& args, const char* name) {
+    if(args.size() != 1)
+      THROW_ERR('\''<<name<<" didn't receive 1 arg!"
+        "\n     ("<<name<<" <object>)" << FCN_ERR(name,args));
+    if(!args[0].is_type(types::obj))
+      THROW_ERR('\''<<name<<" arg "<<PROFILE(args[0])<<" isn't an object!"
+        "\n     ("<<name<<" <object>)" << FCN_ERR(name,args));
+  }
+
+  /******************************************************************************
+  * DEFCLASS OO GENERAL CLASS-PROTOTYPE ANALYSIS PRIMITIVES HELPERS
+  ******************************************************************************/
+
+  void confirm_given_unary_class_prototype_arg(scm_list& args, const char* name) {
+    if(args.size() != 1)
+      THROW_ERR('\''<<name<<" didn't receive 1 arg!"
+        "\n     ("<<name<<" <class-prototype>)" << FCN_ERR(name,args));
+    if(!args[0].is_type(types::cls))
+      THROW_ERR('\''<<name<<" arg "<<PROFILE(args[0])<<" isn't a class-prototype!"
+        "\n     ("<<name<<" <class-prototype>)" << FCN_ERR(name,args));
+  }
+
+
+  void confirm_proper_new_property_args(scm_list& args, const char* name, const char* format) {
+    if(args.size() != 3)
+      THROW_ERR('\''<<name<<" didn't receive 3 args!"
+        << format << FCN_ERR(name,args));
+    if(!args[0].is_type(types::cls))
+      THROW_ERR('\''<<name<<" 1st arg "<<PROFILE(args[0])<<" isn't a class-prototype!"
+        << format << FCN_ERR(name,args));
+    if(!args[1].is_type(types::sym))
+      THROW_ERR('\''<<name<<" 2nd arg "<<PROFILE(args[1])<<" isn't a symbol!"
+        << format << FCN_ERR(name,args));
+  }
+
+
+  void confirm_new_property_name_doesnt_already_exist(scm_list& args, const char* name, const char* format) {
+    for(const auto& property_name : args[0].cls->member_names)
+      if(property_name == args[1].sym)
+        THROW_ERR('\''<<name<<" \"" << property_name << "\" is already a member of class-prototype \"" 
+          << args[0].cls->class_name << "\"!" << format << FCN_ERR(name,args));
+    for(const auto& property_name : args[0].cls->method_names)
+      if(property_name == args[1].sym)
+        THROW_ERR('\''<<name<<" \"" << property_name << "\" is already a method of class-prototype \"" 
+          << args[0].cls->class_name << "\"!" << format << FCN_ERR(name,args));
+  }
+
+
+  void validate_proto_dynamic_inheritance_args(scm_list& args, const char* name, const char* format) {
+    if(args.size() < 2)
+      THROW_ERR('\''<<name<<" not enough args received!" << format << FCN_ERR(name,args));
+    for(size_type i = 0, n = args.size(); i < n; ++i)
+      if(!args[i].is_type(types::cls))
+        THROW_ERR('\''<<name<<" arg #"<<i+1<<' '<<PROFILE(args[i])<<" isn't a class-prototype!"
+          << format << FCN_ERR(name,args));
+  }
+
+
+  void output_inheritance_chain_history_circular_error(std::vector<scm_string> class_inheritance_chain, const scm_string& lhs_name, 
+                                                                              const char* name, const char* format, scm_list& args){
+    scm_string circular_history = lhs_name;
+    for(auto iter = class_inheritance_chain.rbegin(), end = class_inheritance_chain.rend(); iter != end; ++iter)
+      circular_history += " -> " + *iter;
+    THROW_ERR('\''<<name<<" illegal circular inheritance detected:"
+      "\n     " << circular_history << format << FCN_ERR(name,args));
+  }
+
+
+  // confirm <rhs> doesn't have <lhs> in its inheritance history
+  void confirm_no_circular_inheritance(cls_type& lhs, cls_type& rhs, std::vector<scm_string> class_inheritance_chain, 
+                                                               const char* name, const char* format, scm_list& args){
+    class_inheritance_chain.push_back(rhs->class_name);
+    for(size_type i = 0, n = rhs->inheritance_chain.size(); i < n; ++i) {
+      if(rhs->inheritance_chain[i] == lhs)
+        output_inheritance_chain_history_circular_error(class_inheritance_chain,lhs->class_name,name,format,args);
+      confirm_no_circular_inheritance(lhs,rhs->inheritance_chain[i],class_inheritance_chain,name,format,args);
+    }
   }
 } // End of namespace heist
 #endif

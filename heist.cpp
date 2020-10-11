@@ -517,11 +517,11 @@ namespace heist {
   // -- ANALYSIS
   void confirm_valid_if(const scm_list& exp) {
     if(exp.size() < 3) 
-      THROW_ERR("IF didn't receive enough args:"
+      THROW_ERR("'if didn't receive enough args:"
         "\n     (if <predicate> <consequent> <optional-alternative>)"
         << EXP_ERR(exp));
     if(exp.size() > 4) 
-      THROW_ERR("IF received too many args:"
+      THROW_ERR("'if received too many args:"
         "\n     (if <predicate> <consequent> <optional-alternative>)"
         << EXP_ERR(exp));
   }
@@ -1062,6 +1062,231 @@ namespace heist {
   bool is_application(const scm_list& exp) noexcept{return exp.size()>1;}
   scm_list operator_of(const scm_list& exp)noexcept{return scm_list_cast(exp[0]);}
   scm_list operands(const scm_list& exp)   noexcept{return scm_list(exp.begin()+1, exp.end());}
+
+  /******************************************************************************
+  * DEFCLASS: (defclass <name> (<inheritance-list>) ...)
+  ******************************************************************************/
+
+  bool is_defclass(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::defclass);}
+
+
+  #define DEFCLASS_LAYOUT\
+    "\n     (defclass <class-name> (<inheritance-list>) <member-or-method-instances>)"\
+    "\n     => <member-or-method-instance> ::= (<member-name> <default-value>)"\
+    "\n                                      | ((<method-name> <arg1> <arg2> ...) <body> ...)"\
+    "\n                                      | ((make-<class-name> <arg> ...) <body> ...) ; ctor!"
+
+  // -- ERROR HANDLING
+  void validate_defclass(scm_list& exp) {
+    if(exp.size() < 4)
+      THROW_ERR("'defclass not enough arguments given!" DEFCLASS_LAYOUT << EXP_ERR(exp));
+    if(!exp[1].is_type(types::sym))
+      THROW_ERR("'defclass 1st arg "<<PROFILE(exp[1])<<" isn't a symbolic class name!" DEFCLASS_LAYOUT << EXP_ERR(exp));
+    if(!exp[2].is_type(types::exp))
+      THROW_ERR("'defclass 2nd arg "<<PROFILE(exp[1])<<" isn't a list of inherited classes!" DEFCLASS_LAYOUT << EXP_ERR(exp));
+    for(size_type i = 0, n = exp[2].exp.size(); i < n; ++i)
+      if(!exp[2].exp[i].is_type(types::sym))
+        THROW_ERR("'defclass inherited entity #"<<i+1<<' '<<PROFILE(exp[2].exp[i])
+          <<" isn't a symbolic class name!" DEFCLASS_LAYOUT << EXP_ERR(exp));
+    for(size_type i = 3, n = exp.size(); i < n; ++i) {
+      if(!exp[i].is_type(types::exp) || exp[i].exp.size() < 2)
+        THROW_ERR("'defclass invalid <member-or-method-instance> => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
+      if(exp[i].exp[0].is_type(types::sym)) { // member
+        if(exp[i].exp.size() != 2)
+          THROW_ERR("'defclass invalid <member-or-method-instance> => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
+        continue;
+      }
+      if(exp[i].exp[0].is_type(types::exp)) { // method
+        for(size_type j = 0, m = exp[i].exp[0].exp.size(); j < m; ++j)
+          if(!exp[i].exp[0].exp[j].is_type(types::sym))
+            THROW_ERR("'defclass invalid <member-or-method-instance> => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
+        continue;
+      }
+      THROW_ERR("'defclass invalid <member-or-method-instance> => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
+    }
+  }
+
+  void validate_inherited_entities(class_prototype& proto, scm_list& exp, env_type& env){
+    for(auto& inherited : exp[2].exp) {
+      auto result = lookup_variable_value(inherited.sym,env);
+      if(!result.is_type(types::cls))
+        THROW_ERR("'defclass inheritance entity " << PROFILE(inherited) << " isn't a class prototype!" 
+          << DEFCLASS_LAYOUT << EXP_ERR(exp));
+      proto.inheritance_chain.push_back(result.cls);
+    }
+  }
+
+  void validate_unique_member_or_method_name(scm_list& exp, const scm_string& name, const std::vector<scm_string>& seen_names, const char* message) {
+    for(const auto& n : seen_names)
+      if(name == n)
+        THROW_ERR("'defclass " << exp[1].sym << " => \"" << name << "\" " << message << '!'
+          << DEFCLASS_LAYOUT << EXP_ERR(exp));
+  }
+
+
+  // -- CLASS PROTOTYPE GENERATION HELPERS
+  exe_type convert_method_to_lambda(scm_list& method_exp) {
+    scm_list method_lambda(1+method_exp.size());
+    method_lambda[0] = symconst::lambda;
+    method_lambda[1] = scm_list(method_exp[0].exp.begin()+1,method_exp[0].exp.end());
+    std::copy(method_exp.begin()+1,method_exp.end(),method_lambda.begin()+2);
+    return scm_analyze(std::move(method_lambda));
+  }
+
+  void evaluate_method_and_member_exec_procs(class_prototype& proto, std::vector<exe_type>& member_exec_procs, 
+                                             std::vector<exe_type>& method_exec_procs, env_type& env) {
+    for(size_type i = 0, n = member_exec_procs.size(); i < n; ++i)
+      proto.member_values.push_back(data_cast(member_exec_procs[i](env)));
+    for(size_type i = 0, n = method_exec_procs.size(); i < n; ++i)
+      proto.method_values.push_back(data_cast(method_exec_procs[i](env)));
+  }
+
+  // ((set-<member-name>! <value>)
+  //   (heist:core:oo:set-member! this '<member-name> <value>))
+  void define_setter_method_for_member(class_prototype& proto, env_type& env, const scm_string& member_name) {
+    auto setter_name = "set-"+member_name+'!';
+    proto.method_names.push_back(setter_name);
+    scm_list setter_lambda(3);
+    setter_lambda[0] = symconst::lambda;
+    setter_lambda[1] = scm_list(1,"heist:core:oo:new-value");
+    setter_lambda[2] = scm_list(4);
+    setter_lambda[2].exp[0] = "heist:core:oo:set-member!";
+    setter_lambda[2].exp[1] = "this";
+    setter_lambda[2].exp[2] = scm_list(2);
+    setter_lambda[2].exp[2].exp[0] = symconst::quote;
+    setter_lambda[2].exp[2].exp[1] = member_name;
+    setter_lambda[2].exp[3] = "heist:core:oo:new-value";
+    proto.method_values.push_back(data_cast(scm_eval(std::move(setter_lambda),env)));
+  }
+
+  void define_setter_methods_for_members(class_prototype& proto, env_type& env) {
+    for(size_type i = 0, n = proto.member_names.size(); i < n; ++i)
+      define_setter_method_for_member(proto,env,proto.member_names[i]);
+  }
+
+  // (define (<class-name>? <obj>)
+  //   (heist:core:oo:compare-classes <obj> <class-name>))
+  void define_class_prototype_predicate(scm_string& class_name, env_type& env) {
+    scm_list predicate(3);
+    predicate[0] = symconst::define;
+    predicate[1] = scm_list(2);
+    predicate[1].exp[0] = class_name + '?';
+    predicate[1].exp[1] = "obj";
+    predicate[2] = scm_list(3);
+    predicate[2].exp[0] = "heist:core:oo:compare-classes"; // primitive comparator helper
+    predicate[2].exp[1] = "obj";
+    predicate[2].exp[2] = class_name;
+    scm_eval(std::move(predicate),env);
+  }
+
+  // (define (make-<class-name> . <optional-member-hmap>)
+  //   (if (null? <optional-member-hmap>)
+  //       (heist:core:oo:make-object <class-name>)
+  //       (heist:core:oo:make-object <class-name> (car <optional-member-hmap>))))
+  void define_default_prototype_constructor(const scm_string& class_name, env_type& env, const char* name_prefix) {
+    scm_list dflt_ctor(3);
+    dflt_ctor[0] = symconst::define;
+    dflt_ctor[1] = scm_list(3);
+    dflt_ctor[1].exp[0] = name_prefix+class_name;
+    dflt_ctor[1].exp[1] = symconst::period;
+    dflt_ctor[1].exp[2] = "optional-member-hmap";
+    dflt_ctor[2] = scm_list(4);
+    dflt_ctor[2].exp[0] = symconst::if_t;
+    dflt_ctor[2].exp[1] = scm_list(2);
+    dflt_ctor[2].exp[1].exp[0] = "null?";
+    dflt_ctor[2].exp[1].exp[1] = "optional-member-hmap";
+    dflt_ctor[2].exp[2] = scm_list(2);
+    dflt_ctor[2].exp[2].exp[0] = "heist:core:oo:make-object";
+    dflt_ctor[2].exp[2].exp[1] = class_name;
+    dflt_ctor[2].exp[3] = scm_list(3);
+    dflt_ctor[2].exp[3].exp[0] = "heist:core:oo:make-object";
+    dflt_ctor[2].exp[3].exp[1] = class_name;
+    dflt_ctor[2].exp[3].exp[2] = scm_list(2);
+    dflt_ctor[2].exp[3].exp[2].exp[0] = "car";
+    dflt_ctor[2].exp[3].exp[2].exp[1] = "optional-member-hmap";
+    scm_eval(std::move(dflt_ctor),env);
+  }
+
+  // (define (make-<class-name> <... CUSTOM CTOR ARGS HERE ...>)
+  //   (define this (heist:core:oo:make-object <class-name>))
+  //   <... CUSTOM CTOR BODY HERE ...>
+  //   this)
+  void define_custom_prototype_constructor(const scm_string& class_name, env_type& env, scm_list& ctor_proc) {
+    scm_list custom_ctor(3+ctor_proc.size());
+    custom_ctor[0] = symconst::define;
+    custom_ctor[1] = ctor_proc[0].exp;
+    custom_ctor[2] = scm_list(3);
+    custom_ctor[2].exp[0] = symconst::define;
+    custom_ctor[2].exp[1] = "this";
+    custom_ctor[2].exp[2] = scm_list(2);
+    custom_ctor[2].exp[2].exp[0] = "heist:core:oo:make-object";
+    custom_ctor[2].exp[2].exp[1] = class_name;
+    std::move(ctor_proc.begin()+1,ctor_proc.end(),custom_ctor.begin()+3);
+    *custom_ctor.rbegin() = "this";
+    scm_eval(std::move(custom_ctor),env);
+  }
+
+  void parse_defclass_expression(scm_list& exp, class_prototype& proto, std::vector<exe_type>& member_exec_procs, 
+                                                                        std::vector<exe_type>& method_exec_procs, 
+                                                                        scm_list& ctor_proc) {
+    const scm_string ctor_name("make-"+exp[1].sym);
+    for(size_type i = 3, n = exp.size(); i < n; ++i) {
+      // parse member
+      if(exp[i].exp[0].is_type(types::sym)) {
+        validate_unique_member_or_method_name(exp,exp[i].exp[0].sym,proto.method_names,"member already defined as a method");
+        validate_unique_member_or_method_name(exp,exp[i].exp[0].sym,proto.member_names,"member is already defined");
+        proto.member_names.push_back(exp[i].exp[0].sym);
+        member_exec_procs.push_back(scm_analyze(scm_list_cast(exp[i].exp[1])));
+      // parse method
+      } else { 
+        // extract ctor
+        if(exp[i].exp[0].exp[0].sym == ctor_name) {
+          ctor_proc = exp[i].exp;
+        // regular method
+        } else {
+          validate_unique_member_or_method_name(exp,exp[i].exp[0].exp[0].sym,proto.member_names,"method already defined as a member");
+          validate_unique_member_or_method_name(exp,exp[i].exp[0].exp[0].sym,proto.method_names,"method is already defined");
+          proto.method_names.push_back(exp[i].exp[0].exp[0].sym);
+          method_exec_procs.push_back(convert_method_to_lambda(exp[i].exp));
+        }
+      }
+    }
+  }
+
+
+  // -- CLASS PROTOTYPE GENERATION MAIN
+  exe_type analyze_defclass(scm_list& exp) {
+    validate_defclass(exp);
+    class_prototype proto;
+    proto.class_name = exp[1].sym;
+    // get exec procs for member values & method procedures
+    std::vector<exe_type> member_exec_procs, method_exec_procs;
+    scm_list ctor_proc;
+    parse_defclass_expression(exp,proto,member_exec_procs,method_exec_procs,ctor_proc);
+    return [proto=std::move(proto),member_exec_procs=std::move(member_exec_procs),
+            method_exec_procs=std::move(method_exec_procs),exp=std::move(exp),
+            ctor_proc=std::move(ctor_proc)](env_type& env)mutable{
+      proto.defn_env = env;
+      // confirm inheriting from class objects & build inheritance chain
+      // NOTE: THIS ORDERING IS IN PART RESPONSIBLE (ALONG WITH SEARCH) FOR LEFT-PREDECENT INHERITANCE
+      validate_inherited_entities(proto,exp,env);
+      // evaluate member and method values
+      evaluate_method_and_member_exec_procs(proto,member_exec_procs,method_exec_procs,env);
+      // define setters for members
+      define_setter_methods_for_members(proto,env);
+      // define the class prototype
+      define_variable(proto.class_name,make_cls(proto),env);
+      // generate the ctor
+      define_default_prototype_constructor(exp[1].sym,env,"default:make-"); // default ctor always available
+      if(ctor_proc.empty()) define_default_prototype_constructor(exp[1].sym,env,"make-");
+      else                  define_custom_prototype_constructor(exp[1].sym,env,ctor_proc);
+      // define the class predicate
+      define_class_prototype_predicate(exp[1].sym,env); // exp[1].sym == class_name
+      return G::VOID_DATA_EXPRESSION;
+    };
+  }
+
+  #undef DEFCLASS_LAYOUT
 
   /******************************************************************************
   * DERIVING COND: (cond <clause1> ... <clauseN>)
@@ -2170,12 +2395,12 @@ namespace heist {
 
   // Heist-specific checker to not prefix C++ derived special forms w/ application tag
   bool is_HEIST_cpp_derived_special_form(const sym_type& app)noexcept{
-    return app == symconst::cps_quote || app == symconst::scm_cps    || app == symconst::core_syn     ||
-           app == symconst::and_t     || app == symconst::or_t       || app == symconst::scons        ||
-           app == symconst::stream    || app == symconst::delay      || app == symconst::cond         ||
-           app == symconst::case_t    || app == symconst::let        || app == symconst::let_star     ||
-           app == symconst::letrec    || app == symconst::do_t       || app == symconst::quasiquote   ||
-           app == symconst::let_syn   || app == symconst::letrec_syn || app == symconst::vec_literal  ||
+    return app == symconst::cps_quote || app == symconst::scm_cps      || app == symconst::map_literal  ||
+           app == symconst::and_t     || app == symconst::or_t         || app == symconst::scons        ||
+           app == symconst::stream    || app == symconst::delay        || app == symconst::cond         ||
+           app == symconst::case_t    || app == symconst::let          || app == symconst::let_star     ||
+           app == symconst::letrec    || app == symconst::do_t         || app == symconst::quasiquote   ||
+           app == symconst::let_syn   || app == symconst::letrec_syn   || app == symconst::vec_literal  ||
            app == symconst::unquote   || app == symconst::unquo_splice;
   }
 
@@ -2195,6 +2420,8 @@ namespace heist {
   bool data_is_cps_atomic(const data& d)noexcept{
     return !d.is_type(types::exp) || 
            is_tagged_list(d.exp,symconst::syn_rules) || 
+           is_tagged_list(d.exp,symconst::core_syn)  || 
+           is_tagged_list(d.exp,symconst::defclass)  || 
            is_tagged_list(d.exp,symconst::quote);
   }
 
@@ -3938,6 +4165,135 @@ namespace heist {
   }
 
   /******************************************************************************
+  * ANALYZING VARIABLES (& POTENTIAL OBJECT PROPERTY CHAINS!)
+  ******************************************************************************/
+
+  // (string-split <call> ".")
+  void get_object_property_chain_sequence(const scm_string& call, std::vector<scm_string>& chain){
+    chain.push_back("");
+    for(const auto& ch : call) {
+      if(ch == '.')
+        chain.push_back("");
+      else
+        *chain.rbegin() += ch;
+    }
+    // verify no ".." found or ".<call>" or "<call>."
+    for(const auto& link : chain)
+      if(link.empty())
+        THROW_ERR('\''<<call<<" invalid property access (started/ended/had-2-sequential '.')!"
+          << EXP_ERR(call));
+  }
+
+
+  // extend <procedure>'s env with <calling_obj> as "this"
+  data extend_method_env_with_THIS_object(data& calling_obj, scm_list& procedure) {
+    auto& env  = procedure_environment(procedure);
+    auto& vars = frame_variables(*env->operator[](0));
+    auto& vals = frame_values(*env->operator[](0));
+    if(vars.empty() || vars[0] != "this") {
+      vars.insert(vars.begin(), "this");
+      vals.insert(vals.begin(), calling_obj);
+    } else {
+      vals[0] = calling_obj;
+    }
+    return procedure;
+  }
+
+
+  // Returns whether found <sought_property> in <proto> or its inheritance chain
+  bool search_prototype_and_inherited_properties(cls_type& proto, const scm_string& sought_property, bool& is_member, data& value)noexcept{
+    // Search the prototype
+    for(size_type i = 0, n = proto->member_names.size(); i < n; ++i)
+      if(proto->member_names[i] == sought_property) {
+        // cache accessed inherited member
+        value.obj->member_names.push_back(sought_property);
+        value.obj->member_values.push_back(proto->member_values[i]);
+        value = proto->member_values[i];
+        is_member = true;
+        return true;
+      }
+    for(size_type i = 0, n = proto->method_names.size(); i < n; ++i)
+      if(proto->method_names[i] == sought_property) {
+        // cache accessed inherited method
+        value.obj->method_names.push_back(sought_property);
+        value.obj->method_values.push_back(proto->method_values[i]);
+        value = extend_method_env_with_THIS_object(value, proto->method_values[i].exp);
+        is_member = false;
+        return true;
+      }
+    // Search the inherited prototypes (& in turn their inheritance chains as well)
+    // => NOTE that this traversal is (in part, along with inheritance registration) why we have LEFT-PRECEDENT INHERITANCE LIST ORDER
+    for(size_type i = 0, n = proto->inheritance_chain.size(); i < n; ++i)
+      if(search_prototype_and_inherited_properties(proto->inheritance_chain[i],sought_property,is_member,value))
+        return true;
+    return false;
+  }
+
+
+  // Returns whether found <property> as a member/method in <value.obj> 
+  // If returns true, <property> value is in <value> & <is_member> denotes whether a member or method
+  bool seek_call_value_in_local_object(data& value, const scm_string& property, bool& is_member) {
+    auto& members = value.obj->member_names;
+    // Seek members
+    for(size_type i = 0, n = members.size(); i < n; ++i)
+      if(members[i] == property) {
+        value = value.obj->member_values[i];
+        is_member = true;
+        return true;
+      }
+    // Seek methods
+    auto& methods = value.obj->method_names;
+    for(size_type i = 0, n = methods.size(); i < n; ++i)
+      if(methods[i] == property) {
+        value = extend_method_env_with_THIS_object(value, value.obj->method_values[i].exp);
+        is_member = false;
+        return true;
+      }
+    // Seek proto & its inheritance chain
+    // => IF FOUND, ADD IT TO THE LOCAL OBJECT INSTANCE
+    return search_prototype_and_inherited_properties(value.obj->proto,property,is_member,value);
+  }
+
+
+  // Returns the ultimate value of the call-chain
+  data get_object_property_chain_value(scm_string&& call, env_type& env) {
+    // split the call chain into object series
+    std::vector<scm_string> chain;
+    get_object_property_chain_sequence(call,chain);
+    // get the first object instance
+    data value = lookup_variable_value(chain[0],env);
+    // get the call value
+    for(size_type i = 1, n = chain.size(); i < n; ++i) {
+      if(!value.is_type(types::obj))
+        THROW_ERR('\''<<call<<" can't access property "<<chain[i]<<" in non-object "
+          << PROFILE(value) << '!' << EXP_ERR(call));
+      // Search local members & methods, the proto, and the proto inheritances
+      bool is_member = false;
+      if(!seek_call_value_in_local_object(value,chain[i],is_member))
+        THROW_ERR('\''<<call<<' '<<chain[i]<<" isn't a property in object "
+          << value << '!' << EXP_ERR(call));
+      // if found a method, confirm at the last item in the call chain
+      if(!is_member && i+1 < n)
+        THROW_ERR('\''<<call<<" can't access property "<<chain[i]
+          <<" of method "<<PROFILE(value)<<'!'<< EXP_ERR(call));
+    }
+    return value;
+  }
+
+
+  exe_type analyze_variable(scm_string variable) {
+    // If a regular variable (no object property chain)
+    if(variable.find('.') == scm_string::npos || variable == "..")
+      return [variable=std::move(variable)](env_type& env){
+        return scm_list_cast(lookup_variable_value(variable,env));
+      };
+    // Object accessing members/methods!
+    return [variable=std::move(variable)](env_type& env)mutable{
+      return scm_list_cast(get_object_property_chain_value(std::move(variable),env));
+    };
+  }
+
+  /******************************************************************************
   * APPLICATION
   ******************************************************************************/
 
@@ -4227,6 +4583,7 @@ namespace heist {
   exe_type scm_analyze(scm_list&& exp,const bool tail_call,const bool cps_block) { // analyze expression
     if(exp.empty())                         THROW_ERR("Can't eval an empty expression!"<<EXP_ERR("()"));
     else if(is_self_evaluating(exp)) return [exp=std::move(exp)](env_type&){return exp;};
+    else if(is_defclass(exp))        return analyze_defclass(exp);
     else if(is_scm_cps(exp))         return analyze_scm_cps(exp);
     else if(is_cps_quote(exp))       return analyze_cps_quote(exp,cps_block);
     else if(is_quoted(exp))          return analyze_quoted(exp);
@@ -4257,11 +4614,7 @@ namespace heist {
     else if(is_unquote(exp))                THROW_ERR("Misplaced keyword 'unquote outside of 'quasiquote ! -- ANALYZE"         <<EXP_ERR(exp));
     else if(is_unquote_splicing(exp))       THROW_ERR("Misplaced keyword 'unquote-splicing outside of 'quasiquote ! -- ANALYZE"<<EXP_ERR(exp));
     else if(is_application(exp))     return analyze_application(exp,tail_call,cps_block);
-    else if(is_variable(exp)){
-      return [exp=std::move(exp)](env_type& env){
-        return scm_list_cast(lookup_variable_value(exp[0].sym,env));
-      };
-    }
+    else if(is_variable(exp))        return analyze_variable(exp[0].sym);
     throw_unknown_analysis_anomalous_error(exp);
     return exe_type();
   }
@@ -4474,7 +4827,7 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
       heist::G::USING_CASE_SENSITIVE_SYMBOLS = false;
     } else if(cmd_flag == "--version") {
       found_version_flag = true;
-      puts("Heist Scheme Version 5.0\nTarget: " HEIST_EXACT_PLATFORM "\nInstalledDir: " HEIST_DIRECTORY_FILE_PATH);
+      puts("Heist Scheme Version 6.0\nTarget: " HEIST_EXACT_PLATFORM "\nInstalledDir: " HEIST_DIRECTORY_FILE_PATH);
       return true;
     } else if(cmd_flag == "-nansi") {
       heist::G::USING_ANSI_ESCAPE_SEQUENCES = false;
@@ -4603,7 +4956,7 @@ int main(int argc, char* argv[]) {
   if(compile_pos != -1) 
     return compile_script(argv, compile_pos, compile_as);
   // Run the REPL
-  puts("Heist Scheme Version 5.0\nEnter '(exit)' to Terminate REPL");
+  puts("Heist Scheme Version 6.0\nEnter '(exit)' to Terminate REPL");
   driver_loop();
   heist::close_port_registry();
   return 0;
