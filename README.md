@@ -21,7 +21,7 @@
 # Features:
 0. Unhygienic & Reader Macros
 1. Tail-Call Optimization
-2. OOP Support
+2. OOP Support (see [`defclass`](#Defclass) & [reflection primitives](#oop-reflection-primitives))
 3. First-Class Hash-Maps (see [`hmap`](#Hash-Map-Procedures) & [`$`](#Hmap-Literal))
 4. Opt-In Dynamic Scoping (see the [`call/ce`](#control-flow-procedures) & [`inline`](#control-flow-procedures) application primitives)
 5. Opt-In Continuations & [`call/cc`](#Scm-Cps-Procedures) (see [`scm->cps`](#Scm-Cps))
