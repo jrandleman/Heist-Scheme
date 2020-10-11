@@ -19,18 +19,18 @@
 
 ------------------------
 # Features:
-0. Unhygienic & Reader Macros
+0. [Unhygienic & Reader Macros](#Heist-Macro-System-Procedures-vs-Macros)
 1. Tail-Call Optimization
-2. OOP Support (see [`defclass`](#Defclass))
-3. First-Class Hash-Maps (see [`hmap`](#Hash-Map-Procedures))
-4. Opt-In Dynamic Scoping (see [`call/ce`](#control-flow-procedures) & [`inline`](#control-flow-procedures))
-5. Opt-In Continuations (see [`scm->cps`](#Scm-Cps))
-6. Native Even Streams (Lists w/ Delayed Car & Cdr)
-7. Generic Algorithms (Polymorphic Algorithm Primitives)
+2. [OOP Support](#Defclass)
+3. [First-Class Hash-Maps](#Hash-Map-Procedures)
+4. [Opt-In Dynamic Scoping](#control-flow-procedures)
+5. [Opt-In Continuations](#Scm-Cps)
+6. [Native Even Streams](#Stream-Primitives) (Lists w/ Delayed Car & Cdr)
+7. [Generic Algorithms](#Generic-Sequence-ListVectorString-Algorithmic-Procedures) (Polymorphic Algorithm Primitives)
 8. SRFI Primitives (List, Vector, String, etc.)
-9. Eval (Evaluate Symbolic Data as Code)
-10. String I/O (Read/Write Compatibility w/ Strings as Ports)
-11. Recursive Depth Control
+9. [Eval](#evalapply--symbol-append) (Evaluate Symbolic Data as Code)
+10. [String I/O](#Output-Procedures) (Read/Write Compatibility w/ Strings as Ports)
+11. [Recursive Depth Control](#Interpreter-Invariants-Manipulation)
 12. And More!
 
 ------------------------ 
