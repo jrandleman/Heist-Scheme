@@ -2278,6 +2278,7 @@ Other primitives of this nature include:<br>
 0. __Disable ANSI Escape Codes__: `(set-nansi! <boolean>)`
 
 1. __Enable Case-Insensitivity__: `(set-ci! <boolean>)`
+   * Works by having the reader convert all input to lower-case!
 
 2. __Set Pretty-Print Column Length__: `(set-pprint-column-width! <positive-integer>)`
 
