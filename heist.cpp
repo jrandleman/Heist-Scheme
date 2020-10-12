@@ -2678,6 +2678,14 @@ namespace heist {
   }
 
 
+  scm_list get_cps_IF_VOID_alternative(const data& continuation){
+    scm_list void_alternative(2);
+    void_alternative[0] = continuation;       // continuation
+    void_alternative[1] = scm_list(1,"void"); // add (void)
+    return void_alternative;
+  }
+
+
   // NOTE: <topmost_call> signals to optimize the result prior returning
   scm_list generate_fundamental_form_cps(const data& code,const bool topmost_call){
     // ATOMIC / SYNTAX-RULES / QUOTE
@@ -2838,12 +2846,14 @@ namespace heist {
       lambda[1] = scm_list(1,generate_unique_cps_hash()); // "k"
       // Atomic IF test
       if(data_is_cps_atomic(code.exp[1])) { 
-        lambda[2] = scm_list(code.exp.size());
+        lambda[2] = scm_list(4);
         lambda[2].exp[0] = symconst::if_t;
         lambda[2].exp[1] = code.exp[1];
         lambda[2].exp[2] = get_cps_IF_consequent(code,lambda[1].exp[0]);
         if(code.exp.size() > 3) // Has IF alternative
           lambda[2].exp[3] = get_cps_IF_alternative(code,lambda[1].exp[0]);
+        else // add pass (void) as alternative if none given
+          lambda[2].exp[3] = get_cps_IF_VOID_alternative(lambda[1].exp[0]);
         if(topmost_call) optimize_CPS_code_generation(lambda);
         return lambda;
       }
@@ -2853,12 +2863,14 @@ namespace heist {
       lambda[2].exp[1] = scm_list(3);
       lambda[2].exp[1].exp[0] = symconst::lambda;
       lambda[2].exp[1].exp[1] = scm_list(1,generate_unique_cps_hash()); // "test-result"
-      lambda[2].exp[1].exp[2] = scm_list(code.exp.size());
+      lambda[2].exp[1].exp[2] = scm_list(4);
       lambda[2].exp[1].exp[2].exp[0] = symconst::if_t;
       lambda[2].exp[1].exp[2].exp[1] = lambda[2].exp[1].exp[1].exp[0];
       lambda[2].exp[1].exp[2].exp[2] = get_cps_IF_consequent(code,lambda[1].exp[0]);
       if(code.exp.size() > 3) // Has IF alternative
         lambda[2].exp[1].exp[2].exp[3] = get_cps_IF_alternative(code,lambda[1].exp[0]);
+      else // add pass (void) as alternative if none given
+        lambda[2].exp[1].exp[2].exp[3] = get_cps_IF_VOID_alternative(lambda[1].exp[0]);
       if(topmost_call) optimize_CPS_code_generation(lambda);
       return lambda;
 
