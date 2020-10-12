@@ -1319,36 +1319,42 @@ namespace heist {
   }
 
   // primitive "hmap-for-each", "hmap-for-each-key", "hmap-for-each-val", "hmap-map!"
+  // NOTE: WE CREATE A VECTOR OF KEYS THEN ITERATE THRU THAT VECTOR, SO AS TO NOT INVALIDATE
+  //       HMAP ITERATORS IN THE LOOP FROM POTENTIALLY DELETING THE KEY IN THE USER'S FCN
   #define GENERATE_HMAP_ITERATION_FCN(FCN_NAME,NAME,...)\
     data FCN_NAME(scm_list& args) {\
       /* extract the environment */\
       auto env = args.rbegin()->env;\
       args.pop_back();\
       hmap_confirm_binary_procedure_map(NAME,"\n     (" NAME " <procedure> <hash-map>)",args);\
-      for(auto& keyvalue : args[1].map->val) {\
+      size_type n = args[1].map->val.size(), i = 0;\
+      std::vector<scm_string> keys(n);\
+      for(auto& keyvalue : args[1].map->val)\
+        keys[i++] = keyvalue.first;\
+      for(i = 0; i < n; ++i) {\
         __VA_ARGS__;\
       }\
       return G::VOID_DATA_OBJECT;\
     }
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_FOR_EACH_KEY,"hmap-for-each-key",
-    scm_list arg(1,map_data::unhash_key(keyvalue.first));
+    scm_list arg(1,map_data::unhash_key(keys[i]));
     execute_application(args[0].exp,arg,env););
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_FOR_EACH_VAL,"hmap-for-each-val",
-    scm_list arg(1,keyvalue.second);
+    scm_list arg(1,args[1].map->val[keys[i]]);
     execute_application(args[0].exp,arg,env););
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_FOR_EACH,"hmap-for-each",
     auto p = make_par();
-    p->first = map_data::unhash_key(keyvalue.first);
-    p->second = keyvalue.second;
+    p->first = map_data::unhash_key(keys[i]);
+    p->second = args[1].map->val[keys[i]];
     scm_list arg(1,p);
     execute_application(args[0].exp,arg,env););
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_MAP_BANG,"hmap-map!",
-    scm_list arg(1,keyvalue.second);
-    keyvalue.second = data_cast(execute_application(args[0].exp,arg,env)););
+    scm_list arg(1,args[1].map->val[keys[i]]);
+    args[1].map->val[keys[i]] = data_cast(execute_application(args[0].exp,arg,env)););
 
   // primitive "hmap-map"
   data primitive_HMAP_MAP(scm_list& args) {
@@ -1372,7 +1378,9 @@ namespace heist {
     for(auto& keyvalue : args[0].map->val) {
       auto p = make_par();
       p->first = map_data::unhash_key(keyvalue.first);
-      p->second = keyvalue.second;
+      p->second = make_par();
+      p->second.par->first = keyvalue.second;
+      p->second.par->second = symconst::emptylist;
       alist[i++] = std::move(p);
     }
     return primitive_LIST_to_CONS_constructor(alist.begin(),alist.end());
@@ -1384,19 +1392,22 @@ namespace heist {
       THROW_ERR("'alist->hmap didn't recieve 1 arg!"
         "\n     (alist->hmap <alist>)" << FCN_ERR("alist->hmap",args));
     if(!data_is_proper_list(args[0]))
-      THROW_ERR("'alist->hmap arg "<<PROFILE(args[0])<<" isn't an <alist>!"
+      THROW_ERR("'alist->hmap arg "<<PROFILE(args[0])<<" isn't an <alist> of proper-list pairs of items!"
         "\n     (alist->hmap <alist>)" << FCN_ERR("alist->hmap",args));
     scm_list alist_exp;
     map_data map;
     shallow_unpack_list_into_exp(args[0],alist_exp);
     for(auto& p : alist_exp) {
       if(!p.is_type(types::par))
-        THROW_ERR("'alist->hmap arg "<<PROFILE(args[0])<<" isn't an <alist>!"
+        THROW_ERR("'alist->hmap arg "<<PROFILE(args[0])<<" isn't an <alist> of proper-list pairs of items!"
+          "\n     (alist->hmap <alist>)" << FCN_ERR("alist->hmap",args));
+      if(!p.par->second.is_type(types::par))
+        THROW_ERR("'alist->hmap arg "<<PROFILE(args[0])<<" isn't an <alist> of proper-list pairs of items!"
           "\n     (alist->hmap <alist>)" << FCN_ERR("alist->hmap",args));
       if(!map_data::hashable(p.par->first))
         THROW_ERR("'alist->hmap key "<<PROFILE(p.par->first)<<" isn't hashable!"
           "\n     (alist->hmap <alist>)" HEIST_HASH_MAP_KEY_FORMAT << FCN_ERR("alist->hmap",args));
-      map[p.par->first] = p.par->second;
+      map[p.par->first] = p.par->second.par->first;
     }
     return make_map(std::move(map));
   }

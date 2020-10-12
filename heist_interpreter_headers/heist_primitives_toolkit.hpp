@@ -324,7 +324,7 @@ namespace heist {
         scm_list args;
         for(auto& sequence : sequences)
           args.push_back((sequence.*seq_ptr)->operator[](i)); // extract the ith elements
-        args.insert(args.begin(), init_val);                        // and accumulate the elements
+        args.insert(args.begin(), init_val);                  // and accumulate the elements
         init_val = data_cast(execute_application(proc,args,env));
       }
     } else {
@@ -334,7 +334,7 @@ namespace heist {
         scm_list args;
         for(auto& sequence : sequences)
           args.push_back((sequence.*seq_ptr)->operator[](i)); // extract the ith elements
-        args.insert(args.end(), init_val);                          // and accumulate the elements
+        args.insert(args.end(), init_val);                    // and accumulate the elements
         init_val = data_cast(execute_application(proc,args,env));
       }
     }

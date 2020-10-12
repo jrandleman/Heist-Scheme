@@ -209,8 +209,10 @@
 9. Syntax-Rules Object (see [`syntax-rules`](#Define-Syntax-Let-Syntax-Letrec-Syntax) special form)
 10. Delayed Data (see [`delay`](#Delay) special form)
 11. Procedure (via primitives or the [`lambda`](#Lambda) special form)
-12. Void Data [`(void)`](#Type-Predicates)
-13. Undefined Data [`(undefined)`](#Type-Predicates)
+12. Objects (see [`defclass`](#Defclass))
+13. Class-Prototypes (see [`defclass`](#Defclass))
+14. Void Data [`(void)`](#Type-Predicates)
+15. Undefined Data [`(undefined)`](#Type-Predicates)
 
 
 
