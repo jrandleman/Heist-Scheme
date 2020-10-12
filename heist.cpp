@@ -4182,7 +4182,7 @@ namespace heist {
     // verify no ".." found or ".<call>" or "<call>."
     for(const auto& link : chain)
       if(link.empty())
-        THROW_ERR('\''<<call<<" invalid property access (started/ended/had-2-sequential '.')!"
+        THROW_ERR('\''<<call<<" invalid property access (missing an object and/or property)!"
           << EXP_ERR(call));
   }
 
