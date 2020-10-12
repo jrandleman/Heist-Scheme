@@ -2411,7 +2411,7 @@ Other primitives of this nature include:<br>
 2. __Convert Object Members into JSON String__: `(object->json <object>)`
 
 3. __JSON Datum Predicate__: `(json-datum? <obj>)`
-   * Effectively returns whether `scm->json` would throw an error or not
+   * Effectively returns whether `(scm->json <obj>)` would throw an error or not
 
 
 
