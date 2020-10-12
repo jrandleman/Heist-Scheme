@@ -4887,7 +4887,7 @@ namespace heist {
       else if(is_valid_json_datum(keyval.second))
         p.par->second.par->first = keyval.second;
       else
-        p.par->second.par->first = make_str(keyval.second.write());
+        p.par->second.par->first = make_str(keyval.second.display());
       p.par->second.par->second = symconst::emptylist;
       alist.push_back(std::move(p));
     }
