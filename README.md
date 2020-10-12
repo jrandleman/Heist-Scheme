@@ -2112,6 +2112,10 @@ Other primitives of this nature include:<br>
 
 15. __List to Stream__: `(list->stream <list>)`
 
+16. __Object Members to Hmap__: `(object->hmap <object>)`
+
+17. __Object Members to Alist__: `(object->alist <object>)`
+
 
 
 ------------------------
@@ -2403,6 +2407,11 @@ Other primitives of this nature include:<br>
            | <vector> ; -> <array>
            | <boolean>
    ```
+
+2. __Convert Object Members into JSON String__: `(object->json <object>)`
+
+3. __JSON Datum Predicate__: `(json-datum? <obj>)`
+   * Effectively returns whether `scm->json` would throw an error or not
 
 
 

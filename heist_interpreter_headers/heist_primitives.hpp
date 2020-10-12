@@ -5226,6 +5226,12 @@ namespace heist {
     return make_str(heist_json_generator::convert_scm_to_json(args[0],args,format));
   }
 
+
+  data primitive_JSON_DATUMP(scm_list& args) {
+    confirm_given_one_arg(args,"json-datum?");
+    return boolean(is_valid_json_datum(args[0]));
+  }
+
   /******************************************************************************
   * REGEX PRIMITIVES
   ******************************************************************************/
@@ -5442,6 +5448,23 @@ namespace heist {
           <<" of method "<<PROFILE(value)<<'!'<< FCN_ERR("..",args));
     }
     return value;
+  }
+
+  // NOTE: recursively converts object member values into hashmaps as well
+  data primitive_OBJECT_TO_HMAP(scm_list& args) {
+    confirm_given_unary_object_arg(args,"object->hmap");
+    return prm_recursively_convert_OBJ_to_HMAP(args[0]);
+  }
+
+  data primitive_OBJECT_TO_ALIST(scm_list& args) {
+    confirm_given_unary_object_arg(args,"object->alist");
+    return prm_recursively_convert_HMAP_to_ALIST(prm_recursively_convert_OBJ_to_HMAP(args[0]));
+  }
+
+  data primitive_OBJECT_TO_JSON(scm_list& args) {
+    confirm_given_unary_object_arg(args,"object->json");
+    auto val = prm_convert_OBJ_HMAP_into_valid_JSON_ALIST_datum(prm_recursively_convert_OBJ_to_HMAP(args[0]));
+    return make_str(heist_json_generator::convert_scm_to_json(val,args,"\n     (object->json <object>)"));
   }
 
   /******************************************************************************
@@ -6386,6 +6409,7 @@ namespace heist {
 
     std::make_pair(primitive_JSON_TO_SCM, "json->scm"),
     std::make_pair(primitive_SCM_TO_JSON, "scm->json"),
+    std::make_pair(primitive_JSON_DATUMP, "json-datum?"),
 
     std::make_pair(primitive_REGEX_REPLACE,     "regex-replace"),
     std::make_pair(primitive_REGEX_REPLACE_ALL, "regex-replace-all"),
@@ -6401,6 +6425,9 @@ namespace heist {
     std::make_pair(primitive_OBJECT_MEMBERS,              "object-members"),
     std::make_pair(primitive_OBJECT_METHODS,              "object-methods"),
     std::make_pair(primitive_HEIST_CORE_OO_MEMBER_ACCESS, ".."),
+    std::make_pair(primitive_OBJECT_TO_HMAP,              "object->hmap"),
+    std::make_pair(primitive_OBJECT_TO_ALIST,             "object->alist"),
+    std::make_pair(primitive_OBJECT_TO_JSON,              "object->json"),
 
     std::make_pair(primitive_PROTO_CLASS_NAME,            "proto-class-name"),
     std::make_pair(primitive_PROTO_MEMBERS,               "proto-members"),

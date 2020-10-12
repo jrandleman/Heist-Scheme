@@ -4595,6 +4595,42 @@ namespace heist {
     }
   } // End of namespace heist_json_generator
 
+
+  // validate that <d> is a candidate for json-ification
+  bool is_valid_json_datum(data d)noexcept{
+    // Empty List
+    if(data_is_the_empty_expression(d)) {
+      return true;
+    // Strings
+    } else if(d.is_type(types::str)) {
+      return true;
+    // Numbers
+    } else if(d.is_type(types::num)) {
+      return true;
+    // boolean
+    } else if(d.is_type(types::bol)) {
+      return true;
+    // Vectors
+    } else if(d.is_type(types::vec)) {
+      return true;
+    // Alist
+    } else if(d.is_type(types::par)) {
+      scm_list alist_exp;
+      shallow_unpack_list_into_exp(d,alist_exp);
+      for(size_type i = 0, n = alist_exp.size(); i < n; ++i) {
+        if(!alist_exp[i].is_type(types::par)) return false;
+        scm_list item;
+        shallow_unpack_list_into_exp(alist_exp[i],item);
+        if(item.size() != 2) return false;
+        if(!heist_json_generator::datum_is_a_valid_json_map_key(item[0])) return false;
+        if(!is_valid_json_datum(item[1])) return false;
+      }
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   /******************************************************************************
   * REGEX PRIMITIVE HELPER FUNCTIONS
   ******************************************************************************/
@@ -4785,7 +4821,7 @@ namespace heist {
   }
 
   /******************************************************************************
-  * DEFCLASS OO GENERAL OBJECT ANALYSIS PRIMITIVES HELPER
+  * DEFCLASS OO GENERAL OBJECT ANALYSIS PRIMITIVES HELPERS
   ******************************************************************************/
 
   void confirm_given_unary_object_arg(scm_list& args, const char* name) {
@@ -4795,6 +4831,67 @@ namespace heist {
     if(!args[0].is_type(types::obj))
       THROW_ERR('\''<<name<<" arg "<<PROFILE(args[0])<<" isn't an object!"
         "\n     ("<<name<<" <object>)" << FCN_ERR(name,args));
+  }
+
+
+  // recursively converts objects (including object member values) into hmaps
+  data prm_recursively_convert_OBJ_to_HMAP(const data& d)noexcept{
+    map_data m;
+    for(size_type i = 0, n = d.obj->member_names.size(); i < n; ++i) {
+      if(d.obj->member_values[i].is_type(types::obj))
+        m.val[d.obj->member_names[i]+char(types::sym)] = prm_recursively_convert_OBJ_to_HMAP(d.obj->member_values[i]);
+      else
+        m.val[d.obj->member_names[i]+char(types::sym)] = d.obj->member_values[i];
+    }
+    return make_map(std::move(m));
+  }
+
+
+  // DEEP conversion of all nested hmaps to an alist
+  data prm_recursively_convert_HMAP_to_ALIST(const data& d)noexcept{
+    scm_list alist;
+    for(const auto& keyval : d.map->val) {
+      data p = make_par();
+      p.par->first = map_data::unhash_key(keyval.first);
+      p.par->second = make_par();
+      if(keyval.second.is_type(types::map))
+        p.par->second.par->first = prm_recursively_convert_HMAP_to_ALIST(keyval.second);
+      else
+        p.par->second.par->first = keyval.second;
+      p.par->second.par->second = symconst::emptylist;
+      alist.push_back(std::move(p));
+    }
+    return primitive_LIST_to_CONS_constructor(alist.begin(),alist.end());
+  }
+
+
+  // meant to compose with <prm_recursively_convert_OBJ_to_HMAP> 
+  data prm_convert_OBJ_HMAP_into_valid_JSON_ALIST_datum(const data& d) {
+    scm_list alist;
+    for(const auto& keyval : d.map->val) {
+      data p = make_par();
+      auto key = map_data::unhash_key(keyval.first);
+      // convert the key into a JSON string key
+      switch(key.type) {
+        case types::str:
+          p.par->first = make_str(*key.str); break;
+        case types::sym:
+          p.par->first = make_str(convert_symbol_to_string(key.sym)); break;
+        default:
+          p.par->first = make_str(key.write());
+      }
+      // convert the value into a valid json value
+      p.par->second = make_par();
+      if(keyval.second.is_type(types::map))
+        p.par->second.par->first = prm_convert_OBJ_HMAP_into_valid_JSON_ALIST_datum(keyval.second);
+      else if(is_valid_json_datum(keyval.second))
+        p.par->second.par->first = keyval.second;
+      else
+        p.par->second.par->first = make_str(keyval.second.write());
+      p.par->second.par->second = symconst::emptylist;
+      alist.push_back(std::move(p));
+    }
+    return primitive_LIST_to_CONS_constructor(alist.begin(),alist.end());
   }
 
   /******************************************************************************
