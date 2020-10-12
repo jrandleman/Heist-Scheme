@@ -185,7 +185,6 @@
 # Heist Command-Line Flags
 0. Interpret Script: `-script <script-filename>`
 1. Compile Script: `-compile <script-filename> <optional-compiled-filename>`
-   * _Only_ available if the `HEIST_DIRECTORY_FILE_PATH` macro is filled in by the user in [`heist.cpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/heist.cpp)
 2. With CPS Evaluation: `-cps`
 3. Disable ANSI Colors: `-nansi`
 4. Case Insensitivity:  `-ci`
