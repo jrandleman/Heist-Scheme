@@ -5305,7 +5305,7 @@ namespace heist {
   data primitive_HEIST_CORE_OO_SET_MEMBER_BANG(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (heist:core:oo:set-member! <object> <member-name-symbol> <value>)";
-    validate_oo_member_setter(args,format);
+    validate_oo_member_setter(args,"heist:core:oo:set-member!",format);
     // Search local members
     for(size_type i = 0, n = args[0].obj->member_names.size(); i < n; ++i) {
       if(args[0].obj->member_names[i] == args[1].sym) {
@@ -5391,6 +5391,63 @@ namespace heist {
       next_member: continue;
     }
     return make_obj(std::move(obj));
+  }
+
+
+  // primitive "heist:core:oo:register-member!" procedure:
+  data primitive_HEIST_CORE_OO_REGISTER_MEMBER(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (heist:core:oo:register-member! <object> <member-name-symbol> <default-value>)";
+    validate_oo_member_setter(args,"add-member!",format);
+    // Set local member if already exists
+    for(size_type i = 0, n = args[0].obj->member_names.size(); i < n; ++i) {
+      if(args[0].obj->member_names[i] == args[1].sym) {
+        args[0].obj->member_values[i] = args[2];
+        return G::VOID_DATA_OBJECT;
+      }
+    }
+    // Confirm Member doesn't already exist as a local method
+    for(size_type i = 0, n = args[0].obj->method_names.size(); i < n; ++i) {
+      if(args[0].obj->method_names[i] == args[1].sym) {
+        THROW_ERR("'add-member! member-name arg "<<PROFILE(args[1])
+        <<" is already defined as a method of "<<PROFILE(args[0])<<'!'
+        <<format<<FCN_ERR("'add-member!",args));
+      }
+    }
+    // define a setter for the new member
+    define_setter_method_for_member(*args[0].obj, args[0].obj->proto->defn_env, args[1].sym);
+    // add the new member name & assign it the given value
+    args[0].obj->member_names.push_back(args[1].sym);
+    args[0].obj->member_values.push_back(args[2]);
+    return G::VOID_DATA_OBJECT;
+  }
+
+
+  // primitive "heist:core:oo:register-method!" procedure:
+  data primitive_HEIST_CORE_OO_REGISTER_METHOD(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (heist:core:oo:register-method! <object> <method-name-symbol> <procedure-value>)";
+    validate_oo_member_setter(args,"add-method!",format);
+    primitive_confirm_data_is_a_procedure(args[2], "add-method!", format, args);
+    // Set local method if already exists
+    for(size_type i = 0, n = args[0].obj->method_names.size(); i < n; ++i) {
+      if(args[0].obj->method_names[i] == args[1].sym) {
+        args[0].obj->method_values[i] = args[2];
+        return G::VOID_DATA_OBJECT;
+      }
+    }
+    // Confirm Member doesn't already exist as a local method
+    for(size_type i = 0, n = args[0].obj->member_names.size(); i < n; ++i) {
+      if(args[0].obj->member_names[i] == args[1].sym) {
+        THROW_ERR("'add-method! method-name arg "<<PROFILE(args[1])
+        <<" is already defined as a member of "<<PROFILE(args[0])<<'!'
+        <<format<<FCN_ERR("'add-method!",args));
+      }
+    }
+    // add the new method name & assign it the given value
+    args[0].obj->method_names.push_back(args[1].sym);
+    args[0].obj->method_values.push_back(args[2]);
+    return G::VOID_DATA_OBJECT;
   }
 
   /******************************************************************************
@@ -5500,12 +5557,12 @@ namespace heist {
     return primitive_LIST_to_CONS_constructor(inheritances.begin(),inheritances.end());
   }
 
-  data primitive_PROTO_NEW_MEMBER_BANG(scm_list& args) {
+  data primitive_PROTO_ADD_MEMBER_BANG(scm_list& args) {
     static constexpr const char * const format = 
-      "\n     (proto-new-member! <class-prototype> <member-name-symbol> <default-value>)";
-    confirm_proper_new_property_args(args,"proto-new-member!",format);
+      "\n     (proto-add-member! <class-prototype> <member-name-symbol> <default-value>)";
+    confirm_proper_new_property_args(args,"proto-add-member!",format);
     // Verify new member name isn't already the name of a member or method
-    confirm_new_property_name_doesnt_already_exist(args,"proto-new-member!",format);
+    confirm_new_property_name_doesnt_already_exist(args,"proto-add-member!",format);
     // Define setter for the new member & the new member
     define_setter_method_for_member(*args[0].cls,args[0].cls->defn_env,args[1].sym);
     args[0].cls->member_names.push_back(args[1].sym);
@@ -5513,13 +5570,13 @@ namespace heist {
     return G::VOID_DATA_OBJECT;
   }
 
-  data primitive_PROTO_NEW_METHOD_BANG(scm_list& args) {
+  data primitive_PROTO_ADD_METHOD_BANG(scm_list& args) {
     static constexpr const char * const format = 
-      "\n     (proto-new-method! <class-prototype> <method-name-symbol> <procedure-value>)";
-    confirm_proper_new_property_args(args,"proto-new-method!",format);
-    primitive_confirm_data_is_a_procedure(args[2], "proto-new-method!", format, args);
+      "\n     (proto-add-method! <class-prototype> <method-name-symbol> <procedure-value>)";
+    confirm_proper_new_property_args(args,"proto-add-method!",format);
+    primitive_confirm_data_is_a_procedure(args[2], "proto-add-method!", format, args);
     // Verify new method name isn't already the name of a member or method
-    confirm_new_property_name_doesnt_already_exist(args,"proto-new-method!",format);
+    confirm_new_property_name_doesnt_already_exist(args,"proto-add-method!",format);
     // Define the new method
     args[0].cls->method_names.push_back(args[1].sym);
     args[0].cls->method_values.push_back(args[2]);
@@ -5540,14 +5597,14 @@ namespace heist {
     return G::VOID_DATA_OBJECT;
   }
 
-  data primitive_PROTO_PRIORITY_INHERIT_BANG(scm_list& args) {
+  data primitive_PROTO_INHERIT_PLUS_BANG(scm_list& args) {
     static constexpr const char * const format = 
-      "\n     (proto-priority-inherit! <class-prototype> <class-prototype-to-inherit-1> ...)";
-    validate_proto_dynamic_inheritance_args(args,"proto-priority-inherit!",format);
+      "\n     (proto-inherit+! <class-prototype> <class-prototype-to-inherit-1> ...)";
+    validate_proto_dynamic_inheritance_args(args,"proto-inherit+!",format);
     std::vector<scm_string> class_inheritance_chain(1,args[0].cls->class_name);
     // confirm no circular inheritance prior adding ANY of the inheritances
     for(size_type i = 1, n = args.size(); i < n; ++i)
-      confirm_no_circular_inheritance(args[0].cls,args[i].cls,class_inheritance_chain,"proto-priority-inherit!",format,args);
+      confirm_no_circular_inheritance(args[0].cls,args[i].cls,class_inheritance_chain,"proto-inherit+!",format,args);
     // insert at the front to have name-conflict priority (still using left-precedence for the args)
     for(size_type i = args.size(); i-- > 1;)
       args[0].cls->inheritance_chain.insert(args[0].cls->inheritance_chain.begin(), args[i].cls);
@@ -6419,6 +6476,8 @@ namespace heist {
     std::make_pair(primitive_HEIST_CORE_OO_SET_MEMBER_BANG, "heist:core:oo:set-member!"),
     std::make_pair(primitive_HEIST_CORE_OO_COMPARE_CLASSES, "heist:core:oo:compare-classes"),
     std::make_pair(primitive_HEIST_CORE_OO_MAKE_OBJECT,     "heist:core:oo:make-object"),
+    std::make_pair(primitive_HEIST_CORE_OO_REGISTER_MEMBER, "heist:core:oo:register-member!"),
+    std::make_pair(primitive_HEIST_CORE_OO_REGISTER_METHOD, "heist:core:oo:register-method!"),
 
     std::make_pair(primitive_OBJECT_CLASS_NAME,           "object-class-name"),
     std::make_pair(primitive_OBJECT_PROTO,                "object-proto"),
@@ -6433,10 +6492,10 @@ namespace heist {
     std::make_pair(primitive_PROTO_MEMBERS,               "proto-members"),
     std::make_pair(primitive_PROTO_METHODS,               "proto-methods"),
     std::make_pair(primitive_PROTO_INHERITANCES,          "proto-inheritances"),
-    std::make_pair(primitive_PROTO_NEW_MEMBER_BANG,       "proto-new-member!"),
-    std::make_pair(primitive_PROTO_NEW_METHOD_BANG,       "proto-new-method!"),
+    std::make_pair(primitive_PROTO_ADD_MEMBER_BANG,       "proto-add-member!"),
+    std::make_pair(primitive_PROTO_ADD_METHOD_BANG,       "proto-add-method!"),
     std::make_pair(primitive_PROTO_INHERIT_BANG,          "proto-inherit!"),
-    std::make_pair(primitive_PROTO_PRIORITY_INHERIT_BANG, "proto-priority-inherit!"),
+    std::make_pair(primitive_PROTO_INHERIT_PLUS_BANG, "proto-inherit+!"),
   };
 
   frame_vals primitive_procedure_objects()noexcept{

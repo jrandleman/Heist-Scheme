@@ -45,10 +45,11 @@ namespace heist {
 
 
   //          -- FROM PRIMITIVES & ITS TOOLKIT
+  template<typename OBJECT_TYPE>
+  void        define_setter_method_for_member(OBJECT_TYPE& proto, env_type& env, const scm_string& member_name);
   bool        data_is_the_empty_expression(const data& d)noexcept;
   void        shallow_unpack_list_into_exp(data& curr_pair, scm_list& args_list)noexcept;
   void        primitive_UNFOLD_template(scm_list&,scm_list&,const char*,const char* format);
-  void        define_setter_method_for_member(class_prototype& proto, env_type& env, const scm_string& member_name);
   data        extend_method_env_with_THIS_object(data& calling_obj, scm_list& procedure);
   frame_var   procedure_name(const scm_list& p)noexcept;
   scm_string  escape_chars(const scm_string& str)noexcept;
@@ -4793,16 +4794,16 @@ namespace heist {
   ******************************************************************************/
 
   // Correct arg validation for primitive "heist:core:oo:set-member!":
-  void validate_oo_member_setter(scm_list& args, const char* format) {
+  void validate_oo_member_setter(scm_list& args, const char* name, const char* format) {
     if(args.size() != 3)
-      THROW_ERR("'heist:core:oo:set-member! didn't receive 3 args!"
-        <<format<<FCN_ERR("heist:core:oo:set-member!",args));
+      THROW_ERR('\''<<name<<" didn't receive 3 args!"
+        <<format<<FCN_ERR(name,args));
     if(!args[0].is_type(types::obj))
-      THROW_ERR("'heist:core:oo:set-member! 1st object arg "<<PROFILE(args[0])<<" isn't an object!"
-        <<format<<FCN_ERR("heist:core:oo:set-member!",args));
+      THROW_ERR('\''<<name<<" 1st object arg "<<PROFILE(args[0])<<" isn't an object!"
+        <<format<<FCN_ERR(name,args));
     if(!args[1].is_type(types::sym))
-      THROW_ERR("'heist:core:oo:set-member! 2nd member-name arg "<<PROFILE(args[1])<<" isn't a symbol!"
-        <<format<<FCN_ERR("heist:core:oo:set-member!",args));
+      THROW_ERR('\''<<name<<" 2nd member-name arg "<<PROFILE(args[1])<<" isn't a symbol!"
+        <<format<<FCN_ERR(name,args));
   }
 
 

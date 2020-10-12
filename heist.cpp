@@ -1118,7 +1118,7 @@ namespace heist {
     }
   }
 
-  void validate_unique_member_or_method_name(scm_list& exp, const scm_string& name, const std::vector<scm_string>& seen_names, const char* message) {
+  void validate_unique_member_or_method_name(scm_list& exp,const scm_string& name,const std::vector<scm_string>& seen_names,const char* message){
     for(const auto& n : seen_names)
       if(name == n)
         THROW_ERR("'defclass " << exp[1].sym << " => \"" << name << "\" " << message << '!'
@@ -1145,9 +1145,9 @@ namespace heist {
 
   // ((set-<member-name>! <value>)
   //   (heist:core:oo:set-member! this '<member-name> <value>))
-  void define_setter_method_for_member(class_prototype& proto, env_type& env, const scm_string& member_name) {
-    auto setter_name = "set-"+member_name+'!';
-    proto.method_names.push_back(setter_name);
+  template<typename OBJECT_TYPE> // PRECONDITION: <OBJECT_TYPE> ::= <class_prototype> | <object_type>
+  void define_setter_method_for_member(OBJECT_TYPE& obj_instance,env_type& env,const scm_string& member_name){
+    obj_instance.method_names.push_back("set-"+member_name+'!');
     scm_list setter_lambda(3);
     setter_lambda[0] = symconst::lambda;
     setter_lambda[1] = scm_list(1,"heist:core:oo:new-value");
@@ -1158,12 +1158,39 @@ namespace heist {
     setter_lambda[2].exp[2].exp[0] = symconst::quote;
     setter_lambda[2].exp[2].exp[1] = member_name;
     setter_lambda[2].exp[3] = "heist:core:oo:new-value";
-    proto.method_values.push_back(data_cast(scm_eval(std::move(setter_lambda),env)));
+    obj_instance.method_values.push_back(data_cast(scm_eval(std::move(setter_lambda),env)));
   }
 
   void define_setter_methods_for_members(class_prototype& proto, env_type& env) {
     for(size_type i = 0, n = proto.member_names.size(); i < n; ++i)
       define_setter_method_for_member(proto,env,proto.member_names[i]);
+  }
+
+  void define_dynamic_property_generator(class_prototype& proto,env_type& env,const char* method_name,const char* underlying_prm){
+    proto.method_names.push_back(method_name);
+    scm_list property_generator(3);
+    property_generator[0] = symconst::lambda;
+    property_generator[1] = scm_list(2);
+    property_generator[1].exp[0] = "property-name";
+    property_generator[1].exp[1] = "property-value";
+    property_generator[2] = scm_list(4);
+    property_generator[2].exp[0] = underlying_prm;
+    property_generator[2].exp[1] = "this";
+    property_generator[2].exp[2] = "property-name";
+    property_generator[2].exp[3] = "property-value";
+    proto.method_values.push_back(data_cast(scm_eval(std::move(property_generator),env)));
+  }
+
+  // ((add-member! member-name default-value)
+  //   (heist:core:oo:register-member! this member-name default-value))
+  void define_dynamic_member_generator(class_prototype& proto, env_type& env) {
+    define_dynamic_property_generator(proto,env,"add-member!","heist:core:oo:register-member!");
+  }
+
+  // ((add-method! method-name procedure-value)
+  //   (heist:core:oo:register-method! this method-name procedure-value))
+  void define_dynamic_method_generator(class_prototype& proto, env_type& env) {
+    define_dynamic_property_generator(proto,env,"add-method!","heist:core:oo:register-method!");
   }
 
   // (define (<class-name>? <obj>)
@@ -1276,6 +1303,10 @@ namespace heist {
       evaluate_method_and_member_exec_procs(proto,member_exec_procs,method_exec_procs,env);
       // define setters for members
       define_setter_methods_for_members(proto,env);
+      // define dynamic member generator method
+      define_dynamic_member_generator(proto,env);
+      // define dynamic method generator method
+      define_dynamic_method_generator(proto,env);
       // define the class prototype
       define_variable(proto.class_name,make_cls(proto),env);
       // generate the ctor
