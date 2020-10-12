@@ -2310,9 +2310,7 @@ Other primitives of this nature include:<br>
 
 6. __Catch Jumped/Thrown Value__: `(catch-jump <proc> <arg1> ... <argN>)`
 
-7. __Expand Macro__: `(expand <quoted-macro-exp>)`
-
-8. __Trace Procedure Call__: `(trace <proc> <arg1> ... <argN>)`
+7. __Trace Procedure Call__: `(trace <proc> <arg1> ... <argN>)`
 
 
 
@@ -2345,17 +2343,19 @@ Other primitives of this nature include:<br>
 
 ------------------------
 ## Syntax Procedures:
-0. __Core-Syntax?__: Determine if a symbol was defined by [`core-syntax`](#Core-Syntax)
+0. __Expand Macro__: `(expand <quoted-macro-exp>)`
+
+1. __Core-Syntax?__: Determine if a symbol was defined by [`core-syntax`](#Core-Syntax)
    * `(core-syntax? <symbol>)`
 
-1. __Runtime-Syntax?__: Determine if a symbol was defined by [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax)
+2. __Runtime-Syntax?__: Determine if a symbol was defined by [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax)
    * `(runtime-syntax? <symbol>)`
 
-2. __Reader-Syntax?__: Determine if a symbol was defined by `define-reader-syntax`
+3. __Reader-Syntax?__: Determine if a symbol was defined by `define-reader-syntax`
    * `(reader-syntax? <string>)`
    * Must be a string to avoid expansion by the reader if **IS** syntax!
 
-3. __Define Reader Shorthand Syntax__: 
+4. __Define Reader Shorthand Syntax__: 
    * `(define-reader-syntax <shorthand-string> <optional-longhand-string>)`
    * Have the reader expand `<shorthand-string>` around objects into `<longhand-string>`
      - _Internally, `'` works as if interpreted `(define-reader-syntax "'" "quote")`_
@@ -2380,12 +2380,12 @@ Other primitives of this nature include:<br>
            ; >>> Hence `%1` didn't get expanded to `(display 1)` by the reader!
    ```
 
-4. __Mutate Core Syntax__: `(set-core-syntax! <old-name-symbol> <optional-new-name-symbol>)`
+5. __Mutate Core Syntax__: `(set-core-syntax! <old-name-symbol> <optional-new-name-symbol>)`
    * Only old name: ___DELETES___ `<old-name-symbol>` as core-syntax
    * Both old & new name: ___RENAMES___ syntax's old name to new name
      - _NOTE: also recursively renames all recursive calls to the macro in its templates!_
 
-5. __Mutate Runtime Syntax__: `(set-runtime-syntax! <old-name-symbol> <optional-new-name-symbol>)`
+6. __Mutate Runtime Syntax__: `(set-runtime-syntax! <old-name-symbol> <optional-new-name-symbol>)`
    * Only old name: ___DELETES___ `<old-name-symbol>` as runtime-syntax
    * Both old & new name: ___RENAMES___ syntax's old name to new name
      - _NOTE: also recursively renames all recursive calls to the macro in its templates!_
