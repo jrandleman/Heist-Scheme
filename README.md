@@ -1164,13 +1164,13 @@ Other primitives of this nature include:<br>
   - `.next`: either starts or continues the coroutine's execution
 
 #### Associated Special Forms:
-0. `(yield <value>)`: yield a value from the coroutine via a coroutine object
+0. `(yield <value>)`: yield a value from the coroutine via a new coroutine object!
 1. `(pause)`: same as `(yield #f)`, designed for use with [`cycle-coroutines!`](#Coroutine-Handling-Primitives)
 
 #### Special Conditions:
 0. Use [`co-eval`](#Coroutine-Handling-Primitives) instead of [`eval`](#evalapply--symbol-append) in coroutines
 1. Use [`co-load`](#Coroutine-Handling-Primitives) instead of [`load`](#system-interface-procedures) in coroutines
-2. Use [`co-fn`](#Coroutine-Handling-Primitives) to pass local fcns defined in a coroutine to an external fcn
+2. Use [`co-fn`](#Coroutine-Handling-Primitives) to pass local procedures defined in a coroutine to an external procedure
 
 #### Examples:
 ```scheme
@@ -1425,13 +1425,14 @@ Other primitives of this nature include:<br>
    * Coroutine objects can __only__ be made by [coroutine instantiations](#Define-Coroutine) or [`yield`](#Define-Coroutine)/[`pause`](#Define-Coroutine)
 
 1. __Convert Coroutine Object to a Generator Thunk__: `(coroutine->generator <coroutine-object>)`
-   * Invoking the generator will continuously yield the next `yield`ed value
+   * Invoking the generator will continuously yield the next [`yield`](#Define-Coroutine)ed value
    * Yields the `'coroutine-complete` symbol once finished iterating the coroutine!
 
 2. __Cyclical Coroutine Invocation__: `(cycle-coroutines! <coroutine-object-1> ...)`
    * ___TAKE HEED___: if none of the coroutines ever finish, neither will this procedure!
    * Invokes first coroutine until yields, then invokes next, and so on until wraps around
-   * Returns the first non-coroutine-object recieved from a `.next` invocation
+   * Returns the first non-coroutine-object recieved from a [`.next`](#Define-Coroutine) invocation
+   * Check out the example use in the [`define-coroutine`](#Define-Coroutine) section!
 
 3. __Eval in Coroutines__: `(co-eval <datum>)`
    * Alias for [`cps-eval`](#evalapply--symbol-append) (cps-transform occurs when generating coroutines)
