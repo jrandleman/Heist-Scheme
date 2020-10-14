@@ -1172,6 +1172,10 @@ Other primitives of this nature include:<br>
 1. Use [`co-load`](#Coroutine-Handling-Primitives) instead of [`load`](#system-interface-procedures) in coroutines
 2. Use [`co-fn`](#Coroutine-Handling-Primitives) to pass local procedures defined in a coroutine to an external procedure
 
+#### Danger Zone:
+0. Nesting `define-coroutine` instances is undefined behavior!
+1. Using `define-coroutine` in a [`scm->cps`](#Scm-Cps) block is undefined behavior!
+
 #### Examples:
 ```scheme
 
