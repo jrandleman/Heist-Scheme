@@ -5612,6 +5612,31 @@ namespace heist {
   }
 
   /******************************************************************************
+  * COROUTINE CYCLING PRIMITIVE
+  ******************************************************************************/
+
+  // ;; Circular invocation of procedures yielding one another
+  // ;; WARNING: If none of the coroutines terminate, this procedure won't either!
+  // (define (cycle-coroutines! . coroutines)
+  //   (define (cycle coroutines)
+  //     (cycle (map (lambda (c) (if (coroutine? c) (c.next) (jump! c)))
+  //                 coroutines)))
+  //   (catch-jump cycle coroutines))
+  data primitive_CYCLE_COROUTINES_BANG(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (cycle-coroutines! <coroutine-1> <coroutine-2> ...)";
+    auto coro_proto = prm_get_coroutine_class_prototype(args,format);
+    size_type i = 0, n = args.size();
+    for(;;) {
+      for(i = 0; i < n; ++i) {
+        if(!datum_is_a_coroutine(args[i],coro_proto)) return args[i];
+        args[i] = prm_invoke_coroutine_NEXT_method(args[i],format);
+      }
+    }
+    return data(); // never triggered
+  }
+
+  /******************************************************************************
   * MATHEMATICAL CONSTANTS
   ******************************************************************************/
 
@@ -5760,7 +5785,7 @@ namespace heist {
   )";
 
   /******************************************************************************
-  * DEFSTRUCT MACRO FOR SIMPLE OO
+  * DEFSTRUCT MACRO FOR SIMPLE VECTOR-BASED OO
   ******************************************************************************/
 
   constexpr const char* const HEIST_DEFSTRUCT_DEFINITION = R"(
@@ -5904,6 +5929,68 @@ namespace heist {
   )";
 
   /******************************************************************************
+  * COROUTINES IN HEIST-SCHEME!
+  ******************************************************************************/
+
+  constexpr const char* const HEIST_COROUTINES_DEFINITION = R"(
+  ;; Define a call/cc equivalent for coroutines
+  (define (heist:core:pass-continuation-co-call/cc f k) (f k k))
+  (define co-eval cps-eval)
+  (define co-load cps-load)
+  (define co-fn   cps->scm)
+
+
+  (defclass coroutine ()
+    (value #f) ; access yielded value
+    ((next)    ; continue/start coroutine
+      (if this.coroutine:private:cont         ; if started coroutine
+          (this.coroutine:private:cont #f id) ;   ignore #f value, artifact of cps-transform
+          (this.coroutine:private:launch)))   ;   launch coroutine
+    (coroutine:private:cont #f)    ; IGNORE: USED INTERNALLY
+    (coroutine:private:launch #f)) ; IGNORE: USED INTERNALLY
+
+
+  (core-syntax yield () ; ONLY DESIGNED TO BE USED IN define-coroutine BODIES
+    ((_ val)
+      (heist:core:pass-continuation-co-call/cc
+        (lambda (k) 
+          (jump! (default:make-coroutine 
+                    (hmap 'value val 'coroutine:private:cont (lambda () (catch-jump k id)))))))))
+
+
+  (core-syntax pause () ; ONLY DESIGNED TO BE USED IN define-coroutine BODIES
+    ((_) 
+      (heist:core:pass-continuation-co-call/cc
+        (lambda (k) 
+          (jump! (default:make-coroutine 
+                    (hmap 'coroutine:private:cont (lambda () (catch-jump k id)))))))))
+
+
+  ;; NESTING define-coroutine CAUSES UNDEFINED BEHAVIOR
+  ;; LAST RETURNED VALUE IS "#<procedure id>" IF THE LAST EXPRESSION YIELDS
+  ;; -> IE if last expr yeilds, calling .next that result will return #<procedure id>
+  (core-syntax define-coroutine () 
+    ((_ co-name body ...)
+      (define (co-name)
+        (default:make-coroutine 
+          (hmap 'coroutine:private:launch (lambda () (catch-jump (scm->cps body ...) id)))))))
+
+
+  ;; Convert a coroutine iterator into a generator thunk!
+  ;; Returns the final value & stops iterating once coroutine finished
+  (define (coroutine->generator coroutine-instance)
+    (let ((co-iter coroutine-instance))
+      (lambda ()
+        (if (coroutine? co-iter)
+            (begin 
+              (set! co-iter (co-iter.next)) 
+              (if (coroutine? co-iter)
+                  co-iter.value
+                  co-iter))
+            'coroutine-complete)))) ; finished iterating!
+  )";
+
+  /******************************************************************************
   * REGISTRY OF PRIMITIVES DEFINED _IN_ HEIST SCHEME TO EVAL PRIOR ANYTHING ELSE
   ******************************************************************************/
 
@@ -5920,6 +6007,7 @@ namespace heist {
   constexpr const char * const PRIMITIVE_EXPRESSIONS_DEFINED_IN_HEIST_SCHEME[] {
     MATHEMATICAL_FLONUM_CONSTANTS, HEIST_CURRIED_LAMBDA_ID_CPS_PRIM_DEFINITIONS, 
     HEIST_DEFSTRUCT_DEFINITION,    HEIST_TLAMBDA_PRIM_DEFINITION, 
+    HEIST_COROUTINES_DEFINITION,
   };
 
   void evaluate_primitives_written_in_heist_scheme(env_type& env) {
@@ -6488,14 +6576,16 @@ namespace heist {
     std::make_pair(primitive_OBJECT_TO_ALIST,             "object->alist"),
     std::make_pair(primitive_OBJECT_TO_JSON,              "object->json"),
 
-    std::make_pair(primitive_PROTO_CLASS_NAME,            "proto-class-name"),
-    std::make_pair(primitive_PROTO_MEMBERS,               "proto-members"),
-    std::make_pair(primitive_PROTO_METHODS,               "proto-methods"),
-    std::make_pair(primitive_PROTO_INHERITANCES,          "proto-inheritances"),
-    std::make_pair(primitive_PROTO_ADD_MEMBER_BANG,       "proto-add-member!"),
-    std::make_pair(primitive_PROTO_ADD_METHOD_BANG,       "proto-add-method!"),
-    std::make_pair(primitive_PROTO_INHERIT_BANG,          "proto-inherit!"),
+    std::make_pair(primitive_PROTO_CLASS_NAME,        "proto-class-name"),
+    std::make_pair(primitive_PROTO_MEMBERS,           "proto-members"),
+    std::make_pair(primitive_PROTO_METHODS,           "proto-methods"),
+    std::make_pair(primitive_PROTO_INHERITANCES,      "proto-inheritances"),
+    std::make_pair(primitive_PROTO_ADD_MEMBER_BANG,   "proto-add-member!"),
+    std::make_pair(primitive_PROTO_ADD_METHOD_BANG,   "proto-add-method!"),
+    std::make_pair(primitive_PROTO_INHERIT_BANG,      "proto-inherit!"),
     std::make_pair(primitive_PROTO_INHERIT_PLUS_BANG, "proto-inherit+!"),
+
+    std::make_pair(primitive_CYCLE_COROUTINES_BANG, "cycle-coroutines!"),
   };
 
   frame_vals primitive_procedure_objects()noexcept{

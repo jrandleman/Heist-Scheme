@@ -4482,7 +4482,7 @@ namespace heist {
       // Pass the result of the proc to the current continuation IFF
       //   proc was defined OUTSIDE of a scm->cps block
       if(procedure_defined_outside_of_CPS_block(proc)) {
-        // Extract the continuation form the parameter list as needed
+        // Extract the continuation from the parameter list as needed
         auto continuation = (*arg_procs.rbegin())(env);
         bool passing_continuation = procedure_requires_continuation(proc);
         scm_list arg_vals(arg_procs.size() - !passing_continuation);

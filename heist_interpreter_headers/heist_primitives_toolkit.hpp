@@ -4964,5 +4964,41 @@ namespace heist {
       confirm_no_circular_inheritance(lhs,rhs->inheritance_chain[i],class_inheritance_chain,name,format,args);
     }
   }
+
+  /******************************************************************************
+  * COROUTINE CYCLING PRIMITIVE HELPERS
+  ******************************************************************************/
+
+  bool datum_is_a_coroutine(data& d, cls_type& coro_proto)noexcept{
+    return d.is_type(types::obj) && d.obj->proto == coro_proto;
+  }
+  
+
+  cls_type prm_get_coroutine_class_prototype(scm_list& args, const char* format) {
+    auto& [var_list, val_list, mac_list] = *G::GLOBAL_ENVIRONMENT_POINTER->operator[](0);
+    for(size_type i = 0, total_vars = var_list.size(); i < total_vars; ++i)
+      if("coroutine" == var_list[i]) {
+        if(!val_list[i].is_type(types::cls))
+          THROW_ERR("'cycle-coroutines! 'coroutine symbol isn't bound to a class prototype!"
+            << format << FCN_ERR("cycle-coroutines!",args)); 
+        return val_list[i].cls;
+      }
+    THROW_ERR("'cycle-coroutines! 'coroutine symbol isn't bound to a class prototype!"
+      << format << FCN_ERR("cycle-coroutines!",args)); 
+    return nullptr; // never triggered
+  }
+
+
+  data prm_invoke_coroutine_NEXT_method(data& d, const char* format) {
+    auto& methods = d.obj->method_names;
+    for(size_type i = 0, n = methods.size(); i < n; ++i)
+      if(methods[i] == "next") {
+        d = extend_method_env_with_THIS_object(d,d.obj->method_values[i].exp);
+        scm_list arg(1,symconst::sentinel_arg);
+        return data_cast(execute_application(d.exp,arg,d.obj->proto->defn_env));
+      }
+    THROW_ERR("'cycle-coroutines! 'coroutine object " << d
+      << " is missing the \"next\" method!" << format); 
+  }
 } // End of namespace heist
 #endif

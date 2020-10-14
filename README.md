@@ -22,16 +22,17 @@
 0. [Tail-Call Optimization](#quick-overview)
 1. [Unhygienic & Reader Macros](#Heist-Macro-System-Procedures-vs-Macros)
 2. [OOP Support](#Defclass)
-3. [First-Class Hash-Maps](#Hash-Map-Procedures)
-4. [Opt-In Dynamic Scoping](#control-flow-procedures)
-5. [Opt-In Continuations](#Scm-Cps)
-6. [Native Even Streams](#Stream-Primitives)
-7. [Generic Algorithms](#Generic-Sequence-ListVectorString-Algorithmic-Procedures)
-8. [SRFI Primitives](#String-Procedures)
-9. [Eval](#evalapply--symbol-append)
-10. [String I/O](#Output-Procedures)
-11. [Recursive Depth Control](#Interpreter-Invariants-Manipulation)
-12. [A](#Curry)[n](#Tlambda)[d](#Control-Flow-Procedures) [M](#Gensym)[o](#JSON-Interop)[r](#compose--bind)[e](#System-Interface-Procedures)[!](#Syntax-Procedures)
+3. [Coroutines](#Define-Coroutine)
+4. [First-Class Hash-Maps](#Hash-Map-Procedures)
+5. [Opt-In Dynamic Scoping](#control-flow-procedures)
+6. [Opt-In Continuations](#Scm-Cps)
+7. [Native Even Streams](#Stream-Primitives)
+8. [Generic Algorithms](#Generic-Sequence-ListVectorString-Algorithmic-Procedures)
+9. [SRFI Primitives](#String-Procedures)
+10. [Eval](#evalapply--symbol-append)
+11. [String I/O](#Output-Procedures)
+12. [Recursive Depth Control](#Interpreter-Invariants-Manipulation)
+13. [A](#Curry)[n](#Tlambda)[d](#Control-Flow-Procedures) [M](#Gensym)[o](#JSON-Interop)[r](#compose--bind)[e](#System-Interface-Procedures)[!](#Syntax-Procedures)
 
 ------------------------ 
 # Table of Contents
@@ -77,6 +78,7 @@
    - [Cps-Quote](#Cps-Quote)
    - [Scm->Cps](#Scm-Cps)
    - [Defclass](#Defclass)
+   - [Define-Coroutine](#Define-Coroutine)
    - [Defstruct](#Defstruct)
    - [Curry](#Curry)
    - [Tlambda](#Tlambda)
@@ -85,6 +87,7 @@
    - [OOP Reflection Primitives](#OOP-Reflection-Primitives)
      * [Object Primitives](#Object-Primitives)
      * [Prototype Primitives](#Prototype-Primitives)
+   - [Coroutine Handling Primitives](#Coroutine-Handling-Primitives)
    - [Stream Primitives](#Stream-Primitives)
    - [Numeric Primitives](#Numeric-Primitives)
      * [General](#General)
@@ -1144,6 +1147,95 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
+## Define-Coroutine:
+
+#### Use: ___Define Coroutine-Object Generators!___
+* _Note: `define-coroutine` is actually a macro directly defined **in** Heist Scheme!_
+
+#### Form: `(define-coroutine <co-name> <body> ...)`
+
+#### Use: Initial invocation `(<co-name>)` will yield a `coroutine` object!
+* Re-invoking `(<co-name>)` will return a new `coroutine` object instance!
+
+#### Coroutine Objects:
+* Creation: Either from invoking `(<co-name>)` or `yield`/`pause` in a coroutine
+* 2 Properties, `.value` __member__ & `.next` __method__:
+  - `.value`: yielded value (`#f` if object isn't from a `yield`)
+  - `.next`: either starts or continues the coroutine's execution
+
+#### Associated Special Forms:
+0. `(yield <value>)`: yield a value from the coroutine via a coroutine object
+1. `(pause)`: same as `(yield #f)`, designed for use with [`cycle-coroutines!`](#Coroutine-Handling-Primitives)
+
+#### Special Conditions:
+0. Use [`co-eval`](#Coroutine-Handling-Primitives) instead of [`eval`](#evalapply--symbol-append) in coroutines
+1. Use [`co-load`](#Coroutine-Handling-Primitives) instead of [`load`](#system-interface-procedures) in coroutines
+2. Use [`co-fn`](#Coroutine-Handling-Primitives) to pass local fcns defined in a coroutine to an external fcn
+
+#### Examples:
+```scheme
+
+;; Having 2 coroutines alternate until one completes (similar to the scm->cps example)!
+
+(define-coroutine print-ints
+  (let loop ((count 0))
+    (display count)
+    (display #\space)
+    (pause)
+    (if (< count 25)
+        (loop (+ count 1)))))
+
+(define-coroutine print-chars
+  (let loop ((count 0))
+    (display (int->char (+ 65 count)))
+    (display #\space)
+    (pause)
+    (if (< count 25)
+        (loop (+ count 1)))))
+
+(cycle-coroutines! (print-ints) (print-chars)) ; 0 A 1 B 2 C ... 25 Z
+
+
+
+
+;; Create a generator thunk to iterate over all powers of 2!
+
+(define-coroutine all-pows-of-2
+  (let loop ((count 0))
+    (yield (expt 2 count))
+    (loop (+ count 1))))
+
+(define 2-pow (coroutine->generator (all-pows-of-2)))
+(display (2-pow)) ; 1
+(display (2-pow)) ; 2
+(display (2-pow)) ; 4
+(display (2-pow)) ; 8
+
+
+
+
+;; Step through a coroutine using coroutine objects!
+
+(define-coroutine example
+  (yield 1)
+  (yield 2)
+  (yield 3)
+  4)
+
+(define cobj (example))
+(set! cobj (cobj.next)) ; launch coroutine
+(display cobj.value)    ; 1
+(set! cobj (cobj.next))
+(display cobj.value)    ; 2
+(set! cobj (cobj.next))
+(display cobj.value)    ; 3
+(set! cobj (cobj.next)) ; last iteration returns the final value!
+(display cobj)          ; 4
+```
+
+
+
+------------------------
 ## Defstruct:
 
 #### Use: ___Define Struct-Objects via Vectors for Lightweight Message-Passing OOP!___
@@ -1324,6 +1416,31 @@ Other primitives of this nature include:<br>
    * `(proto-inherit+! <class-prototype> <class-proto-to-inherit-1> ...)`
    * Args maintain leftmost-precedence in name conflicts
    * Args have ___higher___ name-conflict precedence than existing inheritances
+
+
+
+------------------------
+## Coroutine Handling Primitives:
+0. __Coroutine Object Predicate__: `(coroutine? <obj>)`
+   * Coroutine objects can __only__ be made by [coroutine instantiations](#Define-Coroutine) or [`yield`](#Define-Coroutine)/[`pause`](#Define-Coroutine)
+
+1. __Convert Coroutine Object to a Generator Thunk__: `(coroutine->generator <coroutine-object>)`
+   * Invoking the generator will continuously yield the next `yield`ed value
+   * Yields the `'coroutine-complete` symbol once finished iterating the coroutine!
+
+2. __Cyclical Coroutine Invocation__: `(cycle-coroutines! <coroutine-object-1> ...)`
+   * ___TAKE HEED___: if none of the coroutines ever finish, neither will this procedure!
+   * Invokes first coroutine until yields, then invokes next, and so on until wraps around
+   * Returns the first non-coroutine-object recieved from a `.next` invocation
+
+3. __Eval in Coroutines__: `(co-eval <datum>)`
+   * Alias for [`cps-eval`](#evalapply--symbol-append) (cps-transform occurs when generating coroutines)
+
+4. __Load in Coroutines__: `(co-load <filename-string>)`
+   * Alias for [`cps-load`](#system-interface-procedures) (cps-transform occurs when generating coroutines)
+
+5. __Pass Local Fcns to External Fcns__: `(co-fn <local-procedure>)`
+   * Alias for [`cps->scm`](#scm-cps-procedures) (cps-transform occurs when generating coroutines)
 
 
 
