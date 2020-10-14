@@ -1432,7 +1432,7 @@ Other primitives of this nature include:<br>
    * ___TAKE HEED___: if none of the coroutines ever finish, neither will this procedure!
    * Invokes first coroutine until yields, then invokes next, and so on until wraps around
    * Returns the first non-coroutine-object recieved from a [`.next`](#Define-Coroutine) invocation
-   * Check out the example use in the [`define-coroutine`](#Define-Coroutine) section!
+   * See the example from the [`define-coroutine`](#Define-Coroutine) section!
 
 3. __Eval in Coroutines__: `(co-eval <datum>)`
    * Alias for [`cps-eval`](#evalapply--symbol-append) (cps-transform occurs when generating coroutines)
