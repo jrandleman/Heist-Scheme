@@ -53,6 +53,7 @@
  *
  * R4RS EXTENSIONS:
  *   - OBJECT SYSTEM           ; defclass
+ *   - COROUTINES              ; define-coroutine
  *   - OPT-IN DYNAMIC SCOPING  ; call/ce & inline FUNCTION APPLICATIONS
  *   - OPT-IN CONTINUATIONS    ; "scm->cps" SPECIAL FORM W/ call/cc
  *   - FIRST-CLASS HASH-MAPS   ; "hmap" PRIMITIVE & "$(" LITERAL PREFIX

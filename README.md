@@ -18,7 +18,7 @@
    * See [`embedded_heist_demo.cpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/heist_examples/embedded_heist_demo.cpp) for an example of embedding Heist in action!
 
 ------------------------
-# Features:
+# Notable Features:
 0. [Tail-Call Optimization](#quick-overview)
 1. [Unhygienic & Reader Macros](#Heist-Macro-System-Procedures-vs-Macros)
 2. [OOP Support](#Defclass)
