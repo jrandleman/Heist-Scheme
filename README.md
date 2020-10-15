@@ -51,7 +51,7 @@
 5. [Heist Commenting](#Heist-Commenting)
 6. [CPS: Continuation Passing Style](#CPS-Continuation-Passing-Style)
 7. [Heist Special Forms](#Heist-Special-Forms)
-   - [Quote](#Quote), [Quasiquote](#Quasiquote-Unquote--Unquote-Splicing), [Unquote](#Quasiquote-Unquote--Unquote-Splicing), & [Unquote-Splicing](#Quasiquote-Unquote--Unquote-Splicing)
+   - [Quote](#Quote), [Quasiquote](#Quasiquote-Unquote--Unquote-Splicing)
    - [Lambda](#Lambda)
    - [Define](#Define), [Set!](#Set), [Undefined?](#Undefined)
    - [Begin](#Begin)
