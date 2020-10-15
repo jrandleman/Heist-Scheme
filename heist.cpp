@@ -127,6 +127,7 @@
  *         * hmap-literal     ; LONGHAND OF $( PREFIX
  *         * undefined?       ; DETERMINE IF A VARIABLE/FCN-RETURN-VALUE IS (undefined)
  *         * cps-quote        ; RETURNS DATA AS CPS-EXPANDED QUOTED LIST
+ *         * using-cps?       ; RETURNS WHETHER IN A scm->cps BLOCK OR THE -cps FLAG IS ACTIVE
  *         * scm->cps         ; SCOPED CPS TRANSFORMATION
  *
  *    (C) PRIMITIVES:
@@ -2555,6 +2556,7 @@ namespace heist {
   bool is_scm_cps(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::scm_cps);}
   bool is_cps_quote(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::cps_quote);}
   bool is_cps_application(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::cps_app_tag);}
+  bool is_using_cpsp(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::using_cpsp);}
 
   // Heist-specific checker to not prefix C++ derived special forms w/ application tag
   bool is_HEIST_cpp_derived_special_form(const sym_type& app)noexcept{
@@ -2585,7 +2587,8 @@ namespace heist {
            is_tagged_list(d.exp,symconst::syn_rules) || 
            is_tagged_list(d.exp,symconst::core_syn)  || 
            is_tagged_list(d.exp,symconst::defclass)  || 
-           is_tagged_list(d.exp,symconst::quote);
+           is_tagged_list(d.exp,symconst::quote)     ||
+           is_tagged_list(d.exp,symconst::using_cpsp);
   }
 
 
@@ -3044,7 +3047,7 @@ namespace heist {
 
   // Process convert & eval exp in CPS (Continuation Passing Style)
   exe_type analyze_scm_cps(scm_list& exp) {
-    if(exp.size() == 1)
+    if(exp.size() == 1 || (exp.size() == 2 && data_is_the_SENTINEL_VAL(exp[1])))
       THROW_ERR("'scm->cps expects at least 1 expression: (scm->cps <exp-1> ... <exp-N>)"<<EXP_ERR(exp));
     if(exp.size() == 2) {
       return scm_analyze(generate_fundamental_form_cps(exp[1]),false,true);
@@ -3059,7 +3062,7 @@ namespace heist {
 
   // Returns the generated CPS form of exp as a quoted list of data
   exe_type analyze_cps_quote(scm_list& exp,const bool cps_block) {
-    if(exp.size() == 1)
+    if(exp.size() == 1 || (exp.size() == 2 && data_is_the_SENTINEL_VAL(exp[1])))
       THROW_ERR("'cps-quote expects at least 1 expression: (cps-quote <exp-1> ... <exp-N>)"<<EXP_ERR(exp));
     scm_list quoted_cps(2);
     quoted_cps[0] = symconst::quote;
@@ -3073,6 +3076,18 @@ namespace heist {
     }
     if(cps_block) return scm_analyze(generate_fundamental_form_cps(quoted_cps),false,true);
     return scm_analyze(std::move(quoted_cps));
+  }
+
+
+  // Return whether in a <scm->cps> block or the <-cps> flag is active
+  exe_type analyze_using_cpsp(scm_list& exp,const bool cps_block) {
+    if(exp.size() == 1) goto return_cps_block_status;
+    if(exp.size() != 2 || !data_is_the_SENTINEL_VAL(exp[1]))
+      THROW_ERR("'using-cps? expects 0 args: (using-cps?)"<<EXP_ERR(exp));
+  return_cps_block_status:
+    return [cps_block=cps_block](env_type&){
+      return scm_list(1,boolean(cps_block||G::USING_CPS_CMD_LINE_FLAG));
+    };
   }
 
   /******************************************************************************
@@ -4762,9 +4777,6 @@ namespace heist {
   exe_type scm_analyze(scm_list&& exp,const bool tail_call,const bool cps_block) { // analyze expression
     if(exp.empty())                         THROW_ERR("Can't eval an empty expression!"<<EXP_ERR("()"));
     else if(is_self_evaluating(exp)) return [exp=std::move(exp)](env_type&){return exp;};
-    else if(is_defclass(exp))        return analyze_defclass(exp);
-    else if(is_scm_cps(exp))         return analyze_scm_cps(exp);
-    else if(is_cps_quote(exp))       return analyze_cps_quote(exp,cps_block);
     else if(is_quoted(exp))          return analyze_quoted(exp);
     else if(is_assignment(exp))      return analyze_assignment(exp,cps_block);
     else if(is_definition(exp))      return analyze_definition(exp,cps_block);
@@ -4773,8 +4785,6 @@ namespace heist {
     else if(is_or(exp))              return analyze_or(exp,tail_call,cps_block);
     else if(is_lambda(exp))          return analyze_lambda(exp,cps_block);
     else if(is_begin(exp))           return analyze_sequence(begin_actions(exp),tail_call,cps_block);
-    else if(is_scons(exp))           return analyze_scons(exp,cps_block);
-    else if(is_stream(exp))          return analyze_stream(exp,cps_block);
     else if(is_delay(exp))           return analyze_delay(exp,cps_block);
     else if(is_cond(exp))            return scm_analyze(convert_cond_if(exp,cps_block),tail_call,cps_block);
     else if(is_case(exp))            return scm_analyze(convert_case_cond(exp),tail_call,cps_block);
@@ -4782,6 +4792,12 @@ namespace heist {
     else if(is_let_star(exp))        return scm_analyze(convert_let_star_nested_lets(exp,cps_block),tail_call,cps_block);
     else if(is_letrec(exp))          return scm_analyze(convert_letrec_let(exp,cps_block),tail_call,cps_block);
     else if(is_do(exp))              return scm_analyze(convert_do_letrec(exp),tail_call,cps_block);
+    else if(is_scons(exp))           return analyze_scons(exp,cps_block);
+    else if(is_stream(exp))          return analyze_stream(exp,cps_block);
+    else if(is_defclass(exp))        return analyze_defclass(exp);
+    else if(is_scm_cps(exp))         return analyze_scm_cps(exp);
+    else if(is_cps_quote(exp))       return analyze_cps_quote(exp,cps_block);
+    else if(is_using_cpsp(exp))      return analyze_using_cpsp(exp,cps_block);
     else if(is_quasiquote(exp))      return analyze_quasiquote(exp,cps_block);
     else if(is_core_syntax(exp))     return analyze_core_syntax(exp,cps_block);
     else if(is_define_syntax(exp))   return analyze_define_syntax(exp,cps_block);

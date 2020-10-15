@@ -32,7 +32,7 @@
 10. [Eval](#evalapply--symbol-append)
 11. [String I/O](#Output-Procedures)
 12. [Recursive Depth Control](#Interpreter-Invariants-Manipulation)
-13. [A](#Curry)[n](#Tlambda)[d](#Control-Flow-Procedures) [M](#Gensym)[o](#JSON-Interop)[r](#compose--bind)[e](#System-Interface-Procedures)[!](#Syntax-Procedures)
+13. [A](#Curry)[n](#Heist-Mathematical-Flonum-Constants)[d](#Control-Flow-Procedures) [M](#Gensym)[o](#JSON-Interop)[r](#compose--bind)[e](#System-Interface-Procedures)[!](#Syntax-Procedures)
 
 ------------------------ 
 # Table of Contents
@@ -66,12 +66,10 @@
    - [Define-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax), [Let-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax), [Letrec-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax)
    - [Syntax-Rules](#Syntax-Rules), [Syntax-Hash](#Syntax-Hash)
    - [Core-Syntax](#Core-Syntax)
-   - [Scm->Cps](#Scm-Cps), [Cps-Quote](#Cps-Quote)
+   - [Scm->Cps](#Scm-Cps), [Cps-Quote](#Cps-Quote), [Using-Cps?](#Using-Cps)
    - [Defclass](#Defclass)
    - [Define-Coroutine](#Define-Coroutine)
-   - [Defstruct](#Defstruct)
    - [Curry](#Curry)
-   - [Tlambda](#Tlambda)
 8. [Heist Primitive Variables](#Heist-Primitive-Variables)
 9. [Heist Primitive Procedures](#Heist-Primitive-Procedures)
    - [OOP Reflection Primitives](#OOP-Reflection-Primitives)
@@ -1054,6 +1052,14 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
+## Using-Cps?:
+
+#### Use: ___Determine Whether in a [`scm->cps`](#Scm-Cps) Block or [`-cps`](#Heist-Command-Line-Flags) is Active!___
+
+#### Form: `(using-cps?)`
+
+
+------------------------
 ## Defclass:
 
 #### Use: ___Define Class Prototypes for Object-Oriented Programming!___
@@ -1216,45 +1222,6 @@ Other primitives of this nature include:<br>
 ```
 
 
-
-------------------------
-## Defstruct:
-
-#### Use: ___Define Struct-Objects via Vectors for Lightweight Message-Passing OOP!___
-* _Note: `defstruct` is actually a macro directly defined **in** Heist Scheme!_
-
-#### Form: `(defstruct <name> <member-name1> <member-name2> ...)`
-
-#### Procedures Generated:
-0. Constructor: `(make-<name> <member-value1> <member-value2> ...)`
-1. Getter: `(<name>-<member-name> <struct-object>)`
-2. Setter: `(set-<name>-<member-name>! <struct-object> <new-val>)`
-3. Predicate: `(<name>? <struct-object>)`
-4. Analysis (get quoted list of `<member>` names): `(<name>>slots)`
-5. Method-Generator: `(defmethod-<name> (<method-name> <arg1> <arg2>) <body> ...)`
-   - Advantages of Methods Over Procedures:
-     1. `<struct-object>` argument is automatically defined as `this`
-     2. Member setters don't need the object or struct name in their invocation
-     3. Member setters may be invoked just by using the member name
-   - Example:
-   ```scheme
-   (defstruct student name id) 
-   (define (printf . d) (for-each display d))
-   ; Writing:
-   (defmethod-student (greet your-name)
-      (set-id! (+ id 1))
-      (printf "Hello " your-name 
-              ", my name is " name " and my id is "
-              id ", great to meet you!\n"))
-   ; Gets expanded into:
-   (define (student>greet this your-name)
-      (set-student-id! this (+ (student-id this) 1))
-      (printf "Hello " your-name 
-              ", my name is " (student-name this) " and my id is "
-              (student-id this) ", great to meet you!\n"))
-   ```
-
-
 ------------------------
 ## Curry:
 
@@ -1276,27 +1243,6 @@ Other primitives of this nature include:<br>
 (define KI (K Id)) ; Binds "Id" as the first arg to "K"!
 ((KI 1) 2) ; "Id" is selected, then 2 is passed to "Id"! ; => 2
 (KI 1 2)   ; => 2
-```
-
-
-------------------------
-## Tlambda:
-
-#### Use: ___Automate Predicating Lambda Arguments!___
-* _Note: `tlambda` is actually a macro directly defined **in** Heist Scheme!_
-* _Note: Predicates are optional (also works on variadic args)!_
-* _Note: Add an optional descriptor string to be shown on predicate failures!_
-
-#### Form: 
-`(tlambda "optional-descriptor" 
-          ((<pred?> <arg1>) <arg2> ... . (<pred?> <variadic-arg>)) 
-          <body> ...)`
-
-#### Examples:
-```scheme
-(tlambda ((string? s) any-arg (number? n)) <body>) ; predicated & arbitrary args
-(tlambda "optional-description" ((string? s) any-arg) <body>) ; optional descriptor
-(tlambda ((string? s) . ((bind every even?) numbers)) <body>) ; predicated variadic 
 ```
 
 

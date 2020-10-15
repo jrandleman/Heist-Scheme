@@ -160,6 +160,7 @@ namespace heist {
     constexpr const char * const gensym_prefix     = "heist:core:gensym-";
     constexpr const char * const scm_cps           = "scm->cps";
     constexpr const char * const cps_quote         = "cps-quote";
+    constexpr const char * const using_cpsp        = "using-cps?";
     constexpr const char * const argc              = "argc";
     constexpr const char * const argv              = "argv";
     constexpr const char * const defclass          = "defclass";
