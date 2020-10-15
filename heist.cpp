@@ -125,7 +125,7 @@
  *         * defclass         ; CLASS PROTOTYPE DEFINITION
  *         * vector-literal   ; LONGHAND OF #( PREFIX
  *         * hmap-literal     ; LONGHAND OF $( PREFIX
- *         * undefined?       ; DETERMINE IF A VARIABLE/FCN-RETURN-VALUE IS (undefined)
+ *         * defined?         ; DETERMINE IF A VARIABLE/OBJECT-PROPERTY-ACCESS EXISTS
  *         * cps-quote        ; RETURNS DATA AS CPS-EXPANDED QUOTED LIST
  *         * using-cps?       ; RETURNS WHETHER IN A scm->cps BLOCK OR THE -cps FLAG IS ACTIVE
  *         * scm->cps         ; SCOPED CPS TRANSFORMATION
@@ -408,11 +408,7 @@ namespace heist {
       auto& [var_list, val_list, mac_list] = *env->operator[](i);
       // Search Variable Bindings List of the Frame
       for(size_type j = 0, total_vars = var_list.size(); j < total_vars; ++j)
-        if(var == var_list[j]) {
-          if(val_list[j].is_type(types::undefined))
-            THROW_ERR("Undefined Variable -- " << var);
-          return val_list[j];
-        }
+        if(var == var_list[j]) return val_list[j];
     }
     THROW_ERR("Variable " << var << " is not bound!");
   }
@@ -2174,10 +2170,10 @@ namespace heist {
   }
 
   /******************************************************************************
-  * REPRESENTING undefined? SPECIAL FORM: VARS, MEMBER-ACCESS, & FCN RESULTS
+  * REPRESENTING defined? SPECIAL FORM: VARS & OBJECT-PROPERTY-ACCESS
   ******************************************************************************/
 
-  bool is_undefinedp(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::undefinedp);}
+  bool is_definedp(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::definedp);}
 
 
   namespace undefined_determination_helpers {
@@ -2188,7 +2184,7 @@ namespace heist {
         auto& [var_list, val_list, mac_list] = *env->operator[](i);
         // Search Variable Bindings List of the Frame
         for(size_type j = 0, total_vars = var_list.size(); j < total_vars; ++j)
-          if(var == var_list[j]) return val_list[j].is_type(types::undefined);
+          if(var == var_list[j]) return false;
       }
       return true;
     }
@@ -2274,30 +2270,19 @@ namespace heist {
 
 
   // NOTE: USE runtime-syntax? core-syntax? reader-syntax? TO CHECK MACROS !!!
-  exe_type analyze_undefinedp(scm_list& exp) {
+  exe_type analyze_definedp(scm_list& exp) {
     if(exp.size() != 2 || data_is_the_SENTINEL_VAL(exp[1]))
-      THROW_ERR("'undefined? didn't recieve 1 argument!\n     (undefined? <obj>)"<<EXP_ERR(exp));
-    // If neither expression nor symbol, can't be undefined
-    if(!exp[1].is_type(types::exp) && !exp[1].is_type(types::sym))
-      return [](env_type&){return scm_list(1,G::FALSE_DATA_BOOLEAN);};
-    // If IS undefined
-    if(exp[1].is_type(types::undefined))
-      return [](env_type&){return scm_list(1,G::TRUE_DATA_BOOLEAN);};
-    // Check if expression evaluates to an undefined value
-    if(exp[1].is_type(types::exp)) {
-      auto exp_proc = scm_analyze(scm_list_cast(exp[1].exp));
-      return [exp_proc=std::move(exp_proc)](env_type& env)mutable{
-        return scm_list(1,boolean(data_cast(exp_proc(env)).is_type(types::undefined)));
-      };
-    }
-    // Check if non-member-access symbol evaluates to an undefined value
+      THROW_ERR("'defined? didn't recieve 1 argument!\n     (defined? <symbol>)"<<EXP_ERR(exp));
+    if(!exp[1].is_type(types::sym))
+      THROW_ERR("'defined? arg "<<PROFILE(exp[1])<<" isn't a symbol!\n     (defined? <symbol>)"<<EXP_ERR(exp));
+    // Check if non-member-access symbol is defined in the environment
     if(exp[1].sym.find('.') == scm_string::npos || exp[1].sym == "..")
       return [variable=std::move(exp[1].sym)](env_type& env){
-        return scm_list(1,boolean(undefined_determination_helpers::variable_is_undefined(variable,env)));
+        return scm_list(1,boolean(!undefined_determination_helpers::variable_is_undefined(variable,env)));
       };
-    // Check if member-access chain evaluates to an undefined value
+    // Check if member-access chain is defined in the environment
     return [variable=std::move(exp[1].sym)](env_type& env)mutable{
-      return scm_list(1,boolean(undefined_determination_helpers::property_chain_is_undefined(std::move(variable),env)));
+      return scm_list(1,boolean(!undefined_determination_helpers::property_chain_is_undefined(std::move(variable),env)));
     };
   }
 
@@ -2588,7 +2573,8 @@ namespace heist {
            is_tagged_list(d.exp,symconst::core_syn)  || 
            is_tagged_list(d.exp,symconst::defclass)  || 
            is_tagged_list(d.exp,symconst::quote)     ||
-           is_tagged_list(d.exp,symconst::using_cpsp);
+           is_tagged_list(d.exp,symconst::using_cpsp)|| 
+           is_tagged_list(d.exp,symconst::definedp);
   }
 
 
@@ -4804,7 +4790,7 @@ namespace heist {
     else if(is_let_syntax(exp))      return analyze_let_syntax(exp,tail_call,cps_block);
     else if(is_letrec_syntax(exp))   return analyze_letrec_syntax(exp,tail_call,cps_block);
     else if(is_syntax_rules(exp))    return analyze_syntax_rules(exp);
-    else if(is_undefinedp(exp))      return analyze_undefinedp(exp);
+    else if(is_definedp(exp))        return analyze_definedp(exp);
     else if(is_vector_literal(exp))         THROW_ERR("Misplaced keyword 'vector-literal outside of a quotation! -- ANALYZE"   <<EXP_ERR(exp));
     else if(is_hmap_literal(exp))           THROW_ERR("Misplaced keyword 'hmap-literal outside of a quotation! -- ANALYZE"     <<EXP_ERR(exp));
     else if(is_unquote(exp))                THROW_ERR("Misplaced keyword 'unquote outside of 'quasiquote ! -- ANALYZE"         <<EXP_ERR(exp));

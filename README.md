@@ -53,7 +53,7 @@
 7. [Heist Special Forms](#Heist-Special-Forms)
    - [Quote](#Quote), [Quasiquote](#Quasiquote-Unquote--Unquote-Splicing)
    - [Lambda](#Lambda)
-   - [Define](#Define), [Set!](#Set), [Undefined?](#Undefined)
+   - [Define](#Define), [Set!](#Set), [Defined?](#Defined)
    - [Begin](#Begin)
    - [If](#If)
    - [And](#And), [Or](#Or)
@@ -483,15 +483,30 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
-## Undefined?:
+## Defined?:
 
-#### Use: ___Determine if an Item is Undefined!___
-* Given a symbol, returns whether [`define`](#define)d
-* Given an [object](#defclass) property-access symbol, returns whether the property doesn't exist
-* Given an expression, returns whether its evaluation yields [`(undefined)`](#Type-Predicates-Undefined--Void)
-* Else, returns `#f`
+#### Use: ___Determine if a Symbol is [`define`](#define)d!___
+* Given an [object](#defclass) property-access symbol, returns whether the property exists!
+* Use [`runtime-syntax?`](#Syntax-Procedures), [`core-syntax?`](#Syntax-Procedures), & [`reader-syntax?`](#Syntax-Procedures) to check for macros!
+* WARNING: This is _NOT_ the inverse of the [`undefined?`](#Type-Predicates-Undefined--Void) primitive!
+  - [`undefined?`](#Type-Predicates-Undefined--Void) checks values, `defined?` checks the environment!
 
-#### Form: `(undefined? <obj>)`
+#### Form: `(defined? <symbol>)`
+
+#### Example:
+```scheme
+
+(defined? a)   ; #f ; `a` was never registered in the environment!
+(undefined? a) ; ERROR: `undefined?` operates on values, and a has none in the environment!
+
+(define a 12)
+(defined? a) ; #t
+(set! a (undefined))
+
+(defined? a)   ; #t ; "(undefined)" is a valid value type assigned to `a` in the environment!
+(undefined? a) ; #t ; `undefined?` checks values!
+
+```
 
 
 ------------------------
@@ -2020,59 +2035,61 @@ Other primitives of this nature include:<br>
 ## Type Predicates, Undefined, & Void:
 0. __Generate an Undefined Object__: `(undefined)`
 
-1. __Generate a Void Object__: `(void)`
+1. __Undefined Predicate__: `(undefined? <obj>)`
 
-2. __Void Predicate__: `(void? <obj>)`
+2. __Generate a Void Object__: `(void)`
 
-3. __Empty Sequence Predicate__: `(empty? <obj>)`
+3. __Void Predicate__: `(void? <obj>)`
 
-4. __Pair Predicate__: `(pair? <obj>)`
+4. __Empty Sequence Predicate__: `(empty? <obj>)`
 
-5. __Vector Predicate__: `(vector? <obj>)`
+5. __Pair Predicate__: `(pair? <obj>)`
 
-6. __Hash-Map Predicate__: `(hmap? <obj>)`
+6. __Vector Predicate__: `(vector? <obj>)`
 
-7. __Character Predicate__: `(char? <obj>)`
+7. __Hash-Map Predicate__: `(hmap? <obj>)`
 
-8. __Number Predicate__: `(number? <obj>)`
+8. __Character Predicate__: `(char? <obj>)`
 
-9. __Real Predicate__: `(real? <obj>)`
+9. __Number Predicate__: `(number? <obj>)`
 
-10. __Complex Predicate__: `(complex? <obj>)`
+10. __Real Predicate__: `(real? <obj>)`
 
-11. __Rational Number Predicate__: `(rational? <obj>)`
+11. __Complex Predicate__: `(complex? <obj>)`
 
-12. __String Predicate__: `(string? <obj>)`
+12. __Rational Number Predicate__: `(rational? <obj>)`
 
-13. __Symbol Predicate__: `(symbol? <obj>)`
+13. __String Predicate__: `(string? <obj>)`
 
-14. __Boolean Predicate__: `(boolean? <obj>)`
+14. __Symbol Predicate__: `(symbol? <obj>)`
 
-15. __Atom Predicate__: `(atom? <obj>)`
+15. __Boolean Predicate__: `(boolean? <obj>)`
 
-16. __Procedure Predicate__: `(procedure? <obj>)`
+16. __Atom Predicate__: `(atom? <obj>)`
 
-17. __Cps-Procedure Predicate__: `(cps-procedure? <obj>)`
+17. __Procedure Predicate__: `(procedure? <obj>)`
 
-18. __Input-Port Predicate__: `(input-port? <obj>)`
+18. __Cps-Procedure Predicate__: `(cps-procedure? <obj>)`
 
-19. __Output-Port Predicate__: `(output-port? <obj>)`
+19. __Input-Port Predicate__: `(input-port? <obj>)`
 
-20. __Eof-Object Predicate__: `(eof-object? <obj>)`
+20. __Output-Port Predicate__: `(output-port? <obj>)`
 
-21. __Stream-Pair Predicate__: `(stream-pair? <obj>)`
+21. __Eof-Object Predicate__: `(eof-object? <obj>)`
 
-22. __Empty-Stream Predicate__: `(stream-null? <obj>)`
+22. __Stream-Pair Predicate__: `(stream-pair? <obj>)`
 
-23. __Stream Predicate__: `(stream? <obj>)`
+23. __Empty-Stream Predicate__: `(stream-null? <obj>)`
 
-24. __Syntax-Rules Object Predicate__: `(syntax-rules-object? <obj>)`
+24. __Stream Predicate__: `(stream? <obj>)`
 
-25. __Sequence Predicate__: `(seq? <obj>)`
+25. __Syntax-Rules Object Predicate__: `(syntax-rules-object? <obj>)`
 
-26. __Object Predicate__: `(object? <obj>)`
+26. __Sequence Predicate__: `(seq? <obj>)`
 
-27. __Class Prototype Predicate__: `(class-prototype? <obj>)`
+27. __Object Predicate__: `(object? <obj>)`
+
+28. __Class Prototype Predicate__: `(class-prototype? <obj>)`
 
 
 

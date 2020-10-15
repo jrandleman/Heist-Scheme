@@ -2981,6 +2981,12 @@ namespace heist {
   // primitive "undefined" procedure:
   data primitive_UNDEFINED(scm_list&)noexcept{return data();}
 
+  // primitive "undefined?" procedure:
+  data primitive_UNDEFINEDP(scm_list& args) { 
+    confirm_given_one_arg(args, "undefined?");
+    return data(boolean(args[0].is_type(types::undefined)));
+  }
+
   // primitive "hmap?" procedure:
   data primitive_HMAPP(scm_list& args) {
     confirm_given_one_arg(args, "hmap?");
@@ -6217,6 +6223,7 @@ namespace heist {
     std::make_pair(primitive_VOID,                 "void"),
     std::make_pair(primitive_VOIDP,                "void?"),
     std::make_pair(primitive_UNDEFINED,            "undefined"),
+    std::make_pair(primitive_UNDEFINEDP,           "undefined?"),
     std::make_pair(primitive_HMAPP,                "hmap?"),
     std::make_pair(primitive_EMPTYP,               "empty?"),
     std::make_pair(primitive_PAIRP,                "pair?"),
