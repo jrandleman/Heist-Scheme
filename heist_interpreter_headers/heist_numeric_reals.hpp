@@ -2881,9 +2881,9 @@ namespace scm_numeric {
   // Performs decimal->binary, binary division, binary->decimal
   void BIGNUM_UNSIGNED_DIVIDE_core(exactVec_t Nbignum, exactVec_t Dbignum,
                                    exactVec_t& Qdec,    exactVec_t& Rdec)noexcept{
-    auto Nbin = b10Vec_to_b2Vec(Nbignum);               // Decimal->Binary
-    auto Dbin = b10Vec_to_b2Vec(Dbignum);               // Decimal->Binary
-    exactVec_t Q(Nbin.size(),0), R(1,0);                   // Quotient & Remainder
+    auto Nbin = b10Vec_to_b2Vec(Nbignum); // Decimal->Binary
+    auto Dbin = b10Vec_to_b2Vec(Dbignum); // Decimal->Binary
+    exactVec_t Q(Nbin.size(),0), R(1,0);  // Quotient & Remainder
     binary_division_helpers::binArr_UNSIGNED_DIVIDE(Nbin,Dbin,Q,R);
     Qdec = b2Vec_to_b10Vec(Q); // Binary->Decimal
     Rdec = b2Vec_to_b10Vec(R); // Binary->Decimal

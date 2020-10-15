@@ -207,6 +207,7 @@ namespace heist {
     constexpr const char * const list_star         = "list*";
     constexpr const char * const vector            = "vector";
     constexpr const char * const hmap              = "hmap";
+    constexpr const char * const undefinedp        = "undefined?";
   } // End namespace symconst
 
   /******************************************************************************

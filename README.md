@@ -51,32 +51,22 @@
 5. [Heist Commenting](#Heist-Commenting)
 6. [CPS: Continuation Passing Style](#CPS-Continuation-Passing-Style)
 7. [Heist Special Forms](#Heist-Special-Forms)
-   - [Quotation](#Quotation)
-   - [Quasiquotation, Unquote, & Unquote-Splicing](#Quasiquotation-Unquote--Unquote-Splicing)
+   - [Quote](#Quote), [Quasiquote](#Quasiquote-Unquote--Unquote-Splicing), [Unquote](#Quasiquote-Unquote--Unquote-Splicing), & [Unquote-Splicing](#Quasiquote-Unquote--Unquote-Splicing)
    - [Lambda](#Lambda)
-   - [Define](#Define)
-   - [Set!](#Set)
+   - [Define](#Define), [Set!](#Set), [Undefined?](#Undefined)
    - [Begin](#Begin)
    - [If](#If)
-   - [And](#And)
-   - [Or](#Or)
-   - [Cond](#Cond)
-   - [Case](#Case)
-   - [Let](#Let)
-   - [Let\*](#Let-1)
-   - [Letrec](#Letrec)
+   - [And](#And), [Or](#Or)
+   - [Cond](#Cond), [Case](#Case)
+   - [Let](#Let), [Let\*](#Let-1), [Letrec](#Letrec)
    - [Do](#Do)
    - [Delay](#Delay)
-   - [Scons](#Scons)
-   - [Stream](#Stream)
-   - [Vector-Literal](#Vector-Literal)
-   - [Hmap-Literal](#Hmap-Literal)
-   - [Define-Syntax, Let-Syntax, Letrec-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax)
-   - [Syntax-Rules](#Syntax-Rules)
-   - [Syntax-Hash](#Syntax-Hash)
+   - [Scons](#Scons), [Stream](#Stream)
+   - [Vector-Literal](#Vector-Literal), [Hmap-Literal](#Hmap-Literal)
+   - [Define-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax), [Let-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax), [Letrec-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax)
+   - [Syntax-Rules](#Syntax-Rules), [Syntax-Hash](#Syntax-Hash)
    - [Core-Syntax](#Core-Syntax)
-   - [Cps-Quote](#Cps-Quote)
-   - [Scm->Cps](#Scm-Cps)
+   - [Scm->Cps](#Scm-Cps), [Cps-Quote](#Cps-Quote)
    - [Defclass](#Defclass)
    - [Define-Coroutine](#Define-Coroutine)
    - [Defstruct](#Defstruct)
@@ -114,7 +104,7 @@
    - [Generic Sequence, List|Vector|String, Algorithmic Procedures](#Generic-Sequence-ListVectorString-Algorithmic-Procedures)
      * [General](#General-3)
      * [Sorting Procedures](#Sorting-Procedures)
-   - [Type Predicates](#Type-Predicates)
+   - [Type Predicates, Undefined, & Void](#Type-Predicates-Undefined--Void)
    - [Eval/Apply & Symbol-Append](#evalapply--symbol-append)
    - [Typeof & Deep-Copying](#typeof--deep-copying)
    - [Compose & Bind](#compose--bind)
@@ -161,7 +151,7 @@
 ## Metaprogramming Advantages:
 * Code is data (parentheses construct an Abstract Syntax Tree)
   - Hence Macro System enables direct manipulation of the AST
-  - Quotation ([`quote`](#Quotation)) Converts Code to Data, Eval ([`eval`](#evalapply--symbol-append)) Converts Data to Code
+  - Quotation ([`quote`](#Quote)) Converts Code to Data, Eval ([`eval`](#evalapply--symbol-append)) Converts Data to Code
   - Reader ([`read`](#Input-Procedures)) takes input and parses it into a quoted list of symbolic data
     * Hence [`read`](#Input-Procedures) and [`eval`](#evalapply--symbol-append) may be combined for a custom repl!
 
@@ -201,7 +191,7 @@
 # Heist Primitive Data Types
 0. Symbol (quoted syntax label, `'hello`)
 1. Number ([see numerics section](#Heist-Numerics))
-2. Pair ([quoted](#Quotation) expression `'(1 2 3)`, [list](#ListPair-Procedures) `(list 1 2 3)`, or [cons](#ListPair-Procedures) `(cons 1 (cons 2 (cons 3 '())))`)
+2. Pair ([quoted](#Quote) expression `'(1 2 3)`, [list](#ListPair-Procedures) `(list 1 2 3)`, or [cons](#ListPair-Procedures) `(cons 1 (cons 2 (cons 3 '())))`)
 3. String (wrapped by `""`, `"hello"`)
 4. Char (have the `#\` prefix, `#\h #\e #\l #\l #\o`) (uses `ascii` encoding!)
 5. Boolean (true or false, `#t` or`#f`)
@@ -213,8 +203,8 @@
 11. Procedure (via primitives or the [`lambda`](#Lambda) special form)
 12. Object (see [`defclass`](#Defclass))
 13. Class-Prototype (see [`defclass`](#Defclass))
-14. Void Datum [`(void)`](#Type-Predicates)
-15. Undefined Datum [`(undefined)`](#Type-Predicates)
+14. Void Datum [`(void)`](#Type-Predicates-Undefined--Void)
+15. Undefined Datum [`(undefined)`](#Type-Predicates-Undefined--Void)
 
 
 
@@ -387,7 +377,7 @@ Other primitives of this nature include:<br>
 ### _Extensible via the Macro System!_
 
 
-## Quotation:
+## Quote:
 
 #### Shorthand: `'<obj>` => `(quote <obj>)`
 
@@ -416,7 +406,7 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
-## Quasiquotation, Unquote, & Unquote-Splicing:
+## Quasiquote, Unquote, & Unquote-Splicing:
 
 #### Shorthands: 
 0. ``` `<obj> => (quasiquote <obj>)```
@@ -492,6 +482,18 @@ Other primitives of this nature include:<br>
 #### Use: ___Set a Syntactic Label to a New Value (must have already been defined)!___
 
 #### Form: `(set! <name> <new-value>)`
+
+
+------------------------
+## Undefined?:
+
+#### Use: ___Determine if an Item Undefined!___
+* Given a symbol, returns whether [`define`](#define)d
+* Given an [object](#defclass) property-access symbol, returns whether resolves to a value
+* Given an expression, returns whether its evaluation yields [`(undefined)`](#Type-Predicates-Undefined--Void)
+* Else, returns `#f`
+
+#### Form: `(undefined? <obj>)`
 
 
 ------------------------
@@ -991,15 +993,6 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
-## Cps-Quote:
-
-#### Use: ___Convert Code to Data in CPS!___
-* _Identical to [`quote`](#quotation) after transforming given code into CPS!_
-
-#### Form: `(cps-quote <exp>)`
-
-
-------------------------
 ## Scm->Cps:
 
 #### Use: ___Convert Code to CPS & Evaluate the Result!___
@@ -1074,6 +1067,15 @@ Other primitives of this nature include:<br>
 ```
 1 A 2 B 3 C 4 D 5 E 6 F 7 G 8 H 9 I 10 J 11 K 12 L 13 M 14 N 15 O 16 P 17 Q 18 R 19 S 20 T 21 U 22 V 23 W 24 X 25 Y 26 Z
 ```
+
+
+------------------------
+## Cps-Quote:
+
+#### Use: ___Convert Code to Data in CPS!___
+* _Identical to [`quote`](#quote) after transforming given code into CPS!_
+
+#### Form: `(cps-quote <exp>)`
 
 
 ------------------------
@@ -2093,64 +2095,62 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
-## Type Predicates:
-0. __Generate a Void Object__: `(void)`
+## Type Predicates, Undefined, & Void:
+0. __Generate an Undefined Object__: `(undefined)`
 
-1. __Void Predicate__: `(void? <obj>)`
+1. __Generate a Void Object__: `(void)`
 
-2. __Generate an Undefined Object__: `(undefined)`
+2. __Void Predicate__: `(void? <obj>)`
 
-3. __Undefined Predicate__: `(undefined? <obj>)`
+3. __Empty Sequence Predicate__: `(empty? <obj>)`
 
-4. __Empty Sequence Predicate__: `(empty? <obj>)`
+4. __Pair Predicate__: `(pair? <obj>)`
 
-5. __Pair Predicate__: `(pair? <obj>)`
+5. __Vector Predicate__: `(vector? <obj>)`
 
-6. __Vector Predicate__: `(vector? <obj>)`
+6. __Hash-Map Predicate__: `(hmap? <obj>)`
 
-7. __Hash-Map Predicate__: `(hmap? <obj>)`
+7. __Character Predicate__: `(char? <obj>)`
 
-8. __Character Predicate__: `(char? <obj>)`
+8. __Number Predicate__: `(number? <obj>)`
 
-9. __Number Predicate__: `(number? <obj>)`
+9. __Real Predicate__: `(real? <obj>)`
 
-10. __Real Predicate__: `(real? <obj>)`
+10. __Complex Predicate__: `(complex? <obj>)`
 
-11. __Complex Predicate__: `(complex? <obj>)`
+11. __Rational Number Predicate__: `(rational? <obj>)`
 
-12. __Rational Number Predicate__: `(rational? <obj>)`
+12. __String Predicate__: `(string? <obj>)`
 
-13. __String Predicate__: `(string? <obj>)`
+13. __Symbol Predicate__: `(symbol? <obj>)`
 
-14. __Symbol Predicate__: `(symbol? <obj>)`
+14. __Boolean Predicate__: `(boolean? <obj>)`
 
-15. __Boolean Predicate__: `(boolean? <obj>)`
+15. __Atom Predicate__: `(atom? <obj>)`
 
-16. __Atom Predicate__: `(atom? <obj>)`
+16. __Procedure Predicate__: `(procedure? <obj>)`
 
-17. __Procedure Predicate__: `(procedure? <obj>)`
+17. __Cps-Procedure Predicate__: `(cps-procedure? <obj>)`
 
-18. __Cps-Procedure Predicate__: `(cps-procedure? <obj>)`
+18. __Input-Port Predicate__: `(input-port? <obj>)`
 
-19. __Input-Port Predicate__: `(input-port? <obj>)`
+19. __Output-Port Predicate__: `(output-port? <obj>)`
 
-20. __Output-Port Predicate__: `(output-port? <obj>)`
+20. __Eof-Object Predicate__: `(eof-object? <obj>)`
 
-21. __Eof-Object Predicate__: `(eof-object? <obj>)`
+21. __Stream-Pair Predicate__: `(stream-pair? <obj>)`
 
-22. __Stream-Pair Predicate__: `(stream-pair? <obj>)`
+22. __Empty-Stream Predicate__: `(stream-null? <obj>)`
 
-23. __Empty-Stream Predicate__: `(stream-null? <obj>)`
+23. __Stream Predicate__: `(stream? <obj>)`
 
-24. __Stream Predicate__: `(stream? <obj>)`
+24. __Syntax-Rules Object Predicate__: `(syntax-rules-object? <obj>)`
 
-25. __Syntax-Rules Object Predicate__: `(syntax-rules-object? <obj>)`
+25. __Sequence Predicate__: `(seq? <obj>)`
 
-26. __Sequence Predicate__: `(seq? <obj>)`
+26. __Object Predicate__: `(object? <obj>)`
 
-27. __Object Predicate__: `(object? <obj>)`
-
-28. __Class Prototype Predicate__: `(class-prototype? <obj>)`
+27. __Class Prototype Predicate__: `(class-prototype? <obj>)`
 
 
 
@@ -2432,7 +2432,7 @@ Other primitives of this nature include:<br>
    * `(inline <procedure> <arg1> ... <argN>)`
 
 5. __Jump/Throw Value__: `(jump! <optional-arg>)`
-   * `<optional-arg>` defaults to [`(void)`](#Type-Predicates)
+   * `<optional-arg>` defaults to [`(void)`](#Type-Predicates-Undefined--Void)
 
 6. __Catch Jumped/Thrown Value__: `(catch-jump <proc> <arg1> ... <argN>)`
 

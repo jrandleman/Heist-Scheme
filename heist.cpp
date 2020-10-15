@@ -125,6 +125,7 @@
  *         * defclass         ; CLASS PROTOTYPE DEFINITION
  *         * vector-literal   ; LONGHAND OF #( PREFIX
  *         * hmap-literal     ; LONGHAND OF $( PREFIX
+ *         * undefined?       ; DETERMINE IF A VARIABLE/FCN-RETURN-VALUE IS (undefined)
  *         * cps-quote        ; RETURNS DATA AS CPS-EXPANDED QUOTED LIST
  *         * scm->cps         ; SCOPED CPS TRANSFORMATION
  *
@@ -408,7 +409,7 @@ namespace heist {
       for(size_type j = 0, total_vars = var_list.size(); j < total_vars; ++j)
         if(var == var_list[j]) {
           if(val_list[j].is_type(types::undefined))
-            THROW_ERR("Unassigned Variable -- " << var);
+            THROW_ERR("Undefined Variable -- " << var);
           return val_list[j];
         }
     }
@@ -2169,6 +2170,134 @@ namespace heist {
         if(cps_block) return scm_analyze(generate_fundamental_form_cps(quote_val),false,true)(env);
         return scm_eval(std::move(quote_val),env);
       };
+  }
+
+  /******************************************************************************
+  * REPRESENTING undefined? SPECIAL FORM: VARS, MEMBER-ACCESS, & FCN RESULTS
+  ******************************************************************************/
+
+  bool is_undefinedp(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::undefinedp);}
+
+
+  namespace undefined_determination_helpers {
+    bool variable_is_undefined(const frame_var& var, env_type& env)noexcept{
+      // Search Each Environment Frame
+      for(size_type i = 0, total_frames = env->size(); i < total_frames; ++i) {
+        // Get Variables & Values Lists of the current frame
+        auto& [var_list, val_list, mac_list] = *env->operator[](i);
+        // Search Variable Bindings List of the Frame
+        for(size_type j = 0, total_vars = var_list.size(); j < total_vars; ++j)
+          if(var == var_list[j]) return val_list[j].is_type(types::undefined);
+      }
+      return true;
+    }
+
+    // (string-split <call> ".")
+    bool parse_object_property_chain_sequence(const scm_string& call, std::vector<scm_string>& chain)noexcept{
+      chain.push_back("");
+      for(const auto& ch : call) {
+        if(ch == '.') chain.push_back("");
+        else          *chain.rbegin() += ch;
+      }
+      // verify no ".." found or ".<call>" or "<call>."
+      for(const auto& link : chain) if(link.empty()) return false;
+      return true;
+    }
+
+    // Returns whether found <sought_property> in <proto> or its inheritance chain
+    bool verify_in_prototype_and_inherited_properties(cls_type& proto, const scm_string& sought_property, bool& is_member, data& value)noexcept{
+      // Search the prototype
+      for(size_type i = 0, n = proto->member_names.size(); i < n; ++i)
+        if(proto->member_names[i] == sought_property) {
+          // cache accessed inherited member
+          value.obj->member_names.push_back(sought_property), value.obj->member_values.push_back(proto->member_values[i]);
+          value = proto->member_values[i];
+          is_member = true;
+          return true;
+        }
+      for(size_type i = 0, n = proto->method_names.size(); i < n; ++i)
+        if(proto->method_names[i] == sought_property) {
+          is_member = false;
+          return true;
+        }
+      // Search the inherited prototypes (& in turn their inheritance chains as well)
+      // => NOTE that this traversal is (in part, along with inheritance registration) why we have LEFT-PRECEDENT INHERITANCE LIST ORDER
+      for(size_type i = 0, n = proto->inheritance_chain.size(); i < n; ++i)
+        if(verify_in_prototype_and_inherited_properties(proto->inheritance_chain[i],sought_property,is_member,value))
+          return true;
+      return false;
+    }
+
+    // Returns whether found <property> as a member/method in <value.obj> 
+    // If returns true, <property> value is in <value> & <is_member> denotes whether a member or method
+    bool verify_value_in_local_object(data& value, const scm_string& property, bool& is_member)noexcept{
+      auto& members = value.obj->member_names;
+      // Seek members
+      for(size_type i = 0, n = members.size(); i < n; ++i)
+        if(members[i] == property) {
+          value = value.obj->member_values[i], is_member = true;
+          return true;
+        }
+      // Seek methods
+      auto& methods = value.obj->method_names;
+      for(size_type i = 0, n = methods.size(); i < n; ++i)
+        if(methods[i] == property) {
+          is_member = false;
+          return true;
+        }
+      // Seek proto & its inheritance chain
+      // => IF FOUND, ADD IT TO THE LOCAL OBJECT INSTANCE
+      return verify_in_prototype_and_inherited_properties(value.obj->proto,property,is_member,value);
+    }
+
+    // Returns the ultimate value of the call-chain
+    bool property_chain_is_undefined(scm_string&& call, env_type& env)noexcept{
+      // split the call chain into object series
+      std::vector<scm_string> chain;
+      if(!parse_object_property_chain_sequence(call,chain)) return true;
+      // get the first object instance
+      if(variable_is_undefined(chain[0],env)) return true;
+      data value = lookup_variable_value(chain[0],env);
+      // get the call value
+      for(size_type i = 1, n = chain.size(); i < n; ++i) {
+        if(!value.is_type(types::obj)) return true;
+        // Search local members & methods, the proto, and the proto inheritances
+        bool is_member = false;
+        if(!verify_value_in_local_object(value,chain[i],is_member)) return true;
+        // if found a method, confirm at the last item in the call chain
+        if(!is_member && i+1 < n) return true;
+      }
+      return false;
+    }
+  }; // End of namespace undefined_determination_helpers
+
+
+  // NOTE: USE runtime-syntax? core-syntax? reader-syntax? TO CHECK MACROS !!!
+  exe_type analyze_undefinedp(scm_list& exp) {
+    if(exp.size() != 2 || data_is_the_SENTINEL_VAL(exp[1]))
+      THROW_ERR("'undefined? didn't recieve 1 argument!\n     (undefined? <obj>)"<<EXP_ERR(exp));
+    // If neither expression nor symbol, can't be undefined
+    if(!exp[1].is_type(types::exp) && !exp[1].is_type(types::sym))
+      return [](env_type&){return scm_list(1,G::FALSE_DATA_BOOLEAN);};
+    // If IS undefined
+    if(exp[1].is_type(types::undefined))
+      return [](env_type&){return scm_list(1,G::TRUE_DATA_BOOLEAN);};
+    // Check if expression evaluates to an undefined value
+    if(exp[1].is_type(types::exp)) {
+      auto exp_proc = scm_analyze(scm_list_cast(exp[1].exp));
+      return [exp_proc=std::move(exp_proc)](env_type& env)mutable{
+        return scm_list(1,boolean(data_cast(exp_proc(env)).is_type(types::undefined)));
+      };
+    }
+    // Check if non-member-access symbol evaluates to an undefined value
+    if(exp[1].sym.find('.') == scm_string::npos || exp[1].sym == "..")
+      return [variable=std::move(exp[1].sym)](env_type& env){
+        return scm_list(1,boolean(undefined_determination_helpers::variable_is_undefined(variable,env)));
+      };
+    // Check if member-access chain evaluates to an undefined value
+    return [variable=std::move(exp[1].sym)](env_type& env)mutable{
+      return scm_list(1,boolean(undefined_determination_helpers::property_chain_is_undefined(std::move(variable),env)));
+    };
   }
 
   /******************************************************************************
@@ -4655,6 +4784,7 @@ namespace heist {
     else if(is_let_syntax(exp))      return analyze_let_syntax(exp,tail_call,cps_block);
     else if(is_letrec_syntax(exp))   return analyze_letrec_syntax(exp,tail_call,cps_block);
     else if(is_syntax_rules(exp))    return analyze_syntax_rules(exp);
+    else if(is_undefinedp(exp))      return analyze_undefinedp(exp);
     else if(is_vector_literal(exp))         THROW_ERR("Misplaced keyword 'vector-literal outside of a quotation! -- ANALYZE"   <<EXP_ERR(exp));
     else if(is_hmap_literal(exp))           THROW_ERR("Misplaced keyword 'hmap-literal outside of a quotation! -- ANALYZE"     <<EXP_ERR(exp));
     else if(is_unquote(exp))                THROW_ERR("Misplaced keyword 'unquote outside of 'quasiquote ! -- ANALYZE"         <<EXP_ERR(exp));
