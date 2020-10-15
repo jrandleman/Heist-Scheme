@@ -4713,7 +4713,7 @@ namespace heist {
     // If possible analysis-time macro, expand and return analysis of the expansion
     if(application_is_a_potential_macro(op_name,G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY)) {
       if(scm_list expanded; expand_macro_if_in_env(op_name, arg_exps, G::GLOBAL_ENVIRONMENT_POINTER, expanded)) {
-        return scm_analyze(std::move(expanded),false,cps_block);
+        return scm_analyze(std::move(expanded),tail_call,cps_block);
       } else {
         THROW_ERR("'core-syntax expression (label \"" << op_name 
           << "\") didn't match any patterns!" << EXP_ERR(exp));
@@ -4737,7 +4737,7 @@ namespace heist {
             cps_block=std::move(cps_block)](env_type& env){
       // check for a possible macro instance, & expand/eval it if so
       if(scm_list expanded; expand_macro_if_in_env(op_name, arg_exps, env, expanded))
-        return scm_analyze(std::move(expanded),false,cps_block)(env);
+        return scm_analyze(std::move(expanded),tail_call,cps_block)(env);
       // eval each arg's exec proc to obtain the actual arg values
       scm_list arg_vals(arg_exps.size());
       for(size_type i = 0, n = arg_exps.size(); i < n; ++i)
