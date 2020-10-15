@@ -487,7 +487,7 @@ Other primitives of this nature include:<br>
 ------------------------
 ## Undefined?:
 
-#### Use: ___Determine if an Item Undefined!___
+#### Use: ___Determine if an Item is Undefined!___
 * Given a symbol, returns whether [`define`](#define)d
 * Given an [object](#defclass) property-access symbol, returns whether resolves to a value
 * Given an expression, returns whether its evaluation yields [`(undefined)`](#Type-Predicates-Undefined--Void)
