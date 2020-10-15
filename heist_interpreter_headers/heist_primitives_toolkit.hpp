@@ -4821,6 +4821,61 @@ namespace heist {
     return false;
   }
 
+
+  void throw_too_many_values_in_OO_initialization(scm_list& args, cls_type& class_proto_obj, object_type& obj, 
+                                                              const char* format, const char* container_name){
+    THROW_ERR("'make-"<< class_proto_obj->class_name<<' '<<container_name<<' '<< args[1] << " has more values than"
+      "\n     " << data(class_proto_obj) << " has members (has "<<obj.member_values.size()
+      <<" members)!" << format << FCN_ERR("'make-"+class_proto_obj->class_name,args));
+  }
+
+
+  data initialize_OO_ctord_object_HMAP(scm_list& args, cls_type& class_proto_obj, object_type& obj, const char* format) {
+    const size_type total_members = obj.member_names.size();
+    for(auto& keyval : args[1].map->val) {
+      auto key = map_data::unhash_key(keyval.first);
+      if(!key.is_type(types::sym))
+        THROW_ERR("'make-"<< class_proto_obj->class_name<<" member-name key "<<PROFILE(key) 
+          << " isn't a symbol!" << format << FCN_ERR("'make-"+class_proto_obj->class_name,args));
+      for(size_type i = 0; i < total_members; ++i) {
+        if(obj.member_names[i] == key.sym) {
+          obj.member_values[i] = keyval.second;
+          goto next_member;
+        }
+      }
+      THROW_ERR("'make-"<<class_proto_obj->class_name<<" member-name key "<<PROFILE(key) 
+        << " isn't a member name in class-obj "<<PROFILE(args[0])<<'!' 
+        << format << FCN_ERR("'make-"+class_proto_obj->class_name,args));
+      next_member: continue;
+    }
+    return make_obj(std::move(obj));
+  }
+
+
+  data initialize_OO_ctord_object_VECT(scm_list& args, cls_type& class_proto_obj, object_type& obj, const char* format){
+    if(args[1].vec->size() > obj.member_values.size())
+      throw_too_many_values_in_OO_initialization(args,class_proto_obj,obj,format,"vector");
+    for(size_type i = 0, n = args[1].vec->size(); i < n; ++i)
+      obj.member_values[i] = args[1].vec->operator[](i);
+    return make_obj(std::move(obj));
+  }
+
+
+  data initialize_OO_ctord_object_LIST(scm_list& args, cls_type& class_proto_obj, object_type& obj, const char* format){
+    if(!data_is_proper_list(args[1]))
+      THROW_ERR("'make-"<< class_proto_obj->class_name<<" arg "<<PROFILE(args[1]) 
+        << " isn't a proper list!" << format << FCN_ERR("'make-"+class_proto_obj->class_name,args));
+    const size_type n = obj.member_values.size();
+    size_type i = 0;
+    data iter = args[1];
+    while(iter.is_type(types::par)) {
+      if(i == n) throw_too_many_values_in_OO_initialization(args,class_proto_obj,obj,format,"list");
+      obj.member_values[i++] = iter.par->first;
+      iter = iter.par->second;
+    }
+    return make_obj(std::move(obj));
+  }
+
   /******************************************************************************
   * DEFCLASS OO GENERAL OBJECT ANALYSIS PRIMITIVES HELPERS
   ******************************************************************************/

@@ -5344,7 +5344,10 @@ namespace heist {
   // primitive "heist:core:oo:make-object" procedure:
   data primitive_HEIST_CORE_OO_MAKE_OBJECT(scm_list& args) {
     static constexpr const char * const format = 
-      "\n     (heist:core:oo:make-object <class-type-object> <optional-member-val-hmap>)";
+      "\n     (heist:core:oo:make-object <class-type-object> <optional-container>)"
+      "\n     <optional-container> ::= <member-val-hmap>"
+      "\n                            | <member-val-vector>"
+      "\n                            | <member-val-proper-list>";
     if(args.empty() || args.size() > 2)
       THROW_ERR("'heist:core:oo:make-object received improper # of args!" 
         << format << FCN_ERR("heist:core:oo:make-object", args));
@@ -5360,31 +5363,19 @@ namespace heist {
       obj.member_values.push_back(data::deep_copy(class_proto_obj->member_values[i]));
     obj.member_names = class_proto_obj->member_names;
     obj.method_names = class_proto_obj->method_names, obj.method_values = class_proto_obj->method_values;
-    // no args given
-    if(args.size() == 1) return make_obj(std::move(obj));
-    // assign given values 
-    if(!args[1].is_type(types::map))
-      THROW_ERR("'make-"<< class_proto_obj->class_name<<" arg "<<PROFILE(args[1]) 
-        << " isn't a hash-map of member names & vals!" << format 
-        << FCN_ERR("'make-"+class_proto_obj->class_name,args));
-    const size_type total_members = obj.member_names.size();
-    for(auto& keyval : args[1].map->val) {
-      auto key = map_data::unhash_key(keyval.first);
-      if(!key.is_type(types::sym))
-        THROW_ERR("'make-"<< class_proto_obj->class_name<<" member-name key "<<PROFILE(key) 
-          << " isn't a symbol!" << format << FCN_ERR("'make-"+class_proto_obj->class_name,args));
-      for(size_type i = 0; i < total_members; ++i) {
-        if(obj.member_names[i] == key.sym) {
-          obj.member_values[i] = keyval.second;
-          goto next_member;
-        }
-      }
-      THROW_ERR("'make-"<<class_proto_obj->class_name<<" member-name key "<<PROFILE(key) 
-        << " isn't a member name in class-obj "<<PROFILE(args[0])<<'!' 
-        << format << FCN_ERR("'make-"+class_proto_obj->class_name,args));
-      next_member: continue;
+    // no args (or '()) given
+    if(args.size() == 1 || data_is_the_empty_expression(args[1])) return make_obj(std::move(obj));
+    // confirm given a container (hmap | vector | list)
+    switch(args[1].type) {
+      case types::map: return initialize_OO_ctord_object_HMAP(args,class_proto_obj,obj,format);
+      case types::vec: return initialize_OO_ctord_object_VECT(args,class_proto_obj,obj,format);
+      case types::par: return initialize_OO_ctord_object_LIST(args,class_proto_obj,obj,format);
+      default:
+        THROW_ERR("'make-"<< class_proto_obj->class_name<<" arg "<<PROFILE(args[1]) 
+          << " isn't a container of member values!" << format 
+          << FCN_ERR("'make-"+class_proto_obj->class_name,args));
     }
-    return make_obj(std::move(obj));
+    return data(); // never triggered
   }
 
 
@@ -5948,16 +5939,14 @@ namespace heist {
     ((_ val)
       (heist:core:pass-continuation-co-call/cc
         (lambda (k) 
-          (jump! (default:make-coroutine 
-                    (hmap 'value val 'coroutine:private:cont (lambda () (catch-jump k id)))))))))
+          (jump! (default:make-coroutine (vector val (lambda () (catch-jump k id)))))))))
 
 
   (core-syntax pause () ; ONLY DESIGNED TO BE USED IN define-coroutine BODIES
     ((_) 
       (heist:core:pass-continuation-co-call/cc
         (lambda (k) 
-          (jump! (default:make-coroutine 
-                    (hmap 'coroutine:private:cont (lambda () (catch-jump k id)))))))))
+          (jump! (default:make-coroutine (vector #f (lambda () (catch-jump k id)))))))))
 
 
   ;; NESTING define-coroutine CAUSES UNDEFINED BEHAVIOR
@@ -5966,8 +5955,7 @@ namespace heist {
   (core-syntax define-coroutine () 
     ((_ co-name body ...)
       (define (co-name)
-        (default:make-coroutine 
-          (hmap 'coroutine:private:launch (lambda () (catch-jump (scm->cps body ...) id)))))))
+        (default:make-coroutine (vector #f #f (lambda () (catch-jump (scm->cps body ...) id)))))))
 
 
   ;; Convert a coroutine iterator into a generator thunk!

@@ -966,31 +966,6 @@ Other primitives of this nature include:<br>
   - [`core-syntax`](#core-syntax) macros, only bound to the **global environment**, expand at **analysis-time**
     * _Hence **analysis-time** macros in a [`lambda`](#lambda) body expand **in the [`lambda`](#lambda) declaration only once!**_
 
-### Example Demostrating Subtlety of Analysis-Time vs Run-Time:
-```scheme
-
-;; Note how the below core-syntax is registered w/o calling the lambda
-;; => This is because core-syntax evaluates at analysis time, and calls
-;;    are at run-time!
-
-(lambda ()
-  (core-syntax mac1 () ; PROCESSED INTO GLOBAL SCOPE AT ANALYSIS-TIME
-    ((_) 99)))
-(display (mac1)) ; VALID CALL: 99
-
-
-
-;; Meanwhile the define-syntax is only invoked at runtime, and hence is 
-;;   never registered below (& even if it were, it'd be bound to the lambda's
-;;   local scope)
-
-(lambda ()
-  (define-syntax mac2 
-    (syntax-rules () ; PROCESSED INTO LOCAL SCOPE AT RUN-TIME
-      ((_) 99))))
-(display (mac2)) ; ERROR: <mac2> NOT DEFINED
-```
-
 
 ------------------------
 ## Scm->Cps:
@@ -1100,7 +1075,8 @@ Other primitives of this nature include:<br>
 
 #### Constructor:
 0. User-defined `make-<class-name>` ctor is optional, if undefined will be generated
-   - Generated ctor is either nullary or accepts a member name-value [`hash-map`](#Hash-Map-Procedures)!
+   - Generated ctor is either nullary, or accepts a container to initialize member values:
+     * container = name-value [`hash-map`](#Hash-Map-Procedures), or value [`list`](#ListPair-Procedures)/[`vector`](#Vector-Procedures)!
    - Default ctor is always available via `default:make-<class-name>`
 1. Default values from class-prototypes are [`deep-copied`](#typeof--deep-copying) to objects upon construction
 

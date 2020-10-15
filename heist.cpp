@@ -1082,7 +1082,7 @@ namespace heist {
 
   // -- ERROR HANDLING
   void validate_defclass(scm_list& exp) {
-    if(exp.size() < 4)
+    if(exp.size() < 3)
       THROW_ERR("'defclass not enough arguments given!" DEFCLASS_LAYOUT << EXP_ERR(exp));
     if(!exp[1].is_type(types::sym))
       THROW_ERR("'defclass 1st arg "<<PROFILE(exp[1])<<" isn't a symbolic class name!" DEFCLASS_LAYOUT << EXP_ERR(exp));
@@ -4255,8 +4255,6 @@ namespace heist {
       THROW_ERR("'core-syntax didn't recieve enough args!\n     In expression: " << exp << format);
     if(!exp[1].is_type(types::sym))
       THROW_ERR("'core-syntax didn't recieve enough args!\n     In expression: " << exp << format);
-    // Register the core-syntax label
-    register_symbol_iff_new(G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY,exp[1].sym);
     // Transform core-syntax->define-syntax, evaling via global env, then registering the analysis-time label
     scm_list define_syntax_transform(3);
     define_syntax_transform[0] = symconst::defn_syn;
@@ -4264,9 +4262,15 @@ namespace heist {
     define_syntax_transform[2] = scm_list();
     define_syntax_transform[2].exp.push_back(symconst::syn_rules);
     define_syntax_transform[2].exp.insert(define_syntax_transform[2].exp.end(),exp.begin()+2,exp.end());
-    // Eval the syntax defn AT ANALYSIS TIME in the global env
-    analyze_define_syntax(define_syntax_transform,cps_block,true)(G::GLOBAL_ENVIRONMENT_POINTER);
-    return [](env_type&){return G::VOID_DATA_EXPRESSION;};
+    // Eval the syntax defn in the global env at runtime
+    auto core_proc = analyze_define_syntax(define_syntax_transform,cps_block,true);
+    return [core_proc=std::move(core_proc),core_syntax_name=std::move(exp[1].sym)](env_type&){
+      // Register the core-syntax label
+      register_symbol_iff_new(G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY,core_syntax_name);
+      // Trigger the definition at runtime
+      core_proc(G::GLOBAL_ENVIRONMENT_POINTER);
+      return G::VOID_DATA_EXPRESSION;
+    };
   }
 
   /******************************************************************************
