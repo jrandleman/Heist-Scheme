@@ -226,6 +226,11 @@ namespace scm_numeric {
     Snum  operator% (const Snum& s) const noexcept{if(imag.is_zero() && s.imag.is_zero()) return real % s.real; return Snum_real("+nan.0");}
     Snum& operator%=(const Snum& s)noexcept{*this = *this % s; return *this;}
 
+    Snum& operator++()   noexcept{*this = *this + Snum(Snum_real("1")); return *this;}
+    Snum& operator--()   noexcept{*this = *this - Snum(Snum_real("1")); return *this;}
+    Snum  operator++(int)noexcept{Snum tmp = *this; *this = *this + Snum(Snum_real("1")); return tmp;}
+    Snum  operator--(int)noexcept{Snum tmp = *this; *this = *this - Snum(Snum_real("1")); return tmp;}
+
     // overloaded friend arithmetic operators
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
     friend Snum operator+(const NumericData& lhs,const Snum& rhs)noexcept{return rhs + Snum_real(lhs);}
@@ -318,6 +323,7 @@ namespace scm_numeric {
     bool operator<=(const Snum& s) const noexcept {return !(*this > s);}
     bool operator>=(const Snum& s) const noexcept {return !(*this < s);}
     bool operator!()               const noexcept {return is_zero();}
+    explicit operator bool()       const noexcept {return !is_zero();}
 
     // overloaded friend equality/comparison operators
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
@@ -421,10 +427,9 @@ namespace scm_numeric {
       real= Snum_real("+nan.0");
       return;
     }
-    const auto n = data.size();
-    std::size_t i = 0;
 
     // Check for +i or -i
+    const auto n = data.size();
     if(2 == n && (data[0] == '+' || data[0] == '-') && data[1] == 'i') {
       imag = (data[0] == '+') ? Snum_real("1") : Snum_real("-1");
       return;
@@ -433,14 +438,15 @@ namespace scm_numeric {
     // Check for whether a possible real
     if(*data.rbegin() != 'i') {
       if constexpr (USING_A_BASE) {
-        real = Snum_real(std::string(data.begin(),data.end()), base);
+        real = Snum_real(data, base);
       } else {
-        real = Snum_real(std::string(data.begin(),data.end()));
+        real = Snum_real(data);
       }
       return;
     }
 
     // Skip past initial sign
+    std::size_t i = base-base; // optimized away to 0, and uses <base> to silence "unused var" GCC template warning
     if(data[i] == '+' || data[i] == '-') ++i;
 
     // Parse for number in 2 parts (real & imag)

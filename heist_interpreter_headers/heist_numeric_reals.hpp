@@ -207,6 +207,11 @@ namespace scm_numeric {
     Snum_real  operator% (const Snum_real& s) const noexcept;
     Snum_real& operator%=(const Snum_real& s)noexcept{*this = *this % s; return *this;}
 
+    Snum_real& operator++()   noexcept{*this = *this + Snum_real("1"); return *this;}
+    Snum_real& operator--()   noexcept{*this = *this - Snum_real("1"); return *this;}
+    Snum_real  operator++(int)noexcept{Snum_real tmp = *this; *this = *this + Snum_real("1"); return tmp;}
+    Snum_real  operator--(int)noexcept{Snum_real tmp = *this; *this = *this - Snum_real("1"); return tmp;}
+
     // overloaded friend arithmetic operators
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
     friend Snum_real operator+(const NumericData& lhs,const Snum_real& rhs)noexcept{return rhs + lhs;}
@@ -289,6 +294,7 @@ namespace scm_numeric {
     bool operator<=(const Snum_real& s) const noexcept {return !(*this > s);}
     bool operator>=(const Snum_real& s) const noexcept {return !(*this < s);}
     bool operator!()                    const noexcept {return is_zero();}
+    explicit operator bool()            const noexcept {return !is_zero();}
 
     // overloaded friend equality/comparison operators
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
