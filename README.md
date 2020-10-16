@@ -1114,11 +1114,10 @@ Other primitives of this nature include:<br>
 0. Equality: `this=` method will attempt to be invoked on objects for `eq?`, `eqv?`, `equal?`
    - Method should accept 1 argument to compare equality against!
    - May also have specific equality polymorphism by naming methods `eq?`, `eqv?`, `equal?` directly
-   - Errors will ___NOT___ be passed along (only printed to the screen, but caught internally in the procedure)
 1. Printing: `this->string` method will attempt to be invoked on objects for `display`, `write`, `pprint`
    - Method should accept 0 arguments, and return a string to be "displayed"!
    - May also have specific printing polymorphism by naming methods `display`, `write`, `pprint` directly
-   - Errors will ___NOT___ be passed along (only printed to the screen, but caught internally in the procedure)
+2. NOTE: Errors will ___NOT___ be passed along (only printed to the screen, but caught internally in the procedure)
 
 #### Method Access to Object Members:
 0. Like C++, `this` is implicitly passed as a method argument upon invocation
