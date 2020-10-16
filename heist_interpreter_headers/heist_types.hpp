@@ -271,6 +271,8 @@ namespace heist {
   scm_string cio_expr_str(const exp_type& exp_object)    noexcept; // to print expressions
   template<DATA_PRINTER to_str>
   scm_string cio_hmap_str(const map_type& map_object)    noexcept; // to print hash-maps
+  template<DATA_PRINTER to_str>
+  scm_string cio_obj_str (const obj_type&,const char*)   noexcept; // to print objects (checks for overloaded methods)
   scm_string escape_chars(const scm_string& str)         noexcept; // to escape string special characters
   scm_string pretty_print(const data& d)                 noexcept; // pretty-printer
 
@@ -305,6 +307,7 @@ namespace heist {
   bool prm_compare_EXPRs(const scm_list& l1, const scm_list& l2)noexcept;
   bool prm_compare_HMAPs(const map_type& m1, const map_type& m2)noexcept;
   bool prm_compare_OBJs (const obj_type& o1, const obj_type& o2)noexcept;
+  bool prm_DYNAMIC_OBJeq(const obj_type&,const data&,const char*,bool&)noexcept;
 
   /******************************************************************************
   * DATA TYPE STRUCTS
@@ -556,11 +559,11 @@ namespace heist {
         case types::vec: return cio_vect_str<&data::write>(vec);
         case types::exp: return cio_expr_str<&data::write>(exp);
         case types::map: return cio_hmap_str<&data::write>(map);
+        case types::obj: return cio_obj_str<&data::write>(obj,"write");
         case types::num: return num.str();
         case types::str: return '"' + escape_chars(*str) + '"';
         case types::bol: if(bol.val) return "#t"; return "#f";
         case types::cls: return "#<class-prototype[0x"+pointer_to_hexstring(cls.ptr)+"]>";
-        case types::obj: return "#<object[0x"+pointer_to_hexstring(obj.ptr)+"]>";
         case types::env: return "#<environment[0x"+pointer_to_hexstring(env.ptr)+"]>";
         case types::del: return "#<delay[0x"+pointer_to_hexstring(del.ptr)+"]>";
         case types::prm: return "#<primitive-function-pointer[0x"+pointer_to_hexstring(prm)+"]>";
@@ -582,6 +585,7 @@ namespace heist {
         case types::vec: return cio_vect_str<&data::display>(vec);
         case types::exp: return cio_expr_str<&data::display>(exp);
         case types::map: return cio_hmap_str<&data::display>(map);
+        case types::obj: return cio_obj_str<&data::display>(obj,"display");
         default:         return write();
       }
     }
@@ -592,6 +596,7 @@ namespace heist {
         case types::vec: return cio_vect_str<&data::pprint>(vec);
         case types::exp: return cio_expr_str<&data::pprint>(exp);
         case types::map: return cio_hmap_str<&data::pprint>(map);
+        case types::obj: return cio_obj_str<&data::pprint>(obj,"pprint");
         default:         return write();
       }
     }
@@ -614,17 +619,26 @@ namespace heist {
     }
 
     bool eq(const data& d) const noexcept { // eq?
+      bool result = false;
+      if(type == types::obj   && prm_DYNAMIC_OBJeq(obj,d,"eq?",result)) return result;
+      if(d.type == types::obj && prm_DYNAMIC_OBJeq(d.obj,*this,"eq?",result)) return result;
       if(type != d.type) return false;
       if(type == types::str) return str == d.str;
       return prm_compare_atomic_values(*this,d,type);
     }
 
     bool eqv(const data& d) const noexcept { // eqv?
+      bool result = false;
+      if(type == types::obj   && prm_DYNAMIC_OBJeq(obj,d,"eqv?",result)) return result;
+      if(d.type == types::obj && prm_DYNAMIC_OBJeq(d.obj,*this,"eqv?",result)) return result;
       if(type != d.type) return false;
       return prm_compare_atomic_values(*this,d,type);
     }
 
     bool equal(const data& d) const noexcept { // equal?
+      bool result = false;
+      if(type == types::obj   && prm_DYNAMIC_OBJeq(obj,d,"equal?",result)) return result;
+      if(d.type == types::obj && prm_DYNAMIC_OBJeq(d.obj,*this,"equal?",result)) return result;
       if(type != d.type) return false;
       switch(type) {
         case types::exp: return prm_compare_EXPRs(exp,d.exp);

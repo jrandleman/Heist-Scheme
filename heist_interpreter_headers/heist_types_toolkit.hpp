@@ -518,6 +518,36 @@ namespace heist {
   }
 
   /******************************************************************************
+  * OBJECT PRINTING HELPER (CHECKS IF OBJECT HAS A display write pprint MEMBER)
+  ******************************************************************************/
+
+  scm_list execute_application(scm_list&,scm_list&,env_type&,const bool tail_call=false,const bool inlined=false);
+  scm_list execute_application(scm_list&&,scm_list&,env_type&,const bool tail_call=false,const bool inlined=false);
+  data     extend_method_env_with_THIS_object(data& calling_obj, scm_list& procedure);
+  data     data_cast(const scm_list& l)noexcept;
+
+  template<DATA_PRINTER to_str>
+  scm_string cio_obj_str(const obj_type& object,const char* printer_name)noexcept{
+    // Search methods for the "->string" printing polymorphic method
+    for(size_type i = 0, n = object->method_names.size(); i < n; ++i) {
+      if(object->method_names[i] == "this->string" || object->method_names[i] == printer_name) {
+        try {
+          scm_list arg(1,symconst::sentinel_arg), procedure_cpy(object->method_values[i].exp);
+          data calling_object(object);
+          scm_list procedure = extend_method_env_with_THIS_object(calling_object,procedure_cpy).exp;
+          env_type env = object->proto->defn_env;
+          data result = data_cast(execute_application(procedure,arg,env));
+          if(result.is_type(types::str)) return *result.str;
+          return (result.*to_str)();
+        } catch(...) {
+          return "#<object[0x"+pointer_to_hexstring(object.ptr)+"]>";
+        }
+      }
+    }
+    return "#<object[0x"+pointer_to_hexstring(object.ptr)+"]>";
+  }
+
+  /******************************************************************************
   * DATA EQUALITY HELPERS
   ******************************************************************************/
 
@@ -529,7 +559,7 @@ namespace heist {
   }
 
 
-  bool prm_compare_atomic_values(const data& v1,const data& v2,const types& t)noexcept{
+  bool prm_compare_atomic_values(const data& v1,const data& v2,const types& t) noexcept {
     switch(t) {
       case types::undefined: case types::dne: case types::exe: return true;
       case types::num: return v1.num == v2.num && v1.num.is_exact() == v2.num.is_exact();
@@ -555,7 +585,7 @@ namespace heist {
   }
 
 
-  bool prm_compare_EXPRs(const scm_list& l1, const scm_list& l2)noexcept{
+  bool prm_compare_EXPRs(const scm_list& l1, const scm_list& l2) noexcept {
     if(l1.size() != l2.size())          return false;
     if(prm_comparing_primitives(l1,l2)) return l1[1].prm == l2[1].prm;
     for(size_type i = 0, n = l1.size(); i < n; ++i) {
@@ -573,7 +603,7 @@ namespace heist {
   }
 
 
-  bool prm_compare_PAIRs(const par_type& p1, const par_type& p2)noexcept{
+  bool prm_compare_PAIRs(const par_type& p1, const par_type& p2) noexcept {
     if(!p1 || !p2 || p1->first.type != p2->first.type || p1->second.type != p2->second.type)
       return false;
     auto& p1_car = p1->first, &p2_car = p2->first;
@@ -600,12 +630,12 @@ namespace heist {
   }
 
 
-  bool prm_compare_VECTs(const vec_type& v1, const vec_type& v2)noexcept{
+  bool prm_compare_VECTs(const vec_type& v1, const vec_type& v2) noexcept {
     return prm_compare_EXPRs(*v1, *v2);
   }
 
 
-  bool prm_compare_SNTXs(const syn_type& s1, const syn_type& s2)noexcept{
+  bool prm_compare_SNTXs(const syn_type& s1, const syn_type& s2) noexcept {
     frame_var label;
     frame_vars keywords;
     std::vector<scm_list> patterns;
@@ -625,7 +655,7 @@ namespace heist {
   }
 
 
-  bool prm_compare_HMAPs(const map_type& m1, const map_type& m2)noexcept{
+  bool prm_compare_HMAPs(const map_type& m1, const map_type& m2) noexcept {
     if(m1->val.size() != m2->val.size()) return false;
     for(auto p1=m1->val.begin(), end=m1->val.end(), p2=m2->val.begin(); p1 != end; ++p1, ++p2){
       if(p1->first != p2->first) return false;
@@ -642,7 +672,7 @@ namespace heist {
   }
 
 
-  bool prm_compare_OBJs(const obj_type& o1, const obj_type& o2)noexcept{
+  bool prm_compare_OBJs(const obj_type& o1, const obj_type& o2) noexcept {
     if(o1->proto != o2->proto                               ||
        o1->member_names.size()  != o2->member_names.size()  || 
        o1->member_values.size() != o2->member_values.size() || 
@@ -657,6 +687,28 @@ namespace heist {
     for(size_type i = 0, n = o1->method_values.size(); i < n; ++i)
       if(!o1->method_values[i].equal(o2->method_values[i])) return false;
     return true;
+  }
+
+
+  // returns whether found a valid method
+  bool prm_DYNAMIC_OBJeq(const obj_type& object,const data& rhs,const char* eq_name,bool& result) noexcept {
+    // Search methods for the "->string" printing polymorphic method
+    for(size_type i = 0, n = object->method_names.size(); i < n; ++i) {
+      if(object->method_names[i] == "this=" || object->method_names[i] == eq_name) {
+        try {
+          scm_list arg(1,rhs), procedure_cpy(object->method_values[i].exp);
+          data calling_object(object);
+          scm_list procedure = extend_method_env_with_THIS_object(calling_object,procedure_cpy).exp;
+          env_type env = object->proto->defn_env;
+          data eq_result = data_cast(execute_application(procedure,arg,env));
+          result = (eq_result.type != types::bol || eq_result.bol.val);
+          return true;
+        } catch(...) {
+          return false;
+        }
+      }
+    }
+    return false;
   }
 
   /******************************************************************************
