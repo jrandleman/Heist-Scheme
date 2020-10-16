@@ -1207,22 +1207,22 @@ namespace heist {
     scm_eval(std::move(predicate),env);
   }
 
-  // (define (make-<class-name> . <optional-member-hmap>)
-  //   (if (null? <optional-member-hmap>)
+  // (define (make-<class-name> . <optional-member-value-container>)
+  //   (if (null? <optional-member-value-container>)
   //       (heist:core:oo:make-object <class-name>)
-  //       (heist:core:oo:make-object <class-name> (car <optional-member-hmap>))))
+  //       (heist:core:oo:make-object <class-name> (car <optional-member-value-container>))))
   void define_default_prototype_constructor(const scm_string& class_name, env_type& env, const char* name_prefix) {
     scm_list dflt_ctor(3);
     dflt_ctor[0] = symconst::define;
     dflt_ctor[1] = scm_list(3);
     dflt_ctor[1].exp[0] = name_prefix+class_name;
     dflt_ctor[1].exp[1] = symconst::period;
-    dflt_ctor[1].exp[2] = "optional-member-hmap";
+    dflt_ctor[1].exp[2] = "optional-member-value-container";
     dflt_ctor[2] = scm_list(4);
     dflt_ctor[2].exp[0] = symconst::if_t;
     dflt_ctor[2].exp[1] = scm_list(2);
     dflt_ctor[2].exp[1].exp[0] = "null?";
-    dflt_ctor[2].exp[1].exp[1] = "optional-member-hmap";
+    dflt_ctor[2].exp[1].exp[1] = "optional-member-value-container";
     dflt_ctor[2].exp[2] = scm_list(2);
     dflt_ctor[2].exp[2].exp[0] = "heist:core:oo:make-object";
     dflt_ctor[2].exp[2].exp[1] = class_name;
@@ -1231,7 +1231,7 @@ namespace heist {
     dflt_ctor[2].exp[3].exp[1] = class_name;
     dflt_ctor[2].exp[3].exp[2] = scm_list(2);
     dflt_ctor[2].exp[3].exp[2].exp[0] = "car";
-    dflt_ctor[2].exp[3].exp[2].exp[1] = "optional-member-hmap";
+    dflt_ctor[2].exp[3].exp[2].exp[1] = "optional-member-value-container";
     scm_eval(std::move(dflt_ctor),env);
   }
 
