@@ -555,19 +555,16 @@ Other primitives of this nature include:<br>
 
 ;; Becomes =>
 
-((lambda (or-result) ; Bind result to prevent 2x eval from condition & result
+(let ((or-result <exp1>)) ; Bind result to prevent 2x eval from condition & result
   (if or-result
       or-result
-      ((lambda (or-result)
+      (let ((or-result <exp2>))
         (if or-result
             or-result
-            ((lambda (or-result)
+            (let ((or-result <exp3>))
               (if or-result
                   or-result
-                  <exp4>))
-             <exp3>)))
-       <exp2>)))
- <exp1>)
+                  <exp4>))))))
 ```
 
 
@@ -749,16 +746,14 @@ Other primitives of this nature include:<br>
 
 ;; Becomes =>
 
-((lambda () ; Memoized promises!
-  (define already-run? #f)
-  (define result #f)
+(let ((already-run? #f) (result #f)) ; Memoized promises!
   (lambda ()
     (if already-run?
         result
         (begin
           (set! already-run? #t)
           (set! result <exp>)
-          result)))))
+          result))))
 
 (<promise>)
 ```
