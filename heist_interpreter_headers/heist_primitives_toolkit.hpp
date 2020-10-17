@@ -213,6 +213,12 @@ namespace heist {
         <<PROFILE(args[0])<<"!\n     "<<format<<FCN_ERR(primitive_name,args));
   }
 
+  // BigInt Factorial Helper
+  num_type prm_factorial(num_type&& n, num_type&& p)noexcept{
+    if(n < 2) return std::move(p);
+    return prm_factorial(n-1,n*p);
+  }
+
   /******************************************************************************
   * CHARACTER PRIMITIVE HELPERS
   ******************************************************************************/
@@ -1209,6 +1215,30 @@ namespace heist {
     } else {
       return make_sequence(std::move(iota_vals));
     }
+  }
+
+  /******************************************************************************
+  * COMBINATIONS GENERATION (FOR VECTORS & LISTS) PRIMITIVE HELPER
+  ******************************************************************************/
+
+  std::vector<scm_list> prm_all_combos_DAC(const typename scm_list::const_iterator& start, 
+                                           const typename scm_list::const_iterator& end){
+    if(start == end) return std::vector<scm_list>(1,scm_list());
+    std::vector<scm_list> new_combos;
+    auto result = prm_all_combos_DAC(start+1,end);
+    for(std::size_t i = 0, n = result.size(); i < n; ++i) {
+      new_combos.push_back(result[i]);
+      result[i].push_back(*start);
+      new_combos.push_back(result[i]);
+    }
+    return new_combos;
+  }
+
+
+  std::vector<scm_list> prm_all_combos(scm_list v) {
+    auto result = prm_all_combos_DAC(v.begin(),v.end());
+    std::sort(result.begin(),result.end(),[](const scm_list& s1, const scm_list& s2){return s1.size() < s2.size();});
+    return result;
   }
 
   /******************************************************************************

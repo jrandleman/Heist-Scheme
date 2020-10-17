@@ -192,6 +192,7 @@ namespace heist {
     constexpr const char * const if_t              = "if";
     constexpr const char * const else_t            = "else";
     constexpr const char * const cond              = "cond";
+    constexpr const char * const cond_result       = "heist:core:cond-result";
     constexpr const char * const case_t            = "case";
     constexpr const char * const do_t              = "do";
     constexpr const char * const and_t             = "and";

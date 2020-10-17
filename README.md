@@ -32,7 +32,7 @@
 10. [Eval](#evalapply--symbol-append)
 11. [String I/O](#Output-Procedures)
 12. [Recursive Depth Control](#Interpreter-Invariants-Manipulation)
-13. [A](#Curry)[n](#Heist-Mathematical-Flonum-Constants)[d](#Control-Flow-Procedures) [M](#Gensym)[o](#JSON-Interop)[r](#compose--bind)[e](#System-Interface-Procedures)[!](#Syntax-Procedures)
+13. [A](#Curry)[n](#Heist-Mathematical-Flonum-Constants)[d](#Control-Flow-Procedures) [M](#Gensym)[o](#JSON-Interop)[r](#compose-bind--id)[e](#System-Interface-Procedures)[!](#Syntax-Procedures)
 
 ------------------------ 
 # Table of Contents
@@ -105,7 +105,7 @@
    - [Type Predicates, Undefined, & Void](#Type-Predicates-Undefined--Void)
    - [Eval/Apply & Symbol-Append](#evalapply--symbol-append)
    - [Typeof & Deep-Copying](#typeof--deep-copying)
-   - [Compose & Bind](#compose--bind)
+   - [Compose, Bind, & Id](#compose-bind--id)
    - [Delay Predicate & Force](#Delay-Predicate--Force)
    - [Type Coercion](#Type-Coercion)
    - [Output Procedures](#Output-Procedures)
@@ -350,7 +350,7 @@ Other primitives of this nature include:<br>
 0. [`load`](#system-interface-procedures) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-load`](#system-interface-procedures)
 1. [`eval`](#evalapply--symbol-append) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-eval`](#evalapply--symbol-append)
 2. [`compile`](#system-interface-procedures) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-compile`](#system-interface-procedures)
-3. Bind `id` as the continuation of a procedure: [`cps->scm`](#scm-cps-procedures)
+3. Bind [`id`](#compose-bind--id) as the continuation of a procedure: [`cps->scm`](#scm-cps-procedures)
    * for passing a procedure defined in a [`scm->cps`](#scm-cps) block as an argument<br>
      to a procedure __not__ defined in a [`scm->cps`](#scm-cps) block
    * Example:
@@ -986,7 +986,7 @@ Other primitives of this nature include:<br>
 #### Use: ___Convert Code to CPS & Evaluate the Result!___
 * _Hence returns an unary procedure, accepting the "topmost" continuation!_
 * _Enables use of [`call/cc`](#scm-cps-procedures), [`cps-eval`](#evalapply--symbol-append), [`cps-load`](#system-interface-procedures), & [`cps->scm`](#scm-cps-procedures) primitives!_
-* _Automatically wraps entire program (& passed [`id`](#general-3)) if [`-cps`](#Heist-Command-Line-Flags) cmd-line flag used!_
+* _Automatically wraps entire program (& passed [`id`](#compose-bind--id)) if [`-cps`](#Heist-Command-Line-Flags) cmd-line flag used!_
 * _Enables opt-in continuations for their benefits w/o their overhead when unused!_
   - _Optimizes the cps transformation as well for reasonable speed!_
   - _In general, `scm->cps` code at `-O3` optimization runs as fast as its non-cps version would at `-O0`_
@@ -1117,7 +1117,9 @@ Other primitives of this nature include:<br>
 1. Printing: `this->string` method will attempt to be invoked on objects for `display`, `write`, `pprint`
    - Method should accept 0 arguments, and return a string to be "displayed"!
    - May also have specific printing polymorphism by naming methods `display`, `write`, `pprint` directly
-2. NOTE: Errors will ___NOT___ be passed along (only printed to the screen, but caught internally in the procedure)
+2. NOTE: 
+   - Errors will ___NOT___ be passed along (only printed to the screen, but caught internally in the procedure)
+   - These are ___NOT___ passed via inheritance by default, unless explicitly invoked as a method
 
 #### Method Access to Object Members:
 0. Like C++, `this` is implicitly passed as a method argument upon invocation
@@ -1183,6 +1185,7 @@ Other primitives of this nature include:<br>
 #### Danger Zone:
 0. Nesting `define-coroutine` instances is undefined behavior!
 1. Using `define-coroutine` in a [`scm->cps`](#Scm-Cps) block is undefined behavior!
+2. The [`id`](#compose-bind--id) procedure is returned if no expressions exist after the last `yield`/`pause`!
 
 #### Examples:
 ```scheme
@@ -1528,18 +1531,22 @@ Other primitives of this nature include:<br>
 
 19. __Least Common Multiple__: `(lcm <real1> <real2>)`
 
-20. __Extract Number's Numerator__: `(numerator <real>)`
+20. __nPr__: `(npr <real1> <real2>)`
 
-21. __Extract Number's Denominator__: `(denominator <real>)`
+21. __nCr__: `(ncr <real1> <real2>)`
 
-22. __Generate a Log Procedure of a Certain Base__: `(make-log-base <real>)`
+22. __Extract Number's Numerator__: `(numerator <real>)`
 
-23. __Psuedo-Random Number Generator__: Seeded *or* unseeded
+23. __Extract Number's Denominator__: `(denominator <real>)`
+
+24. __Generate a Log Procedure of a Certain Base__: `(make-log-base <real>)`
+
+25. __Psuedo-Random Number Generator__: Seeded *or* unseeded
     * `(random)`, `(random <real-seed>)`
 
-24. __Coerce Inexact to Exact__: `(inexact->exact <number>)`
+26. __Coerce Inexact to Exact__: `(inexact->exact <number>)`
 
-25. __Coerce Exact to Inexact__: `(exact->inexact <number>)`
+27. __Coerce Exact to Inexact__: `(exact->inexact <number>)`
 
 
 ### Numeric Predicates:
@@ -1815,6 +1822,8 @@ Other primitives of this nature include:<br>
    * _Note: **map** via `<map-procedure>`, **increment** via `<successor-procedure>`_
    * `(unfold-right <break-condition> <map-procedure> <successor-procedure> <seed>)`
 
+7. __Get All Combinations__: `(get-all-combinations <list>)`
+
 
 ### List Predicates:
 0. __Empty List Predicate__: `(null? <obj>)`
@@ -1877,6 +1886,8 @@ Other primitives of this nature include:<br>
       - a < b: `(<3-way-comparison> a b)` < 0
       - a = b: `(<3-way-comparison> a b)` = 0
       - a > b: `(<3-way-comparison> a b)` > 0
+
+11. __Get All Combinations__: `(vector-get-all-combinations <vector>)`
 
 
 
@@ -2022,8 +2033,6 @@ Other primitives of this nature include:<br>
 43. __Generic `cons`__: `cons` for lists, a copying `push-back` for strings & vectors
     * `(conj <obj> <sequence>)`
 
-44. __Identity__: `(id <obj>)`
-
 
 ### Sorting Procedures:
 0. __Sort__: `(sort <predicate?> <sequence>)`
@@ -2132,13 +2141,16 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
-## Compose & Bind:
+## Compose, Bind, & Id:
 0. __Compose N `<procedure>`s__: `(compose <procedure-1> ... <procedure-N>)`
    * _Generates a procedure of N args that applies them to the procedure composition!_
 
 1. __Bind N args to `<procedure>`: `(bind <procedure> <val-1> ... <val-N>)`__
    * _Generates a procedure that when invoked calls the arg-bound `<procedure>`!_
    * _Example: `((bind map even?) '(1 2 3))` is equivalent to `(map even? '(1 2 3))`_
+
+2. __Identity__: `(id <obj>)`
+
 
 
 ------------------------
@@ -2406,7 +2418,7 @@ Other primitives of this nature include:<br>
    * `(call/cc <unary-continuation-procedure>)`
    * `(call-with-current-continuation <unary-continuation-procedure>`
 
-1. __Cps->Scm__: Bind `id` as procedure's "topmost" continuation
+1. __Cps->Scm__: Bind [`id`](#compose-bind--id) as procedure's "topmost" continuation
    * _Note: To pass procs defined **in** a [`scm->cps`](#Scm-Cps) block as an arg to a proc defined **out** of [`scm->cps`](#Scm-Cps)_
    * `(cps->scm <procedure>)`
      - _Hence programs written in and out of [`scm->cps`](#Scm-Cps) blocks may interop!_

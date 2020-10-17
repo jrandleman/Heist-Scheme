@@ -213,6 +213,24 @@ namespace heist {
     return num_pair;
   }
 
+  //  primitive "npr": P(n,r) = n! / (n - r)!
+  data primitive_NPR(scm_list& args) {
+    confirm_no_real_numeric_primitive_errors(args, "npr", "(npr <real1> <real2>)");
+    confirm_2_args(args, "npr", "(npr <real1> <real2>)");
+    auto n = args[0].num;
+    return prm_factorial(std::move(args[0].num),num_type("1")) / 
+           prm_factorial(n-args[1].num,num_type("1"));
+  }
+
+  //  primitive "ncr": C(n,r) = n! / (r! * (n - r)!)
+  data primitive_NCR(scm_list& args) {
+    confirm_no_real_numeric_primitive_errors(args, "ncr", "(ncr <real1> <real2>)");
+    confirm_2_args(args, "ncr", "(ncr <real1> <real2>)");
+    auto n_r_difference = args[0].num - args[1].num;
+    return prm_factorial(std::move(args[0].num),num_type("1")) / 
+           (prm_factorial(std::move(args[1].num),num_type("1")) * prm_factorial(std::move(n_r_difference),num_type("1")));
+  }
+
   /******************************************************************************
   * COMPLEX NUMBER PRIMITIVES
   ******************************************************************************/
@@ -1854,6 +1872,23 @@ namespace heist {
     return primitive_LIST_to_CONS_constructor(unfolded.rbegin(),unfolded.rend());
   }
 
+  // primitive "get-all-combinations" procedure:
+  data primitive_GET_ALL_COMBINATIONS(scm_list& args) {
+    if(args.size() != 1)
+      THROW_ERR("'get-all-combinations didn't recieve 1 arg!"
+        "\n     (get-all-combinations <proper-list>)" << FCN_ERR("get-all-combinations",args));
+    if(!data_is_proper_list(args[0]))
+      THROW_ERR("'get-all-combinations arg " << PROFILE(args[0]) << " isn't a proper list!"
+          "\n     (get-all-combinations <proper-list>)" << FCN_ERR("get-all-combinations",args));
+    scm_list list_list;
+    shallow_unpack_list_into_exp(args[0], list_list);
+    auto result = prm_all_combos(list_list);
+    scm_list combinations_list;
+    for(auto& lis : result)
+      combinations_list.push_back(primitive_LIST_to_CONS_constructor(lis.begin(),lis.end()));
+    return primitive_LIST_to_CONS_constructor(combinations_list.begin(),combinations_list.end());
+  }
+
   // -----------------------
   // List Member Extraction:
   // -----------------------
@@ -2040,6 +2075,21 @@ namespace heist {
       }
     }
     return G::FALSE_DATA_BOOLEAN;
+  }
+
+  // primitive "vector-get-all-combinations" procedure:
+  data primitive_VECTOR_GET_ALL_COMBINATIONS(scm_list& args) {
+    if(args.size() != 1)
+      THROW_ERR("'vector-get-all-combinations didn't recieve 1 arg!"
+        "\n     (vector-get-all-combinations <vector>)" << FCN_ERR("vector-get-all-combinations",args));
+    if(!args[0].is_type(types::vec))
+      THROW_ERR("'vector-get-all-combinations arg " << PROFILE(args[0]) << " isn't a vector!"
+          "\n     (vector-get-all-combinations <vector>)" << FCN_ERR("vector-get-all-combinations",args));
+    auto result = prm_all_combos(*args[0].vec);
+    scm_list combinations_vect;
+    for(auto& vect : result)
+      combinations_vect.push_back(make_vec(vect));
+    return make_vec(combinations_vect);
   }
 
   /******************************************************************************
@@ -5954,7 +6004,8 @@ namespace heist {
     std::make_pair(primitive_GCD,       "gcd"),
     std::make_pair(primitive_LCM,       "lcm"),
     std::make_pair(primitive_MODF,      "modf"),
-    std::make_pair(primitive_MODF,      "modf"),
+    std::make_pair(primitive_NPR,       "npr"),
+    std::make_pair(primitive_NCR,       "ncr"),
 
     std::make_pair(primitive_MAKE_POLAR,       "make-polar"),
     std::make_pair(primitive_MAKE_RECTANGULAR, "make-rectangular"),
@@ -6136,18 +6187,19 @@ namespace heist {
     std::make_pair(primitive_CDDDAR, "cdddar"),
     std::make_pair(primitive_CDDDDR, "cddddr"),
 
-    std::make_pair(primitive_LIST,           "list"),
-    std::make_pair(primitive_LIST_STAR,      "list*"),
-    std::make_pair(primitive_MAKE_LIST,      "make-list"),
-    std::make_pair(primitive_IOTA,           "iota"),
-    std::make_pair(primitive_CIRCULAR_LIST,  "circular-list"),
-    std::make_pair(primitive_CIRCULAR_LISTP, "circular-list?"),
-    std::make_pair(primitive_LIST_STARP,     "list*?"),
-    std::make_pair(primitive_LISTP,          "list?"),
-    std::make_pair(primitive_ALISTP,         "alist?"),
-    std::make_pair(primitive_LAST_PAIR,      "last-pair"),
-    std::make_pair(primitive_UNFOLD,         "unfold"),
-    std::make_pair(primitive_UNFOLD_RIGHT,   "unfold-right"),
+    std::make_pair(primitive_LIST,                 "list"),
+    std::make_pair(primitive_LIST_STAR,            "list*"),
+    std::make_pair(primitive_MAKE_LIST,            "make-list"),
+    std::make_pair(primitive_IOTA,                 "iota"),
+    std::make_pair(primitive_CIRCULAR_LIST,        "circular-list"),
+    std::make_pair(primitive_CIRCULAR_LISTP,       "circular-list?"),
+    std::make_pair(primitive_LIST_STARP,           "list*?"),
+    std::make_pair(primitive_LISTP,                "list?"),
+    std::make_pair(primitive_ALISTP,               "alist?"),
+    std::make_pair(primitive_LAST_PAIR,            "last-pair"),
+    std::make_pair(primitive_UNFOLD,               "unfold"),
+    std::make_pair(primitive_UNFOLD_RIGHT,         "unfold-right"),
+    std::make_pair(primitive_GET_ALL_COMBINATIONS, "get-all-combinations"),
 
     std::make_pair(primitive_MEMQ,   "memq"),
     std::make_pair(primitive_MEMV,   "memv"),
@@ -6156,17 +6208,18 @@ namespace heist {
     std::make_pair(primitive_ASSV,   "assv"),
     std::make_pair(primitive_ASSOC,  "assoc"),
 
-    std::make_pair(primitive_VECTOR,               "vector"),
-    std::make_pair(primitive_MAKE_VECTOR,          "make-vector"),
-    std::make_pair(primitive_VECTOR_PUSH_BANG,     "vector-push!"),
-    std::make_pair(primitive_VECTOR_IOTA,          "vector-iota"),
-    std::make_pair(primitive_VECTOR_EMPTYP,        "vector-empty?"),
-    std::make_pair(primitive_VECTOR_GROW,          "vector-grow"),
-    std::make_pair(primitive_VECTOR_UNFOLD,        "vector-unfold"),
-    std::make_pair(primitive_VECTOR_UNFOLD_RIGHT,  "vector-unfold-right"),
-    std::make_pair(primitive_VECTOR_COPY_BANG,     "vector-copy!"),
-    std::make_pair(primitive_VECTOR_SWAP_BANG,     "vector-swap!"),
-    std::make_pair(primitive_VECTOR_BINARY_SEARCH, "vector-binary-search"),
+    std::make_pair(primitive_VECTOR,                      "vector"),
+    std::make_pair(primitive_MAKE_VECTOR,                 "make-vector"),
+    std::make_pair(primitive_VECTOR_PUSH_BANG,            "vector-push!"),
+    std::make_pair(primitive_VECTOR_IOTA,                 "vector-iota"),
+    std::make_pair(primitive_VECTOR_EMPTYP,               "vector-empty?"),
+    std::make_pair(primitive_VECTOR_GROW,                 "vector-grow"),
+    std::make_pair(primitive_VECTOR_UNFOLD,               "vector-unfold"),
+    std::make_pair(primitive_VECTOR_UNFOLD_RIGHT,         "vector-unfold-right"),
+    std::make_pair(primitive_VECTOR_COPY_BANG,            "vector-copy!"),
+    std::make_pair(primitive_VECTOR_SWAP_BANG,            "vector-swap!"),
+    std::make_pair(primitive_VECTOR_BINARY_SEARCH,        "vector-binary-search"),
+    std::make_pair(primitive_VECTOR_GET_ALL_COMBINATIONS, "vector-get-all-combinations"),
 
     std::make_pair(primitive_EMPTY,             "empty"),
     std::make_pair(primitive_LENGTH,            "length"),

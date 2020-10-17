@@ -1,6 +1,10 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- heist_cpp_interop.hpp
 // => Wrapper around Heist Interpreter to set up C++ interop
 
+/**************************************************
+ * DESIGNED FOR ___SINGLE-THREADED___ APPLICATIONS
+ *************************************************/
+
 #ifndef HEIST_CPP_INTEROP_HPP_
 #define HEIST_CPP_INTEROP_HPP_
 

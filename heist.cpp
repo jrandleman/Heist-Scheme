@@ -497,8 +497,8 @@ namespace heist {
     return G::VOID_DATA_EXPRESSION; // w/o <alternative> return VOID
   }
 
-  scm_list make_if(const scm_list& predicate, const scm_list& consequent, 
-                                              const scm_list& alternative)noexcept{
+  scm_list make_if(const data& predicate, const scm_list& consequent, 
+                                          const scm_list& alternative)noexcept{
     scm_list if_exp(4);
     if_exp[0] = symconst::if_t, if_exp[1] = predicate;
     if_exp[2] = consequent, if_exp[3] = alternative;
@@ -1340,12 +1340,8 @@ namespace heist {
 
 
   // -- CLAUSE GETTERS
-  scm_list cond_predicate(scm_node& clause)noexcept{
-    if(clause->exp[0].is_type(types::exp))
-      return clause->exp[0].exp; // expression
-    scm_list cond_pred(2); 
-    cond_pred[0] = symconst::and_t, cond_pred[1] = clause->exp[0];
-    return cond_pred; // variable as an expression
+  data cond_predicate(scm_node& clause)noexcept{
+    return clause->exp[0]; // variable as an expression
   }
 
   scm_list cond_actions(scm_node& clause)noexcept{
@@ -1375,6 +1371,23 @@ namespace heist {
     return clause->exp[2];
   }
 
+  scm_list cond_arrow_application(scm_node& current_clause, scm_node& rest_clauses, const scm_node& end_clauses, const scm_list& exp) {
+    scm_list expand_clauses(scm_node&,const scm_node&,const scm_list&);
+    scm_list cond_arrow_transform(2);
+    cond_arrow_transform[0] = scm_list(3);
+    cond_arrow_transform[0].exp[0] = symconst::lambda;
+    cond_arrow_transform[0].exp[1] = scm_list(1,symconst::cond_result);
+    cond_arrow_transform[0].exp[2] = scm_list(4);
+    cond_arrow_transform[0].exp[2].exp[0] = symconst::if_t;
+    cond_arrow_transform[0].exp[2].exp[1] = symconst::cond_result;
+    cond_arrow_transform[0].exp[2].exp[2] = scm_list(2);
+    cond_arrow_transform[0].exp[2].exp[2].exp[0] = cond_arrow_procedure(current_clause);
+    cond_arrow_transform[0].exp[2].exp[2].exp[1] = symconst::cond_result;
+    cond_arrow_transform[0].exp[2].exp[3] = expand_clauses(rest_clauses,end_clauses,exp);
+    cond_arrow_transform[1] = cond_predicate(current_clause);
+    return cond_arrow_transform;
+  }
+
 
   // -- CLAUSE EXPANSION
   // Each clause consists of a <condition> & a <body>
@@ -1402,12 +1415,7 @@ namespace heist {
           << "\n     (cond <clause1> <clause2> ...)"
           << EXP_ERR(exp));
     } else if(is_cond_arrow_clause(current_clause,exp)) {
-      scm_list cond_arrow_application(2);
-      cond_arrow_application[0] = cond_arrow_procedure(current_clause);
-      cond_arrow_application[1] = cond_predicate(current_clause);
-      return make_if(cond_predicate(current_clause), 
-                     cond_arrow_application,
-                     expand_clauses(rest_clauses,end_clauses,exp));
+      return cond_arrow_application(current_clause,rest_clauses,end_clauses,exp);
     } else {
       return make_if(cond_predicate(current_clause),
                      cond_actions(current_clause),
