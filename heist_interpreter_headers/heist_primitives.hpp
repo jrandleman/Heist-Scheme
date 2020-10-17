@@ -4334,6 +4334,7 @@ namespace heist {
     "\n        ----------------------------------------------------------------------"\
     "\n        %a = display anything"\
     "\n        %wa = write anything"\
+    "\n        %pa = pretty-print anything"\
     "\n        ----------------------------------------------------------------------"\
     "\n        %n = number"\
     "\n        %En = %en = number (coerced to exact)"\

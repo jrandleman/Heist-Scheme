@@ -2240,6 +2240,7 @@ Other primitives of this nature include:<br>
    ----------------------------------------------------------------------
    %a = display anything
    %wa = write anything
+   %pa = pretty-print anything
    ----------------------------------------------------------------------
    %n = number
    %En = %en = number (coerced to exact)

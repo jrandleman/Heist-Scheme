@@ -3151,7 +3151,7 @@ namespace heist {
 
   // SPRINTF TOKEN TYPE
   struct sprintf_token_t { 
-    enum class token_t {a, wa, s, ws, c, wc, b, wb, n};
+    enum class token_t {a, wa, pa, s, ws, c, wc, b, wb, n};
     token_t token = token_t::a;
     // invariants for more number detail
     enum class exactness_t {exact, inexact, dflt};
@@ -3231,6 +3231,9 @@ namespace heist {
           tokens.push_back(sprintf_token_t::token_t::b), input = input.substr(i+2), i = 0;
         } else if(next_ch == 'n') {
           tokens.push_back(sprintf_token_t::token_t::n), input = input.substr(i+2), i = 0;
+        } else if(next_ch == 'p') {
+          if(i+2 == input.size() || input[i+2] != 'a') throw_invalid_sprintf_token("%p");
+          tokens.push_back(sprintf_token_t::token_t::pa), input = input.substr(i+3), i = 0;
         } else if(next_ch == 'w') {
           if(i+2 == input.size()) throw_invalid_sprintf_token("%w");
           auto write_ch = input[i+2];
@@ -3325,7 +3328,8 @@ namespace heist {
     for(size_type i = 1, n = split_str.size(); i < n; ++i) {
       switch(tokens[i-1].token) {
         case sprintf_token_t::token_t::a:  formatted += args[i].display(); break;
-        case sprintf_token_t::token_t::wa: formatted += args[i].write(); break;
+        case sprintf_token_t::token_t::wa: formatted += args[i].write();   break;
+        case sprintf_token_t::token_t::pa: formatted += args[i].pprint();  break;
         case sprintf_token_t::token_t::s:  
           if(!args[i].is_type(types::str)) THROW_BAD_FORMAT_ARG("string");
           formatted += args[i].display(); break;
@@ -3339,12 +3343,12 @@ namespace heist {
           if(!args[i].is_type(types::chr)) THROW_BAD_FORMAT_ARG("character");
           formatted += args[i].write(); break;
         case sprintf_token_t::token_t::b: 
-          if(!args[i].is_type(types::bol)) THROW_BAD_FORMAT_ARG("boolean");
-          formatted += args[i].display(); break;
+          if(!args[i].is_type(types::bol) || args[i].bol.val) formatted += "#t";
+          else                                                formatted += "#f";
+          break;
         case sprintf_token_t::token_t::wb: 
-          if(!args[i].is_type(types::bol)) THROW_BAD_FORMAT_ARG("boolean");
-          if(args[i].bol.val) formatted += "true";
-          else                formatted += "false"; 
+          if(!args[i].is_type(types::bol) || args[i].bol.val) formatted += "true";
+          else                                                formatted += "false";
           break;
         case sprintf_token_t::token_t::n: 
           if(!args[i].is_type(types::num)) THROW_BAD_FORMAT_ARG("number");
