@@ -593,9 +593,10 @@ Other primitives of this nature include:<br>
     (begin <exp1> ...)
     (if <condition2> 
         (begin <exp2> ...)
-        (if <condition3>
-            (<procedure> <condition3>)
-            (begin <exp4> ...))))
+        (let ((cond-result <condition3>))
+          (if cond-result
+              (<procedure> cond-result)
+              (begin <exp4> ...)))))
 ```
 
 
