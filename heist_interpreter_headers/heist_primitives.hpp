@@ -4939,7 +4939,7 @@ namespace heist {
       return G::VOID_DATA_OBJECT;
     }
     G::REPL_PROMPT = *args[0].str;
-    G::REPL_TAB = scm_string(G::REPL_PROMPT.size()-1, ' ');
+    G::REPL_TAB = scm_string(G::REPL_PROMPT.size(), ' ');
     return G::VOID_DATA_OBJECT;
   }
 
