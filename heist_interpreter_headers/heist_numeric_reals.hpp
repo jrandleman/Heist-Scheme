@@ -774,7 +774,7 @@ namespace scm_numeric {
       sign = signs::neg, float_num *= -1;
     else
       sign = signs::pos;
-    if(float_num == INEXACT_INF) { // if float = inf
+    if(std::isinf(float_num)) { // if float = inf
       if(float_num < 0) set_ninf();
       else              set_pinf();
     }
