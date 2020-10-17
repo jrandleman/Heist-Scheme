@@ -1110,7 +1110,7 @@ Other primitives of this nature include:<br>
    - `(<object>.add-method! <method-name-symbol> <procedure-value>)`
    - If member/method exists: sets value, else: adds it as a new property
 
-#### Equality & Printing Dynamic Dispatch Member Overloads:
+#### Equality & Printing Dynamic Dispatch Method Overloads:
 0. Equality: `this=` method will attempt to be invoked on objects for `eq?`, `eqv?`, `equal?`
    - Method should accept 1 argument to compare equality against!
    - May also have specific equality polymorphism by naming methods `eq?`, `eqv?`, `equal?` directly
