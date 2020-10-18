@@ -3242,10 +3242,11 @@ namespace heist {
                                                       const size_type&,MacroId_varArg_posPair)noexcept;
   
 
-  // Determine whether only the par's elt OR only the arg's elt is a keyword
+  // Verify if pat_elt is a keyword that arg_elt is the same keyword
   bool mismatched_keywords(const data& pat_elt, const data& arg_elt, const frame_vars& keywords)noexcept{
-    return ((pat_elt.is_type(types::sym) && is_keyword(pat_elt.sym,keywords)) ^
-           (arg_elt.is_type(types::sym) && is_keyword(arg_elt.sym,keywords))) || pat_elt.sym != arg_elt.sym;
+    if(pat_elt.is_type(types::sym) && is_keyword(pat_elt.sym,keywords))
+      return !arg_elt.is_type(types::sym) || arg_elt.sym != pat_elt.sym;
+    return false;
   }
 
 
