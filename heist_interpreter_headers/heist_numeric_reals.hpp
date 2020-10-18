@@ -453,6 +453,7 @@ namespace scm_numeric {
     std::string convert_dec_decimal_to_base_N(const int& base, std::string dnum) const noexcept;
 
     // Coerce the given int string into float. Returns the success status.
+    template<bool WARN_ABOUT_BAD_CONVERSION>
     status coerce_int_to_float(inexact_t& num, const std::string& data_to_coerce, const bool data_is_neg) const noexcept;
     // Coerce the given fraction into float. Returns the success status.
     status coerce_fraction_to_float(inexact_t& num) const noexcept;
@@ -2336,7 +2337,7 @@ namespace scm_numeric {
       if(dlen == 1 && denominator[0] == 0) 
         stat = status::nan; // can't divide by 0
     } else {
-      stat = coerce_int_to_float(float_num, num_str, is_neg());
+      stat = coerce_int_to_float<false>(float_num, num_str, is_neg());
     }
     if(stat == status::success &&
        ((precision == precisions::exact && nlen == 1 && numerator[0] == 0) || 
@@ -2657,6 +2658,7 @@ namespace scm_numeric {
 
   // Coerce the given int string into float. Returns the success status, 
   // IE whether became a float as requested, OR resulted in +- inf.
+  template<bool WARN_ABOUT_BAD_CONVERSION>
   Snum_real::status Snum_real::coerce_int_to_float(inexact_t& num, const std::string& data_to_coerce, const bool data_is_neg) const noexcept {
     num = 0;
     try {                                   // try parsing out the floating point
@@ -2664,11 +2666,13 @@ namespace scm_numeric {
     } catch(const std::out_of_range& err) { // catch error if out of range
       return (data_is_neg) ? status::ninf : status::pinf;
     } catch(...) {
-      fprintf(stderr, "\n>> WARNING: _BIGINT_ BUG DETECTED AT %s:%s:%d,"
-                      "\n   ERROR CONVERTING STRING TO A FLOAT!"
-                      "\n>> PLEASE CONTACT jrandleman@scu.edu TO HELP FIX THIS BUG!"
-                      "\n>> ERRORFUL STRING BEING COERCED: \"%s\"\n\n", 
-              __FILE__,__func__,__LINE__,data_to_coerce.c_str());
+      if constexpr (WARN_ABOUT_BAD_CONVERSION) {
+        fprintf(stderr, "\n>> WARNING: _BIGINT_ BUG DETECTED AT %s:%s:%d,"
+                        "\n   ERROR CONVERTING STRING TO A FLOAT!"
+                        "\n>> PLEASE CONTACT jrandleman@scu.edu TO HELP FIX THIS BUG!"
+                        "\n>> ERRORFUL STRING BEING COERCED: \"%s\"\n\n", 
+                __FILE__,__func__,__LINE__,data_to_coerce.c_str());
+      }
       return status::nan;
     }
     return status::success;
@@ -2689,8 +2693,8 @@ namespace scm_numeric {
     
     // Coerce the numeratorator & denominator to inexact_t's
     inexact_t num_double, den_double;
-    const auto num_coercion_res = coerce_int_to_float(num_double, convert_exact_to_string(numerator,nlen), data_is_neg);
-    const auto den_coercion_res = coerce_int_to_float(den_double, convert_exact_to_string(denominator,dlen), data_is_neg);
+    const auto num_coercion_res = coerce_int_to_float<true>(num_double, convert_exact_to_string(numerator,nlen), data_is_neg);
+    const auto den_coercion_res = coerce_int_to_float<true>(den_double, convert_exact_to_string(denominator,dlen), data_is_neg);
     // Check for the success status of either conversion
     if(den_coercion_res != status::success) { // denominator is inf
       if(num_coercion_res != status::success) // numerator is inf
