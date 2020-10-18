@@ -525,7 +525,7 @@ namespace scm_numeric {
     if(imag.is_pos_inf() || imag.is_neg_inf())
       return real.str() + imag.str() + 'i';
     if(imag.is_neg())
-      return real.str() + '-' + (-imag).str() + 'i';
+      return real.str() + imag.str() + 'i';
     return real.str() + '+' + imag.str() + 'i';
   }
 
@@ -538,7 +538,7 @@ namespace scm_numeric {
     if(imag.is_pos_inf() || imag.is_neg_inf())
       return real.str(base) + imag.str() + 'i';
     if(imag.is_neg())
-      return real.str(base) + '-' + (-imag).str(base) + 'i';
+      return real.str(base) + imag.str(base) + 'i';
     return real.str(base) + '+' + imag.str(base) + 'i';
   }
 
