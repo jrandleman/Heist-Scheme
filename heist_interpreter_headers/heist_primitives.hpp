@@ -4925,7 +4925,7 @@ namespace heist {
   }
 
   /******************************************************************************
-  * CURRENT TIME PRIMITIVE
+  * CURRENT TIME PRIMITIVES
   ******************************************************************************/
 
   data primitive_SECONDS_SINCE_EPOCH(scm_list& args) {
@@ -4934,6 +4934,13 @@ namespace heist {
         "\n     (seconds-since-epoch)" << FCN_ERR("seconds-since-epoch",args));
     return num_type(std::chrono::duration_cast<std::chrono::seconds>(
                     std::chrono::system_clock::now().time_since_epoch()).count());
+  }
+
+  data primitive_CURRENT_DATE(scm_list& args) {
+    if(args.empty()) return make_str(get_current_time_stamp());
+    long long s=0, m=0, h=0, d=0, y=0;
+    parse_current_date_offsets(args,s,m,h,d,y);
+    return make_str(get_current_time_stamp(s,m,h,d,y));
   }
 
   /******************************************************************************
@@ -6460,6 +6467,7 @@ namespace heist {
     std::make_pair(primitive_DIRNAME,      "dirname"),
     
     std::make_pair(primitive_SECONDS_SINCE_EPOCH, "seconds-since-epoch"),
+    std::make_pair(primitive_CURRENT_DATE,        "current-date"),
 
     std::make_pair(primitive_SET_NANSI,                    "set-nansi!"),
     std::make_pair(primitive_SET_CI,                       "set-ci!"),

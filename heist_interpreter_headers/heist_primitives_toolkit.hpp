@@ -4119,6 +4119,74 @@ namespace heist {
   }
 
   /******************************************************************************
+  * CURRENT TIME PRIMITIVE HELPERS
+  ******************************************************************************/
+
+  scm_string get_current_time_stamp(long long s=0, long long m=0, long long h=0, long long d=0, long long y=0) {
+    std::chrono::duration<long long,std::ratio<60*60*24*365>> yr(y);
+    std::chrono::duration<long long,std::ratio<60*60*24>> day(d);
+    std::chrono::duration<long long,std::ratio<60*60>> hr(h);
+    std::chrono::duration<long long,std::ratio<60>> min(m);
+    std::chrono::duration<long long,std::ratio<1>> sec(s);
+    time_t tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()+yr+day+hr+min+sec);
+    scm_string date_str = ctime(&tt);
+    if(*date_str.rbegin() == '\n') date_str.pop_back();
+    return date_str;
+  }
+
+
+  enum class CURRENT_DATE_OFFSET_T {sec, min, hr, day, yr, invalid};
+
+  CURRENT_DATE_OFFSET_T get_offset_date_type(const scm_string& unit) {
+    if(unit == "sec")  return CURRENT_DATE_OFFSET_T::sec;
+    if(unit == "min")  return CURRENT_DATE_OFFSET_T::min;
+    if(unit == "hour") return CURRENT_DATE_OFFSET_T::hr;
+    if(unit == "day")  return CURRENT_DATE_OFFSET_T::day;
+    if(unit == "year") return CURRENT_DATE_OFFSET_T::yr;
+    return CURRENT_DATE_OFFSET_T::invalid;
+  }
+
+
+  void throw_current_date_error(scm_list& args, data& elt, const char* message) {
+    static constexpr const char * const format = 
+      "\n     (current-date <optional-offset> ...)"
+      "\n     => <optional-offset> ::= (<symbolic-unit> <integer-amount>)"
+      "\n     => <symbolic-unit> ::= <sec> | <min> | <hour> | <day> | <year>";
+    static constexpr const auto MAX_LL = std::numeric_limits<long long>::max();
+    static constexpr const auto MIN_LL = std::numeric_limits<long long>::min();
+    THROW_ERR("'current-date offset arg " << PROFILE(elt) 
+      << message << format << "\n     => <offset> ::= [" << MIN_LL << ", " 
+      << MAX_LL << ']' << FCN_ERR("current-date", args));
+  }
+
+
+  void parse_current_date_offsets(scm_list& args,long long& s,long long& m,long long& h,long long& d,long long& y){
+    static constexpr const auto MAX_LL = std::numeric_limits<long long>::max();
+    static constexpr const auto MIN_LL = std::numeric_limits<long long>::min();
+    for(auto& elt : args) {
+      if(!elt.is_type(types::par) || !elt.par->second.is_type(types::par))
+        throw_current_date_error(args,elt," isn't a symbol-number list!");
+      if(!elt.par->first.is_type(types::sym))
+        throw_current_date_error(args,elt," 1st elt isn't a symbolic-unit!");
+      if(!elt.par->second.par->first.is_type(types::num) || !elt.par->second.par->first.num.is_integer())
+        throw_current_date_error(args,elt," 2nd elt isn't an integer offset!");
+      auto stat = get_offset_date_type(elt.par->first.sym);
+      auto offs = elt.par->second.par->first.num.extract_inexact();
+      if(offs > MAX_LL || offs < MIN_LL)
+        throw_current_date_error(args,elt," 2nd elt exceeds offset bounds!");
+      switch(stat) {
+        case CURRENT_DATE_OFFSET_T::sec: s = (long long)offs; break;
+        case CURRENT_DATE_OFFSET_T::min: m = (long long)offs; break;
+        case CURRENT_DATE_OFFSET_T::hr:  h = (long long)offs; break;
+        case CURRENT_DATE_OFFSET_T::day: d = (long long)offs; break;
+        case CURRENT_DATE_OFFSET_T::yr:  y = (long long)offs; break;
+        default: // CURRENT_DATE_OFFSET_T::invalid
+          throw_current_date_error(args,elt," 1st elt is an invalid offset symbol!");
+      }
+    }
+  }
+
+  /******************************************************************************
   * INTERPRETER GLOBAL-SETTING MANIPULATION PRIMITIVE HELPER
   ******************************************************************************/
 

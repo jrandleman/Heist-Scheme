@@ -5,8 +5,10 @@
 #define HEIST_TYPES_HPP_
 
 #include <algorithm>
+#include <ctime>
 #include <filesystem>
 #include <functional>
+#include <ratio>
 #include <tuple>
 #include <unordered_map>
 #include <vector>

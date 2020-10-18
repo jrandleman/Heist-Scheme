@@ -2366,6 +2366,10 @@ Other primitives of this nature include:<br>
 
 9. __Get Seconds Since Epoch__: `(seconds-since-epoch)`
 
+10. __Get Current Date as String__: `(current-date <optional-offset> ...)`
+    * `<optional-offset>` = `(<symbolic-unit> <integer-amount>)`
+    * `<symbolic-unit>` = `<sec>` | `<min>` | `<hour>` | `<day>` | `<year>`
+
 
 
 ------------------------
