@@ -1652,9 +1652,21 @@ Other primitives of this nature include:<br>
 
 4. __Lowercase Predicate__: `(char-lower-case? <char>)`
 
-5. __Convert to Uppercase__: `(char-upcase <char>)`
+5. __Alphanumeric Predicate__: `(char-alphanumeric? <char>)`
 
-6. __Convert to Lowercase__: `(char-downcase <char>)`
+6. __Control Predicate__: `(char-control? <char>)`
+
+7. __Printable Predicate__: `(char-print? <char>)`
+
+8. __Graphical Predicate__: `(char-graph? <char>)`
+
+9. __Punctuation Predicate__: `(char-punctuation? <char>)`
+
+10. __Hexadecimal Digit Predicate__: `(char-xdigit? <char>)`
+
+11. __Convert to Uppercase__: `(char-upcase <char>)`
+
+12. __Convert to Lowercase__: `(char-downcase <char>)`
 
 
 ### Character Predicates:

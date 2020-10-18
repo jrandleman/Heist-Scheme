@@ -832,6 +832,42 @@ namespace heist {
     return boolean(islower(args[0].chr));
   }
 
+  // primitive "char-alphanumeric?" procedure:
+  data primitive_CHAR_ALHPANUMERICP(scm_list& args) {
+    confirm_given_one_char_arg(args, "char-alphanumeric?");
+    return boolean(isalnum(args[0].chr));
+  }
+
+  // primitive "char-control?" procedure:
+  data primitive_CHAR_CONTROLP(scm_list& args) {
+    confirm_given_one_char_arg(args, "char-control?");
+    return boolean(iscntrl(args[0].chr));
+  }
+
+  // primitive "char-print?" procedure:
+  data primitive_CHAR_PRINTP(scm_list& args) {
+    confirm_given_one_char_arg(args, "char-print?");
+    return boolean(isprint(args[0].chr));
+  }
+
+  // primitive "char-graph?" procedure:
+  data primitive_CHAR_GRAPHP(scm_list& args) {
+    confirm_given_one_char_arg(args, "char-graph?");
+    return boolean(isgraph(args[0].chr));
+  }
+
+  // primitive "char-punctuation?" procedure:
+  data primitive_CHAR_PUNCTUATIONP(scm_list& args) {
+    confirm_given_one_char_arg(args, "char-punctuation?");
+    return boolean(ispunct(args[0].chr));
+  }
+
+  // primitive "char-xdigit?" procedure:
+  data primitive_CHAR_XDIGITP(scm_list& args) {
+    confirm_given_one_char_arg(args, "char-xdigit?");
+    return boolean(isxdigit(args[0].chr));
+  }
+
   // ------------------
   // Char Case Control:
   // ------------------
@@ -6078,23 +6114,29 @@ namespace heist {
     std::make_pair(primitive_EQUALP, "equal?"),
     std::make_pair(primitive_NOT,    "not"),
 
-    std::make_pair(primitive_CHAR_EQ,          "char=?"),
-    std::make_pair(primitive_CHAR_LT,          "char<?"),
-    std::make_pair(primitive_CHAR_GT,          "char>?"),
-    std::make_pair(primitive_CHAR_LTE,         "char<=?"),
-    std::make_pair(primitive_CHAR_GTE,         "char>=?"),
-    std::make_pair(primitive_CHAR_CI_EQ,       "char-ci=?"),
-    std::make_pair(primitive_CHAR_CI_LT,       "char-ci<?"),
-    std::make_pair(primitive_CHAR_CI_GT,       "char-ci>?"),
-    std::make_pair(primitive_CHAR_CI_LTE,      "char-ci<=?"),
-    std::make_pair(primitive_CHAR_CI_GTE,      "char-ci>=?"),
-    std::make_pair(primitive_CHAR_ALPHABETICP, "char-alphabetic?"),
-    std::make_pair(primitive_CHAR_NUMERICP,    "char-numeric?"),
-    std::make_pair(primitive_CHAR_WHITESPACEP, "char-whitespace?"),
-    std::make_pair(primitive_CHAR_UPPER_CASEP, "char-upper-case?"),
-    std::make_pair(primitive_CHAR_LOWER_CASEP, "char-lower-case?"),
-    std::make_pair(primitive_CHAR_UPCASE,      "char-upcase"),
-    std::make_pair(primitive_CHAR_DOWNCASE,    "char-downcase"),
+    std::make_pair(primitive_CHAR_EQ,            "char=?"),
+    std::make_pair(primitive_CHAR_LT,            "char<?"),
+    std::make_pair(primitive_CHAR_GT,            "char>?"),
+    std::make_pair(primitive_CHAR_LTE,           "char<=?"),
+    std::make_pair(primitive_CHAR_GTE,           "char>=?"),
+    std::make_pair(primitive_CHAR_CI_EQ,         "char-ci=?"),
+    std::make_pair(primitive_CHAR_CI_LT,         "char-ci<?"),
+    std::make_pair(primitive_CHAR_CI_GT,         "char-ci>?"),
+    std::make_pair(primitive_CHAR_CI_LTE,        "char-ci<=?"),
+    std::make_pair(primitive_CHAR_CI_GTE,        "char-ci>=?"),
+    std::make_pair(primitive_CHAR_ALPHABETICP,   "char-alphabetic?"),
+    std::make_pair(primitive_CHAR_NUMERICP,      "char-numeric?"),
+    std::make_pair(primitive_CHAR_WHITESPACEP,   "char-whitespace?"),
+    std::make_pair(primitive_CHAR_UPPER_CASEP,   "char-upper-case?"),
+    std::make_pair(primitive_CHAR_LOWER_CASEP,   "char-lower-case?"),
+    std::make_pair(primitive_CHAR_ALHPANUMERICP, "char-alphanumeric?"),
+    std::make_pair(primitive_CHAR_CONTROLP,      "char-control?"),
+    std::make_pair(primitive_CHAR_PRINTP,        "char-print?"),
+    std::make_pair(primitive_CHAR_GRAPHP,        "char-graph?"),
+    std::make_pair(primitive_CHAR_PUNCTUATIONP,  "char-punctuation?"),
+    std::make_pair(primitive_CHAR_XDIGITP,       "char-xdigit?"),
+    std::make_pair(primitive_CHAR_UPCASE,        "char-upcase"),
+    std::make_pair(primitive_CHAR_DOWNCASE,      "char-downcase"),
 
     std::make_pair(primitive_MAKE_STRING,           "make-string"),
     std::make_pair(primitive_STRING,                "string"),
