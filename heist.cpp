@@ -3244,8 +3244,8 @@ namespace heist {
 
   // Determine whether only the par's elt OR only the arg's elt is a keyword
   bool mismatched_keywords(const data& pat_elt, const data& arg_elt, const frame_vars& keywords)noexcept{
-    return (pat_elt.is_type(types::sym) && is_keyword(pat_elt.sym,keywords)) ^
-           (arg_elt.is_type(types::sym) && is_keyword(arg_elt.sym,keywords));
+    return ((pat_elt.is_type(types::sym) && is_keyword(pat_elt.sym,keywords)) ^
+           (arg_elt.is_type(types::sym) && is_keyword(arg_elt.sym,keywords))) || pat_elt.sym != arg_elt.sym;
   }
 
 
