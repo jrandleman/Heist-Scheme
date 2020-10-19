@@ -4621,6 +4621,43 @@ namespace heist {
 
   namespace heist_json_generator {
     scm_string convert_scm_to_json(data&,const scm_list&,const char*);
+
+
+    void format_JSON_indent_width_recur(const scm_string& json, size_type& i, const size_type n, 
+                                        scm_string& formatted, const size_type indent_width, const size_type depth)noexcept{
+      formatted += '\n' + scm_string(depth*indent_width, ' ');
+      while(i < n) {
+        if(is_non_escaped_double_quote(i,json)) {
+          auto start = i;
+          skip_string_literal(i,json);
+          formatted += json.substr(start,(++i)-start);
+        } else if(json[i] == '{' || json[i] == '[') {
+          formatted += json[i++];
+          format_JSON_indent_width_recur(json,i,n,formatted,indent_width,depth+1);
+        } else if(json[i] == '}' || json[i] == ']') {
+          formatted += '\n' + scm_string((depth-1)*indent_width, ' ') + json[i++];
+          return;
+        } else if(json[i] == ',') {
+          formatted += json[i++] + ('\n' + scm_string(depth*indent_width, ' '));
+          while(i < n && json[i] == ' ') ++i; // skip whitespace after comma, disturbs indenting
+        } else {
+          formatted += json[i++];
+        }
+      }
+    }
+
+
+    // PRECONDITION: ASSUMES <json> IS VALID JSON
+    scm_string format_JSON_indent_width(const scm_string& json, size_type indent_width)noexcept{
+      if(json.empty() || !indent_width) return json;
+      if(json[0] != '[' && json[0] != '{') return json;
+      scm_string formatted(1,json[0]);
+      size_type i = 1;
+      format_JSON_indent_width_recur(json,i,json.size(),formatted,indent_width,1);
+      return formatted;
+    }
+
+
     void convert_scm_to_json_write_map_pair(scm_string& map_json, scm_list& item, 
                                             const scm_list& args, const char* format){
       if(item[0].is_type(types::str)) {
@@ -4695,6 +4732,12 @@ namespace heist {
         THROW_ERR("'scm->json invalid scheme datum " << PROFILE(d)
           << " can't be converted into JSON!" << format << FCN_ERR("scm->json", args));
       }
+    }
+
+
+    // Main handler converting <d> to json and formatting it using <indent_width>
+    scm_string format_scm_as_json(data& d, const size_type indent_width, const scm_list& args, const char* format) {
+      return format_JSON_indent_width(convert_scm_to_json(d,args,format),indent_width);
     }
   } // End of namespace heist_json_generator
 

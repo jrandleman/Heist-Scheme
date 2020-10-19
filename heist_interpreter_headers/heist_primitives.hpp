@@ -5307,17 +5307,24 @@ namespace heist {
 
   data primitive_SCM_TO_JSON(scm_list& args) {
     static constexpr const char * const format = 
-      "\n     (scm->json <obj>)"
+      "\n     (scm->json <obj> <optional-indent-width>)"
       "\n     <obj> ::= <string>"
       "\n             | <number>"
       "\n             | <'()>    ; -> <null>" 
       "\n             | <alist>  ; -> <map> (keys must be string | number | null | bool!)"
       "\n             | <vector> ; -> <array>"
       "\n             | <boolean>";
-    if(args.size() != 1)
-      THROW_ERR("'scm->json didn't recieve 1 arg!" 
-        << format << FCN_ERR("scm->json", args));
-    return make_str(heist_json_generator::convert_scm_to_json(args[0],args,format));
+    if(args.empty() || args.size() > 2)
+      THROW_ERR("'scm->json didn't recieve correct # of args:"
+        << format << FCN_ERR("scm->json",args));
+    size_type indent_width = 0;
+    if(args.size() == 2) {
+      if(!primitive_is_valid_index(args[1]))
+        THROW_ERR("'scm->json 2nd arg " << PROFILE(args[0]) << " isn't a valid indent width!" << format 
+          << "\n     <optional-indent-width> := [0, " << G::MAX_SIZE_TYPE << ']' << FCN_ERR("scm->json",args));
+      indent_width = (size_type)args[1].num.extract_inexact();
+    }
+    return make_str(heist_json_generator::format_scm_as_json(args[0],indent_width,args,format));
   }
 
 
@@ -5604,9 +5611,23 @@ namespace heist {
   }
 
   data primitive_OBJECT_TO_JSON(scm_list& args) {
-    confirm_given_unary_object_arg(args,"object->json");
+    static constexpr const char * const format = 
+      "\n     (object->json <object> <optional-indent-width>)";
+    if(args.empty() || args.size() > 2)
+      THROW_ERR("'object->json didn't recieve correct # of args:"
+        << format << FCN_ERR("object->json",args));
+    if(!args[0].is_type(types::obj))
+      THROW_ERR("'object->json arg " << PROFILE(args[0]) << " isn't an object!"
+        << format << FCN_ERR("object->json",args));
+    size_type indent_width = 0;
+    if(args.size() == 2) {
+      if(!primitive_is_valid_index(args[1]))
+        THROW_ERR("'object->json 2nd arg " << PROFILE(args[0]) << " isn't a valid indent width!" << format 
+          << "\n     <optional-indent-width> := [0, " << G::MAX_SIZE_TYPE << ']' << FCN_ERR("object->json",args));
+      indent_width = (size_type)args[1].num.extract_inexact();
+    }
     auto val = prm_convert_OBJ_HMAP_into_valid_JSON_ALIST_datum(prm_recursively_convert_OBJ_to_HMAP(args[0]));
-    return make_str(heist_json_generator::convert_scm_to_json(val,args,"\n     (object->json <object>)"));
+    return make_str(heist_json_generator::format_scm_as_json(val,indent_width,args,format));
   }
 
   /******************************************************************************

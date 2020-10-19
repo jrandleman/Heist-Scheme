@@ -2496,7 +2496,7 @@ Other primitives of this nature include:<br>
 0. __Convert JSON String to a Scheme Datum__: `(json->scm <string>)`
    * Note: arrays -> vectors, null -> `'()`, & maps -> alists (of key-value lists)
 
-1. __Convert Scheme Datum to a JSON String__: `(scm->json <obj>)`
+1. __Convert Scheme Datum to a JSON String__: `(scm->json <obj> <optional-indent-width>)`
    ```
    (scm->json <obj>)
    <obj> ::= <string>
@@ -2507,7 +2507,7 @@ Other primitives of this nature include:<br>
            | <boolean>
    ```
 
-2. __Convert Object Members into JSON String__: `(object->json <object>)`
+2. __Convert Object Members into JSON String__: `(object->json <object> <optional-indent-width>)`
 
 3. __JSON Datum Predicate__: `(json-datum? <obj>)`
    * Effectively returns whether `(scm->json <obj>)` would throw an error or not
