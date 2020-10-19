@@ -2457,7 +2457,7 @@ namespace heist {
   data force_data_delay(data& d) {
     if(!data_is_a_delay(d))
       THROW_ERR("'force "<<PROFILE(d)<<" isn't a delayed expression:\n     "
-        "(force <delayed-expression>)"<<EXP_ERR("(force "<<d.write()<<')'));
+        "(force <delayed-expression>)"<<EXP_ERR("(force "<<d.noexcept_write()<<')'));
     auto delay = d.exp[1].del;
     if(!delay->already_forced) {
       delay->already_forced = true;
@@ -2502,7 +2502,7 @@ namespace heist {
     if(!data_is_stream_pair(d))
       THROW_ERR("'scar "<<PROFILE(d)<<" isn't a stream-pair:" 
         "\n     (scar <stream-pair>)" << 
-        EXP_ERR("(scar " << d.write() << ')'));
+        EXP_ERR("(scar " << d.noexcept_write() << ')'));
     return force_data_delay(d.par->first);
   }
 
@@ -2510,12 +2510,12 @@ namespace heist {
   data get_stream_data_cdr(data& d) {
     if(!data_is_stream_pair(d))
       THROW_ERR("'scdr "<<PROFILE(d)<<" isn't a stream-pair:\n     "
-        "(scdr <stream-pair>)" << EXP_ERR("(scdr " << d.write() << ')'));
+        "(scdr <stream-pair>)" << EXP_ERR("(scdr " << d.noexcept_write() << ')'));
     data cdr_promise = force_data_delay(d.par->second);
     if(!data_is_stream(cdr_promise))
       THROW_ERR("'scdr forced cdr " << PROFILE(cdr_promise)
         << " isn't a stream:\n     (scdr <stream-pair>)" 
-        << EXP_ERR("(scdr " << d.write() << ')'));
+        << EXP_ERR("(scdr " << d.noexcept_write() << ')'));
     return cdr_promise;
   }
 
@@ -2527,7 +2527,7 @@ namespace heist {
     if(!data_is_stream_pair(d))
       THROW_ERR('\''<<name<<STREAM_SCXXXXR_ACCESSOR_NUMBER[nth_scar]
         <<" 'scar' "<<PROFILE(d)<<" isn't a stream-pair:" 
-        <<format<<EXP_ERR("(scar "<<d.write()<<')'));
+        <<format<<EXP_ERR("(scar "<<d.noexcept_write()<<')'));
     return force_data_delay(d.par->first);
   }
 
@@ -2538,12 +2538,12 @@ namespace heist {
     if(!data_is_stream_pair(d))
       THROW_ERR('\''<<name<<STREAM_SCXXXXR_ACCESSOR_NUMBER[nth_scdr]
         <<" 'scdr' "<<PROFILE(d)<<" isn't a stream-pair:"
-        <<format<<EXP_ERR("(scdr "<<d.write()<<')'));
+        <<format<<EXP_ERR("(scdr "<<d.noexcept_write()<<')'));
     data cdr_promise = force_data_delay(d.par->second);
     if(!data_is_stream(cdr_promise))
       THROW_ERR('\''<<name<<STREAM_SCXXXXR_ACCESSOR_NUMBER[nth_scdr]
         <<" 'scdr's forced cdr "<<PROFILE(cdr_promise)
-        <<" isn't a stream:"<<format<<EXP_ERR("(scdr "<<d.write()<<')'));
+        <<" isn't a stream:"<<format<<EXP_ERR("(scdr "<<d.noexcept_write()<<')'));
     return cdr_promise;
   }
 
@@ -3126,7 +3126,7 @@ namespace heist {
   }
 
 
-  data primitive_display_port_logic(const data& obj, FILE*& outs)noexcept{
+  data primitive_display_port_logic(const data& obj, FILE*& outs) {
     if(obj.is_type(types::chr)) {
       fputc(obj.chr, outs);
       if(obj.chr == '\n') // account for printing a newline
@@ -4253,13 +4253,13 @@ namespace heist {
             args[0].sym.c_str(), error_str.c_str());
     // Check for irritants (if provided, these are optional)
     if(args.size() == 3)
-      fprintf(G::CURRENT_OUTPUT_PORT, " with irritant %s", args[2].write().c_str());
+      fprintf(G::CURRENT_OUTPUT_PORT, " with irritant %s", args[2].noexcept_write().c_str());
     else if(args.size() > 3) {
       scm_list irritant_list(args.begin()+2, args.end());
       fprintf(G::CURRENT_OUTPUT_PORT, " with irritants %s", 
               primitive_LIST_to_CONS_constructor(irritant_list.begin(),
                                                  irritant_list.end()
-                                                ).write().c_str());
+                                                ).noexcept_write().c_str());
     }
     fprintf(G::CURRENT_OUTPUT_PORT, "%s\n", afmt(AFMT_0));
     fflush(G::CURRENT_OUTPUT_PORT);
@@ -4796,7 +4796,7 @@ namespace heist {
 
 
   data throw_malformed_regex(const scm_list& args, const char* format, const char* name) {
-    THROW_ERR('\''<<name<<" malformed regex string " << args[1].write() << '!'
+    THROW_ERR('\''<<name<<" malformed regex string " << args[1].noexcept_write() << '!'
       << format << FCN_ERR(name, args));
     return data(); // never triggered, due to the above throw
   }

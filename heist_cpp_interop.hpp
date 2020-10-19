@@ -37,7 +37,7 @@ namespace heist {
           return data();
         } catch(...) {
           PRINT_ERR("Uncaught C++ Exception Detected! -:- BUG ALERT -:-"
-               "\n     Triggered By: " << abstract_syntax_tree[i].write() << 
+               "\n     Triggered By: " << abstract_syntax_tree[i].noexcept_write() << 
                "\n  => Please send your code to jrandleman@scu.edu to fix"
                "\n     the interpreter's bug!"
                "\n  => Terminating Heist Scheme Interpretation.\n");

@@ -1114,7 +1114,6 @@ Other primitives of this nature include:<br>
    - Method should accept 0 arguments, and return a string to be "displayed"!
    - May also have specific printing polymorphism by naming methods `display`, `write`, `pprint` directly
 2. NOTE: 
-   - Errors will ___NOT___ be passed along (only printed to the screen, but caught internally in the procedure)
    - These are ___NOT___ passed via inheritance by default, unless explicitly invoked as a method
 
 #### Method Access to Object Members:

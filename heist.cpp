@@ -196,7 +196,7 @@ namespace heist {
   sym_type procedure_call_signature(const sym_type& name,const frame_vals& vals)noexcept{
     if(no_args_given(vals) || data_is_the_SENTINEL_VAL(data(vals)))
       return '(' + name + ')';
-    return '(' + name + ' ' + cio_expr_str<&data::write>(vals).substr(1);
+    return '(' + name + ' ' + cio_expr_str<&data::noexcept_write>(vals).substr(1);
   }
 
 
@@ -741,7 +741,7 @@ namespace heist {
   exe_type analyze_delay(scm_list& exp,const bool cps_block=false) {
     if(exp.size() != 2 || data_is_the_SENTINEL_VAL(exp[1])) {
       exp[0].sym += ' '; // add space to tag, avoiding #<delay> degradation
-      auto delay_call = cio_expr_str<&data::write>(exp);
+      auto delay_call = cio_expr_str<&data::noexcept_write>(exp);
       delay_call.erase(6,1);   // erase appended space
       THROW_ERR("'delay expects 1 argument: (delay <delay-expression>)" 
         << EXP_ERR(delay_call));
@@ -3255,7 +3255,7 @@ namespace heist {
     if(is_primitive_symbolic_literal(pat_entity))
        return !is_primitive_symbolic_literal(arg_entity) || pat_entity.sym != arg_entity.sym;
     if(pat_entity.is_type(types::sym) || pat_entity.is_type(types::exp)) return false;
-    return !pat_entity.equal(arg_entity);
+    return !pat_entity.noexcept_equal(arg_entity);
   }
 
 
@@ -3395,9 +3395,9 @@ namespace heist {
   void recur_stringify_MACRO_EXPANSION_TREES(const MACRO_EXPANSION_TREES_t& children,scm_string& buffer)noexcept{
     for(const auto& child : children) {
       if(!child.is_variadic) {
-        buffer += "NON-VARIADIC = " + data(child.values).write() + ',';
+        buffer += "NON-VARIADIC = " + data(child.values).noexcept_write() + ',';
       } else if(child.is_leaf()) {
-        buffer += data(child.values).write() + ',';
+        buffer += data(child.values).noexcept_write() + ',';
       } else {
         buffer += '[';
         recur_stringify_MACRO_EXPANSION_TREES(child.children,buffer);
@@ -3414,10 +3414,10 @@ namespace heist {
       buffer += "  " + tree.id_name + ": ";
       // print leaves immediately
       if(!tree.is_variadic) {
-        buffer += "NON-VARIADIC = " + data(tree.values).write() + "\n     ";
+        buffer += "NON-VARIADIC = " + data(tree.values).noexcept_write() + "\n     ";
       // recursively print subgroups
       } else if(tree.is_leaf()) {
-        buffer += "LEAF: " + data(tree.values).write() + "\n     ";
+        buffer += "LEAF: " + data(tree.values).noexcept_write() + "\n     ";
       } else {
         buffer += '[';
         recur_stringify_MACRO_EXPANSION_TREES(tree.children,buffer);
@@ -3944,7 +3944,7 @@ namespace heist {
     if(std::find(identifiers.begin(),identifiers.end(),pattern[i].sym) != identifiers.end())
       THROW_ERR("'syntax-rules " << pattern[i].sym << " identifier found twice!"
         "\n     Each syntax-rules pattern identifier MUST be unique!\n     " 
-        << cio_expr_str<&data::write>(pattern) << format << EXP_ERR(exp));
+        << cio_expr_str<&data::noexcept_write>(pattern) << format << EXP_ERR(exp));
     identifiers.push_back(pattern[i].sym);
   }
 
@@ -3958,7 +3958,7 @@ namespace heist {
     if(pattern.empty()) return; // guarenteed to be part of a recursive call (topmost pattern asserted non-empty)
     if(!pattern.empty() && data_is_ellipsis(pattern[0]))
       THROW_ERR("'syntax-rules \"...\" may NEVER begin a pattern subexpression!"
-        "\n     " << cio_expr_str<&data::write>(pattern) << format <<EXP_ERR(exp));
+        "\n     " << cio_expr_str<&data::noexcept_write>(pattern) << format <<EXP_ERR(exp));
     if(is_macro_argument_label(pattern[0],keywords))
       confirm_unique_syntax_rules_pattern_identifier(pattern,0,exp,identifiers);
     bool seen_ellipses = false;
@@ -3967,7 +3967,7 @@ namespace heist {
         // Confirm each subexpression has at most 1 '...'
         if(seen_ellipses){
           THROW_ERR("'syntax-rules \"...\" may only appear ONCE per pattern subexpression!"
-            "\n     " << cio_expr_str<&data::write>(pattern) <<
+            "\n     " << cio_expr_str<&data::noexcept_write>(pattern) <<
             "\n     -> IE: (a ... (b ...)) => VALID: 1 '...' PER EXPRESSION!"
             "\n            (a ... b ...)   => INVALID: 2 '...' IN A SINGLE EXPRESSION!"
             << format <<EXP_ERR(exp));
@@ -3975,7 +3975,7 @@ namespace heist {
         // Confirm '...' doesn't follow a literal or keyword in the pattern
         if(data_is_literal_or_keyword(pattern[i-1],keywords)){
           THROW_ERR("'syntax-rules \"...\" may only be preceded by a non-literal-non-keyword"
-            "\n     symbol or expression!\n     " << cio_expr_str<&data::write>(pattern) 
+            "\n     symbol or expression!\n     " << cio_expr_str<&data::noexcept_write>(pattern) 
             << format <<EXP_ERR(exp));
         }
         seen_ellipses = true;
@@ -4002,12 +4002,12 @@ namespace heist {
       // Confirm pattern begins w/ a symbol
       if(!exp[i].exp[0].exp[0].is_type(types::sym))
         THROW_ERR("'syntax-rules patterns MUST begin with a symbol!"
-          "\n     " << cio_expr_str<&data::write>(exp[i].exp[0].exp) << format << EXP_ERR(exp));
+          "\n     " << cio_expr_str<&data::noexcept_write>(exp[i].exp[0].exp) << format << EXP_ERR(exp));
       // Confirm pattern's topmost subexpression depth doesn't start w/ '...'
       if(exp[i].exp[0].exp.size() > 1 && data_is_ellipsis(exp[i].exp[0].exp[1]))
         THROW_ERR("'syntax-rules pattern '...' identifier must be preceded"
           " by a symbol or expression identifier!\n     " 
-          << cio_expr_str<&data::write>(exp[i].exp[0].exp) << format << EXP_ERR(exp));
+          << cio_expr_str<&data::noexcept_write>(exp[i].exp[0].exp) << format << EXP_ERR(exp));
       // Confirm each pattern identifier only appears once
       frame_vars identifiers;
       confirm_proper_syntax_rules_pattern_layout(exp[i].exp[0].exp,exp,mac.keywords,identifiers);
@@ -4344,7 +4344,7 @@ namespace heist {
   void output_call_trace_result(const scm_list& procedure, const data& result)noexcept{
     if(!primitive_data_is_a_procedure(procedure)) return;
     print_call_trace_depth_indentation(procedure);
-    fprintf(G::CURRENT_OUTPUT_PORT, "%s\n", result.write().c_str());
+    fprintf(G::CURRENT_OUTPUT_PORT, "%s\n", result.noexcept_write().c_str());
     fflush(G::CURRENT_OUTPUT_PORT);
   }
 
@@ -4574,7 +4574,7 @@ namespace heist {
     }
     if(procedure.empty())
       THROW_ERR("Invalid application of unknown procedure type NULL (received an empty expression)!");
-    THROW_ERR("Invalid application of unknown procedure "<<PROFILE(procedure[0])<<"! "<<FCN_ERR(procedure[0].write(),arguments));
+    THROW_ERR("Invalid application of unknown procedure "<<PROFILE(procedure[0])<<"! "<<FCN_ERR(procedure[0].noexcept_write(),arguments));
   }
 
   // R-value overload
@@ -4759,11 +4759,11 @@ namespace heist {
   // -- ANALYZE (SYNTAX)
   void throw_unknown_analysis_anomalous_error(const scm_list& exp) {
     scm_string err_str("ANALYZE: Invalid Syntax (received unknown expression)!"
-                       "\n         Triggered By: " + cio_expr_str<&data::write>(exp) + 
+                       "\n         Triggered By: " + cio_expr_str<&data::noexcept_write>(exp) + 
                        "\n         Profile of data in expression:");
     for(size_type i = 0, n = exp.size(); i < n; ++i)
       err_str += (("\n         " + std::to_string(i+1) + ". " + 
-                    exp[i].write() + " of type \"") + exp[i].type_name()) + '"';
+                    exp[i].noexcept_write() + " of type \"") + exp[i].type_name()) + '"';
     THROW_ERR(err_str << "\n         => If you believe this is a bug, please send your code"
                          "\n            to jrandleman@scu.edu to fix the interpreter's bug!");
   }
@@ -4924,7 +4924,7 @@ void account_for_whether_printed_data(const heist::scm_list& val,bool& printed_d
 
 
 // Print output object
-void user_print(FILE* outs, heist::scm_list& object)noexcept{
+void user_print(FILE* outs, heist::scm_list& object) {
   if(heist::is_compound_procedure(object) || heist::is_primitive_procedure(object))
     fprintf(outs, "#<procedure%s>", heist::procedure_name(object).c_str());
   else if(heist::is_delay(object) && object.size() > 1)

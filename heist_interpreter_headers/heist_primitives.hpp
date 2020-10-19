@@ -5622,7 +5622,7 @@ namespace heist {
     size_type indent_width = 0;
     if(args.size() == 2) {
       if(!primitive_is_valid_index(args[1]))
-        THROW_ERR("'object->json 2nd arg " << PROFILE(args[0]) << " isn't a valid indent width!" << format 
+        THROW_ERR("'object->json 2nd arg " << PROFILE(args[1]) << " isn't a valid indent width!" << format 
           << "\n     <optional-indent-width> := [0, " << G::MAX_SIZE_TYPE << ']' << FCN_ERR("object->json",args));
       indent_width = (size_type)args[1].num.extract_inexact();
     }

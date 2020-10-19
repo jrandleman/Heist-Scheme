@@ -130,8 +130,7 @@ namespace heist {
 
   // Prototype for printing helper function
   template<DATA_PRINTER to_str>
-  void cio_list_str_recur(scm_string& list_str,const data& slow,
-                          const data& fast,par_type cycle_start)noexcept;
+  void cio_list_str_recur(scm_string& list_str,const data& slow,const data& fast,par_type cycle_start);
 
   // Confirm data is not the empty list
   bool is_not_THE_EMPTY_LIST(const data& pair_data)noexcept{
@@ -141,7 +140,7 @@ namespace heist {
 
   // Stringify list recursive helper, ONLY for once the lists is confirmed to be acyclic
   template<DATA_PRINTER to_str>
-  void cio_acyclic_list_str_recur(scm_string& list_str, const data& pair_object)noexcept{
+  void cio_acyclic_list_str_recur(scm_string& list_str, const data& pair_object) {
     // store car
     if(pair_object.par->first.is_type(types::par)) {
       if(data_is_stream_pair(pair_object.par->first)) {
@@ -170,7 +169,7 @@ namespace heist {
   // Stringify list recursive helper
   template<DATA_PRINTER to_str>
   void cio_list_str_recur(scm_string& list_str, const data& slow, const data& fast, 
-                                                par_type cycle_start)noexcept{
+                                                par_type cycle_start) {
     // Check if detected a cycle (simultaneously performs Floyd's Loop Detection algorithm)
     if(fast.is_type(types::par) && fast.par->second.is_type(types::par) && 
        slow.par == fast.par) { 
@@ -212,7 +211,7 @@ namespace heist {
 
   // Stringify list
   template<DATA_PRINTER to_str>
-  scm_string cio_list_str(const data& pair_object)noexcept{
+  scm_string cio_list_str(const data& pair_object) {
     if(data_is_stream_pair(pair_object)) return "#<stream>";
     scm_string list_str;
     cio_list_str_recur<to_str>(list_str, pair_object.par, pair_object.par, nullptr);
@@ -225,7 +224,7 @@ namespace heist {
 
   // Stringify vector
   template<DATA_PRINTER to_str>
-  scm_string cio_vect_str(const vec_type& vector_object)noexcept{
+  scm_string cio_vect_str(const vec_type& vector_object) {
     scm_string vect_str("#(");
     for(size_type i = 0, n = vector_object->size(); i < n; ++i) {
       if(vector_object->operator[](i).is_type(types::vec))
@@ -296,7 +295,7 @@ namespace heist {
 
   // Stringify expression recursive helper
   template<DATA_PRINTER to_str>
-  void cio_expr_str_rec(const exp_type& exp_object, scm_string& exp_str)noexcept{
+  void cio_expr_str_rec(const exp_type& exp_object, scm_string& exp_str) {
     if(no_args_given(exp_object)) return; // empty expression
     for(auto d = exp_object.begin(); d != exp_object.end(); ++d) {
       // Append delay & procedure expressions w/ a special format
@@ -320,7 +319,7 @@ namespace heist {
 
   // Stringify expression
   template<DATA_PRINTER to_str>
-  scm_string cio_expr_str(const exp_type& exp_object)noexcept{
+  scm_string cio_expr_str(const exp_type& exp_object) {
     // Sentinel Values are exclusively used internally, hence are never printed
     if(no_args_given(exp_object)||data_is_the_SENTINEL_VAL(data(exp_object)))
       return "";
@@ -340,7 +339,7 @@ namespace heist {
 
   // Stringify hash-map
   template<DATA_PRINTER to_str>
-  scm_string cio_hmap_str(const map_type& map_object)noexcept{
+  scm_string cio_hmap_str(const map_type& map_object) {
     scm_string map_str("$(");
     for(const auto& keyval : map_object->val)
       map_str += (map_data::unhash_key(keyval.first).*to_str)() + ' ' + (keyval.second.*to_str)() + ' ';
@@ -385,7 +384,7 @@ namespace heist {
 
   // Converts Scheme lists of data to an AST list of those data as strings
   // NOTE: the <size_type> of the pair denotes the length of the <data> once output 
-  void stringify_list_data(pprint_data& list_as_strs, size_type& length, const par_type& p)noexcept{
+  void stringify_list_data(pprint_data& list_as_strs, size_type& length, const par_type& p) {
     // Strify car
     if(!p->first.is_type(types::par)) {
       list_as_strs.push_back(pprint_datum(p->first.pprint(),p->first.is_type(types::sym)));
@@ -500,7 +499,7 @@ namespace heist {
 
 
   // Pretty printer
-  scm_string pretty_print(const data& d)noexcept{
+  scm_string pretty_print(const data& d) {
     // If non-proper-list-pair, print as-is
     if(!data_is_proper_list(d)) return d.write();
     // Else check if pair as string is of valid length
@@ -527,21 +526,17 @@ namespace heist {
   data     data_cast(const scm_list& l)noexcept;
 
   template<DATA_PRINTER to_str>
-  scm_string cio_obj_str(const obj_type& object,const char* printer_name)noexcept{
+  scm_string cio_obj_str(const obj_type& object,const char* printer_name) {
     // Search methods for the "->string" printing polymorphic method
     for(size_type i = 0, n = object->method_names.size(); i < n; ++i) {
       if(object->method_names[i] == "this->string" || object->method_names[i] == printer_name) {
-        try {
-          scm_list arg(1,symconst::sentinel_arg), procedure_cpy(object->method_values[i].exp);
-          data calling_object(object);
-          scm_list procedure = extend_method_env_with_THIS_object(calling_object,procedure_cpy).exp;
-          env_type env = object->proto->defn_env;
-          data result = data_cast(execute_application(procedure,arg,env));
-          if(result.is_type(types::str)) return *result.str;
-          return (result.*to_str)();
-        } catch(...) {
-          return "#<object[0x"+pointer_to_hexstring(object.ptr)+"]>";
-        }
+        scm_list arg(1,symconst::sentinel_arg), procedure_cpy(object->method_values[i].exp);
+        data calling_object(object);
+        scm_list procedure = extend_method_env_with_THIS_object(calling_object,procedure_cpy).exp;
+        env_type env = object->proto->defn_env;
+        data result = data_cast(execute_application(procedure,arg,env));
+        if(result.is_type(types::str)) return *result.str;
+        return (result.*to_str)();
       }
     }
     return "#<object[0x"+pointer_to_hexstring(object.ptr)+"]>";
@@ -551,18 +546,17 @@ namespace heist {
   * DATA EQUALITY HELPERS
   ******************************************************************************/
 
-  bool prm_compare_SNTXs(const syn_type& s1, const syn_type& s2)noexcept;
-
   bool prm_comparing_primitives(const scm_list& l1, const scm_list& l2)noexcept{
     return l1.size() == 3 && l1[0].is_type(types::sym) && l2[0].is_type(types::sym) &&
       l1[0].sym == l2[0].sym && l1[0].sym == symconst::primitive;
   }
 
 
-  bool prm_compare_atomic_values(const data& v1,const data& v2,const types& t) noexcept {
+  template<DATA_COMPARER same_as>
+  bool prm_compare_atomic_values(const data& v1,const data& v2,const types& t) {
     switch(t) {
       case types::undefined: case types::dne: case types::exe: return true;
-      case types::num: return v1.num == v2.num && v1.num.is_exact() == v2.num.is_exact();
+      case types::num: return v1.num.is_exact() == v2.num.is_exact() && v1.num == v2.num;
       case types::chr: return v1.chr == v2.chr;
       case types::str: return *v1.str == *v2.str;
       case types::sym: return v1.sym == v2.sym;
@@ -578,64 +572,37 @@ namespace heist {
       case types::cal: return v1.cal == v2.cal;
       case types::fip: return v1.fip.port_idx == v2.fip.port_idx;
       case types::fop: return v1.fop.port_idx == v2.fop.port_idx;
-      case types::syn: return prm_compare_SNTXs(v1.syn, v2.syn);
-      case types::exp: return prm_compare_EXPRs(v1.exp, v2.exp);
+      case types::syn: return prm_compare_SNTXs<same_as>(v1.syn, v2.syn);
+      case types::exp: return prm_compare_EXPRs<same_as>(v1.exp, v2.exp);
       default:         return false;
     }
   }
 
 
-  bool prm_compare_EXPRs(const scm_list& l1, const scm_list& l2) noexcept {
-    if(l1.size() != l2.size())          return false;
+  template<DATA_COMPARER same_as>
+  bool prm_compare_EXPRs(const scm_list& l1, const scm_list& l2) {
+    if(l1.size() != l2.size()) return false;
     if(prm_comparing_primitives(l1,l2)) return l1[1].prm == l2[1].prm;
-    for(size_type i = 0, n = l1.size(); i < n; ++i) {
-      if(l1[i].type != l2[i].type) return false; // compare types
-      switch(l1[i].type) {
-        case types::exp: if(!prm_compare_EXPRs(l1[i].exp,l2[i].exp)) return false; break;
-        case types::par: if(!prm_compare_PAIRs(l1[i].par,l2[i].par)) return false; break;
-        case types::vec: if(!prm_compare_VECTs(l1[i].vec,l2[i].vec)) return false; break;
-        case types::map: if(!prm_compare_HMAPs(l1[i].map,l2[i].map)) return false; break;
-        case types::obj: if(!prm_compare_OBJs (l1[i].obj,l2[i].obj)) return false; break;
-        default: if(!prm_compare_atomic_values(l1[i],l2[i],l1[i].type)) return false;
-      }
-    }
+    for(size_type i = 0, n = l1.size(); i < n; ++i)
+      if(!(l1[i].*same_as)(l2[i])) return false;
     return true;
   }
 
 
-  bool prm_compare_PAIRs(const par_type& p1, const par_type& p2) noexcept {
-    if(!p1 || !p2 || p1->first.type != p2->first.type || p1->second.type != p2->second.type)
-      return false;
-    auto& p1_car = p1->first, &p2_car = p2->first;
-    auto& p1_cdr = p1->second, &p2_cdr = p2->second;
-    // Compare cars
-    switch(p1_car.type) {
-      case types::exp: if(!prm_compare_EXPRs(p1_car.exp,p2_car.exp)) return false; break;
-      case types::par: if(!prm_compare_PAIRs(p1_car.par,p2_car.par)) return false; break;
-      case types::vec: if(!prm_compare_VECTs(p1_car.vec,p2_car.vec)) return false; break;
-      case types::map: if(!prm_compare_HMAPs(p1_car.map,p2_car.map)) return false; break;
-      case types::obj: if(!prm_compare_OBJs (p1_car.obj,p2_car.obj)) return false; break;
-      default: if(!prm_compare_atomic_values(p1_car,p2_car,p1_car.type)) return false;
-    }
-    // Compare cdrs
-    switch(p1_cdr.type) {
-      case types::exp: if(!prm_compare_EXPRs(p1_cdr.exp,p2_cdr.exp)) return false; break;
-      case types::par: if(!prm_compare_PAIRs(p1_cdr.par,p2_cdr.par)) return false; break;
-      case types::vec: if(!prm_compare_VECTs(p1_cdr.vec,p2_cdr.vec)) return false; break;
-      case types::map: if(!prm_compare_HMAPs(p1_cdr.map,p2_cdr.map)) return false; break;
-      case types::obj: if(!prm_compare_OBJs (p1_cdr.obj,p2_cdr.obj)) return false; break;
-      default: if(!prm_compare_atomic_values(p1_cdr,p2_cdr,p1_cdr.type)) return false;
-    }
-    return true;
+  template<DATA_COMPARER same_as>
+  bool prm_compare_PAIRs(const par_type& p1, const par_type& p2) {
+    return p1.ptr && p2.ptr && (p1->first.*same_as)(p2->first) && (p1->second.*same_as)(p2->second);
   }
 
 
-  bool prm_compare_VECTs(const vec_type& v1, const vec_type& v2) noexcept {
-    return prm_compare_EXPRs(*v1, *v2);
+  template<DATA_COMPARER same_as>
+  bool prm_compare_VECTs(const vec_type& v1, const vec_type& v2) {
+    return prm_compare_EXPRs<same_as>(*v1, *v2);
   }
 
 
-  bool prm_compare_SNTXs(const syn_type& s1, const syn_type& s2) noexcept {
+  template<DATA_COMPARER same_as>
+  bool prm_compare_SNTXs(const syn_type& s1, const syn_type& s2) {
     frame_var label;
     frame_vars keywords;
     std::vector<scm_list> patterns;
@@ -648,31 +615,24 @@ namespace heist {
     for(size_type i = 0, n = s1.keywords.size(); i < n; ++i)
       if(s1.keywords[i] != s2.keywords[i]) return false;
     for(size_type i = 0, n = s1.patterns.size(); i < n; ++i)
-      if(!prm_compare_EXPRs(s1.patterns[i], s2.patterns[i])) return false;
+      if(!prm_compare_EXPRs<same_as>(s1.patterns[i], s2.patterns[i])) return false;
     for(size_type i = 0, n = s1.templates.size(); i < n; ++i)
-      if(!prm_compare_EXPRs(s1.templates[i], s2.templates[i])) return false;
+      if(!prm_compare_EXPRs<same_as>(s1.templates[i], s2.templates[i])) return false;
     return true;
   }
 
 
-  bool prm_compare_HMAPs(const map_type& m1, const map_type& m2) noexcept {
+  template<DATA_COMPARER same_as>
+  bool prm_compare_HMAPs(const map_type& m1, const map_type& m2) {
     if(m1->val.size() != m2->val.size()) return false;
-    for(auto p1=m1->val.begin(), end=m1->val.end(), p2=m2->val.begin(); p1 != end; ++p1, ++p2){
-      if(p1->first != p2->first) return false;
-      if(p1->second.type != p2->second.type) return false;
-      switch(p1->second.type) {
-        case types::par: if(!prm_compare_PAIRs(p1->second.par,p2->second.par)) return false; break;
-        case types::vec: if(!prm_compare_VECTs(p1->second.vec,p2->second.vec)) return false; break;
-        case types::map: if(!prm_compare_HMAPs(p1->second.map,p2->second.map)) return false; break;
-        case types::obj: if(!prm_compare_OBJs(p1->second.obj,p2->second.obj))  return false; break;
-        default: if(!prm_compare_atomic_values(p1->second,p2->second,p1->second.type)) return false;
-      }
-    }
+    for(auto p1=m1->val.begin(), end=m1->val.end(), p2=m2->val.begin(); p1 != end; ++p1, ++p2)
+      if(p1->first != p2->first || !(p1->second.*same_as)(p2->second)) return false;
     return true;
   }
 
 
-  bool prm_compare_OBJs(const obj_type& o1, const obj_type& o2) noexcept {
+  template<DATA_COMPARER same_as>
+  bool prm_compare_OBJs(const obj_type& o1, const obj_type& o2) {
     if(o1->proto != o2->proto                               ||
        o1->member_names.size()  != o2->member_names.size()  || 
        o1->member_values.size() != o2->member_values.size() || 
@@ -683,29 +643,25 @@ namespace heist {
     for(size_type i = 0, n = o1->method_names.size(); i < n; ++i)
       if(o1->method_names[i] != o2->method_names[i]) return false;
     for(size_type i = 0, n = o1->member_values.size(); i < n; ++i)
-      if(!o1->member_values[i].equal(o2->member_values[i])) return false;
+      if(!(o1->member_values[i].*same_as)(o2->member_values[i])) return false;
     for(size_type i = 0, n = o1->method_values.size(); i < n; ++i)
-      if(!o1->method_values[i].equal(o2->method_values[i])) return false;
+      if(!(o1->method_values[i].*same_as)(o2->method_values[i])) return false;
     return true;
   }
 
 
   // returns whether found a valid method
-  bool prm_DYNAMIC_OBJeq(const obj_type& object,const data& rhs,const char* eq_name,bool& result) noexcept {
+  bool prm_DYNAMIC_OBJeq(const obj_type& object,const data& rhs,const char* eq_name,bool& result) {
     // Search methods for the "->string" printing polymorphic method
     for(size_type i = 0, n = object->method_names.size(); i < n; ++i) {
       if(object->method_names[i] == "this=" || object->method_names[i] == eq_name) {
-        try {
-          scm_list arg(1,rhs), procedure_cpy(object->method_values[i].exp);
-          data calling_object(object);
-          scm_list procedure = extend_method_env_with_THIS_object(calling_object,procedure_cpy).exp;
-          env_type env = object->proto->defn_env;
-          data eq_result = data_cast(execute_application(procedure,arg,env));
-          result = (eq_result.type != types::bol || eq_result.bol.val);
-          return true;
-        } catch(...) {
-          return false;
-        }
+        scm_list arg(1,rhs), procedure_cpy(object->method_values[i].exp);
+        data calling_object(object);
+        scm_list procedure = extend_method_env_with_THIS_object(calling_object,procedure_cpy).exp;
+        env_type env = object->proto->defn_env;
+        data eq_result = data_cast(execute_application(procedure,arg,env));
+        result = (eq_result.type != types::bol || eq_result.bol.val);
+        return true;
       }
     }
     return false;
