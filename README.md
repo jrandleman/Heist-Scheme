@@ -1113,8 +1113,7 @@ Other primitives of this nature include:<br>
 1. Printing: `this->string` method will attempt to be invoked on objects for `display`, `write`, `pprint`
    - Method should accept 0 arguments, and return a string to be "displayed"!
    - May also have specific printing polymorphism by naming methods `display`, `write`, `pprint` directly
-2. NOTE: 
-   - These are ___NOT___ passed via inheritance by default, unless explicitly invoked as a method
+2. NOTE: These are ___NOT___ passed via inheritance by default, unless explicitly invoked as a method
 
 #### Method Access to Object Members:
 0. Like C++, `this` is implicitly passed as a method argument upon invocation
