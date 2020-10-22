@@ -6522,8 +6522,6 @@ namespace heist {
     std::make_pair(primitive_PROTO_INHERITANCES,      "proto-inheritances"),
     std::make_pair(primitive_PROTO_ADD_MEMBER_BANG,   "proto-add-member!"),
     std::make_pair(primitive_PROTO_ADD_METHOD_BANG,   "proto-add-method!"),
-    std::make_pair(primitive_PROTO_INHERIT_BANG,      "proto-inherit!"),
-    std::make_pair(primitive_PROTO_INHERIT_PLUS_BANG, "proto-inherit+!"),
 
     std::make_pair(primitive_CYCLE_COROUTINES_BANG, "cycle-coroutines!"),
   };
