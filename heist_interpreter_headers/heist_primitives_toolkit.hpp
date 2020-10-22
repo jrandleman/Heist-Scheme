@@ -5133,38 +5133,6 @@ namespace heist {
           << args[0].cls->class_name << "\"!" << format << FCN_ERR(name,args));
   }
 
-
-  void validate_proto_dynamic_inheritance_args(scm_list& args, const char* name, const char* format) {
-    if(args.size() < 2)
-      THROW_ERR('\''<<name<<" not enough args received!" << format << FCN_ERR(name,args));
-    for(size_type i = 0, n = args.size(); i < n; ++i)
-      if(!args[i].is_type(types::cls))
-        THROW_ERR('\''<<name<<" arg #"<<i+1<<' '<<PROFILE(args[i])<<" isn't a class-prototype!"
-          << format << FCN_ERR(name,args));
-  }
-
-
-  void output_inheritance_chain_history_circular_error(std::vector<scm_string> class_inheritance_chain, const scm_string& lhs_name, 
-                                                                              const char* name, const char* format, scm_list& args){
-    scm_string circular_history = lhs_name;
-    for(auto iter = class_inheritance_chain.rbegin(), end = class_inheritance_chain.rend(); iter != end; ++iter)
-      circular_history += " -> " + *iter;
-    THROW_ERR('\''<<name<<" illegal circular inheritance detected:"
-      "\n     " << circular_history << format << FCN_ERR(name,args));
-  }
-
-
-  // confirm <rhs> doesn't have <lhs> in its inheritance history
-  void confirm_no_circular_inheritance(cls_type& lhs, cls_type& rhs, std::vector<scm_string> class_inheritance_chain, 
-                                                               const char* name, const char* format, scm_list& args){
-    class_inheritance_chain.push_back(rhs->class_name);
-    for(size_type i = 0, n = rhs->inheritance_chain.size(); i < n; ++i) {
-      if(rhs->inheritance_chain[i] == lhs)
-        output_inheritance_chain_history_circular_error(class_inheritance_chain,lhs->class_name,name,format,args);
-      confirm_no_circular_inheritance(lhs,rhs->inheritance_chain[i],class_inheritance_chain,name,format,args);
-    }
-  }
-
   /******************************************************************************
   * COROUTINE CYCLING PRIMITIVE HELPERS
   ******************************************************************************/

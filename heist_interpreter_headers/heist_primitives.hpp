@@ -5689,34 +5689,6 @@ namespace heist {
     return G::VOID_DATA_OBJECT;
   }
 
-  data primitive_PROTO_INHERIT_BANG(scm_list& args) {
-    static constexpr const char * const format = 
-      "\n     (proto-inherit! <class-prototype> <class-prototype-to-inherit-1> ...)";
-    validate_proto_dynamic_inheritance_args(args,"proto-inherit!",format);
-    std::vector<scm_string> class_inheritance_chain(1,args[0].cls->class_name);
-    // confirm no circular inheritance prior adding ANY of the inheritances
-    for(size_type i = 1, n = args.size(); i < n; ++i)
-      confirm_no_circular_inheritance(args[0].cls,args[i].cls,class_inheritance_chain,"proto-inherit!",format,args);
-    // insert at the back to NOT have name-conflict priority (still using left-precedence for the args)
-    for(size_type i = 1, n = args.size(); i < n; ++i)
-      args[0].cls->inheritance_chain.push_back(args[i].cls);
-    return G::VOID_DATA_OBJECT;
-  }
-
-  data primitive_PROTO_INHERIT_PLUS_BANG(scm_list& args) {
-    static constexpr const char * const format = 
-      "\n     (proto-inherit+! <class-prototype> <class-prototype-to-inherit-1> ...)";
-    validate_proto_dynamic_inheritance_args(args,"proto-inherit+!",format);
-    std::vector<scm_string> class_inheritance_chain(1,args[0].cls->class_name);
-    // confirm no circular inheritance prior adding ANY of the inheritances
-    for(size_type i = 1, n = args.size(); i < n; ++i)
-      confirm_no_circular_inheritance(args[0].cls,args[i].cls,class_inheritance_chain,"proto-inherit+!",format,args);
-    // insert at the front to have name-conflict priority (still using left-precedence for the args)
-    for(size_type i = args.size(); i-- > 1;)
-      args[0].cls->inheritance_chain.insert(args[0].cls->inheritance_chain.begin(), args[i].cls);
-    return G::VOID_DATA_OBJECT;
-  }
-
   /******************************************************************************
   * COROUTINE CYCLING PRIMITIVE
   ******************************************************************************/
