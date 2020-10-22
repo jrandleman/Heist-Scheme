@@ -50,7 +50,7 @@ namespace heist {
   bool        data_is_the_empty_expression(const data& d)noexcept;
   void        shallow_unpack_list_into_exp(data& curr_pair, scm_list& args_list)noexcept;
   void        primitive_UNFOLD_template(scm_list&,scm_list&,const char*,const char* format);
-  data        extend_method_env_with_THIS_object(data& calling_obj, scm_list& procedure);
+  data        extend_method_env_with_SELF_object(data& calling_obj, scm_list& procedure);
   frame_var   procedure_name(const scm_list& p)noexcept;
   scm_string  escape_chars(const scm_string& str)noexcept;
   scm_string  unescape_chars(const scm_string& str)noexcept;
@@ -5193,7 +5193,7 @@ namespace heist {
     auto& methods = d.obj->method_names;
     for(size_type i = 0, n = methods.size(); i < n; ++i)
       if(methods[i] == "next") {
-        d = extend_method_env_with_THIS_object(d,d.obj->method_values[i].exp);
+        d = extend_method_env_with_SELF_object(d,d.obj->method_values[i].exp);
         scm_list arg(1,symconst::sentinel_arg);
         return data_cast(execute_application(d.exp,arg,d.obj->proto->defn_env));
       }

@@ -1143,7 +1143,7 @@ namespace heist {
   }
 
   // ((set-<member-name>! <value>)
-  //   (heist:core:oo:set-member! this '<member-name> <value>))
+  //   (heist:core:oo:set-member! self '<member-name> <value>))
   template<typename OBJECT_TYPE> // PRECONDITION: <OBJECT_TYPE> ::= <class_prototype> | <object_type>
   void define_setter_method_for_member(OBJECT_TYPE& obj_instance,env_type& env,const scm_string& member_name){
     obj_instance.method_names.push_back("set-"+member_name+'!');
@@ -1152,7 +1152,7 @@ namespace heist {
     setter_lambda[1] = scm_list(1,"heist:core:oo:new-value");
     setter_lambda[2] = scm_list(4);
     setter_lambda[2].exp[0] = "heist:core:oo:set-member!";
-    setter_lambda[2].exp[1] = "this";
+    setter_lambda[2].exp[1] = "self";
     setter_lambda[2].exp[2] = scm_list(2);
     setter_lambda[2].exp[2].exp[0] = symconst::quote;
     setter_lambda[2].exp[2].exp[1] = member_name;
@@ -1174,20 +1174,20 @@ namespace heist {
     property_generator[1].exp[1] = "property-value";
     property_generator[2] = scm_list(4);
     property_generator[2].exp[0] = underlying_prm;
-    property_generator[2].exp[1] = "this";
+    property_generator[2].exp[1] = "self";
     property_generator[2].exp[2] = "property-name";
     property_generator[2].exp[3] = "property-value";
     proto.method_values.push_back(data_cast(scm_eval(std::move(property_generator),env)));
   }
 
   // ((add-member! member-name default-value)
-  //   (heist:core:oo:register-member! this member-name default-value))
+  //   (heist:core:oo:register-member! self member-name default-value))
   void define_dynamic_member_generator(class_prototype& proto, env_type& env) {
     define_dynamic_property_generator(proto,env,"add-member!","heist:core:oo:register-member!");
   }
 
   // ((add-method! method-name procedure-value)
-  //   (heist:core:oo:register-method! this method-name procedure-value))
+  //   (heist:core:oo:register-method! self method-name procedure-value))
   void define_dynamic_method_generator(class_prototype& proto, env_type& env) {
     define_dynamic_property_generator(proto,env,"add-method!","heist:core:oo:register-method!");
   }
@@ -1236,21 +1236,21 @@ namespace heist {
   }
 
   // (define (make-<class-name> <... CUSTOM CTOR ARGS HERE ...>)
-  //   (define this (heist:core:oo:make-object <class-name>))
+  //   (define self (heist:core:oo:make-object <class-name>))
   //   <... CUSTOM CTOR BODY HERE ...>
-  //   this)
+  //   self)
   void define_custom_prototype_constructor(const scm_string& class_name, env_type& env, scm_list& ctor_proc) {
     scm_list custom_ctor(3+ctor_proc.size());
     custom_ctor[0] = symconst::define;
     custom_ctor[1] = ctor_proc[0].exp;
     custom_ctor[2] = scm_list(3);
     custom_ctor[2].exp[0] = symconst::define;
-    custom_ctor[2].exp[1] = "this";
+    custom_ctor[2].exp[1] = "self";
     custom_ctor[2].exp[2] = scm_list(2);
     custom_ctor[2].exp[2].exp[0] = "heist:core:oo:make-object";
     custom_ctor[2].exp[2].exp[1] = class_name;
     std::move(ctor_proc.begin()+1,ctor_proc.end(),custom_ctor.begin()+3);
-    *custom_ctor.rbegin() = "this";
+    *custom_ctor.rbegin() = "self";
     scm_eval(std::move(custom_ctor),env);
   }
 
@@ -2663,7 +2663,7 @@ namespace heist {
     cps_defn[2].exp[0].exp[2].exp[0].exp[2] = get_cps_defn_set_procedure(cps_defn[2].exp[0].exp[2].exp[0].exp[1].exp[0],
                                                                          defn_exp[1],defn_exp[2]);
 
-    // Continue w/ expression after binding [THIS IS THE "k1" CONTINUATION OF THE EXPRESSION ABOVE]
+    // Continue w/ expression after binding [SELF IS THE "k1" CONTINUATION OF THE EXPRESSION ABOVE]
     cps_defn[2].exp[0].exp[2].exp[1] = scm_list(3);
     cps_defn[2].exp[0].exp[2].exp[1].exp[0] = symconst::lambda;
     cps_defn[2].exp[0].exp[2].exp[1].exp[1] = scm_list(1,"ignore"); // result of set!
@@ -4374,13 +4374,13 @@ namespace heist {
   }
 
 
-  // extend <procedure>'s env with <calling_obj> as "this"
-  data extend_method_env_with_THIS_object(data& calling_obj, scm_list& procedure) {
+  // extend <procedure>'s env with <calling_obj> as "self"
+  data extend_method_env_with_SELF_object(data& calling_obj, scm_list& procedure) {
     auto& env  = procedure_environment(procedure);
     auto& vars = frame_variables(*env->operator[](0));
     auto& vals = frame_values(*env->operator[](0));
-    if(vars.empty() || vars[0] != "this") {
-      vars.insert(vars.begin(), "this");
+    if(vars.empty() || vars[0] != "self") {
+      vars.insert(vars.begin(), "self");
       vals.insert(vals.begin(), calling_obj);
     } else {
       vals[0] = calling_obj;
@@ -4406,7 +4406,7 @@ namespace heist {
         // cache accessed inherited method
         value.obj->method_names.push_back(sought_property);
         value.obj->method_values.push_back(proto->method_values[i]);
-        value = extend_method_env_with_THIS_object(value, proto->method_values[i].exp);
+        value = extend_method_env_with_SELF_object(value, proto->method_values[i].exp);
         is_member = false;
         return true;
       }
@@ -4434,7 +4434,7 @@ namespace heist {
     auto& methods = value.obj->method_names;
     for(size_type i = 0, n = methods.size(); i < n; ++i)
       if(methods[i] == property) {
-        value = extend_method_env_with_THIS_object(value, value.obj->method_values[i].exp);
+        value = extend_method_env_with_SELF_object(value, value.obj->method_values[i].exp);
         is_member = false;
         return true;
       }

@@ -5568,7 +5568,7 @@ namespace heist {
     confirm_given_unary_object_arg(args,"object-methods");
     map_data m;
     for(size_type i = 0, n = args[0].obj->method_names.size(); i < n; ++i)
-      m.val[args[0].obj->method_names[i]+char(types::sym)] = extend_method_env_with_THIS_object(args[0],args[0].obj->method_values[i].exp);
+      m.val[args[0].obj->method_names[i]+char(types::sym)] = extend_method_env_with_SELF_object(args[0],args[0].obj->method_values[i].exp);
     return make_map(std::move(m));
   }
 
@@ -5905,9 +5905,9 @@ namespace heist {
   (defclass coroutine ()
     (value #f) ; access yielded value
     ((next)    ; continue/start coroutine
-      (if this.coroutine:private:cont         ; if started coroutine
-          (this.coroutine:private:cont #f id) ;   ignore #f value, artifact of cps-transform
-          (this.coroutine:private:launch)))   ;   launch coroutine
+      (if self.coroutine:private:cont         ; if started coroutine
+          (self.coroutine:private:cont #f id) ;   ignore #f value, artifact of cps-transform
+          (self.coroutine:private:launch)))   ;   launch coroutine
     (coroutine:private:cont #f)    ; IGNORE: USED INTERNALLY
     (coroutine:private:launch #f)) ; IGNORE: USED INTERNALLY
 

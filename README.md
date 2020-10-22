@@ -1107,17 +1107,17 @@ Other primitives of this nature include:<br>
    - If member/method exists: sets value, else: adds it as a new property
 
 #### Equality & Printing Dynamic Dispatch Method Overloads:
-0. Equality: `this=` method will attempt to be invoked on objects for `eq?`, `eqv?`, `equal?`
+0. Equality: `self=` method will attempt to be invoked on objects for `eq?`, `eqv?`, `equal?`
    - Method should accept 1 argument to compare equality against!
    - May also have specific equality polymorphism by naming methods `eq?`, `eqv?`, `equal?` directly
-1. Printing: `this->string` method will attempt to be invoked on objects for `display`, `write`, `pprint`
+1. Printing: `self->string` method will attempt to be invoked on objects for `display`, `write`, `pprint`
    - Method should accept 0 arguments, and return a string to be "displayed"!
    - May also have specific printing polymorphism by naming methods `display`, `write`, `pprint` directly
 2. NOTE: These are ___NOT___ passed via inheritance by default, unless explicitly invoked as a method
 
 #### Method Access to Object Members:
-0. Like C++, `this` is implicitly passed as a method argument upon invocation
-1. Unlike C++, object members ___must___ be referenced via `this.<member>` in methods
+0. Like C++, `self` is implicitly passed as a method argument upon invocation
+1. Unlike C++, object members ___must___ be referenced via `self.<member>` in methods
    - Enables methods to also reference external variables with members' names
 
 #### Value Semantics & Property Access:
@@ -1134,7 +1134,7 @@ Other primitives of this nature include:<br>
   (right '())
   (val 0)
   ((leaf?)
-    (and (null? this.left) (null? this.right))))
+    (and (null? self.left) (null? self.right))))
 
 (define root (make-node))
 (root.set-left! (make-node))
@@ -1338,7 +1338,7 @@ Other primitives of this nature include:<br>
 
 4. __Object Methods Hash-Map__: `(object-methods <object>)`
    * Returns a [`hash-map`](#Hash-Map-Procedures) of method names & values
-   * Method values already have `<object>` bound as `this`!
+   * Method values already have `<object>` bound as `self`!
 
 
 ### Prototype Primitives:

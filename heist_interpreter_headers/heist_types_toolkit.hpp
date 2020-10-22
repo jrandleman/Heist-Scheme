@@ -522,17 +522,17 @@ namespace heist {
 
   scm_list execute_application(scm_list&,scm_list&,env_type&,const bool tail_call=false,const bool inlined=false);
   scm_list execute_application(scm_list&&,scm_list&,env_type&,const bool tail_call=false,const bool inlined=false);
-  data     extend_method_env_with_THIS_object(data& calling_obj, scm_list& procedure);
+  data     extend_method_env_with_SELF_object(data& calling_obj, scm_list& procedure);
   data     data_cast(const scm_list& l)noexcept;
 
   template<DATA_PRINTER to_str>
   scm_string cio_obj_str(const obj_type& object,const char* printer_name) {
     // Search methods for the "->string" printing polymorphic method
     for(size_type i = 0, n = object->method_names.size(); i < n; ++i) {
-      if(object->method_names[i] == "this->string" || object->method_names[i] == printer_name) {
+      if(object->method_names[i] == "self->string" || object->method_names[i] == printer_name) {
         scm_list arg(1,symconst::sentinel_arg), procedure_cpy(object->method_values[i].exp);
         data calling_object(object);
-        scm_list procedure = extend_method_env_with_THIS_object(calling_object,procedure_cpy).exp;
+        scm_list procedure = extend_method_env_with_SELF_object(calling_object,procedure_cpy).exp;
         env_type env = object->proto->defn_env;
         data result = data_cast(execute_application(procedure,arg,env));
         if(result.is_type(types::str)) return *result.str;
@@ -697,10 +697,10 @@ namespace heist {
   bool prm_DYNAMIC_OBJeq(const obj_type& object,const data& rhs,const char* eq_name,bool& result) {
     // Search methods for the "->string" printing polymorphic method
     for(size_type i = 0, n = object->method_names.size(); i < n; ++i) {
-      if(object->method_names[i] == "this=" || object->method_names[i] == eq_name) {
+      if(object->method_names[i] == "self=" || object->method_names[i] == eq_name) {
         scm_list arg(1,rhs), procedure_cpy(object->method_values[i].exp);
         data calling_object(object);
-        scm_list procedure = extend_method_env_with_THIS_object(calling_object,procedure_cpy).exp;
+        scm_list procedure = extend_method_env_with_SELF_object(calling_object,procedure_cpy).exp;
         env_type env = object->proto->defn_env;
         data eq_result = data_cast(execute_application(procedure,arg,env));
         result = (eq_result.type != types::bol || eq_result.bol.val);
