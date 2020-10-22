@@ -252,6 +252,9 @@ namespace heist {
     if(!exp[1].is_type(types::sym))
       THROW_ERR("'set! 1st arg " << PROFILE(exp[1]) << " can't be reassigned"
         " (only symbols)!\n     (set! <var> <val>)" << EXP_ERR(exp));
+    if(exp[1].sym.find('.') != scm_string::npos)
+      THROW_ERR("'set! 1st arg object property-chain-access [ " << exp[1] 
+        << " ] can't be defined (only symbols):\n     (set! <var> <val>)" << EXP_ERR(exp));
   }
 
 
@@ -264,6 +267,10 @@ namespace heist {
       THROW_ERR("'define 1st arg [ " << exp[1] << " ] of type \"" 
         << exp[1].type_name() << "\" can't be defined (only symbols):"
         "\n     (define <var> <val>)"
+        "\n     (define (<procedure-name> <args>) <body>)" << EXP_ERR(exp));
+    if(exp[1].is_type(types::sym) && exp[1].sym.find('.') != scm_string::npos)
+      THROW_ERR("'define 1st arg object property-chain-access [ " << exp[1] 
+        << " ] can't be defined (only symbols):\n     (define <var> <val>)"
         "\n     (define (<procedure-name> <args>) <body>)" << EXP_ERR(exp));
     if(exp[1].is_type(types::exp) && 
         (exp[1].exp.empty() || !exp[1].exp[0].is_type(types::sym)))
@@ -1086,7 +1093,7 @@ namespace heist {
     if(!exp[2].is_type(types::exp))
       THROW_ERR("'defclass 2nd arg "<<PROFILE(exp[2])<<" isn't an inherited prototype definition!" DEFCLASS_LAYOUT << EXP_ERR(exp));
     if(exp[2].exp.size() > 1)
-      THROW_ERR("'defclass 2nd arg "<<PROFILE(exp[2])<<" has more than 1 inherited prototype!" DEFCLASS_LAYOUT << EXP_ERR(exp));
+      THROW_ERR("'defclass 2nd arg "<<PROFILE(exp[2])<<" has more than 1 inherited prototype (no multi inheritance)!" DEFCLASS_LAYOUT << EXP_ERR(exp));
     if(exp[2].exp.size() == 1 && !exp[2].exp[0].is_type(types::sym))
       THROW_ERR("'defclass 2nd arg (inherited entity) "<<PROFILE(exp[2])<<" isn't a symbolic class prototype name!" DEFCLASS_LAYOUT << EXP_ERR(exp));
     for(size_type i = 3, n = exp.size(); i < n; ++i) {
@@ -1308,7 +1315,7 @@ namespace heist {
       // define the class prototype
       define_variable(proto.class_name,make_cls(proto),env);
       // generate the ctor
-      define_default_prototype_constructor(exp[1].sym,env,"default:make-"); // default ctor always available
+      define_default_prototype_constructor(exp[1].sym,env,"new-"); // default ctor always available
       if(ctor_proc.empty()) define_default_prototype_constructor(exp[1].sym,env,"make-");
       else                  define_custom_prototype_constructor(exp[1].sym,env,ctor_proc);
       // define the class predicate
@@ -2209,13 +2216,13 @@ namespace heist {
     }
 
     // Returns whether found <sought_property> in <proto> or its inherited prototype
-    bool verify_in_prototype_and_inherited_properties(cls_type& proto, const scm_string& sought_property, bool& is_member, data& value)noexcept{
+    bool verify_in_prototype_and_inherited_properties(cls_type& proto, const scm_string& sought_property, bool& is_member, obj_type& obj)noexcept{
+      bool verify_value_in_local_object(obj_type&,const scm_string&,bool&)noexcept;
       // Search the prototype
       for(size_type i = 0, n = proto->member_names.size(); i < n; ++i)
         if(proto->member_names[i] == sought_property) {
           // cache accessed inherited member
-          value.obj->member_names.push_back(sought_property), value.obj->member_values.push_back(proto->member_values[i]);
-          value = proto->member_values[i];
+          obj->member_names.push_back(sought_property), obj->member_values.push_back(proto->member_values[i]);
           is_member = true;
           return true;
         }
@@ -2225,21 +2232,21 @@ namespace heist {
           return true;
         }
       // Search the inherited prototypes (& in turn their inherited prototypes as well)
-      return proto->inherited && verify_in_prototype_and_inherited_properties(proto->inherited,sought_property,is_member,value);
+      return proto->inherited && obj->inherited && verify_value_in_local_object(obj->inherited,sought_property,is_member);
     }
 
-    // Returns whether found <property> as a member/method in <value.obj> 
-    // If returns true, <property> value is in <value> & <is_member> denotes whether a member or method
-    bool verify_value_in_local_object(data& value, const scm_string& property, bool& is_member)noexcept{
-      auto& members = value.obj->member_names;
+    // Returns whether found <property> as a member/method in <obj> 
+    // If returns true, <property> value is in <obj> & <is_member> denotes whether a member or method
+    bool verify_value_in_local_object(obj_type& obj, const scm_string& property, bool& is_member)noexcept{
+      auto& members = obj->member_names;
       // Seek members
       for(size_type i = 0, n = members.size(); i < n; ++i)
         if(members[i] == property) {
-          value = value.obj->member_values[i], is_member = true;
+          is_member = true;
           return true;
         }
       // Seek methods
-      auto& methods = value.obj->method_names;
+      auto& methods = obj->method_names;
       for(size_type i = 0, n = methods.size(); i < n; ++i)
         if(methods[i] == property) {
           is_member = false;
@@ -2247,7 +2254,7 @@ namespace heist {
         }
       // Seek proto & its inherited prototype
       // => IF FOUND, ADD IT TO THE LOCAL OBJECT INSTANCE
-      return verify_in_prototype_and_inherited_properties(value.obj->proto,property,is_member,value);
+      return verify_in_prototype_and_inherited_properties(obj->proto,property,is_member,obj);
     }
 
     // Returns the ultimate value of the call-chain
@@ -2263,7 +2270,7 @@ namespace heist {
         if(!value.is_type(types::obj)) return true;
         // Search local members & methods, the proto, and the proto inheritances
         bool is_member = false;
-        if(!verify_value_in_local_object(value,chain[i],is_member)) return true;
+        if(!verify_value_in_local_object(value.obj,chain[i],is_member)) return true;
         // if found a method, confirm at the last item in the call chain
         if(!is_member && i+1 < n) return true;
       }
@@ -4370,7 +4377,7 @@ namespace heist {
 
 
   // extend <procedure>'s env with <calling_obj> as "self"
-  data extend_method_env_with_SELF_object(data& calling_obj, scm_list& procedure) {
+  data extend_method_env_with_SELF_object(data& calling_obj, scm_list& procedure)noexcept{
     auto& env  = procedure_environment(procedure);
     auto& vars = frame_variables(*env->operator[](0));
     auto& vals = frame_values(*env->operator[](0));
@@ -4386,6 +4393,7 @@ namespace heist {
 
   // Returns whether found <sought_property> in <proto> or its inherited prototype
   bool search_prototype_and_inherited_properties(cls_type& proto, const scm_string& sought_property, bool& is_member, data& value)noexcept{
+    bool seek_call_value_in_local_object(data& value, const scm_string& property, bool& is_member)noexcept;
     // Search the prototype
     for(size_type i = 0, n = proto->member_names.size(); i < n; ++i)
       if(proto->member_names[i] == sought_property) {
@@ -4405,14 +4413,16 @@ namespace heist {
         is_member = false;
         return true;
       }
-    // Search the inherited prototypes (& in turn their inherited prototypes as well)
-    return proto->inherited && search_prototype_and_inherited_properties(proto->inherited,sought_property,is_member,value);
+
+    if(!value.obj->inherited) return false;
+    value = value.obj->inherited;
+    return proto->inherited && seek_call_value_in_local_object(value,sought_property,is_member);
   }
 
 
   // Returns whether found <property> as a member/method in <value.obj> 
   // If returns true, <property> value is in <value> & <is_member> denotes whether a member or method
-  bool seek_call_value_in_local_object(data& value, const scm_string& property, bool& is_member) {
+  bool seek_call_value_in_local_object(data& value, const scm_string& property, bool& is_member)noexcept{
     auto& members = value.obj->member_names;
     // Seek members
     for(size_type i = 0, n = members.size(); i < n; ++i)

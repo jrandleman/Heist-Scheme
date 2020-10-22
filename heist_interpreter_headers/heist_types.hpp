@@ -830,6 +830,7 @@ namespace heist {
 
   // object structure
   struct object_type {
+    obj_type inherited = nullptr; // inherited proto subobject instance
     cls_type proto; // ptr to the prototype object
     std::vector<scm_string> member_names, method_names;
     scm_list member_values, method_values;

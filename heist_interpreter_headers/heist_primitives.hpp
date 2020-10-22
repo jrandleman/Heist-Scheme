@@ -5407,28 +5407,10 @@ namespace heist {
     static constexpr const char * const format = 
       "\n     (heist:core:oo:set-member! <object> <member-name-symbol> <value>)";
     validate_oo_member_setter(args,"heist:core:oo:set-member!",format);
-    // Search local members
-    for(size_type i = 0, n = args[0].obj->member_names.size(); i < n; ++i) {
-      if(args[0].obj->member_names[i] == args[1].sym) {
-        args[0].obj->member_values[i] = args[2];
-        return G::VOID_DATA_OBJECT;
-      }
-    }
-    // Search Prototype/Inherited Members
-    if(!search_prototype_and_inherited_members(args[0].obj->proto,args[1].sym))
+    // Search Prototype/Inherited Prototype
+    if(!set_new_object_member_value(args[0].obj->proto,args[0].obj,args[1].sym,args[2]))
       THROW_ERR("'heist:core:oo:set-member! 2nd member-name arg "<<PROFILE(args[1])
         <<" isn't a member of "<<PROFILE(args[0])<<'!'<<format<<FCN_ERR("heist:core:oo:set-member!",args));
-    // Confirm Member doesn't already exist as a local method
-    for(size_type i = 0, n = args[0].obj->method_names.size(); i < n; ++i) {
-      if(args[0].obj->method_names[i] == args[1].sym) {
-        THROW_ERR("'set-"<<args[1].sym<<"! member-name arg "<<PROFILE(args[1])
-        <<" is already defined as a method of "<<PROFILE(args[0])<<'!'
-        <<format<<FCN_ERR("'set-"+args[1].sym+'!',args));
-      }
-    }
-    // add the newly found member name & assign it the given value
-    args[0].obj->member_names.push_back(args[1].sym);
-    args[0].obj->member_values.push_back(args[2]);
     return G::VOID_DATA_OBJECT;
   }
 
@@ -5464,12 +5446,7 @@ namespace heist {
     // create the object
     auto& class_proto_obj = args[0].cls;
     object_type obj;
-    // assign default values (deep copy members)
-    obj.proto = class_proto_obj; // ptr to the prototype object
-    for(size_type i = 0, n = class_proto_obj->member_values.size(); i < n; ++i)
-      obj.member_values.push_back(data::deep_copy(class_proto_obj->member_values[i]));
-    obj.member_names = class_proto_obj->member_names;
-    obj.method_names = class_proto_obj->method_names, obj.method_values = class_proto_obj->method_values;
+    initialize_object_with_prototype_properties_and_inheritance(obj,class_proto_obj);
     // no args (or '()) given
     if(args.size() == 1 || data_is_the_empty_expression(args[1])) return make_obj(std::move(obj));
     // confirm given a container (hmap | vector | list)
@@ -5551,11 +5528,6 @@ namespace heist {
     return args[0].obj->proto->class_name;
   }
 
-  data primitive_OBJECT_PROTO(scm_list& args) {
-    confirm_given_unary_object_arg(args,"object-proto");
-    return args[0].obj->proto;
-  }
-
   data primitive_OBJECT_MEMBERS(scm_list& args) {
     confirm_given_unary_object_arg(args,"object-members");
     map_data m;
@@ -5602,12 +5574,12 @@ namespace heist {
   // NOTE: recursively converts object member values into hashmaps as well
   data primitive_OBJECT_TO_HMAP(scm_list& args) {
     confirm_given_unary_object_arg(args,"object->hmap");
-    return prm_recursively_convert_OBJ_to_HMAP(args[0]);
+    return prm_recursively_convert_OBJ_to_HMAP<false>(args[0]);
   }
 
   data primitive_OBJECT_TO_ALIST(scm_list& args) {
     confirm_given_unary_object_arg(args,"object->alist");
-    return prm_recursively_convert_HMAP_to_ALIST(prm_recursively_convert_OBJ_to_HMAP(args[0]));
+    return prm_recursively_convert_HMAP_to_ALIST(prm_recursively_convert_OBJ_to_HMAP<false>(args[0]));
   }
 
   data primitive_OBJECT_TO_JSON(scm_list& args) {
@@ -5626,7 +5598,7 @@ namespace heist {
           << "\n     <optional-indent-width> := [0, " << G::MAX_SIZE_TYPE << ']' << FCN_ERR("object->json",args));
       indent_width = (size_type)args[1].num.extract_inexact();
     }
-    auto val = prm_convert_OBJ_HMAP_into_valid_JSON_ALIST_datum(prm_recursively_convert_OBJ_to_HMAP(args[0]));
+    auto val = prm_convert_OBJ_HMAP_into_valid_JSON_ALIST_datum(prm_recursively_convert_OBJ_to_HMAP<true>(args[0]));
     return make_str(heist_json_generator::format_scm_as_json(val,indent_width,args,format));
   }
 
@@ -5886,14 +5858,14 @@ namespace heist {
     ((_ val)
       (heist:core:pass-continuation-co-call/cc
         (lambda (k) 
-          (jump! (default:make-coroutine (vector val (lambda () (catch-jump k id)))))))))
+          (jump! (new-coroutine (vector val (lambda () (catch-jump k id)))))))))
 
 
   (core-syntax pause () ; ONLY DESIGNED TO BE USED IN define-coroutine BODIES
     ((_) 
       (heist:core:pass-continuation-co-call/cc
         (lambda (k) 
-          (jump! (default:make-coroutine (vector #f (lambda () (catch-jump k id)))))))))
+          (jump! (new-coroutine (vector #f (lambda () (catch-jump k id)))))))))
 
 
   ;; NESTING define-coroutine CAUSES UNDEFINED BEHAVIOR
@@ -5902,7 +5874,7 @@ namespace heist {
   (core-syntax define-coroutine () 
     ((_ co-name body ...)
       (define (co-name)
-        (default:make-coroutine (vector #f #f (lambda () (catch-jump (scm->cps body ...) id)))))))
+        (new-coroutine (vector #f #f (lambda () (catch-jump (scm->cps body ...) id)))))))
 
 
   ;; Convert a coroutine iterator into a generator thunk!
@@ -6506,7 +6478,6 @@ namespace heist {
     std::make_pair(primitive_HEIST_CORE_OO_REGISTER_METHOD, "heist:core:oo:register-method!"),
 
     std::make_pair(primitive_OBJECT_CLASS_NAME,           "object-class-name"),
-    std::make_pair(primitive_OBJECT_PROTO,                "object-proto"),
     std::make_pair(primitive_OBJECT_MEMBERS,              "object-members"),
     std::make_pair(primitive_OBJECT_METHODS,              "object-methods"),
     std::make_pair(primitive_HEIST_CORE_OO_MEMBER_ACCESS, ".."),

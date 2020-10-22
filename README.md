@@ -1088,7 +1088,7 @@ Other primitives of this nature include:<br>
 0. User-defined `make-<class-name>` ctor is optional, if undefined will be generated
    - Generated ctor is either nullary, or accepts a container to initialize member values:
      * container = name-value [`hash-map`](#Hash-Map-Procedures), or value [`list`](#ListPair-Procedures)/[`vector`](#Vector-Procedures)!
-   - Default ctor is always available via `default:make-<class-name>`
+   - Default ctor is always available via `new-<class-name>`
 1. Default values from class-prototypes are [`deep-copied`](#typeof--deep-copying) to objects upon construction
 2. [Dynamically add properties to prototypes](#Prototype-Primitives), which existing objects get access to!
 
@@ -1101,6 +1101,11 @@ Other primitives of this nature include:<br>
    - `(<object>.add-method! <method-name-symbol> <procedure-value>)`
    - If member/method exists: sets value, else: adds it as a new property
 
+#### Prototype, Self, & Inherited Object Access:
+0. `.prototype` member returns the class prototype of the object
+1. `.self` refers to the current invoking object (designed for use in methods)
+2. `.super` member returns object's underlying inherited object (returns `#f` id dne)
+
 #### Equality & Printing Dynamic Dispatch Method Overloads:
 0. Equality: `self=` method will attempt to be invoked on objects for `eq?`, `eqv?`, `equal?`
    - Method should accept 1 argument to compare equality against!
@@ -1108,10 +1113,9 @@ Other primitives of this nature include:<br>
 1. Printing: `self->string` method will attempt to be invoked on objects for `display`, `write`, `pprint`
    - Method should accept 0 arguments, and return a string to be "displayed"!
    - May also have specific printing polymorphism by naming methods `display`, `write`, `pprint` directly
-2. NOTE: These are ___NOT___ passed via inheritance by default, unless explicitly invoked as a method
 
 #### Method Access to Object Members:
-0. Like C++, `self` is implicitly passed as a method argument upon invocation
+0. Similar to C++'s `this`, `self` is implicitly passed as a method argument upon invocation
 1. Unlike C++, object members ___must___ be referenced via `self.<member>` in methods
    - Enables methods to also reference external variables with members' names
 
@@ -1326,12 +1330,10 @@ Other primitives of this nature include:<br>
 
 1. __Class Name__: `(object-class-name <object>)`
 
-2. __Class Prototype__: `(object-proto <object>)`
-
-3. __Object Members Hash-Map__: `(object-members <object>)`
+2. __Object Members Hash-Map__: `(object-members <object>)`
    * Returns a [`hash-map`](#Hash-Map-Procedures) of member names & values
 
-4. __Object Methods Hash-Map__: `(object-methods <object>)`
+3. __Object Methods Hash-Map__: `(object-methods <object>)`
    * Returns a [`hash-map`](#Hash-Map-Procedures) of method names & values
    * Method values already have `<object>` bound as `self`!
 

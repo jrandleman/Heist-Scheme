@@ -522,22 +522,39 @@ namespace heist {
 
   scm_list execute_application(scm_list&,scm_list&,env_type&,const bool tail_call=false,const bool inlined=false);
   scm_list execute_application(scm_list&&,scm_list&,env_type&,const bool tail_call=false,const bool inlined=false);
-  data     extend_method_env_with_SELF_object(data& calling_obj, scm_list& procedure);
+  data     extend_method_env_with_SELF_object(data& calling_obj, scm_list& procedure)noexcept;
   data     data_cast(const scm_list& l)noexcept;
+
+  data apply_dynamic_method(obj_type& obj, scm_list arg, scm_list procedure_cpy) {
+    data calling_object(obj);
+    scm_list procedure = extend_method_env_with_SELF_object(calling_object,procedure_cpy).exp;
+    env_type env = obj->proto->defn_env;
+    return data_cast(execute_application(procedure,arg,env));
+  }
 
   template<DATA_PRINTER to_str>
   scm_string cio_obj_str(const obj_type& object,const char* printer_name) {
-    // Search methods for the "->string" printing polymorphic method
-    for(size_type i = 0, n = object->method_names.size(); i < n; ++i) {
-      if(object->method_names[i] == "self->string" || object->method_names[i] == printer_name) {
-        scm_list arg(1,symconst::sentinel_arg), procedure_cpy(object->method_values[i].exp);
-        data calling_object(object);
-        scm_list procedure = extend_method_env_with_SELF_object(calling_object,procedure_cpy).exp;
-        env_type env = object->proto->defn_env;
-        data result = data_cast(execute_application(procedure,arg,env));
-        if(result.is_type(types::str)) return *result.str;
-        return (result.*to_str)();
+    obj_type obj = object;
+    while(obj) {
+      // search object's local members
+      for(size_type i = 0, n = obj->method_names.size(); i < n; ++i) {
+        if(obj->method_names[i] == "self->string" || obj->method_names[i] == printer_name) {
+          data result = apply_dynamic_method(obj,scm_list(1,symconst::sentinel_arg),obj->method_values[i].exp);
+          if(result.is_type(types::str)) return *result.str;
+          return (result.*to_str)();
+        }
       }
+      // search object's prototype
+      for(size_type i = 0, n = obj->proto->method_names.size(); i < n; ++i) {
+        if(obj->proto->method_names[i] == "self->string" || obj->proto->method_names[i] == printer_name) {
+          obj->member_names.push_back(obj->proto->method_names[i]), obj->member_values.push_back(obj->proto->method_values[i]);
+          data result = apply_dynamic_method(obj,scm_list(1,symconst::sentinel_arg),obj->method_values[i].exp);
+          if(result.is_type(types::str)) return *result.str;
+          return (result.*to_str)();
+        }
+      }
+      // search inherited object prototype
+      obj = obj->inherited;
     }
     return "#<object[0x"+pointer_to_hexstring(object.ptr)+"]>";
   }
@@ -696,16 +713,27 @@ namespace heist {
   // returns whether found a valid method
   bool prm_DYNAMIC_OBJeq(const obj_type& object,const data& rhs,const char* eq_name,bool& result) {
     // Search methods for the "->string" printing polymorphic method
-    for(size_type i = 0, n = object->method_names.size(); i < n; ++i) {
-      if(object->method_names[i] == "self=" || object->method_names[i] == eq_name) {
-        scm_list arg(1,rhs), procedure_cpy(object->method_values[i].exp);
-        data calling_object(object);
-        scm_list procedure = extend_method_env_with_SELF_object(calling_object,procedure_cpy).exp;
-        env_type env = object->proto->defn_env;
-        data eq_result = data_cast(execute_application(procedure,arg,env));
-        result = (eq_result.type != types::bol || eq_result.bol.val);
-        return true;
+    obj_type obj = object;
+    while(obj) {
+      // search object's local members
+      for(size_type i = 0, n = obj->method_names.size(); i < n; ++i) {
+        if(obj->method_names[i] == "self=" || obj->method_names[i] == eq_name) {
+          data eq_result = apply_dynamic_method(obj,scm_list(1,rhs),obj->method_values[i].exp);
+          result = (eq_result.type != types::bol || eq_result.bol.val);
+          return true;
+        }
       }
+      // search object's prototype
+      for(size_type i = 0, n = obj->proto->method_names.size(); i < n; ++i) {
+        if(obj->proto->method_names[i] == "self=" || obj->proto->method_names[i] == eq_name) {
+          obj->member_names.push_back(obj->proto->method_names[i]), obj->member_values.push_back(obj->proto->method_values[i]);
+          data eq_result = apply_dynamic_method(obj,scm_list(1,rhs),obj->method_values[i].exp);
+          result = (eq_result.type != types::bol || eq_result.bol.val);
+          return true;
+        }
+      }
+      // search inherited object prototype
+      obj = obj->inherited;
     }
     return false;
   }
@@ -786,6 +814,7 @@ namespace heist {
   data deep_copy_obj(const data& d) noexcept {
     object_type o;
     o.proto = d.obj->proto; // shallow copy the prototype (these are never deep copied!)
+    if(o.inherited) o.inherited = deep_copy_obj(make_obj(*o.inherited)).obj;
     o.member_names = d.obj->member_names;
     o.method_names = d.obj->method_names;
     for(const auto& member_val : d.obj->member_values)

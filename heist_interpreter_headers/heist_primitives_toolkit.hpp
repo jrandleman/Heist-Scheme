@@ -26,7 +26,7 @@ namespace heist {
   bool     prepare_string_for_AST_generation(scm_string& input);
   bool     data_is_continuation_parameter(const data& d)noexcept;
   bool     expand_macro_if_in_env(const sym_type&,const scm_list&,env_type&,scm_list&);
-  bool     seek_call_value_in_local_object(data& value, const scm_string& property, bool& is_member);
+  bool     seek_call_value_in_local_object(data& value, const scm_string& property, bool& is_member)noexcept;
   void     parse_input_exp(scm_string&& input, scm_list& abstract_syntax_tree);
   void     skip_string_literal(size_type& i, const scm_string& input)noexcept;
   void     set_default_global_environment();
@@ -50,7 +50,6 @@ namespace heist {
   bool        data_is_the_empty_expression(const data& d)noexcept;
   void        shallow_unpack_list_into_exp(data& curr_pair, scm_list& args_list)noexcept;
   void        primitive_UNFOLD_template(scm_list&,scm_list&,const char*,const char* format);
-  data        extend_method_env_with_SELF_object(data& calling_obj, scm_list& procedure);
   frame_var   procedure_name(const scm_list& p)noexcept;
   scm_string  escape_chars(const scm_string& str)noexcept;
   scm_string  unescape_chars(const scm_string& str)noexcept;
@@ -4953,13 +4952,22 @@ namespace heist {
 
 
   // Returns whether found <sought_member> in <proto> or its inheritance chain
-  bool search_prototype_and_inherited_members(cls_type& proto, const scm_string& sought_member)noexcept{
-    // Search the prototype
-    for(size_type i = 0, n = proto->member_names.size(); i < n; ++i)
-      if(proto->member_names[i] == sought_member)
+  bool set_new_object_member_value(cls_type& proto, obj_type& obj, const scm_string& sought_member, data& new_val)noexcept{
+    // Search local members
+    for(size_type i = 0, n = obj->member_names.size(); i < n; ++i)
+      if(obj->member_names[i] == sought_member) {
+        obj->member_values[i] = new_val;
         return true;
+      }
+    // Search the prototype & cache the new member if found
+    for(size_type i = 0, n = proto->member_names.size(); i < n; ++i)
+      if(proto->member_names[i] == sought_member) {
+        obj->member_names.push_back(sought_member);
+        obj->member_values.push_back(new_val);
+        return true;
+      }
     // Search the inherited prototype
-    return proto->inherited && search_prototype_and_inherited_members(proto->inherited,sought_member);
+    return proto->inherited && obj->inherited && set_new_object_member_value(proto->inherited,obj->inherited,sought_member,new_val);
   }
 
 
@@ -5017,6 +5025,29 @@ namespace heist {
     return make_obj(std::move(obj));
   }
 
+
+  void initialize_object_with_prototype_properties_and_inheritance(object_type& obj, cls_type& class_proto_obj)noexcept{
+    // assign default values (deep copy members)
+    obj.proto = class_proto_obj; // ptr to the prototype object
+    for(size_type i = 0, n = class_proto_obj->member_values.size(); i < n; ++i)
+      obj.member_values.push_back(data::deep_copy(class_proto_obj->member_values[i]));
+    obj.member_names = class_proto_obj->member_names;
+    obj.method_names = class_proto_obj->method_names, obj.method_values = class_proto_obj->method_values;
+    // add the <prototype> member
+    obj.member_names.push_back("prototype");
+    obj.member_values.push_back(class_proto_obj);
+    // add the <super> member
+    obj.member_names.push_back("super");
+    if(class_proto_obj->inherited) {
+      object_type inherited_obj;
+      initialize_object_with_prototype_properties_and_inheritance(inherited_obj,class_proto_obj->inherited);
+      obj.inherited = make_obj(std::move(inherited_obj));
+      obj.member_values.push_back(obj.inherited);
+    } else {
+      obj.member_values.push_back(G::FALSE_DATA_BOOLEAN);
+    }
+  }
+
   /******************************************************************************
   * DEFCLASS OO GENERAL OBJECT ANALYSIS PRIMITIVES HELPERS
   ******************************************************************************/
@@ -5032,11 +5063,16 @@ namespace heist {
 
 
   // recursively converts objects (including object member values) into hmaps
+  // <DONT_INCLUDE_SUPER_PROTOTYPE_MEMBERS> -> true iff generating JSON
+  template<bool DONT_INCLUDE_SUPER_PROTOTYPE_MEMBERS>
   data prm_recursively_convert_OBJ_to_HMAP(const data& d)noexcept{
     map_data m;
     for(size_type i = 0, n = d.obj->member_names.size(); i < n; ++i) {
+      if constexpr (DONT_INCLUDE_SUPER_PROTOTYPE_MEMBERS)
+        if(d.obj->member_names[i] == "super" || d.obj->member_names[i] == "prototype") 
+          continue;
       if(d.obj->member_values[i].is_type(types::obj))
-        m.val[d.obj->member_names[i]+char(types::sym)] = prm_recursively_convert_OBJ_to_HMAP(d.obj->member_values[i]);
+        m.val[d.obj->member_names[i]+char(types::sym)] = prm_recursively_convert_OBJ_to_HMAP<DONT_INCLUDE_SUPER_PROTOTYPE_MEMBERS>(d.obj->member_values[i]);
       else
         m.val[d.obj->member_names[i]+char(types::sym)] = d.obj->member_values[i];
     }
