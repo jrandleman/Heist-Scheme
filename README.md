@@ -1078,15 +1078,11 @@ Other primitives of this nature include:<br>
 
 #### Form:
 ```
-     (defclass <class-name> (<inheritance-list>) <member-or-method-instances>)
+     (defclass <class-name> (<optional-inherited-prototype>) <member-or-method-instances>)
      => <member-or-method-instance> ::= (<member-name> <default-value>)
                                       | ((<method-name> <arg1> <arg2> ...) <body> ...)
                                       | ((make-<class-name> <arg> ...) <body> ...) ; ctor!
 ```
-
-#### Inheritance Prototype List:
-0. Leftmost Precedence: if inherited prototypes share members with names,<br>
-   the leftmost inherited prototype has precedence!
 
 #### Constructor:
 0. User-defined `make-<class-name>` ctor is optional, if undefined will be generated
@@ -1347,7 +1343,7 @@ Other primitives of this nature include:<br>
 
 2. __Prototype Method Names List__: `(proto-methods <class-prototype>)`
 
-3. __Inherited Prototypes List__: `(proto-inheritances <class-prototype>)`
+3. __Inherited Prototype__: `(proto-inherited <class-prototype>)`
 
 4. __Dynamically Add New Member__: 
    * `(proto-add-member! <class-prototype> <member-name-symbol> <default-value>)`

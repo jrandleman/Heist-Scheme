@@ -1072,7 +1072,7 @@ namespace heist {
 
 
   #define DEFCLASS_LAYOUT\
-    "\n     (defclass <class-name> (<inheritance-list>) <member-or-method-instances>)"\
+    "\n     (defclass <class-name> (<optional-inherited-prototype>) <member-or-method-instances>)"\
     "\n     => <member-or-method-instance> ::= (<member-name> <default-value>)"\
     "\n                                      | ((<method-name> <arg1> <arg2> ...) <body> ...)"\
     "\n                                      | ((make-<class-name> <arg> ...) <body> ...) ; ctor!"
@@ -1084,11 +1084,11 @@ namespace heist {
     if(!exp[1].is_type(types::sym))
       THROW_ERR("'defclass 1st arg "<<PROFILE(exp[1])<<" isn't a symbolic class name!" DEFCLASS_LAYOUT << EXP_ERR(exp));
     if(!exp[2].is_type(types::exp))
-      THROW_ERR("'defclass 2nd arg "<<PROFILE(exp[1])<<" isn't a list of inherited classes!" DEFCLASS_LAYOUT << EXP_ERR(exp));
-    for(size_type i = 0, n = exp[2].exp.size(); i < n; ++i)
-      if(!exp[2].exp[i].is_type(types::sym))
-        THROW_ERR("'defclass inherited entity #"<<i+1<<' '<<PROFILE(exp[2].exp[i])
-          <<" isn't a symbolic class name!" DEFCLASS_LAYOUT << EXP_ERR(exp));
+      THROW_ERR("'defclass 2nd arg "<<PROFILE(exp[2])<<" isn't an inherited prototype definition!" DEFCLASS_LAYOUT << EXP_ERR(exp));
+    if(exp[2].exp.size() > 1)
+      THROW_ERR("'defclass 2nd arg "<<PROFILE(exp[2])<<" has more than 1 inherited prototype!" DEFCLASS_LAYOUT << EXP_ERR(exp));
+    if(exp[2].exp.size() == 1 && !exp[2].exp[0].is_type(types::sym))
+      THROW_ERR("'defclass 2nd arg (inherited entity) "<<PROFILE(exp[2])<<" isn't a symbolic class prototype name!" DEFCLASS_LAYOUT << EXP_ERR(exp));
     for(size_type i = 3, n = exp.size(); i < n; ++i) {
       if(!exp[i].is_type(types::exp) || exp[i].exp.size() < 2)
         THROW_ERR("'defclass invalid <member-or-method-instance> => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
@@ -1107,14 +1107,13 @@ namespace heist {
     }
   }
 
-  void validate_inherited_entities(class_prototype& proto, scm_list& exp, env_type& env){
-    for(auto& inherited : exp[2].exp) {
-      auto result = lookup_variable_value(inherited.sym,env);
-      if(!result.is_type(types::cls))
-        THROW_ERR("'defclass inheritance entity " << PROFILE(inherited) << " isn't a class prototype!" 
-          << DEFCLASS_LAYOUT << EXP_ERR(exp));
-      proto.inheritance_chain.push_back(result.cls);
-    }
+  void validate_inherited_entity(class_prototype& proto, scm_list& exp, env_type& env){
+    if(exp[2].exp.empty()) return;
+    auto result = lookup_variable_value(exp[2].exp[0].sym,env);
+    if(!result.is_type(types::cls))
+      THROW_ERR("'defclass inheritance entity " << PROFILE(exp[2].exp[0]) << " isn't a class prototype!" 
+        << DEFCLASS_LAYOUT << EXP_ERR(exp));
+    proto.inherited = result.cls;
   }
 
   void validate_unique_member_or_method_name(scm_list& exp,const scm_string& name,const std::vector<scm_string>& seen_names,const char* message){
@@ -1295,9 +1294,9 @@ namespace heist {
             method_exec_procs=std::move(method_exec_procs),exp=std::move(exp),
             ctor_proc=std::move(ctor_proc)](env_type& env)mutable{
       proto.defn_env = env;
-      // confirm inheriting from class objects & build inheritance chain
+      // confirm inheriting from class objects & add inherited prototype (if present)
       // NOTE: THIS ORDERING IS IN PART RESPONSIBLE (ALONG WITH SEARCH) FOR LEFT-PREDECENT INHERITANCE
-      validate_inherited_entities(proto,exp,env);
+      validate_inherited_entity(proto,exp,env);
       // evaluate member and method values
       evaluate_method_and_member_exec_procs(proto,member_exec_procs,method_exec_procs,env);
       // define setters for members
@@ -2209,7 +2208,7 @@ namespace heist {
       return true;
     }
 
-    // Returns whether found <sought_property> in <proto> or its inheritance chain
+    // Returns whether found <sought_property> in <proto> or its inherited prototype
     bool verify_in_prototype_and_inherited_properties(cls_type& proto, const scm_string& sought_property, bool& is_member, data& value)noexcept{
       // Search the prototype
       for(size_type i = 0, n = proto->member_names.size(); i < n; ++i)
@@ -2225,12 +2224,8 @@ namespace heist {
           is_member = false;
           return true;
         }
-      // Search the inherited prototypes (& in turn their inheritance chains as well)
-      // => NOTE that this traversal is (in part, along with inheritance registration) why we have LEFT-PRECEDENT INHERITANCE LIST ORDER
-      for(size_type i = 0, n = proto->inheritance_chain.size(); i < n; ++i)
-        if(verify_in_prototype_and_inherited_properties(proto->inheritance_chain[i],sought_property,is_member,value))
-          return true;
-      return false;
+      // Search the inherited prototypes (& in turn their inherited prototypes as well)
+      return proto->inherited && verify_in_prototype_and_inherited_properties(proto->inherited,sought_property,is_member,value);
     }
 
     // Returns whether found <property> as a member/method in <value.obj> 
@@ -2250,7 +2245,7 @@ namespace heist {
           is_member = false;
           return true;
         }
-      // Seek proto & its inheritance chain
+      // Seek proto & its inherited prototype
       // => IF FOUND, ADD IT TO THE LOCAL OBJECT INSTANCE
       return verify_in_prototype_and_inherited_properties(value.obj->proto,property,is_member,value);
     }
@@ -4389,7 +4384,7 @@ namespace heist {
   }
 
 
-  // Returns whether found <sought_property> in <proto> or its inheritance chain
+  // Returns whether found <sought_property> in <proto> or its inherited prototype
   bool search_prototype_and_inherited_properties(cls_type& proto, const scm_string& sought_property, bool& is_member, data& value)noexcept{
     // Search the prototype
     for(size_type i = 0, n = proto->member_names.size(); i < n; ++i)
@@ -4410,12 +4405,8 @@ namespace heist {
         is_member = false;
         return true;
       }
-    // Search the inherited prototypes (& in turn their inheritance chains as well)
-    // => NOTE that this traversal is (in part, along with inheritance registration) why we have LEFT-PRECEDENT INHERITANCE LIST ORDER
-    for(size_type i = 0, n = proto->inheritance_chain.size(); i < n; ++i)
-      if(search_prototype_and_inherited_properties(proto->inheritance_chain[i],sought_property,is_member,value))
-        return true;
-    return false;
+    // Search the inherited prototypes (& in turn their inherited prototypes as well)
+    return proto->inherited && search_prototype_and_inherited_properties(proto->inherited,sought_property,is_member,value);
   }
 
 
@@ -4438,7 +4429,7 @@ namespace heist {
         is_member = false;
         return true;
       }
-    // Seek proto & its inheritance chain
+    // Seek proto & its inherited prototype
     // => IF FOUND, ADD IT TO THE LOCAL OBJECT INSTANCE
     return search_prototype_and_inherited_properties(value.obj->proto,property,is_member,value);
   }

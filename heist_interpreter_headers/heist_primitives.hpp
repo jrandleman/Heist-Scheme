@@ -5655,12 +5655,10 @@ namespace heist {
     return primitive_LIST_to_CONS_constructor(method_names.begin(),method_names.end());
   }
 
-  data primitive_PROTO_INHERITANCES(scm_list& args) {
-    confirm_given_unary_class_prototype_arg(args,"proto-inheritances");
-    scm_list inheritances;
-    for(const auto& inheritance : args[0].cls->inheritance_chain)
-      inheritances.push_back(inheritance);
-    return primitive_LIST_to_CONS_constructor(inheritances.begin(),inheritances.end());
+  data primitive_PROTO_INHERITED(scm_list& args) {
+    confirm_given_unary_class_prototype_arg(args,"proto-inherited");
+    if(!args[0].cls->inherited) return symconst::emptylist;
+    return args[0].cls->inherited;
   }
 
   data primitive_PROTO_ADD_MEMBER_BANG(scm_list& args) {
@@ -6519,7 +6517,7 @@ namespace heist {
     std::make_pair(primitive_PROTO_CLASS_NAME,        "proto-class-name"),
     std::make_pair(primitive_PROTO_MEMBERS,           "proto-members"),
     std::make_pair(primitive_PROTO_METHODS,           "proto-methods"),
-    std::make_pair(primitive_PROTO_INHERITANCES,      "proto-inheritances"),
+    std::make_pair(primitive_PROTO_INHERITED,         "proto-inherited"),
     std::make_pair(primitive_PROTO_ADD_MEMBER_BANG,   "proto-add-member!"),
     std::make_pair(primitive_PROTO_ADD_METHOD_BANG,   "proto-add-method!"),
 

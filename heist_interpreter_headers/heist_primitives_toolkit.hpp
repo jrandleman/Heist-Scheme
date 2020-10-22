@@ -4958,12 +4958,8 @@ namespace heist {
     for(size_type i = 0, n = proto->member_names.size(); i < n; ++i)
       if(proto->member_names[i] == sought_member)
         return true;
-    // Search the inherited prototypes (& in turn their inheritance chains as well)
-    // => NOTE that this traversal is (in part, along with inheritance registration) why we have LEFT-PRECEDENT INHERITANCE LIST ORDER
-    for(size_type i = 0, n = proto->inheritance_chain.size(); i < n; ++i)
-      if(search_prototype_and_inherited_members(proto->inheritance_chain[i],sought_member))
-        return true;
-    return false;
+    // Search the inherited prototype
+    return proto->inherited && search_prototype_and_inherited_members(proto->inherited,sought_member);
   }
 
 
