@@ -543,6 +543,55 @@ namespace heist {
   }
 
   /******************************************************************************
+  * PAIR EQUALITY HELPERS (ENABLES COMPARING CIRCULAR LISTS)
+  ******************************************************************************/
+
+  bool new_cycle_detected(const data& slow, const data& fast, par_type cycle_start)noexcept{
+    return !cycle_start && fast.is_type(types::par) && fast.par->second.is_type(types::par) && slow.par == fast.par;
+  }
+
+
+  void find_cycle_start(const data& slow, const data& fast, par_type& cycle_start)noexcept{
+    auto fast_runner = fast;
+    cycle_start = slow.par; // seek cycle's start
+    while(cycle_start != fast_runner.par)
+      cycle_start = cycle_start->second.par,
+      fast_runner = fast_runner.par->second.par->second;
+  }
+
+
+  // Equality list recursive helper
+  template<DATA_COMPARER same_as>
+  bool list_equality_recur(const data& slow1, const data& fast1, const data& slow2, const data& fast2, 
+                                                        par_type cycle_start1, par_type cycle_start2){
+    // Confirm working with 2 pairs
+    if(!slow1.is_type(types::par) || !slow2.is_type(types::par)) 
+      return (slow1.*same_as)(slow2);
+    // Confirm car elts are equal
+    if(!(slow1.par->first.*same_as)(slow2.par->first)) 
+      return false;
+    // Confirm next 2 elts are pairs
+    if(!slow1.par->second.is_type(types::par) || !slow2.par->second.is_type(types::par)) 
+      return (slow1.par->second.*same_as)(slow2.par->second);
+    // Check if detected a cycle (simultaneously performs Floyd's Loop Detection algorithm)
+    if(new_cycle_detected(slow1,fast1,cycle_start1)) find_cycle_start(slow1,fast1,cycle_start1);
+    if(new_cycle_detected(slow2,fast2,cycle_start2)) find_cycle_start(slow2,fast2,cycle_start2);
+    // Check if at a cycle
+    if(slow1.par->second.par == cycle_start1 || slow2.par->second.par == cycle_start2)
+      return slow1.par->second.par == cycle_start1 && slow2.par->second.par == cycle_start2;
+    // Check the rest of the list
+    return list_equality_recur<same_as>(slow1.par->second, fast1.par->second.par->second, 
+                                        slow2.par->second, fast2.par->second.par->second, 
+                                        cycle_start1, cycle_start2);
+  }
+
+
+  template<DATA_COMPARER same_as>
+  bool prm_compare_PAIRs(const par_type& p1, const par_type& p2) {
+    return list_equality_recur<same_as>(p1,p1,p2,p2,nullptr,nullptr);
+  }
+
+  /******************************************************************************
   * DATA EQUALITY HELPERS
   ******************************************************************************/
 
@@ -586,12 +635,6 @@ namespace heist {
     for(size_type i = 0, n = l1.size(); i < n; ++i)
       if(!(l1[i].*same_as)(l2[i])) return false;
     return true;
-  }
-
-
-  template<DATA_COMPARER same_as>
-  bool prm_compare_PAIRs(const par_type& p1, const par_type& p2) {
-    return p1.ptr && p2.ptr && (p1->first.*same_as)(p2->first) && (p1->second.*same_as)(p2->second);
   }
 
 
