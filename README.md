@@ -1116,7 +1116,7 @@ Other primitives of this nature include:<br>
 
 #### Overload Application via Functors:
 0. The `self->procedure` method will automatically be called on any object applied as a procedure!
-   - Think `operator()()` in C++
+   - Think `operator()()` in C++!
    - Check out the primitive [`functor?`](#Type-Predicates-Undefined--Void) predicate!
    - Convert functors to procedures via the [`functor->procedure`](#Type-Coercion) primitive!
 
