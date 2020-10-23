@@ -4487,6 +4487,14 @@ namespace heist {
   * APPLICATION
   ******************************************************************************/
 
+  // -- OPERATOR EVALUATION
+  // generates <scm_list proc>: macro avoids extra copies
+  #define evaluate_operator(OPERATOR_PROC,OPERATOR_ENV)\
+    auto proc = OPERATOR_PROC(OPERATOR_ENV);\
+    if(proc.size() == 1 && primitive_data_is_a_functor(proc[0]))\
+      proc = primitive_extract_callable_procedure(proc[0]);\
+
+
   // -- PRIMITIVE PROCEDURES: identification & application
   bool is_primitive_procedure(const scm_list& p)noexcept{
     return is_tagged_list(p,symconst::primitive);
@@ -4623,7 +4631,7 @@ namespace heist {
       arg_procs[i] = scm_analyze(scm_list_cast(arg_exps[i]),false,true);
     return [op_proc=std::move(op_proc),arg_procs=std::move(arg_procs),
             tail_call=std::move(tail_call)](env_type& env)mutable{
-      auto proc = op_proc(env);
+      evaluate_operator(op_proc,env); // generates <scm_list proc>
       // Pass the result of the proc to the current continuation IFF
       //   proc was defined OUTSIDE of a scm->cps block
       if(procedure_defined_outside_of_CPS_block(proc)) {
@@ -4738,7 +4746,8 @@ namespace heist {
               tail_call=std::move(tail_call)](env_type& env){
         scm_list arg_vals(arg_procs.size());
         eval_application_arg_procs(arg_procs,arg_vals,env);
-        return execute_application(op_proc(env),arg_vals,env,tail_call);
+        evaluate_operator(op_proc,env); // generates <scm_list proc>
+        return execute_application(proc,arg_vals,env,tail_call);
       };
     }
     // If possible macro, expand the application if so, else analyze args at eval
@@ -4752,7 +4761,8 @@ namespace heist {
       scm_list arg_vals(arg_exps.size());
       for(size_type i = 0, n = arg_exps.size(); i < n; ++i)
         arg_vals[i] = data_cast(scm_analyze(scm_list_cast(arg_exps[i]),false,cps_block)(env));
-      return execute_application(op_proc(env),arg_vals,env,tail_call);
+      evaluate_operator(op_proc,env); // generates <scm_list proc>
+      return execute_application(proc,arg_vals,env,tail_call);
     };
   }
 
@@ -4810,6 +4820,8 @@ namespace heist {
     throw_unknown_analysis_anomalous_error(exp);
     return exe_type();
   }
+
+  #undef evaluate_operator
 
   /******************************************************************************
   * GLOBAL ENVIRONMENT SETUP

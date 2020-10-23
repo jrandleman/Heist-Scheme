@@ -921,13 +921,13 @@ namespace heist {
   // primitive "string-unfold" procedure:
   data primitive_STRING_UNFOLD(scm_list& args) {
     return primitive_STRING_UNFOLD_template(args,false,"string-unfold",
-      "\n     (string-unfold <break-condition> <map-procedure> <successor-procedure> <seed>)");
+      "\n     (string-unfold <break-condition> <map-callable> <successor-callable> <seed>)");
   }
 
   // primitive "string-unfold-right" procedure:
   data primitive_STRING_UNFOLD_RIGHT(scm_list& args) {
     return primitive_STRING_UNFOLD_template(args,true,"string-unfold-right",
-      "\n     (string-unfold-right <break-condition> <map-procedure> <successor-procedure> <seed>)");
+      "\n     (string-unfold-right <break-condition> <map-callable> <successor-callable> <seed>)");
   }
 
   // primitive "string-pad" procedure:
@@ -1380,7 +1380,8 @@ namespace heist {
       /* extract the environment */\
       auto env = args.rbegin()->env;\
       args.pop_back();\
-      hmap_confirm_binary_procedure_map(NAME,"\n     (" NAME " <procedure> <hash-map>)",args);\
+      hmap_confirm_binary_procedure_map(NAME,"\n     (" NAME " <callable> <hash-map>)",args);\
+      scm_list procedure(primitive_extract_callable_procedure(args[0]));\
       size_type n = args[1].map->val.size(), i = 0;\
       std::vector<scm_string> keys(n);\
       for(auto& keyvalue : args[1].map->val)\
@@ -1393,33 +1394,34 @@ namespace heist {
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_FOR_EACH_KEY,"hmap-for-each-key",
     scm_list arg(1,map_data::unhash_key(keys[i]));
-    execute_application(args[0].exp,arg,env););
+    execute_application(procedure,arg,env););
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_FOR_EACH_VAL,"hmap-for-each-val",
     scm_list arg(1,args[1].map->val[keys[i]]);
-    execute_application(args[0].exp,arg,env););
+    execute_application(procedure,arg,env););
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_FOR_EACH,"hmap-for-each",
     auto p = make_par();
     p->first = map_data::unhash_key(keys[i]);
     p->second = args[1].map->val[keys[i]];
     scm_list arg(1,p);
-    execute_application(args[0].exp,arg,env););
+    execute_application(procedure,arg,env););
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_MAP_BANG,"hmap-map!",
     scm_list arg(1,args[1].map->val[keys[i]]);
-    args[1].map->val[keys[i]] = data_cast(execute_application(args[0].exp,arg,env)););
+    args[1].map->val[keys[i]] = data_cast(execute_application(procedure,arg,env)););
 
   // primitive "hmap-map"
   data primitive_HMAP_MAP(scm_list& args) {
     // extract the environment
     auto env = args.rbegin()->env;
     args.pop_back();
-    hmap_confirm_binary_procedure_map("hmap-map","\n     (hmap-map <procedure> <hash-map>)",args);
+    hmap_confirm_binary_procedure_map("hmap-map","\n     (hmap-map <callable> <hash-map>)",args);
+    scm_list procedure(primitive_extract_callable_procedure(args[0]));
     map_data map;
     for(auto& keyvalue : args[1].map->val) {
       scm_list arg(1,keyvalue.second);
-      map.val[keyvalue.first] = data_cast(execute_application(args[0].exp,arg,env));
+      map.val[keyvalue.first] = data_cast(execute_application(procedure,arg,env));
     }
     return make_map(std::move(map));
   }
@@ -1896,7 +1898,7 @@ namespace heist {
   data primitive_UNFOLD(scm_list& args) {
     scm_list unfolded;
     primitive_UNFOLD_template(args,unfolded,"unfold",
-      "\n     (unfold <break-condition> <map-procedure> <successor-procedure> <seed>)");
+      "\n     (unfold <break-condition> <map-callable> <successor-callable> <seed>)");
     return primitive_LIST_to_CONS_constructor(unfolded.begin(),unfolded.end());
   }
 
@@ -1904,7 +1906,7 @@ namespace heist {
   data primitive_UNFOLD_RIGHT(scm_list& args) {
     scm_list unfolded;
     primitive_UNFOLD_template(args,unfolded,"unfold-right",
-      "\n     (unfold-right <break-condition> <map-procedure> <successor-procedure> <seed>)");
+      "\n     (unfold-right <break-condition> <map-callable> <successor-callable> <seed>)");
     return primitive_LIST_to_CONS_constructor(unfolded.rbegin(),unfolded.rend());
   }
 
@@ -2029,7 +2031,7 @@ namespace heist {
   data primitive_VECTOR_UNFOLD(scm_list& args) {
     scm_list unfolded;
     primitive_UNFOLD_template(args,unfolded,"vector-unfold",
-      "\n     (vector-unfold <break-condition> <map-procedure> <successor-procedure> <seed>)");
+      "\n     (vector-unfold <break-condition> <map-callable> <successor-callable> <seed>)");
     return make_vec(std::move(unfolded));
   }
 
@@ -2037,7 +2039,7 @@ namespace heist {
   data primitive_VECTOR_UNFOLD_RIGHT(scm_list& args) {
     scm_list unfolded;
     primitive_UNFOLD_template(args,unfolded,"vector-unfold-right",
-      "\n     (vector-unfold-right <break-condition> <map-procedure> <successor-procedure> <seed>)");
+      "\n     (vector-unfold-right <break-condition> <map-callable> <successor-callable> <seed>)");
     return make_vec(scm_list(unfolded.rbegin(),unfolded.rend()));
   }
 
@@ -2084,12 +2086,11 @@ namespace heist {
     if(!args[0].is_type(types::vec))
       THROW_ERR("'vector-binary-search 1st arg "<<PROFILE(args[0])<<" isn't a vector:"
         << format << FCN_ERR("vector-binary-search", args));
-    primitive_confirm_data_is_a_procedure(args[2], "vector-binary-search", format, args);
+    auto proc = validate_and_extract_callable(args[2], "vector-binary-search", format, args);
     // Perform binary search
     if(args[0].vec->empty()) return G::FALSE_DATA_BOOLEAN;
     const auto& vec   = *args[0].vec;
     const auto& value = args[1];
-          auto& proc  = args[2].exp;
     size_type high    = vec.size()-1, 
               low     = 0;
     while (low <= high) {
@@ -2099,7 +2100,7 @@ namespace heist {
       auto cmp_result = data_cast(execute_application(proc,bsearch_args,env));
       if(!cmp_result.is_type(types::num))
         THROW_ERR("'vector-binary-search result "<<PROFILE(cmp_result)<<
-          " from procedure "<<args[2]<<"\n     applied to args "<<vec[mid]
+          " from callable "<<args[2]<<"\n     applied to args "<<vec[mid]
           <<" and "<<value<<" isn't a number:"<< format << FCN_ERR("vector-binary-search", args));
       if(cmp_result.num.is_zero()) // found <value> in <vec>
         return num_type(mid);
@@ -2134,7 +2135,7 @@ namespace heist {
 
   // Sequence description for generic algorithm primitives
   #define SEQUENCE_DESCRIPTION\
-    "\n     <sequence> = <list> || <vector> || <string>"
+    "\n     <sequence> ::= <list> | <vector> | <string>"
 
   // primitive "empty" procedure (given <sequence>, return its empty version):
   data primitive_EMPTY(scm_list& args) {
@@ -2202,48 +2203,48 @@ namespace heist {
   // primitive "fold" procedure:
   data primitive_FOLD(scm_list& args) {
     static constexpr const char * const format = 
-      "\n     (fold <procedure> <init> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+      "\n     (fold <callable> <init> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
     auto env = args.rbegin()->env;
     args.pop_back();
     if(args.size() < 3) 
       THROW_ERR("'fold received insufficient args (only " 
         << args.size() << "):" << format << FCN_ERR("fold",args));
-    primitive_confirm_data_is_a_procedure(args[0], "fold", format, args);
+    auto procedure = validate_and_extract_callable(args[0], "fold", format, args);
     switch(is_proper_sequence(args[2],args,"fold",format)) {
       case heist_sequence::vec:
-        return primitive_STATIC_SEQUENCE_FOLD_template(args, "fold", 
+        return primitive_STATIC_SEQUENCE_FOLD_template(procedure, args, "fold", 
           format, true, types::vec, "vector", &data::vec, env);
       case heist_sequence::str:
-        return primitive_STATIC_SEQUENCE_FOLD_template(args, "fold", 
+        return primitive_STATIC_SEQUENCE_FOLD_template(procedure, args, "fold", 
           format, true, types::str, "string", &data::str, env);
       case heist_sequence::nul:
         return args[1];
       default:
-        return primitive_FOLD_template(args, "fold", format, true, env);
+        return primitive_FOLD_template(procedure, args, "fold", format, true, env);
     }
   }
 
   // primitive "fold-right" procedure:
   data primitive_FOLD_RIGHT(scm_list& args) {
     static constexpr const char * const format = 
-      "\n     (fold-right <procedure> <init> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+      "\n     (fold-right <callable> <init> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
     auto env = args.rbegin()->env;
     args.pop_back();
     if(args.size() < 3) 
       THROW_ERR("'fold-right received insufficient args (only " 
         << args.size() << "):" << format << FCN_ERR("fold-right",args));
-    primitive_confirm_data_is_a_procedure(args[0], "fold-right", format, args);
+    auto procedure = validate_and_extract_callable(args[0], "fold-right", format, args);
     switch(is_proper_sequence(args[2],args,"fold-right",format)) {
       case heist_sequence::vec:
-        return primitive_STATIC_SEQUENCE_FOLD_template(args, "fold-right", 
+        return primitive_STATIC_SEQUENCE_FOLD_template(procedure, args, "fold-right", 
           format, false, types::vec, "vector", &data::vec, env);
       case heist_sequence::str:
-        return primitive_STATIC_SEQUENCE_FOLD_template(args, "fold-right", 
+        return primitive_STATIC_SEQUENCE_FOLD_template(procedure, args, "fold-right", 
           format, false, types::str, "string", &data::str, env);
       case heist_sequence::nul:
         return args[1];
       default:
-        return primitive_FOLD_template(args, "fold-right", format, false, env);
+        return primitive_FOLD_template(procedure, args, "fold-right", format, false, env);
     }
   }
 
@@ -2252,22 +2253,20 @@ namespace heist {
     auto env = args.rbegin()->env;
     args.pop_back();
     static constexpr const char * const format = 
-      "\n     (filter <procedure> <sequence>)" SEQUENCE_DESCRIPTION;
+      "\n     (filter <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
     if(args.size() != 2) 
       THROW_ERR("'filter received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("filter",args));
-    primitive_confirm_data_is_a_procedure(args[0], "filter", format, args);
+    auto procedure = validate_and_extract_callable(args[0], "filter", format, args);
     switch(is_proper_sequence(args[1],args,"filter",format)) {
       case heist_sequence::vec:
-        return prm_sequence_selective_iteration_template<is_true_scm_condition>(args, 
-          types::vec, &data::vec, env);
+        return prm_sequence_selective_iteration_template<is_true_scm_condition>(procedure, args, types::vec, &data::vec, env);
       case heist_sequence::str:
-        return prm_sequence_selective_iteration_template<is_true_scm_condition>(args, 
-          types::str, &data::str, env);
+        return prm_sequence_selective_iteration_template<is_true_scm_condition>(procedure, args, types::str, &data::str, env);
       case heist_sequence::nul:
         return args[1];
       default:
-        return primitive_list_filter_logic(args, env);
+        return primitive_list_filter_logic(procedure, args, env);
     }
   }
 
@@ -2276,20 +2275,20 @@ namespace heist {
     auto env = args.rbegin()->env;
     args.pop_back();
     static constexpr const char * const format = 
-      "\n     (map <procedure> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+      "\n     (map <callable> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
     if(args.size() < 2) 
       THROW_ERR("'map received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("map",args));
-    primitive_confirm_data_is_a_procedure(args[0], "map", format, args);
+    auto procedure = validate_and_extract_callable(args[0], "map", format, args);
     switch(is_proper_sequence(args[1],args,"map",format)) {
       case heist_sequence::vec:
-        return primitive_STATIC_SEQUENCE_MAP_template(args, "map", 
+        return primitive_STATIC_SEQUENCE_MAP_template(procedure, args, "map", 
           format, types::vec, "vector", &data::vec, env);
       case heist_sequence::str:
-        return primitive_STATIC_SEQUENCE_MAP_template(args, "map", 
+        return primitive_STATIC_SEQUENCE_MAP_template(procedure, args, "map", 
           format, types::str, "string", &data::str, env);
       default:
-        return primitive_list_map_logic(args, env, format);
+        return primitive_list_map_logic(procedure, args, env, format);
     }
   }
 
@@ -2298,24 +2297,24 @@ namespace heist {
     auto env = args.rbegin()->env;
     args.pop_back();
     static constexpr const char * const format = 
-      "\n     (map! <procedure> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+      "\n     (map! <callable> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
     if(args.size() < 2) 
       THROW_ERR("'map! received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("map!",args));
-    primitive_confirm_data_is_a_procedure(args[0], "map!", format, args);
+    auto procedure = validate_and_extract_callable(args[0], "map!", format, args);
     switch(is_proper_sequence(args[1],args,"map!",format)) {
       case heist_sequence::vec:
-        *args[1].vec = *primitive_STATIC_SEQUENCE_MAP_template(args, "map!",
+        *args[1].vec = *primitive_STATIC_SEQUENCE_MAP_template(procedure, args, "map!",
           format, types::vec, "vector", &data::vec, env).vec;
         return G::VOID_DATA_OBJECT;
       case heist_sequence::str:
-        *args[1].str = *primitive_STATIC_SEQUENCE_MAP_template(args, "map!",
+        *args[1].str = *primitive_STATIC_SEQUENCE_MAP_template(procedure, args, "map!",
           format, types::str, "string", &data::str, env).str;
         return G::VOID_DATA_OBJECT;
       default:
         scm_list list_heads(args.begin()+1, args.end());
         primitive_confirm_proper_same_sized_lists(list_heads,"map!",format,1,args);
-        primitive_MAP_BANG_list_constructor(list_heads, args[0].exp, env);
+        primitive_MAP_BANG_list_constructor(list_heads, procedure, env);
         return G::VOID_DATA_OBJECT;
     }
   }
@@ -2325,20 +2324,20 @@ namespace heist {
     auto env = args.rbegin()->env;
     args.pop_back();
     static constexpr const char * const format = 
-      "\n     (for-each <procedure> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+      "\n     (for-each <callable> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
     if(args.size() < 2) 
       THROW_ERR("'for-each received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("for-each",args));
-    primitive_confirm_data_is_a_procedure(args[0], "for-each", format, args);
+    auto procedure = validate_and_extract_callable(args[0], "for-each", format, args);
     switch(is_proper_sequence(args[1],args,"for-each",format)) {
       case heist_sequence::vec:
-        return primitive_STATIC_SEQUENCE_FOR_EACH_template(args, "for-each", 
+        return primitive_STATIC_SEQUENCE_FOR_EACH_template(procedure, args, "for-each", 
           format, types::vec, "vector", &data::vec, env);
       case heist_sequence::str:
-        return primitive_STATIC_SEQUENCE_FOR_EACH_template(args, "for-each", 
+        return primitive_STATIC_SEQUENCE_FOR_EACH_template(procedure, args, "for-each", 
           format, types::str, "string", &data::str, env);
       default:
-        return primitive_list_for_each_logic(args,env,format);
+        return primitive_list_for_each_logic(procedure, args,env,format);
     }
   }
 
@@ -2383,16 +2382,16 @@ namespace heist {
     if(args.size() != 2) 
       THROW_ERR("'count received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("count",args));
-    primitive_confirm_data_is_a_procedure(args[0], "count", format, args);
+    auto procedure = validate_and_extract_callable(args[0], "count", format, args);
     switch(is_proper_sequence(args[1],args,"count",format)) {
       case heist_sequence::vec:
-        return primitive_STATIC_SEQUENCE_COUNT_template(args, &data::vec, env);
+        return primitive_STATIC_SEQUENCE_COUNT_template(procedure, args, &data::vec, env);
       case heist_sequence::str:
-        return primitive_STATIC_SEQUENCE_COUNT_template(args, &data::str, env);
+        return primitive_STATIC_SEQUENCE_COUNT_template(procedure, args, &data::str, env);
       case heist_sequence::nul:
         return num_type();
       default:
-        return primitive_list_count_logic(args,env);
+        return primitive_list_count_logic(procedure,args,env);
     }
   }
 
@@ -2531,18 +2530,16 @@ namespace heist {
     if(args.size() != 2) 
       THROW_ERR("'remove received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("remove",args));
-    primitive_confirm_data_is_a_procedure(args[0], "remove", format, args);
+    auto procedure = validate_and_extract_callable(args[0], "remove", format, args);
     switch(is_proper_sequence(args[1],args,"remove",format)) {
       case heist_sequence::nul:
         return args[1];
       case heist_sequence::vec:
-        return prm_sequence_selective_iteration_template<is_false_scm_condition>(args, 
-          types::vec, &data::vec, env);
+        return prm_sequence_selective_iteration_template<is_false_scm_condition>(procedure, args, types::vec, &data::vec, env);
       case heist_sequence::str:
-        return prm_sequence_selective_iteration_template<is_false_scm_condition>(args, 
-          types::str, &data::str, env);
+        return prm_sequence_selective_iteration_template<is_false_scm_condition>(procedure, args, types::str, &data::str, env);
       default:
-        return primitive_remove_list_logic(args[1],args[0].exp,env);
+        return primitive_remove_list_logic(args[1],procedure,env);
     }
   }
 
@@ -2555,18 +2552,18 @@ namespace heist {
     if(args.size() != 2) 
       THROW_ERR("'remove-first received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("remove-first",args));
-    primitive_confirm_data_is_a_procedure(args[0], "remove-first", format, args);
+    auto procedure = validate_and_extract_callable(args[0], "remove-first", format, args);
     switch(is_proper_sequence(args[1],args,"remove-first",format)) {
       case heist_sequence::nul:
         return args[1];
       case heist_sequence::vec:
-        return make_vec(prm_remove_first_or_last<true>(args[0].exp,*args[1].vec,env));
+        return make_vec(prm_remove_first_or_last<true>(procedure,*args[1].vec,env));
       case heist_sequence::str:
-        return make_str(prm_remove_first_or_last<true>(args[0].exp,*args[1].str,env));
+        return make_str(prm_remove_first_or_last<true>(procedure,*args[1].str,env));
       default:
         scm_list par_as_exp;
         shallow_unpack_list_into_exp(args[1],par_as_exp);
-        par_as_exp = prm_remove_first_or_last<true>(args[0].exp,par_as_exp,env);
+        par_as_exp = prm_remove_first_or_last<true>(procedure,par_as_exp,env);
         return primitive_LIST_to_CONS_constructor(par_as_exp.begin(),par_as_exp.end());
     }
   }
@@ -2580,18 +2577,18 @@ namespace heist {
     if(args.size() != 2) 
       THROW_ERR("'remove-last received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("remove-last",args));
-    primitive_confirm_data_is_a_procedure(args[0], "remove-last", format, args);
+    auto procedure = validate_and_extract_callable(args[0], "remove-last", format, args);
     switch(is_proper_sequence(args[1],args,"remove-last",format)) {
       case heist_sequence::nul:
         return args[1];
       case heist_sequence::vec:
-        return make_vec(prm_remove_first_or_last<false>(args[0].exp,*args[1].vec,env));
+        return make_vec(prm_remove_first_or_last<false>(procedure,*args[1].vec,env));
       case heist_sequence::str:
-        return make_str(prm_remove_first_or_last<false>(args[0].exp,*args[1].str,env));
+        return make_str(prm_remove_first_or_last<false>(procedure,*args[1].str,env));
       default:
         scm_list par_as_exp;
         shallow_unpack_list_into_exp(args[1],par_as_exp);
-        par_as_exp = prm_remove_first_or_last<false>(args[0].exp,par_as_exp,env);
+        par_as_exp = prm_remove_first_or_last<false>(procedure,par_as_exp,env);
         return primitive_LIST_to_CONS_constructor(par_as_exp.begin(),par_as_exp.end());
     }
   }
@@ -2695,14 +2692,14 @@ namespace heist {
     if(args.empty())
       THROW_ERR("'seq= didn't recieve any args:" 
         << format << FCN_ERR("seq=", args));
-    primitive_confirm_data_is_a_procedure(args[0], "seq=", format, args);
+    auto procedure = validate_and_extract_callable(args[0], "seq=", format, args);
     switch(is_proper_sequence(args[1],args,"seq=",format)) {
       case heist_sequence::vec:
-        return primitive_STATIC_SEQUENCE_sequence_eq_logic(args,format,env,types::vec,&data::vec);
+        return primitive_STATIC_SEQUENCE_sequence_eq_logic(procedure,args,format,env,types::vec,&data::vec);
       case heist_sequence::str:
-        return primitive_STATIC_SEQUENCE_sequence_eq_logic(args,format,env,types::str,&data::str);
+        return primitive_STATIC_SEQUENCE_sequence_eq_logic(procedure,args,format,env,types::str,&data::str);
       default:
-        return primitive_list_sequence_eq_logic(args,format,env);
+        return primitive_list_sequence_eq_logic(procedure,args,format,env);
     }
   }
 
@@ -2715,16 +2712,16 @@ namespace heist {
     if(args.size() != 2) 
       THROW_ERR("'skip received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("skip",args));
-    primitive_confirm_data_is_a_procedure(args[0], "skip", format, args);
+    auto procedure = validate_and_extract_callable(args[0], "skip", format, args);
     switch(is_proper_sequence(args[1],args,"skip",format)) {
       case heist_sequence::nul: 
         return G::FALSE_DATA_BOOLEAN;
       case heist_sequence::vec:
-        return prm_search_STATIC_SEQUENCE_from_left<is_false_scm_condition>(args,&data::vec,env);
+        return prm_search_STATIC_SEQUENCE_from_left<is_false_scm_condition>(procedure,args,&data::vec,env);
       case heist_sequence::str:
-        return prm_search_STATIC_SEQUENCE_from_left<is_false_scm_condition>(args,&data::str,env);
+        return prm_search_STATIC_SEQUENCE_from_left<is_false_scm_condition>(procedure,args,&data::str,env);
       default:
-        return prm_search_list_from_left<is_false_scm_condition>(args[1],args[0].exp,env);
+        return prm_search_list_from_left<is_false_scm_condition>(procedure,args[1],env);
     }
   }
 
@@ -2737,16 +2734,16 @@ namespace heist {
     if(args.size() != 2) 
       THROW_ERR("'skip-right received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("skip-right",args));
-    primitive_confirm_data_is_a_procedure(args[0], "skip-right", format, args);
+    auto procedure = validate_and_extract_callable(args[0], "skip-right", format, args);
     switch(is_proper_sequence(args[1],args,"skip-right",format)) {
       case heist_sequence::nul: 
         return args[1];
       case heist_sequence::vec:
-        return prm_search_STATIC_SEQUENCE_from_right<is_false_scm_condition>(args,&data::vec,env);
+        return prm_search_STATIC_SEQUENCE_from_right<is_false_scm_condition>(procedure,args,&data::vec,env);
       case heist_sequence::str:
-        return prm_search_STATIC_SEQUENCE_from_right<is_false_scm_condition>(args,&data::str,env);
+        return prm_search_STATIC_SEQUENCE_from_right<is_false_scm_condition>(procedure,args,&data::str,env);
       default:
-        return prm_search_list_from_right<is_false_scm_condition>(args,env);
+        return prm_search_list_from_right<is_false_scm_condition>(procedure,args,env);
     }
   }
 
@@ -2759,16 +2756,16 @@ namespace heist {
     if(args.size() != 2) 
       THROW_ERR("'index received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("index",args));
-    primitive_confirm_data_is_a_procedure(args[0], "index", format, args);
+    auto procedure = validate_and_extract_callable(args[0], "index", format, args);
     switch(is_proper_sequence(args[1],args,"index",format)) {
       case heist_sequence::nul:
         return G::FALSE_DATA_BOOLEAN;
       case heist_sequence::vec:
-        return prm_search_STATIC_SEQUENCE_from_left<is_true_scm_condition>(args,&data::vec,env);
+        return prm_search_STATIC_SEQUENCE_from_left<is_true_scm_condition>(procedure,args,&data::vec,env);
       case heist_sequence::str:
-        return prm_search_STATIC_SEQUENCE_from_left<is_true_scm_condition>(args,&data::str,env);
+        return prm_search_STATIC_SEQUENCE_from_left<is_true_scm_condition>(procedure,args,&data::str,env);
       default:
-        return prm_search_list_from_left<is_true_scm_condition>(args[1],args[0].exp,env);
+        return prm_search_list_from_left<is_true_scm_condition>(procedure,args[1],env);
     }
   }
 
@@ -2781,16 +2778,16 @@ namespace heist {
     if(args.size() != 2) 
       THROW_ERR("'index-right received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("index-right",args));
-    primitive_confirm_data_is_a_procedure(args[0], "index-right", format, args);
+    auto procedure = validate_and_extract_callable(args[0], "index-right", format, args);
     switch(is_proper_sequence(args[1],args,"index-right",format)) {
       case heist_sequence::nul:
         return args[1];
       case heist_sequence::vec:
-        return prm_search_STATIC_SEQUENCE_from_right<is_true_scm_condition>(args,&data::vec,env);
+        return prm_search_STATIC_SEQUENCE_from_right<is_true_scm_condition>(procedure,args,&data::vec,env);
       case heist_sequence::str:
-        return prm_search_STATIC_SEQUENCE_from_right<is_true_scm_condition>(args,&data::str,env);
+        return prm_search_STATIC_SEQUENCE_from_right<is_true_scm_condition>(procedure,args,&data::str,env);
       default:
-        return prm_search_list_from_right<is_true_scm_condition>(args,env);
+        return prm_search_list_from_right<is_true_scm_condition>(procedure,args,env);
     }
   }
 
@@ -2876,16 +2873,16 @@ namespace heist {
     if(args.size() < 2) 
       THROW_ERR("'any received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("any",args));
-    primitive_confirm_data_is_a_procedure(args[0], "any", format, args);
+    auto procedure = validate_and_extract_callable(args[0], "any", format, args);
     switch(is_proper_sequence(args[1],args,"any",format)) {
       case heist_sequence::nul:
         return G::FALSE_DATA_BOOLEAN;
       case heist_sequence::vec:
-        return primitive_STATIC_SEQUENCE_any_logic<types::vec>(args,env,&data::vec,"vector",format);
+        return primitive_STATIC_SEQUENCE_any_logic<types::vec>(procedure,args,env,&data::vec,"vector",format);
       case heist_sequence::str:
-        return primitive_STATIC_SEQUENCE_any_logic<types::str>(args,env,&data::str,"string",format);
+        return primitive_STATIC_SEQUENCE_any_logic<types::str>(procedure,args,env,&data::str,"string",format);
       default:
-        return primitive_list_any_logic(args,env,format);
+        return primitive_list_any_logic(procedure,args,env,format);
     }
   }
 
@@ -2899,16 +2896,16 @@ namespace heist {
     if(args.size() < 2) 
       THROW_ERR("'every received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("every",args));
-    primitive_confirm_data_is_a_procedure(args[0], "every", format, args);
+    auto procedure = validate_and_extract_callable(args[0], "every", format, args);
     switch(is_proper_sequence(args[1],args,"every",format)) {
       case heist_sequence::nul:
         return G::FALSE_DATA_BOOLEAN;
       case heist_sequence::vec:
-        return primitive_STATIC_SEQUENCE_every_logic<types::vec>(args,env,&data::vec,"vector",format);
+        return primitive_STATIC_SEQUENCE_every_logic<types::vec>(procedure,args,env,&data::vec,"vector",format);
       case heist_sequence::str:
-        return primitive_STATIC_SEQUENCE_every_logic<types::str>(args,env,&data::str,"string",format);
+        return primitive_STATIC_SEQUENCE_every_logic<types::str>(procedure,args,env,&data::str,"string",format);
       default:
-        return primitive_list_every_logic(args,env,format);
+        return primitive_list_every_logic(procedure,args,env,format);
     }
   }
 
@@ -2988,7 +2985,7 @@ namespace heist {
     cast_scheme_sequence_to_ast(args[1],sequence);
     // confirm the unpacked sequence is sorted as per the args[0] procedure
     if(sequence.size() > 1) {
-      auto& procedure = args[0].exp;
+      auto procedure = primitive_extract_callable_procedure(args[0]);
       for(size_type i = 0, n = sequence.size(); i+1 < n; ++i) {
         scm_list args_list(2);
         args_list[0] = sequence[i], args_list[1] = sequence[i+1];
@@ -3012,7 +3009,7 @@ namespace heist {
       THROW_ERR("'merge received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("merge",args));
     // Confirm given a procedure
-    primitive_confirm_data_is_a_procedure(args[0], "merge", format, args);
+    auto procedure = validate_and_extract_callable(args[0], "merge", format, args);
     // Confirm given only proper lists, only vectors, or only strings
     is_proper_sequence(args[1],args,"merge",format);
     is_proper_sequence(args[2],args,"merge",format);
@@ -3031,7 +3028,7 @@ namespace heist {
       return primitive_MERGE_vector_string_constructor(args,merged_sequence,env,format);
     // Else apply the procedure on each list elt & merge args as per the result into a list
     scm_list list_heads(args.begin()+1, args.end());
-    primitive_MERGE_list_constructor(list_heads,args[0].exp,merged_sequence,env);
+    primitive_MERGE_list_constructor(list_heads,procedure,merged_sequence,env);
     return primitive_LIST_to_CONS_constructor(merged_sequence.begin(),merged_sequence.end());
   }
 
@@ -3238,6 +3235,20 @@ namespace heist {
     return boolean(args[0].is_type(types::cls));
   }
 
+  // primitive "functor?" procedure:
+  // functor = object w/ a "self->procedure" method
+  data primitive_FUNCTORP(scm_list& args) {
+    confirm_given_one_arg(args, "functor?");
+    return boolean(primitive_data_is_a_functor(args[0]));
+  }
+
+  // primitive "callable?" procedure:
+  // callable = procedure? or functor?
+  data primitive_CALLABLEP(scm_list& args) {
+    confirm_given_one_arg(args, "callable?");
+    return boolean(primitive_data_is_a_callable(args[0]));
+  }
+
   /******************************************************************************
   * EVAL PRIMITIVE
   ******************************************************************************/
@@ -3322,10 +3333,10 @@ namespace heist {
       THROW_ERR("'cps-eval received incorrect # of arguments:"
         << format << FCN_ERR("cps-eval", args));
     // Extract the continuation & confirm its a procedure
-    auto continuation = *args.rbegin();
-    primitive_confirm_data_is_a_procedure(continuation, "cps-eval", format, args);
+    auto continuation = *args.rbegin();;
+    auto continuation_procedure = validate_and_extract_callable(continuation, "cps-eval", format, args);
     // set the continuation to be inlined on application
-    prm_set_procedure_INLINE_INVOCATION(continuation.exp, true);
+    prm_set_procedure_INLINE_INVOCATION(continuation_procedure, true);
     args.pop_back();
     // use the initial/global environment if passed 'null-environment or
     //   'global-environment as a 2nd arg
@@ -3335,7 +3346,7 @@ namespace heist {
     prm_CPS_EVAL_confirm_correct_number_of_args(args,must_reset_global_env,env,
                                                   original_global_env,"cps-eval",format);
     // Reset "inline"ing of the continuation if EVALing in the 'null-environment
-    if(must_reset_global_env) prm_set_procedure_INLINE_INVOCATION(continuation.exp,false);
+    if(must_reset_global_env) prm_set_procedure_INLINE_INVOCATION(continuation_procedure,false);
     // if arg is self-evaluating, return arg
     if(prm_EVAL_data_is_self_evaluating(args[0])) {
       if(must_reset_global_env) G::GLOBAL_ENVIRONMENT_POINTER = original_global_env;
@@ -3399,20 +3410,20 @@ namespace heist {
     auto env = args.rbegin()->env;
     args.pop_back();
     // confirm the correct # of arguments were passed
-    static constexpr const char * const format = "\n     (apply <procedure> <argument-list>)";
+    static constexpr const char * const format = "\n     (apply <callable> <argument-list>)";
     if(args.size() != 2)
       THROW_ERR("'apply received incorrect # of arguments:" << format << FCN_ERR("apply",args));
-    // confirm 1st arg is a procedure
-    primitive_confirm_data_is_a_procedure(args[0], "apply", format, args);
+    // confirm 1st arg is a callable
+    primitive_confirm_data_is_a_callable(args[0], "apply", format, args);
     // confirm 2nd arg is a finite, nul-terminated list
     if(!data_is_proper_list(args[1]))
-      THROW_ERR("'apply 2nd arg " << PROFILE(args[0]) << " isn't a proper list!"
+      THROW_ERR("'apply 2nd arg " << PROFILE(args[1]) << " isn't a proper list!"
         << format << FCN_ERR("apply",args));
-    // apply arguments in list to the procedure
+    // apply arguments in list to the callable
     scm_list args_list;
     shallow_unpack_list_into_exp(args[1], args_list);
     if(args_list.empty()) args_list.push_back(symconst::sentinel_arg);
-    return data_cast(execute_application(args[0].exp,args_list,env,tail_call));
+    return data_cast(execute_callable(args[0],args_list,env,tail_call));
   }
 
   /******************************************************************************
@@ -3731,17 +3742,16 @@ namespace heist {
     args.pop_back();
     // Confirm given minimum # of args needed
     static constexpr const char * const format = 
-      "\n     (stream-for-each <procedure> <stream1> <stream2> ...)";
+      "\n     (stream-for-each <callable> <stream1> <stream2> ...)";
     if(args.size() < 2) 
       THROW_ERR("'stream-for-each received insufficient args (only "
         << args.size() << "):" << format << FCN_ERR("stream-for-each", args));
-    // Confirm given a procedure
-    primitive_confirm_data_is_a_procedure(args[0], "stream-for-each", format, args);
     // Confirm only given streams
     scm_list stream_heads(args.begin()+1, args.end());
     primitive_confirm_only_given_streams(stream_heads,"stream-for-each",format,1,args);
     // Apply the procedure on each elt of each stream
-    primitive_STREAM_FOR_EACH_applicator(stream_heads, args[0].exp, env);
+    scm_list procedure(validate_and_extract_callable(args[0], "stream-for-each", format, args));
+    primitive_STREAM_FOR_EACH_applicator(stream_heads, procedure, env);
     return G::VOID_DATA_OBJECT;
   }
 
@@ -3796,7 +3806,8 @@ namespace heist {
       "\n     (stream-drop-while <predicate> <stream>)");
     // Get keep dropping items while 'predicate' is true, then return result
     if(data_is_the_empty_expression(args[1])) return args[1];
-    return primitive_DROP_WHILE_ctor(std::move(args[1]), args[0].exp, env);
+    auto procedure = primitive_extract_callable_procedure(args[0]);
+    return primitive_DROP_WHILE_ctor(std::move(args[1]), procedure, env);
   }
 
   // primitive "stream-take" procedure:
@@ -3827,7 +3838,8 @@ namespace heist {
     // Get keep dropping items while 'predicate' is true, then return result
     if(data_is_the_empty_expression(args[1])) return args[1];
     scm_list substream;
-    primitive_TAKE_WHILE_ctor(std::move(args[1]), args[0].exp, substream, env);
+    auto procedure = primitive_extract_callable_procedure(args[0]);
+    primitive_TAKE_WHILE_ctor(std::move(args[1]), procedure, substream, env);
     if(substream.empty()) return data(symconst::emptylist);
     return primitive_STREAM_to_SCONS_constructor(substream.begin(),substream.end(),env);
   }
@@ -3853,13 +3865,13 @@ namespace heist {
   // primitive "stream-fold" procedure:
   data primitive_STREAM_FOLD(scm_list& args) {
     return primitive_STREAM_FOLD_template(args, "stream-fold", 
-            "\n     (stream-fold <procedure> <seed> <stream>)", true);
+            "\n     (stream-fold <callable> <seed> <stream>)", true);
   }
 
   // primitive "stream-fold-right" procedure:
   data primitive_STREAM_FOLD_RIGHT(scm_list& args) {
     return primitive_STREAM_FOLD_template(args, "stream-fold-right", 
-            "\n     (stream-fold-right <procedure> <seed> <stream>)", false);
+            "\n     (stream-fold-right <callable> <seed> <stream>)", false);
   }
 
   // primitive "stream->list" procedure:
@@ -3902,15 +3914,15 @@ namespace heist {
   // -----------------------------------------------------------
   // primitive "stream-map" procedure:
   constexpr const char * const primitive_HEIST_STREAM_MAP = R"(
-  (define (stream-map proc . streams)
-    (if (not (procedure? proc))
+  (define (stream-map callable . streams)
+    (if (not (callable? callable))
         (syntax-error 'stream-map 
-                "1st arg isn't a procedure!\n               (stream-map <procedure> <stream1> <stream2> ...)\n               "
-                proc))
+                "1st arg isn't a callable!\n               (stream-map <callable> <stream1> <stream2> ...)\n               "
+                callable))
     (for-each (lambda (s) 
                 (if (not (stream? s)) 
                     (syntax-error 'stream-map
-                           "received a non stream!\n               (stream-map <procedure> <stream1> <stream2> ...)\n               " 
+                           "received a non stream!\n               (stream-map <callable> <stream1> <stream2> ...)\n               " 
                            s)))
               streams)
 
@@ -3918,7 +3930,7 @@ namespace heist {
       (if (stream-null? (car streams))
           stream-null
           (scons
-            (apply proc (map scar streams))
+            (apply callable (map scar streams))
             (stream-map (map scdr streams)))))
 
     (stream-map streams))
@@ -3927,9 +3939,9 @@ namespace heist {
   // primitive "stream-filter" procedure:
   constexpr const char * const primitive_HEIST_STREAM_FILTER = R"(
   (define (stream-filter pred? s)
-    (if (not (procedure? pred?))
+    (if (not (callable? pred?))
         (syntax-error 'stream-filter 
-               "1st arg isn't a procedure!\n               (stream-filter <predicate> <stream>)\n               " 
+               "1st arg isn't a callable!\n               (stream-filter <predicate> <stream>)\n               " 
                pred?))
     (if (not (stream? s)) 
         (syntax-error 'stream-filter 
@@ -3972,24 +3984,24 @@ namespace heist {
 
   // primitive "stream-unfold" procedure:
   constexpr const char * const primitive_HEIST_STREAM_UNFOLD = R"(
-  (define (stream-unfold break-cond map-proc suc-proc seed)
-    (if (not (procedure? break-cond))
+  (define (stream-unfold break-cond map-callable suc-callable seed)
+    (if (not (callable? break-cond))
         (syntax-error 'stream-unfold 
-               "1st arg isn't a procedure!\n               (stream-unfold <break-condition> <map-procedure> <successor-procedure> <seed>)\n               " 
+               "1st arg isn't a callable!\n               (stream-unfold <break-condition> <map-callable> <successor-callable> <seed>)\n               " 
                break-cond))
-    (if (not (procedure? map-proc))
+    (if (not (callable? map-callable))
         (syntax-error 'stream-unfold 
-               "2nd arg isn't a procedure!\n               (stream-unfold <break-condition> <map-procedure> <successor-procedure> <seed>)\n               " 
-               map-proc))
-    (if (not (procedure? suc-proc))
+               "2nd arg isn't a callable!\n               (stream-unfold <break-condition> <map-callable> <successor-callable> <seed>)\n               " 
+               map-callable))
+    (if (not (callable? suc-callable))
         (syntax-error 'stream-unfold 
-               "3rd arg isn't a procedure!\n               (stream-unfold <break-condition> <map-procedure> <successor-procedure> <seed>)\n               " 
-               suc-proc))
+               "3rd arg isn't a callable!\n               (stream-unfold <break-condition> <map-callable> <successor-callable> <seed>)\n               " 
+               suc-callable))
     
     (define (stream-unfold seed)
       (if (break-cond seed)
           stream-null
-          (scons (map-proc seed) (stream-unfold (suc-proc seed)))))
+          (scons (map-callable seed) (stream-unfold (suc-callable seed)))))
 
     (stream-unfold seed))
   )";
@@ -3997,14 +4009,14 @@ namespace heist {
 
   // primitive "stream-iterate" procedure:
   constexpr const char * const primitive_HEIST_STREAM_ITERATE = R"(
-  (define (stream-iterate suc-proc seed)
-    (if (not (procedure? suc-proc))
+  (define (stream-iterate suc-callable seed)
+    (if (not (callable? suc-callable))
         (syntax-error 'stream-iterate 
-               "1st arg isn't a procedure!\n               (stream-iterate <successor-procedure> <seed>)\n               " 
-               suc-proc))
+               "1st arg isn't a callable!\n               (stream-iterate <successor-callable> <seed>)\n               " 
+               suc-callable))
     
     (define (stream-iterate seed)
-      (scons seed (stream-iterate (suc-proc seed))))
+      (scons seed (stream-iterate (suc-callable seed))))
 
     (stream-iterate seed))
   )";
@@ -4258,6 +4270,14 @@ namespace heist {
       }
     }
     return make_str(char_str);
+  }
+
+  // primitive "functor->procedure" procedure:
+  data primitive_FUNCTOR_TO_PROCEDURE(scm_list& args) {
+    if(args.size() != 1 || !primitive_data_is_a_functor(args[0]))
+      THROW_ERR("'functor->procedure not given 1 functor!"
+        "\n     (functor->procedure <functor>)" << FCN_ERR("functor->procedure",args));
+    return primitive_extract_callable_procedure(args[0]);
   }
 
   /******************************************************************************
@@ -4649,16 +4669,16 @@ namespace heist {
     return primitive_CALL_WITH_FILE<iport>(
               args,
               "call-with-input-file",
-              "\n     (call-with-input-file <filename-string> <unary-procedure>)"
-              "\n     <unary-procedure> must accept a port as its argument!",
+              "\n     (call-with-input-file <filename-string> <unary-callable>)"
+              "\n     <unary-callable> must accept a port as its argument!",
               confirm_valid_input_file);
   }
   data primitive_CALL_WITH_OUTPUT_FILE(scm_list& args){
     return primitive_CALL_WITH_FILE<oport>(
               args,
               "call-with-output-file",
-              "\n     (call-with-output-file <filename-string> <unary-procedure>)"
-              "\n     <unary-procedure> must accept a port as its argument!",
+              "\n     (call-with-output-file <filename-string> <unary-callable>)"
+              "\n     <unary-callable> must accept a port as its argument!",
               confirm_valid_output_file);
   }
 
@@ -4667,7 +4687,7 @@ namespace heist {
     return primitive_WITH_FILE(
               args,
               "with-input-from-file",
-              "\n     (with-input-from-file <filename-string> <argless-procedure>)",
+              "\n     (with-input-from-file <filename-string> <nullary-callable>)",
               G::CURRENT_INPUT_PORT,
               confirm_valid_input_file);
   }
@@ -4675,7 +4695,7 @@ namespace heist {
     return primitive_WITH_FILE(
               args,
               "with-output-to-file",
-              "\n     (with-output-to-file <filename-string> <argless-procedure>)",
+              "\n     (with-output-to-file <filename-string> <nullary-callable>)",
               G::CURRENT_OUTPUT_PORT,
               confirm_valid_output_file);
   }
@@ -4794,7 +4814,7 @@ namespace heist {
   // Load a script into the global environment, convert it to CPS, and pass it to the given continuation
   data primitive_CPS_LOAD(scm_list& args) {
     static constexpr const char * const format = 
-      "\n     (cps-load <filename-string> <optional-environment> <continuation-procedure>)"
+      "\n     (cps-load <filename-string> <optional-environment> <continuation-callable>)"
       "\n     -> Pass 'null-environment to cps-load in the empty environment!"
       "\n     -> Pass 'local-environment to cps-load in the local environment (default)!"
       "\n     -> Pass 'global-environment to cps-load in the global environment!";
@@ -4805,16 +4825,16 @@ namespace heist {
       THROW_ERR("'cps-load recieved incorrect # of args!" << format << FCN_ERR("cps-load",args));
     // extract the continuation
     auto continuation = *(args.rbegin());
-    primitive_confirm_data_is_a_procedure(continuation, "cps-load", format, args);
+    auto continuation_procedure = validate_and_extract_callable(continuation, "cps-load", format, args);
     // set the continuation to be inlined on application
-    prm_set_procedure_INLINE_INVOCATION(continuation.exp, true);
+    prm_set_procedure_INLINE_INVOCATION(continuation_procedure, true);
     args.pop_back();
     // determine which environment to load <filename-string> wrt to
     auto env = local_env;
     if(args.size()==2 && args[1].is_type(types::sym)) {
       if(args[1].sym == symconst::null_env) {
         // Reset "inline"ing of the continuation, no need in null-environment
-        prm_set_procedure_INLINE_INVOCATION(continuation.exp,false);
+        prm_set_procedure_INLINE_INVOCATION(continuation_procedure,false);
         // Reset "G::GLOBAL_ENVIRONMENT_POINTER" to its default state
         set_default_global_environment(), args.pop_back();
         try {
@@ -5021,12 +5041,12 @@ namespace heist {
     args.pop_back();
     if(args.empty())
       THROW_ERR("'call/ce recieved incorrect # of args!"
-        "\n     (call/ce <proc> <arg1> ... <argN>)" << FCN_ERR("call/ce",args));
-    primitive_confirm_data_is_a_procedure(args[0], "call/ce", 
-      "\n     (call/ce <proc> <arg1> ... <argN>)", args);
+        "\n     (call/ce <callable> <arg1> ... <argN>)" << FCN_ERR("call/ce",args));
+    primitive_confirm_data_is_a_callable(args[0], "call/ce", 
+      "\n     (call/ce <callable> <arg1> ... <argN>)", args);
     scm_list call_ce_args(args.begin()+1,args.end());
     if(call_ce_args.empty()) call_ce_args.push_back(symconst::sentinel_arg);
-    return data_cast(execute_application(args[0].exp,call_ce_args,env,false,true));
+    return data_cast(execute_callable(args[0],call_ce_args,env,false,true));
   }
 
   // Propagates "call/ce" across this invocation & every subsequent invocation 
@@ -5036,14 +5056,14 @@ namespace heist {
     args.pop_back();
     if(args.empty())
       THROW_ERR("'inline recieved incorrect # of args!"
-        "\n     (inline <proc> <arg1> ... <argN>)" << FCN_ERR("inline",args));
-    primitive_confirm_data_is_a_procedure(args[0], "inline", 
-      "\n     (inline <proc> <arg1> ... <argN>)", args);
+        "\n     (inline <callable> <arg1> ... <argN>)" << FCN_ERR("inline",args));
+    primitive_confirm_data_is_a_callable(args[0], "inline", 
+      "\n     (inline <callable> <arg1> ... <argN>)", args);
     scm_list inline_args(args.begin()+1,args.end());
     if(inline_args.empty()) inline_args.push_back(symconst::sentinel_arg);
     G::USING_INLINE_INVOCATIONS = true;
     try {
-      auto result = data_cast(execute_application(args[0].exp,inline_args,env));
+      auto result = data_cast(execute_callable(args[0],inline_args,env));
       G::USING_INLINE_INVOCATIONS = false;
       return result;
     } catch(const SCM_EXCEPT& call_ce_error) {
@@ -5070,14 +5090,14 @@ namespace heist {
     args.pop_back();
     if(args.empty())
       THROW_ERR("'catch-jump recieved incorrect # of args!"
-        "\n     (catch-jump <proc> <arg1> ... <argN>)" << FCN_ERR("catch-jump",args));
-    primitive_confirm_data_is_a_procedure(args[0], "catch-jump", 
-      "\n     (catch-jump <proc> <arg1> ... <argN>)", args);
+        "\n     (catch-jump <callable> <arg1> ... <argN>)" << FCN_ERR("catch-jump",args));
+    primitive_confirm_data_is_a_callable(args[0], "catch-jump", 
+      "\n     (catch-jump <callable> <arg1> ... <argN>)", args);
     scm_list catch_jump_args(args.begin()+1,args.end());
     if(catch_jump_args.empty()) catch_jump_args.push_back(symconst::sentinel_arg);
     const bool inline_status = G::USING_INLINE_INVOCATIONS;
     try {
-      return data_cast(execute_application(args[0].exp,catch_jump_args,env));
+      return data_cast(execute_callable(args[0],catch_jump_args,env));
     } catch(const SCM_EXCEPT& jump_error) {
       G::USING_INLINE_INVOCATIONS = inline_status;
       if(jump_error == SCM_EXCEPT::JUMP)
@@ -5108,9 +5128,9 @@ namespace heist {
     args.pop_back();
     if(args.empty())
       THROW_ERR("'trace recieved incorrect # of args!"
-        "\n     (trace <proc> <arg1> ... <argN>)" << FCN_ERR("trace",args));
+        "\n     (trace <procedure> <arg1> ... <argN>)" << FCN_ERR("trace",args));
     primitive_confirm_data_is_a_procedure(args[0], "trace", 
-      "\n     (trace <proc> <arg1> ... <argN>)", args);
+      "\n     (trace <procedure> <arg1> ... <argN>)", args);
     scm_list trace_args(args.begin()+1,args.end());
     if(trace_args.empty()) trace_args.push_back(symconst::sentinel_arg);
     // Set name of the function to trace
@@ -5337,33 +5357,27 @@ namespace heist {
   * REGEX PRIMITIVES
   ******************************************************************************/
 
-  // primitive "regex-replace": replaces 1st instance w/ a string or using the given procedure
-  // (regex-replace <target-string> <regex-string> <replacement-string>)
-  // (regex-replace <target-string> <regex-string> <procedure>)
-  //   => <procedure> ::= (lambda (<prefix>, <suffix>, <match1>, ...) <body>)
+  // primitive "regex-replace": replaces 1st instance w/ a string or using the given callable
   data primitive_REGEX_REPLACE(scm_list& args) {
     auto env = args.rbegin()->env;
     args.pop_back();
     static constexpr const char * const format = 
       "\n     (regex-replace <target-string> <regex-string> <replacement-string>)"
-      "\n     (regex-replace <target-string> <regex-string> <procedure>)"
-      "\n     -> <procedure> ::= (lambda (<prefix>, <suffix>, <match1>, ...) <body>)";
+      "\n     (regex-replace <target-string> <regex-string> <callable>)"
+      "\n     -> <callable> ::= (lambda (<prefix>, <suffix>, <match1>, ...) <body>)";
     confirm_n_args_and_first_2_args_are_strings(args,3,format,"regex-replace");
     return regex_primitive_replace_application(args,format,"regex-replace",env,regex_replace,regex_replace_fcn);
   }
 
 
-  // primitive "regex-replace-all": replaces all instances w/ a string or using the given procedure
-  // (regex-replace <target-string> <regex-string> <replacement-string>)
-  // (regex-replace <target-string> <regex-string> <procedure>)
-  //   => <procedure> ::= (lambda (<prefix>, <suffix>, <match1>, ...) <body>)
+  // primitive "regex-replace-all": replaces all instances w/ a string or using the given callable
   data primitive_REGEX_REPLACE_ALL(scm_list& args) {
     auto env = args.rbegin()->env;
     args.pop_back();
     static constexpr const char * const format = 
       "\n     (regex-replace-all <target-string> <regex-string> <replacement-string>)"
-      "\n     (regex-replace-all <target-string> <regex-string> <procedure>)"
-      "\n     -> <procedure> ::= (lambda (<prefix>, <suffix>, <match1>, ...) <body>)";
+      "\n     (regex-replace-all <target-string> <regex-string> <callable>)"
+      "\n     -> <callable> ::= (lambda (<prefix>, <suffix>, <match1>, ...) <body>)";
     confirm_n_args_and_first_2_args_are_strings(args,3,format,"regex-replace-all");
     return regex_primitive_replace_application(args,format,"regex-replace-all",env,regex_replace_all,regex_replace_all_fcn);
   }
@@ -5650,12 +5664,12 @@ namespace heist {
     static constexpr const char * const format = 
       "\n     (proto-add-method! <class-prototype> <method-name-symbol> <procedure-value>)";
     confirm_proper_new_property_args(args,"proto-add-method!",format);
-    primitive_confirm_data_is_a_procedure(args[2], "proto-add-method!", format, args);
+    auto procedure = validate_and_extract_callable(args[2], "proto-add-method!", format, args);
     // Verify new method name isn't already the name of a member or method
     confirm_new_property_name_doesnt_already_exist(args,"proto-add-method!",format);
     // Define the new method
     args[0].cls->method_names.push_back(args[1].sym);
-    args[0].cls->method_values.push_back(args[2]);
+    args[0].cls->method_values.push_back(procedure);
     return G::VOID_DATA_OBJECT;
   }
 
@@ -6315,6 +6329,8 @@ namespace heist {
     std::make_pair(primitive_SEQP,                 "seq?"),
     std::make_pair(primitive_OBJECTP,              "object?"),
     std::make_pair(primitive_CLASS_PROTOTYPEP,     "class-prototype?"),
+    std::make_pair(primitive_FUNCTORP,             "functor?"),
+    std::make_pair(primitive_CALLABLEP,            "callable?"),
 
     std::make_pair(primitive_EVAL,     "eval"),
     std::make_pair(primitive_CPS_EVAL, "heist:core:pass-continuation-cps-eval"),
@@ -6379,6 +6395,7 @@ namespace heist {
     std::make_pair(primitive_VECTOR_TO_STRING,        "vector->string"),
     std::make_pair(primitive_STRING_TO_LIST,          "string->list"),
     std::make_pair(primitive_LIST_TO_STRING,          "list->string"),
+    std::make_pair(primitive_FUNCTOR_TO_PROCEDURE,    "functor->procedure"),
 
     std::make_pair(primitive_PPRINT,     "pprint"),
     std::make_pair(primitive_PPRINT,     "pretty-print"),

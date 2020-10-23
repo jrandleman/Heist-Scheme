@@ -581,7 +581,7 @@ Other primitives of this nature include:<br>
 ```scheme
 (cond (<condition1> <exp1> ...)
       (<condition2> <exp2> ...)
-      (<condition3> => <procedure>)
+      (<condition3> => <callable>)
       (else <exp4> ...))
 
 ;; Becomes =>
@@ -592,7 +592,7 @@ Other primitives of this nature include:<br>
         (begin <exp2> ...)
         (let ((cond-result <condition3>))
           (if cond-result
-              (<procedure> cond-result)
+              (<callable> cond-result)
               (begin <exp4> ...)))))
 ```
 
@@ -1114,6 +1114,12 @@ Other primitives of this nature include:<br>
    - Method should accept 0 arguments, and return a string to be "displayed"!
    - May also have specific printing polymorphism by naming methods `display`, `write`, `pprint` directly
 
+#### Overload Application via Functors:
+0. `self->procedure` method automatically be called on any objects applied as procedure!
+   - Think `operator()()` in C++
+   - Check out the primitive [`functor?`](#Type-Predicates-Undefined--Void) predicate!
+   - Convert functors to procedures via the [`functor->procedure`](#Type-Coercion) primitive!
+
 #### Method Access to Object Members:
 0. Similar to C++'s `this`, `self` is implicitly passed as a method argument upon invocation
 1. Unlike C++, object members ___must___ be referenced via `self.<member>` in methods
@@ -1376,7 +1382,7 @@ Other primitives of this nature include:<br>
 4. __Load in Coroutines__: `(co-load <filename-string>)`
    * Alias for [`cps-load`](#system-interface-procedures) (cps-transform occurs when generating coroutines)
 
-5. __Pass Local Fcns to External Fcns__: `(co-fn <local-procedure>)`
+5. __Pass Local Fcns to External Fcns__: `(co-fn <local-callable>)`
    * Alias for [`cps->scm`](#scm-cps-procedures) (cps-transform occurs when generating coroutines)
 
 
@@ -1411,31 +1417,31 @@ Other primitives of this nature include:<br>
 8. __Take While__: Take elts from `<stream>` while `<predicate?>` is true
    * `(stream-take-while <predicate?> <stream>)`
 
-9. __Map__: Apply `<procedure>` to each elt in each stream, forming a stream of results
-   * `(stream-map <procedure> <stream1> <stream2> ...)`
+9. __Map__: Apply `<callable>` to each elt in each stream, forming a stream of results
+   * `(stream-map <callable> <stream1> <stream2> ...)`
 
 10. __Filter__: Form a stream of elts from `<stream>` satisfying `<predicate?>`
     * `(stream-filter <predicate?> <stream>)`
 
-11. __For Each__: Apply `<procedure>` to each elt of each `<stream>`
-    * `(stream-for-each <procedure> <stream1> <stream2> ...)`
+11. __For Each__: Apply `<callable>` to each elt of each `<stream>`
+    * `(stream-for-each <callable> <stream1> <stream2> ...)`
 
-12. __Unfold__: Form a stream by mapping & incrementing seed, until `<break-cond-proc>` is true
-    * _Note: **map** via `<map-proc>`, **increment** via `<suc-proc>`_
-    * `(stream-unfold <break-cond-proc> <map-proc> <suc-proc> <seed>)`
+12. __Unfold__: Form a stream by mapping & incrementing seed, until `<break-cond-callable>` is true
+    * _Note: **map** via `<map-callable>`, **increment** via `<suc-callable>`_
+    * `(stream-unfold <break-cond-callable> <map-callable> <suc-callable> <seed>)`
 
-13. __Fold__: Accumulate stream from left to right, starting with `<seed>` using `<procedure>`
-    * `(stream-fold <procedure> <seed> <stream>)`
+13. __Fold__: Accumulate stream from left to right, starting with `<seed>` using `<callable>`
+    * `(stream-fold <callable> <seed> <stream>)`
 
-14. __Fold Right__: Accumulate stream from right to left, starting with `<seed>` using `<procedure>`
-    * `(stream-fold-right <procedure> <seed> <stream>)`
+14. __Fold Right__: Accumulate stream from right to left, starting with `<seed>` using `<callable>`
+    * `(stream-fold-right <callable> <seed> <stream>)`
 
 15. __Numeric Stream__: Form a stream starting from `<first>` incrementing by `<optional-step>`
     * _Note: `<optional-step>` step is `1` by default_
     * `(stream-from <first> <optional-step>)`
 
-16. __Stream Generation__: Form a stream starting from `<seed>` using `<suc-proc>`
-    * `(stream-iterate <suc-proc> <seed>)`
+16. __Stream Generation__: Form a stream starting from `<seed>` using `<suc-callable>`
+    * `(stream-iterate <suc-callable> <seed>)`
 
 17. __Zip__: Form a stream of lists containing the nth elt of each `<stream>`
     * `(stream-zip <stream1> <stream2> ...)`
@@ -1681,12 +1687,12 @@ Other primitives of this nature include:<br>
 1. __Construction Given Characters__: `(string <char1> <char2> ...)`
 
 2. __Unfold__: Form a string by mapping & incrementing seed, until `<break-condition>` is true
-   * _Note: **map** via `<map-procedure>`, **increment** via `<successor-procedure>`_
-   * `(string-unfold <break-condition> <map-procedure> <successor-procedure> <seed>)`
+   * _Note: **map** via `<map-callable>`, **increment** via `<successor-callable>`_
+   * `(string-unfold <break-condition> <map-callable> <successor-callable> <seed>)`
 
 3. __Unfold Right__: Form a string by mapping right & incrementing seed, until `<break-condition>` is true
-   * _Note: **map** via `<map-procedure>`, **increment** via `<successor-procedure>`_
-   * `(string-unfold-right <break-condition> <map-procedure> <successor-procedure> <seed>)`
+   * _Note: **map** via `<map-callable>`, **increment** via `<successor-callable>`_
+   * `(string-unfold-right <break-condition> <map-callable> <successor-callable> <seed>)`
 
 4. __Character Padding Left of String__: pads `<length>` characters, `<character>` defaults to `<space>`
    * `(string-pad <string> <length> <optional-character>)`
@@ -1755,15 +1761,15 @@ Other primitives of this nature include:<br>
 ### Regex: (uses [ECMAScript Syntax](https://www.cplusplus.com/reference/regex/ECMAScript/))
 0. __Replace 1st Regex Instance__: 
    * `(regex-replace <target-string> <regex-string> <replacement-string>)`
-   * `(regex-replace <target-string> <regex-string> <procedure>)`
-     - `<procedure> ::= (lambda (<prefix>, <suffix>, <match1>, ...) <body>)`
-     - `<procedure>` _must_ return a string to replace the match!
+   * `(regex-replace <target-string> <regex-string> <callable>)`
+     - `<callable> ::= (lambda (<prefix>, <suffix>, <match1>, ...) <body>)`
+     - `<callable>` _must_ return a string to replace the match!
 
 1. __Replace All Regex Instances__: 
    * `(regex-replace-all <target-string> <regex-string> <replacement-string>)`
-   * `(regex-replace-all <target-string> <regex-string> <procedure>)`
-     - `<procedure> ::= (lambda (<prefix>, <suffix>, <match1>, ...) <body>)`
-     - `<procedure>` _must_ return a string to replace the match!
+   * `(regex-replace-all <target-string> <regex-string> <callable>)`
+     - `<callable> ::= (lambda (<prefix>, <suffix>, <match1>, ...) <body>)`
+     - `<callable>` _must_ return a string to replace the match!
 
 2. __Get Alist of All Regex Matches__: `(regex-match <target-string> <regex-string>)`
    * Returned alist's sublists have the position & match substring instance!
@@ -1808,12 +1814,12 @@ Other primitives of this nature include:<br>
    * `(iota <count> <optional-start-number> <optional-step-number>)`
 
 5. __Unfold__: Form a list by mapping & incrementing seed, until `<break-condition>` is true
-   * _Note: **map** via `<map-procedure>`, **increment** via `<successor-procedure>`_
-   * `(unfold <break-condition> <map-procedure> <successor-procedure> <seed>)`
+   * _Note: **map** via `<map-callable>`, **increment** via `<successor-callable>`_
+   * `(unfold <break-condition> <map-callable> <successor-callable> <seed>)`
 
 6. __Unfold Right__: Form a list by mapping right & incrementing seed, until `<break-condition>` is true
-   * _Note: **map** via `<map-procedure>`, **increment** via `<successor-procedure>`_
-   * `(unfold-right <break-condition> <map-procedure> <successor-procedure> <seed>)`
+   * _Note: **map** via `<map-callable>`, **increment** via `<successor-callable>`_
+   * `(unfold-right <break-condition> <map-callable> <successor-callable> <seed>)`
 
 7. __Get All Combinations__: `(get-all-combinations <list>)`
 
@@ -1857,12 +1863,12 @@ Other primitives of this nature include:<br>
    * `(vector-iota <count> <optional-start-number> <optional-step-number>)`
 
 4. __Unfold__: Form a vector by mapping & incrementing seed, until `<break-condition>` is true
-   * _Note: **map** via `<map-procedure>`, **increment** via `<successor-procedure>`_
-   * `(vector-unfold <break-condition> <map-procedure> <successor-procedure> <seed>)`
+   * _Note: **map** via `<map-callable>`, **increment** via `<successor-callable>`_
+   * `(vector-unfold <break-condition> <map-callable> <successor-callable> <seed>)`
 
 5. __Unfold Right__: Form a vector by mapping right & incrementing seed, until `<break-condition>` is true
-   * _Note: **map** via `<map-procedure>`, **increment** via `<successor-procedure>`_
-   * `(vector-unfold-right <break-condition> <map-procedure> <successor-procedure> <seed>)`
+   * _Note: **map** via `<map-callable>`, **increment** via `<successor-callable>`_
+   * `(vector-unfold-right <break-condition> <map-callable> <successor-callable> <seed>)`
 
 6. __Grow a Vector__: Generate a new vector w/ same elts and new size
    * `(vector-grow <vector> <size>)`
@@ -1913,15 +1919,15 @@ Other primitives of this nature include:<br>
 11. __Merge `<hash-map-2>` into `<hash-map-1>`__: `(hmap-merge! <hash-map-1> <hash-map-2>)`
     * _Note: if both maps share a key, `<hash-map-1>`'s value takes precedence_
 
-12. __Iterate Over Key-Value Pairs__: `(hmap-for-each <procedure> <hash-map>)` 
+12. __Iterate Over Key-Value Pairs__: `(hmap-for-each <callable> <hash-map>)` 
 
-13. __Iterate Over Keys__: `(hmap-for-each-key <procedure> <hash-map>)` 
+13. __Iterate Over Keys__: `(hmap-for-each-key <callable> <hash-map>)` 
 
-14. __Iterate Over Values__: `(hmap-for-each-val <procedure> <hash-map>)` 
+14. __Iterate Over Values__: `(hmap-for-each-val <callable> <hash-map>)` 
 
-15. __Map Procedure Over Values Making a New Hash-Map__: `(hmap-map <procedure> <hash-map>)`
+15. __Map Procedure Over Values Making a New Hash-Map__: `(hmap-map <callable> <hash-map>)`
 
-16. __Mutative Map Procedure Over Values__: `(hmap-map! <procedure> <hash-map>)`
+16. __Mutative Map Procedure Over Values__: `(hmap-map! <callable> <hash-map>)`
 
 
 
@@ -1938,23 +1944,23 @@ Other primitives of this nature include:<br>
 
 4. __Mutating Reverse Sequence__: `(reverse! <sequence>)`
 
-5. __Fold__: Accumulate sequence from left to right, starting with `<seed>` using `<procedure>`
-   * `(fold <procedure> <seed> <sequence1> <sequence2> ...)`
+5. __Fold__: Accumulate sequence from left to right, starting with `<seed>` using `<callable>`
+   * `(fold <callable> <seed> <sequence1> <sequence2> ...)`
 
-6. __Fold Right__: Accumulate sequence from right to left, starting with `<seed>` using `<procedure>`
-   * `(fold-right <procedure> <seed> <sequence1> <sequence2> ...)`
+6. __Fold Right__: Accumulate sequence from right to left, starting with `<seed>` using `<callable>`
+   * `(fold-right <callable> <seed> <sequence1> <sequence2> ...)`
 
-7. __Map__: Apply `<procedure>` to each elt in each sequence, forming a sequence of results
-   * `(map <procedure> <sequence1> <sequence2> ...)`
+7. __Map__: Apply `<callable>` to each elt in each sequence, forming a sequence of results
+   * `(map <callable> <sequence1> <sequence2> ...)`
 
-8. __Mutating Map__: Apply `<procedure>` to each elt in each sequence, mapping on the 1st sequence
-   * `(map! <procedure> <sequence1> <sequence2> ...)`
+8. __Mutating Map__: Apply `<callable>` to each elt in each sequence, mapping on the 1st sequence
+   * `(map! <callable> <sequence1> <sequence2> ...)`
 
 9. __Filter__: Form a sequence of elts from `<sequence>` satisfying `<predicate?>`
    * `(filter <predicate?> <sequence>)`
 
-10. __For Each__: Apply `<procedure>` to each elt of each `<sequence>`
-    * `(for-each <procedure> <sequence1> <sequence2> ...)`
+10. __For Each__: Apply `<callable>` to each elt of each `<sequence>`
+    * `(for-each <callable> <sequence1> <sequence2> ...)`
 
 11. __Copy__: Generate a freshly allocated copy of `<sequence>`
     * `(seq-copy <sequence>)`
@@ -2080,27 +2086,34 @@ Other primitives of this nature include:<br>
 
 17. __Procedure Predicate__: `(procedure? <obj>)`
 
-18. __Cps-Procedure Predicate__: `(cps-procedure? <obj>)`
+18. __Functor Predicate__: `(functor? <obj>)`
+    * _Functor = [object](#Defclass) with a `self->procedure` method defined!_
+    * _May be called as if a function!_
 
-19. __Input-Port Predicate__: `(input-port? <obj>)`
+17. __Callable Predicate__: `(callable? <obj>)`
+    * _Equivalent to: `(or (procedure? <obj>) (functor? <obj>))`_
 
-20. __Output-Port Predicate__: `(output-port? <obj>)`
+19. __Cps-Procedure Predicate__: `(cps-procedure? <obj>)`
 
-21. __Eof-Object Predicate__: `(eof-object? <obj>)`
+20. __Input-Port Predicate__: `(input-port? <obj>)`
 
-22. __Stream-Pair Predicate__: `(stream-pair? <obj>)`
+21. __Output-Port Predicate__: `(output-port? <obj>)`
 
-23. __Empty-Stream Predicate__: `(stream-null? <obj>)`
+22. __Eof-Object Predicate__: `(eof-object? <obj>)`
 
-24. __Stream Predicate__: `(stream? <obj>)`
+23. __Stream-Pair Predicate__: `(stream-pair? <obj>)`
 
-25. __Syntax-Rules Object Predicate__: `(syntax-rules-object? <obj>)`
+24. __Empty-Stream Predicate__: `(stream-null? <obj>)`
 
-26. __Sequence Predicate__: `(seq? <obj>)`
+25. __Stream Predicate__: `(stream? <obj>)`
 
-27. __Object Predicate__: `(object? <obj>)`
+26. __Syntax-Rules Object Predicate__: `(syntax-rules-object? <obj>)`
 
-28. __Class Prototype Predicate__: `(class-prototype? <obj>)`
+27. __Sequence Predicate__: `(seq? <obj>)`
+
+28. __Object Predicate__: `(object? <obj>)`
+
+29. __Class Prototype Predicate__: `(class-prototype? <obj>)`
 
 
 
@@ -2118,7 +2131,7 @@ Other primitives of this nature include:<br>
    * _Pass `'local-environment` to `cps-eval` in the local environment (default)!_
    * _Pass `'global-environment` to `cps-eval` in the global environment!_
 
-2. __Apply `<procedure>` to List of Args__: `(apply <procedure> <argument-list>)`
+2. __Apply `<callable>` to List of Args__: `(apply <callable> <argument-list>)`
 
 3. __Append Symbols__: `(symbol-append <symbol-1> ... <symbol-N>)`
 
@@ -2135,11 +2148,11 @@ Other primitives of this nature include:<br>
 
 ------------------------
 ## Compose, Bind, & Id:
-0. __Compose N `<procedure>`s__: `(compose <procedure-1> ... <procedure-N>)`
+0. __Compose N `<callable>`s__: `(compose <callable-1> ... <callable-N>)`
    * _Generates a procedure of N args that applies them to the procedure composition!_
 
-1. __Bind N args to `<procedure>`: `(bind <procedure> <val-1> ... <val-N>)`__
-   * _Generates a procedure that when invoked calls the arg-bound `<procedure>`!_
+1. __Bind N args to `<callable>`: `(bind <callable> <val-1> ... <val-N>)`__
+   * _Generates a procedure that when invoked calls the arg-bound `<callable>`!_
    * _Example: `((bind map even?) '(1 2 3))` is equivalent to `(map even? '(1 2 3))`_
 
 2. __Identity__: `(id <obj>)`
@@ -2193,6 +2206,8 @@ Other primitives of this nature include:<br>
 16. __Object Members to Hmap__: `(object->hmap <object>)`
 
 17. __Object Members to Alist__: `(object->alist <object>)`
+
+18. __Functor to Procedure__: `(functor->procedure <functor>)`
 
 
 
@@ -2294,13 +2309,13 @@ Other primitives of this nature include:<br>
 
 6. __Current Output Port__: `(current-output-port)`
 
-7. __Call With Input File__: `(call-with-input-file <filename-string> <unary-port-procedure>)`
+7. __Call With Input File__: `(call-with-input-file <filename-string> <unary-port-callable>)`
 
-8. __Call With Output File__: `(call-with-output-file <filename-string> <unary-port-procedure>)`
+8. __Call With Output File__: `(call-with-output-file <filename-string> <unary-port-callable>)`
 
-9. __With Input From File__: `(with-input-from-file <filename-string> <argless-procedure>)`
+9. __With Input From File__: `(with-input-from-file <filename-string> <nullary-callable>)`
 
-10. __With Output From File__: `(with-output-from-file <filename-string> <argless-procedure>)`
+10. __With Output From File__: `(with-output-from-file <filename-string> <nullary-callable>)`
 
 11. __Generate Input Port__: `(open-input-file <filename-string>)`
 
@@ -2324,7 +2339,7 @@ Other primitives of this nature include:<br>
    * _Pass `'local-environment` to `load` in the local environment!_
    * _Pass `'global-environment` to `load` in the global environment (default)!_
 
-1. __Cps-Load__: `(cps-load <filename-string> <optional-environment> <continuation-procedure>)`
+1. __Cps-Load__: `(cps-load <filename-string> <optional-environment> <continuation-callable>)`
    * _Alternative to `load` for [`scm->cps`](#Scm-Cps) blocks (converts file to CPS prior loading)!_
    * _Pass `'null-environment` to `cps-load` in the empty environment!_
    * _Pass `'local-environment` to `cps-load` in the local environment (default)!_
@@ -2383,18 +2398,18 @@ Other primitives of this nature include:<br>
 2. __Trigger Syntax Error__: `(syntax-error <errorful-obj-symbol> <error-string> <optional-errorful-objs>)`
 
 3. __Call With Current Environment__: 
-   * `(call/ce <procedure> <arg1> ... <argN>)`
-   * `(call-with-current-environment <procedure> <arg1> ... <argN>)`
+   * `(call/ce <callable> <arg1> ... <argN>)`
+   * `(call-with-current-environment <callable> <arg1> ... <argN>)`
 
 4. __Inline Call__: "deep" call/ce
-   * `(inline <procedure> <arg1> ... <argN>)`
+   * `(inline <callable> <arg1> ... <argN>)`
 
 5. __Jump/Throw Value__: `(jump! <optional-arg>)`
    * `<optional-arg>` defaults to [`(void)`](#Type-Predicates-Undefined--Void)
 
-6. __Catch Jumped/Thrown Value__: `(catch-jump <proc> <arg1> ... <argN>)`
+6. __Catch Jumped/Thrown Value__: `(catch-jump <callable> <arg1> ... <argN>)`
 
-7. __Trace Procedure Call__: `(trace <proc> <arg1> ... <argN>)`
+7. __Trace Procedure Call__: `(trace <procedure> <arg1> ... <argN>)`
 
 
 
@@ -2413,12 +2428,12 @@ Other primitives of this nature include:<br>
 ------------------------
 ## Scm->Cps Procedures:
 0. __Call With Current Continuation__: 
-   * `(call/cc <unary-continuation-procedure>)`
-   * `(call-with-current-continuation <unary-continuation-procedure>`
+   * `(call/cc <unary-continuation-callable>)`
+   * `(call-with-current-continuation <unary-continuation-callable>`
 
-1. __Cps->Scm__: Bind [`id`](#compose-bind--id) as procedure's "topmost" continuation
+1. __Cps->Scm__: Bind [`id`](#compose-bind--id) as callable's "topmost" continuation
    * _Note: To pass procs defined **in** a [`scm->cps`](#Scm-Cps) block as an arg to a proc defined **out** of [`scm->cps`](#Scm-Cps)_
-   * `(cps->scm <procedure>)`
+   * `(cps->scm <callable>)`
      - _Hence programs written in and out of [`scm->cps`](#Scm-Cps) blocks may interop!_
      - _BEWARE: primitives are defined **OUT** of a [`scm->cps`](#Scm-Cps) block!_
        - _Hence wrap `cps->scm` around procs being passed to them as args when in a [`scm->cps`](#Scm-Cps) block!_

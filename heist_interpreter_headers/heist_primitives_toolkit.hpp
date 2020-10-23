@@ -81,14 +81,36 @@ namespace heist {
   }
 
   /******************************************************************************
-  * GENERAL PRIMITIVE HELPERS
+  * GENERAL PROCEDURE / FUNCTOR / CALLABLE HANDLING PRIMITIVES
   ******************************************************************************/
+
+  bool primitive_data_is_a_functor(const data& d)noexcept{
+    if(!d.is_type(types::obj)) return false;
+    obj_type obj = d.obj;
+    while(obj) {
+      // search object's local members
+      for(size_type i = 0, n = obj->method_names.size(); i < n; ++i)
+        if(obj->method_names[i] == "self->procedure") return true;
+      // search object's prototype
+      for(size_type i = 0, n = obj->proto->method_names.size(); i < n; ++i)
+        if(obj->proto->method_names[i] == "self->procedure") return true;
+      // search inherited object prototype
+      obj = obj->inherited;
+    }
+    return false;
+  }
+
 
   bool primitive_data_is_a_procedure(const data& d)noexcept{
     return d.is_type(types::exp) && 
       d.exp[0].is_type(types::sym) &&
       (d.exp[0].sym == symconst::procedure || 
        d.exp[0].sym == symconst::primitive);
+  }
+
+
+  bool primitive_data_is_a_callable(const data& d)noexcept{
+    return primitive_data_is_a_procedure(d) || primitive_data_is_a_functor(d);
   }
 
 
@@ -99,6 +121,58 @@ namespace heist {
         << " isn't a procedure!" << format << FCN_ERR(name,args));
   }
 
+
+  void primitive_confirm_data_is_a_callable(const data& d,      const char* name, 
+                                            const char* format, const scm_list& args){
+    if(!primitive_data_is_a_callable(d))
+      THROW_ERR('\'' << name << " arg " << PROFILE(d) 
+        << " isn't a callable (procedure or functor)!" << format << FCN_ERR(name,args));
+  }
+
+
+  // PRECONDITION: primitive_data_is_a_callable(d)
+  scm_list primitive_extract_callable_procedure(data& d)noexcept{
+    // handle primitive or compound procedure
+    if(d.is_type(types::exp)) return d.exp;
+    if(!d.is_type(types::obj)) return scm_list(); // never triggered iff precondition met
+    // handle functor
+    obj_type obj = d.obj;
+    while(obj) {
+      // search object's local members
+      for(size_type i = 0, n = obj->method_names.size(); i < n; ++i)
+        if(obj->method_names[i] == "self->procedure") {
+          data calling_object(obj);
+          return extend_method_env_with_SELF_object(calling_object,obj->method_values[i].exp).exp;
+        }
+      // search object's prototype
+      for(size_type i = 0, n = obj->proto->method_names.size(); i < n; ++i)
+        if(obj->proto->method_names[i] == "self->procedure") {
+          // Cache the method dynamically added to the object's prototype IN the object
+          obj->method_names.push_back("self->procedure"), obj->method_values.push_back(obj->proto->method_values[i]);
+          data calling_object(obj);
+          return extend_method_env_with_SELF_object(calling_object,obj->method_values.rbegin()->exp).exp;
+        }
+      // search inherited object prototype
+      obj = obj->inherited;
+    }
+    return scm_list(); // never triggered iff precondition met
+  }
+
+
+  scm_list validate_and_extract_callable(data& d, const char* name, const char* format, const scm_list& args) {
+    primitive_confirm_data_is_a_callable(d,name,format,args);
+    return primitive_extract_callable_procedure(d);
+  }
+
+
+  // PRECONDITION: primitive_data_is_a_callable(d)
+  scm_list execute_callable(data& callable,scm_list& args,env_type& env,const bool tail_call = false,const bool inlined = false) {
+    return execute_application(primitive_extract_callable_procedure(callable),args,env,tail_call,inlined);
+  }
+
+  /******************************************************************************
+  * GENERAL PRIMITIVE HELPERS
+  ******************************************************************************/
 
   bool data_is_proper_list(const data& d)noexcept{
     return data_is_the_empty_expression(d) || // data is the empty list
@@ -124,9 +198,17 @@ namespace heist {
     return is_true(execute_application(procedure,args,env));
   }
 
+  bool is_true_scm_condition(scm_list&& procedure,scm_list& args,env_type& env){
+    return is_true(execute_application(procedure,args,env));
+  }
+
 
   // (apply procedure args) == false
   bool is_false_scm_condition(scm_list& procedure,scm_list& args,env_type& env){
+    return !is_true(execute_application(procedure,args,env));
+  }
+
+  bool is_false_scm_condition(scm_list&& procedure,scm_list& args,env_type& env){
     return !is_true(execute_application(procedure,args,env));
   }
 
@@ -368,7 +450,7 @@ namespace heist {
 
   // primitive "fold" & "fold-right" procedure helper for strings & vectors
   template<typename SEQUENCE_PTR>
-  data primitive_STATIC_SEQUENCE_FOLD_template(scm_list& args,       const char* name, 
+  data primitive_STATIC_SEQUENCE_FOLD_template(scm_list& procedure, scm_list& args, const char* name, 
                                                const char* format,   const bool& folding_left,
                                                const types& seq_type,const char* seq_name, 
                                                SEQUENCE_PTR seq_ptr, env_type& env){
@@ -377,8 +459,7 @@ namespace heist {
                                                           seq_name,seq_ptr);
     // Apply the procedure on each elt of each sequence, & accumulate the result
     data init_val = args[1];
-    primitive_FOLD_sequence_accumulator(sequences,args[0].exp,init_val,
-                                                env,folding_left,seq_ptr);
+    primitive_FOLD_sequence_accumulator(sequences,procedure,init_val,env,folding_left,seq_ptr);
     return init_val; // return the accumulated value
   }
 
@@ -403,16 +484,15 @@ namespace heist {
 
 
   template<typename SEQUENCE_PTR>
-  data primitive_STATIC_SEQUENCE_MAP_template(scm_list& args,      const char* name, 
+  data primitive_STATIC_SEQUENCE_MAP_template(scm_list& procedure, scm_list& args, const char* name, 
                                               const char* format,  const types& seq_type, 
                                               const char* seq_name,SEQUENCE_PTR seq_ptr,
                                                                    env_type& env){
     scm_list sequences(args.begin()+1, args.end());
-    primitive_confirm_same_sized_sequences(sequences,name,format,args,seq_type,
-                                                          seq_name,seq_ptr);
+    primitive_confirm_same_sized_sequences(sequences,name,format,args,seq_type,seq_name,seq_ptr);
     // Apply the procedure on each elt of each sequence & store the result
     scm_list mapped_sequence;
-    primitive_MAP_sequence_constructor(sequences,args[0].exp,
+    primitive_MAP_sequence_constructor(sequences,procedure,
                                        mapped_sequence,env,seq_ptr);
     if(seq_type == types::str)
       return mk_string_from_generated_chrs(mapped_sequence,args,name,format);
@@ -439,7 +519,7 @@ namespace heist {
 
 
   template<typename SEQUENCE_PTR>
-  data primitive_STATIC_SEQUENCE_FOR_EACH_template(scm_list& args,       const char* name, 
+  data primitive_STATIC_SEQUENCE_FOR_EACH_template(scm_list& procedure, scm_list& args, const char* name, 
                                                    const char* format,   const types& seq_type, 
                                                    const char* seq_name, SEQUENCE_PTR seq_ptr,
                                                                          env_type& env){
@@ -447,17 +527,17 @@ namespace heist {
     primitive_confirm_same_sized_sequences(sequences,name,format,args,seq_type,
                                                           seq_name,seq_ptr);
     // Apply the procedure on each elt of each sequence & store the result
-    primitive_FOR_EACH_sequence_applicator(sequences, args[0].exp, env, seq_ptr);
+    primitive_FOR_EACH_sequence_applicator(sequences, procedure, env, seq_ptr);
     return G::VOID_DATA_OBJECT;
   }
 
 
   template<typename SEQUENCE_PTR>
-  data primitive_STATIC_SEQUENCE_COUNT_template(scm_list& args, SEQUENCE_PTR seq_ptr, env_type& env){
+  data primitive_STATIC_SEQUENCE_COUNT_template(scm_list& procedure, scm_list& args, SEQUENCE_PTR seq_ptr, env_type& env){
     size_type count = 0;
     for(auto& d : *(args[1].*seq_ptr)){
       scm_list count_args(1,d);
-      count += size_type(is_true_scm_condition(args[0].exp,count_args,env));
+      count += size_type(is_true_scm_condition(procedure,count_args,env));
     }
     return num_type(count);
   }
@@ -465,12 +545,12 @@ namespace heist {
 
   // Helper for string/vector filtration & removal
   template <bool(*truth_proc)(scm_list&,scm_list&,env_type&), typename SEQUENCE_PTR>
-  data prm_sequence_selective_iteration_template(scm_list& args, const types& seq_type, 
+  data prm_sequence_selective_iteration_template(scm_list& procedure, scm_list& args, const types& seq_type, 
                                                  SEQUENCE_PTR seq_ptr, env_type& env){
     scm_list pruned_sequence;
     for(auto& d : *(args[1].*seq_ptr)){
       scm_list pruning_args(1,d);
-      if(truth_proc(args[0].exp,pruning_args,env)) // true = filter, false = rm
+      if(truth_proc(procedure,pruning_args,env)) // true = filter, false = rm
         pruned_sequence.push_back(data(d));
     }
     if(seq_type == types::str) {
@@ -582,7 +662,7 @@ namespace heist {
       THROW_ERR('\''<<name<<" 1st arg " << PROFILE(args[0]) << " isn't a string:"
         << format << FCN_ERR(name, args));
     if(args.size() == 2)
-      primitive_confirm_data_is_a_procedure(args[1], name, format, args);  
+      primitive_confirm_data_is_a_callable(args[1], name, format, args);  
   }
 
 
@@ -590,12 +670,13 @@ namespace heist {
     scm_string str(*args[0].str);
     const size_type n = str.size();
     size_type i = 0;
+    scm_list procedure(primitive_extract_callable_procedure(args[1]));
     if(args.size() == 1) { // no predicate given, trim whitespace
       for(; i < n && isspace(str[i]); ++i);
     } else {
       for(; i < n; ++i) { // while predicate is true, trim character
         scm_list proc_args(1,chr_type(str[i]));
-        if(is_false_scm_condition(args[1].exp,proc_args,env))
+        if(is_false_scm_condition(procedure,proc_args,env))
           break;
       }
     }
@@ -609,6 +690,7 @@ namespace heist {
     scm_string str(*args[0].str);
     const size_type n = str.size();
     size_type i = n-1;
+    scm_list procedure(primitive_extract_callable_procedure(args[1]));
     if(args.size() == 1) { // no predicate given, trim whitespace
       for(; i > 0 && isspace(str[i]); --i);
       if(i == 0 && isspace(str[i])) return make_str("");
@@ -616,11 +698,11 @@ namespace heist {
       scm_list proc_args(1); 
       for(; i > 0; --i) { // while predicate is true, trim character
         proc_args[0] = data(chr_type(str[i]));
-        if(is_false_scm_condition(args[1].exp,proc_args,env))
+        if(is_false_scm_condition(procedure,proc_args,env))
           break;
       }
       proc_args[0] = data(chr_type(str[i]));
-      if(i == 0 && is_true_scm_condition(args[1].exp,proc_args,env)){
+      if(i == 0 && is_true_scm_condition(procedure,proc_args,env)){
         return make_str("");
       }
     }
@@ -780,7 +862,7 @@ namespace heist {
     if(args.size() != 2)
       THROW_ERR('\''<<name<<" didn't receive 2 args!"
         << format << FCN_ERR(name,args));
-    primitive_confirm_data_is_a_procedure(args[0],name,format,args);
+    primitive_confirm_data_is_a_callable(args[0],name,format,args);
     if(!args[1].is_type(types::map))
       THROW_ERR('\''<<name<<" 2nd arg "<<PROFILE(args[1])<<" isn't a hash-map!"
         << format << FCN_ERR(name,args));
@@ -1048,15 +1130,14 @@ namespace heist {
 
 
   // "fold" & "fold-right" primitive helper template:
-  data primitive_FOLD_template(scm_list& args,     const char* name, 
-                               const char* format, const bool& folding_left,
-                                                             env_type& env){
+  data primitive_FOLD_template(scm_list& procedure, scm_list& args, const char* name, 
+                               const char* format, const bool& folding_left, env_type& env){
     // Confirm only given proper lists of the same length
     scm_list list_heads(args.begin()+2, args.end());
     primitive_confirm_proper_same_sized_lists(list_heads,name,format,2,args);
     // Apply the procedure on each elt of each list, & accumulate the result
     data init_val = args[1];
-    primitive_FOLD_accumulator(list_heads,args[0].exp,init_val,env,folding_left);
+    primitive_FOLD_accumulator(list_heads,procedure,init_val,env,folding_left);
     return init_val; // return the accumulated value
   }
 
@@ -1070,13 +1151,10 @@ namespace heist {
     // confirm 'unfold call has a proper argument signature
     if(args.size() != 4)
       THROW_ERR('\''<<name<<" received incorrect # of args:"<<format<<FCN_ERR(name,args));
-    primitive_confirm_data_is_a_procedure(args[0], name, format, args);
-    primitive_confirm_data_is_a_procedure(args[1], name, format, args);
-    primitive_confirm_data_is_a_procedure(args[2], name, format, args);
+    auto break_condition = validate_and_extract_callable(args[0], name, format, args);
+    auto mapper          = validate_and_extract_callable(args[1], name, format, args);
+    auto successor       = validate_and_extract_callable(args[2], name, format, args);
     // unfold the seed into a list
-    auto& break_condition = args[0].exp;
-    auto& mapper          = args[1].exp;
-    auto& successor       = args[2].exp;
     scm_list seed(1,args[3]);
     while(is_false_scm_condition(break_condition,seed,env)) {
       unfolded.push_back(data_cast(execute_application(mapper,seed,env)));
@@ -1294,30 +1372,30 @@ namespace heist {
 
 
   // ************************ "filter" helper ************************
-  data primitive_list_filter_logic(scm_list& args, env_type& env){
+  data primitive_list_filter_logic(scm_list& procedure, scm_list& args, env_type& env){
     scm_list filtered_list;
-    primitive_FILTER_list_constructor(args[1],args[0].exp,filtered_list,env);
+    primitive_FILTER_list_constructor(args[1],procedure,filtered_list,env);
     return primitive_LIST_to_CONS_constructor(filtered_list.begin(),filtered_list.end());
   }
 
 
   // ************************ "map" helper ************************
-  data primitive_list_map_logic(scm_list& args, env_type& env, const char* format){
+  data primitive_list_map_logic(scm_list& procedure, scm_list& args, env_type& env, const char* format){
     // Mapping a list or '() -> get the head of each list
     scm_list list_heads(args.begin()+1, args.end());
     primitive_confirm_proper_same_sized_lists(list_heads,"map",format,1,args);
     // Apply the procedure on each elt of each list & store the result
     scm_list mapped_list;
-    primitive_MAP_list_constructor(list_heads,args[0].exp,mapped_list,env);
+    primitive_MAP_list_constructor(list_heads,procedure,mapped_list,env);
     return primitive_LIST_to_CONS_constructor(mapped_list.begin(),mapped_list.end());
   }
 
 
   // ************************ "for-each" helper ************************
-  data primitive_list_for_each_logic(scm_list& args, env_type& env, const char* format){
+  data primitive_list_for_each_logic(scm_list& procedure, scm_list& args, env_type& env, const char* format){
     scm_list list_heads(args.begin()+1, args.end());
     primitive_confirm_proper_same_sized_lists(list_heads,"for-each",format,1,args);
-    primitive_FOR_EACH_applicator(list_heads, args[0].exp, env);
+    primitive_FOR_EACH_applicator(list_heads, procedure, env);
     return G::VOID_DATA_OBJECT;
   }
 
@@ -1350,9 +1428,9 @@ namespace heist {
 
 
   // ************************ "count" helper ************************
-  data primitive_list_count_logic(scm_list& args, env_type& env){
+  data primitive_list_count_logic(scm_list& procedure, scm_list& args, env_type& env){
     num_type count;
-    primitive_LIST_COUNT_computation(args[1],count,args[0].exp,env);
+    primitive_LIST_COUNT_computation(args[1],count,procedure,env);
     return count;
   }
 
@@ -1720,7 +1798,8 @@ namespace heist {
 
   // ************************ "seq=" helpers ************************
   template<typename SEQUENCE_PTR>
-  data primitive_STATIC_SEQUENCE_sequence_eq_logic(scm_list& args, const char* format,
+  data primitive_STATIC_SEQUENCE_sequence_eq_logic(scm_list& procedure,
+                                                   scm_list& args, const char* format,
                                                    env_type& env,  const types& t,
                                                    SEQUENCE_PTR seq_ptr){
     // Confirm only given sequences of type t (besides the procedure)
@@ -1739,19 +1818,18 @@ namespace heist {
     if(!same_sizes) return G::FALSE_DATA_BOOLEAN; // sequences of != sizes are !=
     // Confirm each sequence is elt=?
     const size_type total_elements = (args[1].*seq_ptr)->size();
-    auto& proc = args[0].exp;
     scm_list sequence_args(total_sequences-1);
     for(size_type i = 0; i < total_elements; ++i) { // for each element
       for(size_type j = 1; j < total_sequences; ++j) // in each sequence
         sequence_args[j-1] = (args[j].*seq_ptr)->operator[](i);
-      if(is_false_scm_condition(proc,sequence_args,env)) // if elts are !=
+      if(is_false_scm_condition(procedure,sequence_args,env)) // if elts are !=
         return G::FALSE_DATA_BOOLEAN; // sequences are !=
     }
     return G::TRUE_DATA_BOOLEAN; // else sequences are ==
   }
 
 
-  data primitive_list_sequence_eq_logic(scm_list& args, const char* format, env_type& env){
+  data primitive_list_sequence_eq_logic(scm_list& procedure, scm_list& args, const char* format, env_type& env){
     // Confirm only given lists (besides the procedure)
     bool same_sizes = true;
     const size_type total_lists = args.size();
@@ -1771,12 +1849,11 @@ namespace heist {
     if(!same_sizes)     return G::FALSE_DATA_BOOLEAN; // lists of != sizes are !=
     // Confirm each list is elt=?
     const size_type total_elements = lists_as_exps[0].size();
-    auto& proc = args[0].exp;
     scm_list lis_args(total_lists-1);
     for(size_type i = 0; i < total_elements; ++i) { // for each element
       for(size_type j = 0; j+1 < total_lists; ++j) // in each list
         lis_args[j] = lists_as_exps[j][i];
-      if(is_false_scm_condition(proc,lis_args,env)) // if elts are !=
+      if(is_false_scm_condition(procedure,lis_args,env)) // if elts are !=
         return G::FALSE_DATA_BOOLEAN; // lists are !=
     }
     return G::TRUE_DATA_BOOLEAN; // else lists are ==
@@ -1785,49 +1862,46 @@ namespace heist {
 
   // ************************ "skip" & "index" helpers ************************
   template <bool(*truth_proc)(scm_list&,scm_list&,env_type&), typename SEQUENCE_PTR>
-  data prm_search_STATIC_SEQUENCE_from_left(scm_list& args, SEQUENCE_PTR seq_ptr,
-                                                            env_type& env){
+  data prm_search_STATIC_SEQUENCE_from_left(scm_list& procedure, scm_list& args, SEQUENCE_PTR seq_ptr, env_type& env){
     if((args[1].*seq_ptr)->empty()) return G::FALSE_DATA_BOOLEAN;
     const auto& sequence = *(args[1].*seq_ptr);
     for(size_type i = 0, n = sequence.size(); i < n; ++i) {
       scm_list proc_args(1,sequence[i]);
-      if(truth_proc(args[0].exp,proc_args,env))
+      if(truth_proc(procedure,proc_args,env))
         return num_type(i);
     }
     return G::FALSE_DATA_BOOLEAN;
   }
 
   template <bool(*truth_proc)(scm_list&,scm_list&,env_type&)>
-  data prm_search_list_from_left(data& curr_pair,scm_list& proc,env_type& env,
-                                                    const size_type& count=0){
+  data prm_search_list_from_left(scm_list& procedure,data& curr_pair,env_type& env,const size_type& count=0){
     if(!curr_pair.is_type(types::par)) return G::FALSE_DATA_BOOLEAN;
     scm_list proc_args(1,curr_pair.par->first);
-    if(truth_proc(proc,proc_args,env)) return num_type(count);
-    return prm_search_list_from_left<truth_proc>(curr_pair.par->second,proc,env,count+1);
+    if(truth_proc(procedure,proc_args,env)) return num_type(count);
+    return prm_search_list_from_left<truth_proc>(procedure,curr_pair.par->second,env,count+1);
   }
 
 
   // ************************ "skip-right" & "index-right" helpers ************************
   template <bool(*truth_proc)(scm_list&,scm_list&,env_type&), typename SEQUENCE_PTR>
-  data prm_search_STATIC_SEQUENCE_from_right(scm_list& args, SEQUENCE_PTR seq_ptr,
-                                                             env_type& env){
+  data prm_search_STATIC_SEQUENCE_from_right(scm_list& procedure, scm_list& args, SEQUENCE_PTR seq_ptr, env_type& env){
     if((args[1].*seq_ptr)->empty()) return G::FALSE_DATA_BOOLEAN;
     const auto& sequence = *(args[1].*seq_ptr);
     for(size_type i = sequence.size(); i-- > 0;) {
       scm_list proc_args(1,sequence[i]);
-      if(truth_proc(args[0].exp,proc_args,env))
+      if(truth_proc(procedure,proc_args,env))
         return num_type(i);
     }
     return G::FALSE_DATA_BOOLEAN;
   }
 
   template <bool(*truth_proc)(scm_list&,scm_list&,env_type&)>
-  data prm_search_list_from_right(scm_list& args, env_type& env){
+  data prm_search_list_from_right(scm_list& procedure, scm_list& args, env_type& env){
     scm_list sequence;
     shallow_unpack_list_into_exp(args[1],sequence);
     for(size_type i = sequence.size(); i-- > 0;) {
       scm_list proc_args(1,sequence[i]);
-      if(truth_proc(args[0].exp,proc_args,env))
+      if(truth_proc(procedure,proc_args,env))
         return num_type(i);
     }
     return G::FALSE_DATA_BOOLEAN;
@@ -1961,14 +2035,14 @@ namespace heist {
     if(args.size() != 2) 
       THROW_ERR('\''<<name<<" received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR(name,args));
-    primitive_confirm_data_is_a_procedure(args[0], name, format, args);
+    auto procedure = validate_and_extract_callable(args[0], name, format, args);
     switch(is_proper_sequence(args[1],args,name,format)){
-      case heist_sequence::vec: return primitive_vector_logic(*args[1].vec,make_vec,args[0].exp,env);
-      case heist_sequence::str: return primitive_string_logic(*args[1].str,make_str,args[0].exp,env);
+      case heist_sequence::vec: return primitive_vector_logic(*args[1].vec,make_vec,procedure,env);
+      case heist_sequence::str: return primitive_string_logic(*args[1].str,make_str,procedure,env);
       default:
         scm_list flattened_list;
         shallow_unpack_list_into_exp(args[1], flattened_list);
-        return primitive_list_logic(flattened_list,primitive_LIST_to_CONS_constructor,args[0].exp,env);
+        return primitive_list_logic(flattened_list,primitive_LIST_to_CONS_constructor,procedure,env);
     }
   }
 
@@ -2054,7 +2128,7 @@ namespace heist {
     if(args.size() < 2)
       THROW_ERR('\''<<name<<" <"<<seq_name<<"> received insufficient args (only "
         << args.size() << "):" << format << FCN_ERR(name, args));
-    primitive_confirm_data_is_a_procedure(args[0], name, format, args);
+    primitive_confirm_data_is_a_callable(args[0], name, format, args);
     size_type min_sequence_length = G::MAX_SIZE_TYPE;
     for(size_type i = 1, n = args.size(); i < n; ++i) {
       // Validate sequence type if working w/ a vector or string (lists already validated)
@@ -2092,14 +2166,13 @@ namespace heist {
 
   // ************************ "any" helper ************************
   template <types SEQUENCE_TYPE, typename SEQUENCE_PTR>
-  data primitive_STATIC_SEQUENCE_any_logic(scm_list& args,       env_type& env, 
+  data primitive_STATIC_SEQUENCE_any_logic(scm_list& procedure, scm_list& args, env_type& env, 
                                            SEQUENCE_PTR seq_ptr, const char* seq_name, 
                                                                  const char* format){
     size_type min_length = confirm_proper_STATIC_SEQUENCE_any_every_args<SEQUENCE_TYPE>(args,
       seq_ptr, "any",format, seq_name);
     if(!min_length) return G::FALSE_DATA_BOOLEAN;
     const size_type total_sequences = args.size();
-    scm_list& proc = args[0].exp;
     scm_list any_args(total_sequences-1);
     // For each element
     for(size_type i = 0; i < min_length; ++i){
@@ -2112,29 +2185,28 @@ namespace heist {
         }
       }
       // If set of elements is true
-      auto result = execute_application(proc,any_args,env);
+      auto result = execute_application(procedure,any_args,env);
       if(is_true(result)) return data_cast(result); // return element set
     }
     return G::FALSE_DATA_BOOLEAN; // else return false
   }
 
-  data primitive_list_any_logic(scm_list& args, env_type& env, const char* format){
+  data primitive_list_any_logic(scm_list& procedure, scm_list& args, env_type& env, const char* format){
     scm_list list_exps;
     if(convert_lists_to_exp_matrix_and_return_if_empty(args,list_exps,"any",format))
       return G::FALSE_DATA_BOOLEAN;
-    return primitive_STATIC_SEQUENCE_any_logic<types::exp>(list_exps,env,nullptr,"list",format);
+    return primitive_STATIC_SEQUENCE_any_logic<types::exp>(procedure,list_exps,env,nullptr,"list",format);
   }
 
 
   // ************************ "every" helper ************************
   template <types SEQUENCE_TYPE, typename SEQUENCE_PTR>
-  data primitive_STATIC_SEQUENCE_every_logic(scm_list& args, env_type& env, SEQUENCE_PTR seq_ptr, 
+  data primitive_STATIC_SEQUENCE_every_logic(scm_list& procedure, scm_list& args, env_type& env, SEQUENCE_PTR seq_ptr, 
                                              const char* seq_name, const char* format){
     size_type min_length = confirm_proper_STATIC_SEQUENCE_any_every_args<SEQUENCE_TYPE>(args,
       seq_ptr, "every",format, seq_name);
     if(!min_length) return G::FALSE_DATA_BOOLEAN;
     const size_type total_sequences = args.size();
-    scm_list& proc = args[0].exp;
     scm_list any_args(total_sequences-1);
     // For each element
     for(size_type i = 0; i < min_length; ++i){
@@ -2147,17 +2219,17 @@ namespace heist {
         }
       }
       // If set of elements is false
-      auto result = execute_application(proc,any_args,env);
+      auto result = execute_application(procedure,any_args,env);
       if(!is_true(result))  return G::FALSE_DATA_BOOLEAN; // return false
       if(i+1 == min_length) return data_cast(result); // else return last <predicate> result
     }
     return G::FALSE_DATA_BOOLEAN; // else return false
   }
 
-  data primitive_list_every_logic(scm_list& args, env_type& env, const char* format){
+  data primitive_list_every_logic(scm_list& procedure, scm_list& args, env_type& env, const char* format){
     scm_list list_exps;
     convert_lists_to_exp_matrix_and_return_if_empty(args,list_exps,"every",format);
-    return primitive_STATIC_SEQUENCE_every_logic<types::exp>(list_exps,env,nullptr,"list",format);
+    return primitive_STATIC_SEQUENCE_every_logic<types::exp>(procedure,list_exps,env,nullptr,"list",format);
   }
 
   /******************************************************************************
@@ -2193,7 +2265,7 @@ namespace heist {
                                                            const char* format){
     if(args.size() != 2)
       THROW_ERR('\''<<name<<" received incorrect # of args!"<<format<<FCN_ERR(name,args));
-    primitive_confirm_data_is_a_procedure(args[0], name, format, args);
+    primitive_confirm_data_is_a_callable(args[0], name, format, args);
     is_proper_sequence(args[1],args,name,format);
   }
 
@@ -2207,7 +2279,7 @@ namespace heist {
     // sort unpacked sequence
     if(sequence.size() > 1) {
       std::sort(sequence.begin(), sequence.end(),
-        [procedure=args[0].exp,env=std::move(env)]
+        [procedure=primitive_extract_callable_procedure(args[0]),env=std::move(env)]
         (data& lhs, data& rhs) mutable {
           scm_list args_list(2);
           args_list[0] = lhs, args_list[1] = rhs;
@@ -2249,7 +2321,7 @@ namespace heist {
 
   data primitive_MERGE_vector_string_constructor(scm_list& args, scm_list& merged, 
                                                  env_type& env,  const char* format){
-    scm_list& proc = args[0].exp;
+    scm_list procedure(primitive_extract_callable_procedure(args[0]));
     scm_list sequence1, sequence2;
     cast_scheme_sequence_to_ast(args[1],sequence1);
     cast_scheme_sequence_to_ast(args[2],sequence2);
@@ -2259,7 +2331,7 @@ namespace heist {
     for(; i < n1 && j < n2;) {
       scm_list eq_args(2);
       eq_args[0] = sequence1[i], eq_args[1] = sequence2[j];
-      if(is_true_scm_condition(proc,eq_args,env))
+      if(is_true_scm_condition(procedure,eq_args,env))
         merged.push_back(sequence1[i]), ++i;
       else
         merged.push_back(sequence2[j]), ++j;
@@ -2309,7 +2381,7 @@ namespace heist {
     }
     // rm duplicates from the sequence
     scm_list new_sequence(1,sequence[0]);
-    auto& procedure = args[0].exp;
+    auto procedure = primitive_extract_callable_procedure(args[0]);
     for(size_type i=1, j=0, n = sequence.size(); i < n; ++i) {
       scm_list args_list(2);
       args_list[0] = new_sequence[j], args_list[1] = sequence[i];
@@ -2720,7 +2792,7 @@ namespace heist {
     if(args.size() != 3)
       THROW_ERR('\''<<name<<" received incorrect # of args (given " << args.size() 
         << "):" << format << FCN_ERR(name,args));
-    primitive_confirm_data_is_a_procedure(args[0], name, format, args);
+    auto procedure = validate_and_extract_callable(args[0], name, format, args);
     if(data_is_the_empty_expression(args[2])) // folding '() returns seed
       return args[1];
     if(!data_is_stream_pair(args[2]))
@@ -2728,7 +2800,7 @@ namespace heist {
         << format << FCN_ERR(name,args));
     // Apply the procedure on each elt of each list, & accumulate the result
     data init_val = args[1];
-    primitive_STREAM_FOLD_accumulator(std::move(args[2]),args[0].exp,
+    primitive_STREAM_FOLD_accumulator(std::move(args[2]),procedure,
                                       init_val,env,folding_left);
     return init_val; // return the accumulated value
   }
@@ -2760,7 +2832,7 @@ namespace heist {
       THROW_ERR('\''<<name<<" received incorrect # of args (given "
         << args.size() << "):" << format << FCN_ERR(name, args));
     // Confirm given a procedure
-    primitive_confirm_data_is_a_procedure(args[0], name, format, args);
+    primitive_confirm_data_is_a_callable(args[0], name, format, args);
     // Confirm given a stream
     if(!data_is_stream(args[1]))
       THROW_ERR('\''<<name<<' '<< PROFILE(args[1]) << " isn't a stream!"
@@ -3872,12 +3944,12 @@ namespace heist {
     if(args.size() != 2)
       THROW_ERR('\'' << name << " received incorrect # of args:" 
         << format << FCN_ERR(name,args));
-    primitive_confirm_data_is_a_procedure(args[1], name, format, args);
+    auto procedure = validate_and_extract_callable(args[1], name, format, args);
     // add file to the port registry
     G::PORT_REGISTRY.push_back(get_port(args[0],name,format,args));
     // apply the given procedure w/ a port to the file
     scm_list port_arg(1,port_ctor(G::PORT_REGISTRY.size()-1));
-    return data_cast(execute_application(args[1].exp,port_arg,env));
+    return data_cast(execute_application(procedure,port_arg,env));
   }
 
 
@@ -3893,7 +3965,7 @@ namespace heist {
     if(args.size() != 2)
       THROW_ERR('\'' << name << " received incorrect # of args:" 
         << format << FCN_ERR(name,args));
-    primitive_confirm_data_is_a_procedure(args[1], name, format, args);
+    auto procedure = validate_and_extract_callable(args[1], name, format, args);
     // save & set the current port
     FILE* original_port = DEFAULT_PORT;
     DEFAULT_PORT = get_port(args[0], name, format, args);
@@ -3901,7 +3973,7 @@ namespace heist {
     scm_list null_arg_val(2);
     null_arg_val[0] = symconst::quote, null_arg_val[1] = symconst::sentinel_arg;
     auto null_arg   = scm_eval(std::move(null_arg_val),env);
-    auto result     = data_cast(execute_application(args[1].exp,null_arg,env));
+    auto result     = data_cast(execute_application(procedure,null_arg,env));
     // reset the current port
     if(DEFAULT_PORT && DEFAULT_PORT != stdin && 
        DEFAULT_PORT != stdout && DEFAULT_PORT != stderr) fclose(DEFAULT_PORT);
@@ -4842,7 +4914,7 @@ namespace heist {
   template<bool REPLACE_ONE>
   data regex_replace_fcn_generic(scm_string target, const scm_string& regex, 
                                  const scm_list& args,const char* format, const char* name,
-                                 scm_list& procedure, env_type& env){
+                                 scm_list&& procedure, env_type& env){
     const std::regex reg(regex);
     std::smatch reg_matches;
     while(std::regex_search(target, reg_matches, reg)) {
@@ -4880,16 +4952,16 @@ namespace heist {
       } catch(...) {
         return throw_malformed_regex(args,format,name);
       }
-    } else if(primitive_data_is_a_procedure(args[2])) {
+    } else if(primitive_data_is_a_callable(args[2])) {
       try {
-        return fcn_replace(*args[0].str,*args[1].str,args,format,name,args[2].exp,env);
+        return fcn_replace(*args[0].str,*args[1].str,args,format,name,primitive_extract_callable_procedure(args[2]),env);
       } catch(const SCM_EXCEPT& err) {
         throw err; // thrown by the procedure
       } catch(...) {
         return throw_malformed_regex(args,format,name);
       }
     } else {
-      THROW_ERR('\''<<name<<" last arg "<<PROFILE(args[2])<<" isn't a <string> or <procedure>!"
+      THROW_ERR('\''<<name<<" last arg "<<PROFILE(args[2])<<" isn't a <string> or <callable>!"
         << format << FCN_ERR(name,args));
     }
   }
