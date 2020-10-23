@@ -1115,7 +1115,7 @@ Other primitives of this nature include:<br>
    - May also have specific printing polymorphism by naming methods `display`, `write`, `pprint` directly
 
 #### Overload Application via Functors:
-0. `self->procedure` method automatically be called on any objects applied as procedure!
+0. The `self->procedure` method will automatically be called on any object applied as a procedure!
    - Think `operator()()` in C++
    - Check out the primitive [`functor?`](#Type-Predicates-Undefined--Void) predicate!
    - Convert functors to procedures via the [`functor->procedure`](#Type-Coercion) primitive!
