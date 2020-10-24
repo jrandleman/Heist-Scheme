@@ -1334,24 +1334,22 @@ Other primitives of this nature include:<br>
 0. __Functional Property Access__: `(.. <object> <property-symbol-1> ...)`
    * IE `person.sibling.age` = `(.. person 'sibling 'age)`
 
-1. __Class Name__: `(object-class-name <object>)`
-
-2. __Object Members Hash-Map__: `(object-members <object>)`
+1. __Object Members Hash-Map__: `(object-members <object>)`
    * Returns a [`hash-map`](#Hash-Map-Procedures) of member names & values
 
-3. __Object Methods Hash-Map__: `(object-methods <object>)`
+2. __Object Methods Hash-Map__: `(object-methods <object>)`
    * Returns a [`hash-map`](#Hash-Map-Procedures) of method names & values
    * Method values already have `<object>` bound as `self`!
 
 
 ### Prototype Primitives:
-0. __Class Name__: `(proto-class-name <class-prototype>)`
+0. __Class Name__: `(proto-name <class-prototype>)`
 
 1. __Prototype Member Names List__: `(proto-members <class-prototype>)`
 
 2. __Prototype Method Names List__: `(proto-methods <class-prototype>)`
 
-3. __Inherited Prototype__: `(proto-inherited <class-prototype>)`
+3. __Inherited Prototype__: `(proto-super <class-prototype>)`
 
 4. __Dynamically Add New Member__: 
    * `(proto-add-member! <class-prototype> <member-name-symbol> <default-value>)`

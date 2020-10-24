@@ -5537,11 +5537,6 @@ namespace heist {
   * DEFCLASS OO GENERAL OBJECT ANALYSIS PRIMITIVES
   ******************************************************************************/
 
-  data primitive_OBJECT_CLASS_NAME(scm_list& args) {
-    confirm_given_unary_object_arg(args,"object-class-name");
-    return args[0].obj->proto->class_name;
-  }
-
   data primitive_OBJECT_MEMBERS(scm_list& args) {
     confirm_given_unary_object_arg(args,"object-members");
     map_data m;
@@ -5620,8 +5615,8 @@ namespace heist {
   * DEFCLASS OO GENERAL CLASS-PROTOTYPE ANALYSIS PRIMITIVES
   ******************************************************************************/
 
-  data primitive_PROTO_CLASS_NAME(scm_list& args) {
-    confirm_given_unary_class_prototype_arg(args,"proto-class-name");
+  data primitive_PROTO_NAME(scm_list& args) {
+    confirm_given_unary_class_prototype_arg(args,"proto-name");
     return args[0].cls->class_name;
   }
 
@@ -5641,8 +5636,8 @@ namespace heist {
     return primitive_LIST_to_CONS_constructor(method_names.begin(),method_names.end());
   }
 
-  data primitive_PROTO_INHERITED(scm_list& args) {
-    confirm_given_unary_class_prototype_arg(args,"proto-inherited");
+  data primitive_PROTO_SUPER(scm_list& args) {
+    confirm_given_unary_class_prototype_arg(args,"proto-super");
     if(!args[0].cls->inherited) return symconst::emptylist;
     return args[0].cls->inherited;
   }
@@ -6494,7 +6489,6 @@ namespace heist {
     std::make_pair(primitive_HEIST_CORE_OO_REGISTER_MEMBER, "heist:core:oo:register-member!"),
     std::make_pair(primitive_HEIST_CORE_OO_REGISTER_METHOD, "heist:core:oo:register-method!"),
 
-    std::make_pair(primitive_OBJECT_CLASS_NAME,           "object-class-name"),
     std::make_pair(primitive_OBJECT_MEMBERS,              "object-members"),
     std::make_pair(primitive_OBJECT_METHODS,              "object-methods"),
     std::make_pair(primitive_HEIST_CORE_OO_MEMBER_ACCESS, ".."),
@@ -6502,10 +6496,10 @@ namespace heist {
     std::make_pair(primitive_OBJECT_TO_ALIST,             "object->alist"),
     std::make_pair(primitive_OBJECT_TO_JSON,              "object->json"),
 
-    std::make_pair(primitive_PROTO_CLASS_NAME,        "proto-class-name"),
+    std::make_pair(primitive_PROTO_NAME,              "proto-name"),
     std::make_pair(primitive_PROTO_MEMBERS,           "proto-members"),
     std::make_pair(primitive_PROTO_METHODS,           "proto-methods"),
-    std::make_pair(primitive_PROTO_INHERITED,         "proto-inherited"),
+    std::make_pair(primitive_PROTO_SUPER,             "proto-super"),
     std::make_pair(primitive_PROTO_ADD_MEMBER_BANG,   "proto-add-member!"),
     std::make_pair(primitive_PROTO_ADD_METHOD_BANG,   "proto-add-method!"),
 
