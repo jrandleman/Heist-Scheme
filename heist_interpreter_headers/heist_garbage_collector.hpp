@@ -4,11 +4,22 @@
 #ifndef HEIST_GARBAGE_COLLECTOR_HPP_
 #define HEIST_GARBAGE_COLLECTOR_HPP_
 
-// GOAL: Combine reference counting w/ GC for cycle-safe "shared_ptr"s
+// GOAL: Combine reference counting w/ "GC" for cycle-safe "shared_ptr"s
 // APPROACH: Regular reference counting, w/ any ptr refs > 0 also
-//           having an entry in the GC. Once ref = 0, the entry
-//           is rm'd from the GC. GC is freed via <atexit>.
+//           having an entry in the GC. Once ref = 0, the entry is 
+//           rm'd from the GC. GC is freed upon exit via a global dtor.
 namespace heist {
+  namespace G {
+    // Avoid <atexit> (may limit capacity to 32 fcns) via a global object dtor
+    struct tgc_atexit_t {
+      std::vector<void(*)(void)> ATEXIT_FUNCTIONS;
+      void operator()(void(*f)(void)) noexcept { ATEXIT_FUNCTIONS.push_back(f); }
+      ~tgc_atexit_t() noexcept { for(auto f : ATEXIT_FUNCTIONS) f(); }
+    };
+    tgc_atexit_t tgc_atexit;
+  }
+
+  // TGC Pointer Struct
   template<typename VAL_T,std::size_t INIT_TGC_CAPACITY=32,std::size_t TGC_CAPACITY_SCALAR=2>
   struct tgc_ptr {
     // STATIC TYPED GC INVARIANTS & atexit-FREEING FUNCTION
@@ -36,7 +47,7 @@ namespace heist {
       if(!TGC_CAP) { // register the GC's freeing of members
         TGC_CAP = INIT_TGC_CAPACITY;
         TYPED_GARBAGE_COLLECTOR = new TGC_ENTRY [TGC_CAP];
-        atexit(FREE_TYPED_GARBAGE_COLLECTOR);
+        G::tgc_atexit(FREE_TYPED_GARBAGE_COLLECTOR);
       } else if(TGC_LEN == TGC_CAP) {
         TGC_CAP *= TGC_CAPACITY_SCALAR;
         TGC_ENTRY* tmp = TYPED_GARBAGE_COLLECTOR;
