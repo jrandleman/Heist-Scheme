@@ -4492,7 +4492,7 @@ namespace heist {
   #define evaluate_operator(OPERATOR_PROC,OPERATOR_ENV)\
     auto proc = OPERATOR_PROC(OPERATOR_ENV);\
     if(proc.size() == 1 && primitive_data_is_a_functor(proc[0]))\
-      proc = primitive_extract_callable_procedure(proc[0]);\
+      proc = primitive_extract_callable_procedure(proc[0]);
 
 
   // -- PRIMITIVE PROCEDURES: identification & application
