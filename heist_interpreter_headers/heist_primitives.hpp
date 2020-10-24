@@ -3258,11 +3258,13 @@ namespace heist {
     static constexpr const char * const format = 
       "\n     (eval <data> <optional-environment>)" 
       "\n     -> Pass 'null-environment to eval in the empty environment!"
-      "\n     -> Pass 'local-environment to eval in the local environment!"
-      "\n     -> Pass 'global-environment to eval in the global environment (default)!";
+      "\n     -> Pass 'local-environment to eval in the local environment (default)!"
+      "\n     -> Pass 'global-environment to eval in the global environment!";
     // extract the local environment
     auto local_env = args.rbegin()->env;
     args.pop_back();
+    // Set local-environment evaluation as default
+    if(args.size() == 1) args.push_back(symconst::local_env);
     // use the initial/local environment if passed 'null-environment or
     //   'local-environment as a 2nd arg
     auto original_global_env = G::GLOBAL_ENVIRONMENT_POINTER;
@@ -4778,11 +4780,13 @@ namespace heist {
     static constexpr const char * const format = 
       "\n     (load <filename-string> <optional-environment>)"
       "\n     -> Pass 'null-environment to load in the empty environment!"
-      "\n     -> Pass 'local-environment to load in the local environment!"
-      "\n     -> Pass 'global-environment to load in the global environment (default)!";
+      "\n     -> Pass 'local-environment to load in the local environment (default)!"
+      "\n     -> Pass 'global-environment to load in the global environment!";
     // extract the local environment
     auto local_env = args.rbegin()->env;
     args.pop_back();
+    // Set local-environment evaluation as default
+    if(args.size() == 1) args.push_back(symconst::local_env);
     // determine which environment to load <filename-string> wrt to
     auto env = G::GLOBAL_ENVIRONMENT_POINTER;
     if(args.size()==2 && args[1].is_type(types::sym)) {

@@ -50,7 +50,7 @@
 ;; Lambda Shorthand Macro Longhand
 (core-syntax fn ()
   ((_ proc-exp) 
-    (eval (heist:fn:ctor 'proc-exp) 'local-environment)))
+    (eval (heist:fn:ctor 'proc-exp))))
 
 ;; Lambda Reader Macro Expansion
 (define (heist:fn:ctor proc-exp)
@@ -153,11 +153,9 @@
 (core-syntax tlambda ()
   ((_ () b ...) (lambda () b ...)) ; 0 args
   ((_ (a ...) b ...)               ; N args
-    (eval (heist:core:tlambda->lambda (cons 'lambda (cons (list 'a ...) '(b ...))))
-          'local-environment))
+    (eval (heist:core:tlambda->lambda (cons 'lambda (cons (list 'a ...) '(b ...))))))
   ((_ err-message (a ...) b ...)  ; optional-descriptor & N args
-    (eval (heist:core:tlambda->lambda (cons 'lambda (cons (list 'a ...) '(b ...))) err-message)
-          'local-environment)))
+    (eval (heist:core:tlambda->lambda (cons 'lambda (cons (list 'a ...) '(b ...))) err-message))))
 
 
 ;; Ex1: (tlambda ((string? s) any-arg (number? n)) <body>) ; predicated & arbitrary args
@@ -194,10 +192,10 @@
   `(syntax-rules ()
     ((_ (method-name arg ...) body ...) ; METHOD W/ ARGS
       (eval `(define (,(symbol-append ',(symbol-append struct-name '>) 'method-name) this arg ...)
-                ,@(heist:core:ctor-defmethod-body ',struct-name (,(symbol-append struct-name '>slots)) '(body ...)))) 'local-environment)
+                ,@(heist:core:ctor-defmethod-body ',struct-name (,(symbol-append struct-name '>slots)) '(body ...)))))
     ((_ (method-name) body ...) ; METHOD W/O ARGS
       (eval `(define (,(symbol-append ',(symbol-append struct-name '>) 'method-name) this)
-                ,@(heist:core:ctor-defmethod-body ',struct-name (,(symbol-append struct-name '>slots)) '(body ...)))  'local-environment))))
+                ,@(heist:core:ctor-defmethod-body ',struct-name (,(symbol-append struct-name '>slots)) '(body ...)))))))
 
 
 ;; DEFINES A "STRUCTURE" OBJECT BASED ON VECTOR ACCESS
@@ -238,22 +236,22 @@
 (core-syntax defstruct ()
   ((_ name field ...)
     (eval (list 'define (cons (symbol-append 'make- 'name) '(field ...))
-              '(vector 'name field ...)) 'local-environment)
+              '(vector 'name field ...)))
     (eval (list 'define (list (symbol-append 'name '- 'field) 'obj)
               '(define res (assq 'field (map cons '(field ...) (iota (length '#(field ...)) 1))))
               '(if res
                    (ref obj (cdr res))
-                   #f)) 'local-environment) ...
+                   #f))) ...
     (eval (list 'define (list (symbol-append 'set- 'name '- 'field '!) 'obj 'new-val)
               '(define res (assq 'field (map cons '(field ...) (iota (length '#(field ...)) 1))))
               '(if res
                    (set-index! obj (cdr res) new-val)
-                   #f)) 'local-environment) ...
+                   #f))) ...
     (eval (list 'define (list (symbol-append 'name '?) 'obj)
               '(and (vector? obj)
                     (= (length obj) (+ 1 (length '#(field ...))))
-                    (eq? (head obj) 'name))) 'local-environment)
+                    (eq? (head obj) 'name))))
     (eval (list 'define (list (symbol-append 'name '>slots)) 
-              ''(field ...)) 'local-environment)
+              ''(field ...)))
     (eval (list 'define-syntax (symbol-append 'defmethod- 'name)
-              '(eval (heist:core:ctor-defmethod-syntax-rules 'name))) 'local-environment)))
+              '(eval (heist:core:ctor-defmethod-syntax-rules 'name))))))
