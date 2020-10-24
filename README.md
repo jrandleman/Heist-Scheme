@@ -975,6 +975,24 @@ Other primitives of this nature include:<br>
   - [`core-syntax`](#core-syntax) macros, only bound to the **global environment**, expand at **analysis-time**
     * _Hence **analysis-time** macros in a [`lambda`](#lambda) body expand **in the [`lambda`](#lambda) declaration only once!**_
 
+#### Example Runtime Degradation Risk:
+* ***BEST PRACTICE***: Use `core-syntax` in the **global scope** to avoid the below
+* Heist reads, analyzes, and runs each expression individually
+* Hence reading `(define (f) ...)` below means the entire expr is analyzed at once,<br>
+  **but** the `my-macro` core-syntax defn is only registered at run-time!
+  - Hence `(my-macro 12)` is analyzed **before** `my-macro` is defn'd as core-syntax!
+    * Thus `(my-macro 12)` _must_ be expanded at ***run-time*** instead of ***analysis-time***!
+  - However `(my-macro 13)` **does** expand at analysis-time, since `(f)` triggered<br>
+    `my-macro` to be bound as core-syntax prior analyzing the `(define (g) ...)` expr!
+```scheme
+  (define (f)
+    (core-syntax my-macro () ; BINDS my-macro TO THE GLOBAL ENV AS CORE-SYNTAX AT RUNTIME
+      ((_ a) (* a 2)))
+    (my-macro 12))           ; EXPANDS AT RUNTIME SINCE my-macro ISN'T CORE-SYNTAX YET!
+  (f)                        ; RUN f TO REGISTER my-macro AS core-syntax IN THE GLOBAL ENV
+  (define (g) (my-macro 13)) ; EXPANDS AT ANALYSIS TIME
+```
+
 
 ------------------------
 ## Scm->Cps:
