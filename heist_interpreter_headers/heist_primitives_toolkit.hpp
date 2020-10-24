@@ -4222,7 +4222,7 @@ namespace heist {
     static constexpr const char * const format = 
       "\n     (current-date <optional-offset> ...)"
       "\n     => <optional-offset> ::= (<symbolic-unit> <integer-amount>)"
-      "\n     => <symbolic-unit> ::= <sec> | <min> | <hour> | <day> | <year>";
+      "\n     => <symbolic-unit> ::= sec | min | hour | day | year";
     static constexpr const auto MAX_LL = std::numeric_limits<long long>::max();
     static constexpr const auto MIN_LL = std::numeric_limits<long long>::min();
     THROW_ERR("'current-date offset arg " << PROFILE(elt) 

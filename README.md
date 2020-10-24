@@ -1716,11 +1716,13 @@ Other primitives of this nature include:<br>
    * `(string-replace <string1> <string2> <start1> <end1>)`
    * _See [`regex-replace`](#regex-uses-ecmascript-syntax) & [`regex-replace-all`](#regex-uses-ecmascript-syntax) for a regex-based alternative!_
 
-10. __String Contains Substring__: Get index of 1st instance
+10. __String Contains Substring (From Left)__: Get index of 1st instance
     * `(string-contains <string> <sub-string>)`
+    * _Returns `#f` is `<sub-string>` isn't in `<string>`!_
 
-11. __String Contains Substring__: Get index of last instance
+11. __String Contains Substring (From Right)__: Get index of last instance
     * `(string-contains-right <string> <sub-string>)`
+    * _Returns `#f` is `<sub-string>` isn't in `<string>`!_
 
 12. __Join a List of Strings Into 1 String__:
     * `(string-join <string-list> <optional-string-delimiter> <optional-grammar>)`
@@ -2368,7 +2370,7 @@ Other primitives of this nature include:<br>
 
 10. __Get Current Date as String__: `(current-date <optional-offset> ...)`
     * `<optional-offset>` = `(<symbolic-unit> <integer-amount>)`
-    * `<symbolic-unit>` = `<sec>` | `<min>` | `<hour>` | `<day>` | `<year>`
+    * `<symbolic-unit>` = `sec` | `min` | `hour` | `day` | `year`
 
 
 
