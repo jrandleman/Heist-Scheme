@@ -1002,11 +1002,12 @@ namespace heist {
   // PROCEDURE CONSTRUCTION
   scm_list make_procedure(const scm_list& parameters, const exe_type& body_proc,
                           env_type& env, const frame_var& name)noexcept{
-    scm_list procedure_exp(7);
+    scm_list procedure_exp(8);
     procedure_exp[0] = symconst::procedure, procedure_exp[1] = parameters;
     procedure_exp[2] = body_proc,           procedure_exp[3] = env;
     procedure_exp[4] = make_cal(0),         procedure_exp[5] = name;
     procedure_exp[6] = boolean(false); // inline-invocation? (SEE cps-load & cps-eval)
+    procedure_exp[7] = obj_type(nullptr);
     return procedure_exp;
   }
 
@@ -1015,6 +1016,7 @@ namespace heist {
   env_type& procedure_environment(scm_list& p)     noexcept{return p[3].env;}
   size_type& procedure_recursive_depth(scm_list& p)noexcept{return *p[4].cal;}
   bool procedure_inlines_call(scm_list& p)         noexcept{return p[6].bol.val;}
+  obj_type& procedure_self(scm_list& p)            noexcept{return p[7].obj;}
 
   frame_var procedure_name(const scm_list& p)noexcept{
     if(is_compound_procedure(p)) // compound procedure name
@@ -4378,15 +4380,7 @@ namespace heist {
 
   // extend <procedure>'s env with <calling_obj> as "self"
   data extend_method_env_with_SELF_object(data& calling_obj, scm_list& procedure)noexcept{
-    auto& env  = procedure_environment(procedure);
-    auto& vars = frame_variables(*env->operator[](0));
-    auto& vals = frame_values(*env->operator[](0));
-    if(vars.empty() || vars[0] != "self") {
-      vars.insert(vars.begin(), "self");
-      vals.insert(vals.begin(), calling_obj);
-    } else {
-      vals[0] = calling_obj;
-    }
+    procedure[7] = calling_obj;
     return procedure;
   }
 
@@ -4460,8 +4454,8 @@ namespace heist {
       // Search local members & methods, the proto, and the proto inheritances
       bool is_member = false;
       if(!seek_call_value_in_local_object(value,chain[i],is_member))
-        THROW_ERR('\''<<call<<' '<<chain[i]<<" isn't a property in object "
-          << value << '!' << EXP_ERR(call));
+        THROW_ERR('\''<<call<<' '<<chain[i]<<" isn't a property in object"
+          "\n     " << value << " of class name [ " << value.obj->proto->class_name << " ]!" << EXP_ERR(call));
       // if found a method, confirm at the last item in the call chain
       if(!is_member && i+1 < n)
         THROW_ERR('\''<<call<<" can't access property "<<chain[i]
@@ -4553,6 +4547,11 @@ namespace heist {
       // splice in current env for dynamic scope as needed
       if(callceing || G::USING_INLINE_INVOCATIONS)
         extended_env->insert(extended_env->begin()+1, env->begin(), env->end());
+      // add the 'self' object iff applying a method
+      if(procedure[7].obj) {
+        frame_variables(*extended_env->operator[](0)).push_back("self");
+        frame_values(*extended_env->operator[](0)).push_back(procedure[7].obj);         
+      }
       // confirm max recursive depth hasn't been exceeded
       auto& recursive_depth = procedure_recursive_depth(procedure);
       if(recursive_depth > G::MAX_RECURSION_DEPTH) {
