@@ -5638,7 +5638,7 @@ namespace heist {
 
   data primitive_PROTO_SUPER(scm_list& args) {
     confirm_given_unary_class_prototype_arg(args,"proto-super");
-    if(!args[0].cls->inherited) return symconst::emptylist;
+    if(!args[0].cls->inherited) return G::FALSE_DATA_BOOLEAN;
     return args[0].cls->inherited;
   }
 
