@@ -975,7 +975,7 @@ Other primitives of this nature include:<br>
   - [`core-syntax`](#core-syntax) macros, only bound to the **global environment**, expand at **analysis-time**
     * _Hence **analysis-time** macros in a [`lambda`](#lambda) body expand **in the [`lambda`](#lambda) declaration only once!**_
 
-#### Example Runtime Degradation Risk:
+#### Example Runtime Expansion Degradation Risk:
 * ***BEST PRACTICE***: _use `core-syntax` in the **GLOBAL SCOPE** to avoid the below!_
 * Heist reads, analyzes, and runs each expression individually
 * Hence reading `(define (f) ...)` below means the entire expr is analyzed at once,<br>
