@@ -29,13 +29,14 @@
 ;; MULTIPLE-ARITY LAMBDAS (SIMILAR TO CLOJURE'S <fn>)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(core-syntax lambda* ()
-  ((_ (arg-arity-list b ...) ...)
-    (lambda (. args) 
-      (define lambda*-args-length (length args))
-      (cond ((= lambda*-args-length (length 'arg-arity-list))
-              (apply (lambda arg-arity-list b ...) args)) ...
-            (else (error 'LAMBDA* "Argument number didn't match any defined arity!" args))))))
+(core-syntax lambda* 
+  (syntax-rules ()
+    ((_ (arg-arity-list b ...) ...)
+      (lambda (. args) 
+        (define lambda*-args-length (length args))
+        (cond ((= lambda*-args-length (length 'arg-arity-list))
+                (apply (lambda arg-arity-list b ...) args)) ...
+              (else (error 'LAMBDA* "Argument number didn't match any defined arity!" args)))))))
 
 
 ;;; Multi-arity Factorial Example!
@@ -48,9 +49,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Lambda Shorthand Macro Longhand
-(core-syntax fn ()
-  ((_ proc-exp) 
-    (eval (heist:fn:ctor 'proc-exp))))
+(core-syntax fn 
+  (syntax-rules ()
+    ((_ proc-exp) 
+      (eval (heist:fn:ctor 'proc-exp)))))
 
 ;; Lambda Reader Macro Expansion
 (define (heist:fn:ctor proc-exp)
@@ -93,11 +95,12 @@
 ;; PROCEDURES THAT CAN USE IMMEDIATE RETURNS (SIMILAR TO C++ FUNCTIONS)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(core-syntax function () ;; function procedures can use <return>
-  ((_ (name) b ...)
-    (define name (lambda () (catch-jump (lambda () b ...)))))
-  ((_ (name a ...) b ...)
-    (define name (lambda (a ...) (catch-jump (lambda () b ...))))))
+(core-syntax function 
+  (syntax-rules () ;; function procedures can use <return>
+    ((_ (name) b ...)
+      (define name (lambda () (catch-jump (lambda () b ...)))))
+    ((_ (name a ...) b ...)
+      (define name (lambda (a ...) (catch-jump (lambda () b ...)))))))
 
 (define return jump!)
 
@@ -110,17 +113,18 @@
 ;; TIME AN OPERATION
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(core-syntax time-operation ()
-  ((_ op)
-    (let ()
-      (define time-operation:start (seconds-since-epoch))
-      op
-      (define time-operation:end (seconds-since-epoch))
-      (display "\n===================================\n> Operation ")
-      (display 'op)
-      (display " took ")
-      (display (- time-operation:end time-operation:start))
-      (display "s!\n===================================\n"))))
+(core-syntax time-operation 
+  (syntax-rules ()
+    ((_ op)
+      (let ()
+        (define time-operation:start (seconds-since-epoch))
+        op
+        (define time-operation:end (seconds-since-epoch))
+        (display "\n===================================\n> Operation ")
+        (display 'op)
+        (display " took ")
+        (display (- time-operation:end time-operation:start))
+        (display "s!\n===================================\n")))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; TLAMBDA MACRO FOR AUTOMATED PREDICATED LAMBDA ARGUMENTS
@@ -150,12 +154,13 @@
 
 
 ;; Typed-Lambda Macro to automate predicates on arguments
-(core-syntax tlambda ()
-  ((_ () b ...) (lambda () b ...)) ; 0 args
-  ((_ (a ...) b ...)               ; N args
-    (eval (heist:core:tlambda->lambda (cons 'lambda (cons (list 'a ...) '(b ...))))))
-  ((_ err-message (a ...) b ...)  ; optional-descriptor & N args
-    (eval (heist:core:tlambda->lambda (cons 'lambda (cons (list 'a ...) '(b ...))) err-message))))
+(core-syntax tlambda 
+  (syntax-rules ()
+    ((_ () b ...) (lambda () b ...)) ; 0 args
+    ((_ (a ...) b ...)               ; N args
+      (eval (heist:core:tlambda->lambda (cons 'lambda (cons (list 'a ...) '(b ...))))))
+    ((_ err-message (a ...) b ...)  ; optional-descriptor & N args
+      (eval (heist:core:tlambda->lambda (cons 'lambda (cons (list 'a ...) '(b ...))) err-message)))))
 
 
 ;; Ex1: (tlambda ((string? s) any-arg (number? n)) <body>) ; predicated & arbitrary args
@@ -233,25 +238,26 @@
 ;;                      (printf "Hello " your-name 
 ;;                              ", my name is " (student-name this) " and my id is "
 ;;                              (student-id this) ", great to meet you!\n"))
-(core-syntax defstruct ()
-  ((_ name field ...)
-    (eval (list 'define (cons (symbol-append 'make- 'name) '(field ...))
-              '(vector 'name field ...)))
-    (eval (list 'define (list (symbol-append 'name '- 'field) 'obj)
-              '(define res (assq 'field (map cons '(field ...) (iota (length '#(field ...)) 1))))
-              '(if res
-                   (ref obj (cdr res))
-                   #f))) ...
-    (eval (list 'define (list (symbol-append 'set- 'name '- 'field '!) 'obj 'new-val)
-              '(define res (assq 'field (map cons '(field ...) (iota (length '#(field ...)) 1))))
-              '(if res
-                   (set-index! obj (cdr res) new-val)
-                   #f))) ...
-    (eval (list 'define (list (symbol-append 'name '?) 'obj)
-              '(and (vector? obj)
-                    (= (length obj) (+ 1 (length '#(field ...))))
-                    (eq? (head obj) 'name))))
-    (eval (list 'define (list (symbol-append 'name '>slots)) 
-              ''(field ...)))
-    (eval (list 'define-syntax (symbol-append 'defmethod- 'name)
-              '(eval (heist:core:ctor-defmethod-syntax-rules 'name))))))
+(core-syntax defstruct 
+  (syntax-rules ()
+    ((_ name field ...)
+      (eval (list 'define (cons (symbol-append 'make- 'name) '(field ...))
+                '(vector 'name field ...)))
+      (eval (list 'define (list (symbol-append 'name '- 'field) 'obj)
+                '(define res (assq 'field (map cons '(field ...) (iota (length '#(field ...)) 1))))
+                '(if res
+                     (ref obj (cdr res))
+                     #f))) ...
+      (eval (list 'define (list (symbol-append 'set- 'name '- 'field '!) 'obj 'new-val)
+                '(define res (assq 'field (map cons '(field ...) (iota (length '#(field ...)) 1))))
+                '(if res
+                     (set-index! obj (cdr res) new-val)
+                     #f))) ...
+      (eval (list 'define (list (symbol-append 'name '?) 'obj)
+                '(and (vector? obj)
+                      (= (length obj) (+ 1 (length '#(field ...))))
+                      (eq? (head obj) 'name))))
+      (eval (list 'define (list (symbol-append 'name '>slots)) 
+                ''(field ...)))
+      (eval (list 'define-syntax (symbol-append 'defmethod- 'name)
+                '(eval (heist:core:ctor-defmethod-syntax-rules 'name)))))))

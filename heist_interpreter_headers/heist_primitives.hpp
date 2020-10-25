@@ -5805,23 +5805,24 @@ namespace heist {
   ;   => 'lambda alternative that will curry its arguments
   ;      => IE (define K (curry (a b) a)) => (define K (lambda (a) (lambda (b) a)))
   ;            ((K 1) 2) = (K 1 2) ;; BOTH OF THESE MEANS OF APPLICATION WORK IDENTICALLY!
-  (core-syntax curry ()
-    ((_ () body ...)
-      (lambda () body ...))
-    ((_ (arg) body ...) 
-      (lambda (x . xs)
-        (fold (lambda (f a) (f a)) 
-              (lambda (a) a)
-              (cons (lambda (arg) body ...)
-                    (cons x xs)))))
-    ((_ (arg rest-args ...) body ...)
-      (lambda (x . xs)
-        (define curried-lambdas
-          (lambda (arg) (curry (rest-args ...) body ...)))
-        (fold (lambda (f a) (f a)) 
-              (lambda (a) a)
-              (cons curried-lambdas
-                    (cons x xs))))))
+  (core-syntax curry 
+    (syntax-rules ()
+      ((_ () body ...)
+        (lambda () body ...))
+      ((_ (arg) body ...) 
+        (lambda (x . xs)
+          (fold (lambda (f a) (f a)) 
+                (lambda (a) a)
+                (cons (lambda (arg) body ...)
+                      (cons x xs)))))
+      ((_ (arg rest-args ...) body ...)
+        (lambda (x . xs)
+          (define curried-lambdas
+            (lambda (arg) (curry (rest-args ...) body ...)))
+          (fold (lambda (f a) (f a)) 
+                (lambda (a) a)
+                (cons curried-lambdas
+                      (cons x xs)))))))
 
   ; COMPOSE PROCS (RETURNS A PROC OF N ARGS APPLYING THEM TO THE COMPOSITION)
   (define (compose proc . procs)
@@ -5878,27 +5879,30 @@ namespace heist {
     (coroutine:private:launch #f)) ; IGNORE: USED INTERNALLY
 
 
-  (core-syntax yield () ; ONLY DESIGNED TO BE USED IN define-coroutine BODIES
-    ((_ val)
-      (heist:core:pass-continuation-co-call/cc
-        (lambda (k) 
-          (jump! (new-coroutine (vector val (lambda () (catch-jump k id)))))))))
+  (core-syntax yield 
+    (syntax-rules () ; ONLY DESIGNED TO BE USED IN define-coroutine BODIES
+      ((_ val)
+        (heist:core:pass-continuation-co-call/cc
+          (lambda (k) 
+            (jump! (new-coroutine (vector val (lambda () (catch-jump k id))))))))))
 
 
-  (core-syntax pause () ; ONLY DESIGNED TO BE USED IN define-coroutine BODIES
-    ((_) 
-      (heist:core:pass-continuation-co-call/cc
-        (lambda (k) 
-          (jump! (new-coroutine (vector #f (lambda () (catch-jump k id)))))))))
+  (core-syntax pause 
+    (syntax-rules () ; ONLY DESIGNED TO BE USED IN define-coroutine BODIES
+      ((_) 
+        (heist:core:pass-continuation-co-call/cc
+          (lambda (k) 
+            (jump! (new-coroutine (vector #f (lambda () (catch-jump k id))))))))))
 
 
   ;; NESTING define-coroutine CAUSES UNDEFINED BEHAVIOR
   ;; LAST RETURNED VALUE IS "#<procedure id>" IF THE LAST EXPRESSION YIELDS
   ;; -> IE if last expr yeilds, calling .next that result will return #<procedure id>
-  (core-syntax define-coroutine () 
-    ((_ co-name body ...)
-      (define (co-name)
-        (new-coroutine (vector #f #f (lambda () (catch-jump (scm->cps body ...) id)))))))
+  (core-syntax define-coroutine 
+    (syntax-rules () 
+      ((_ co-name body ...)
+        (define (co-name)
+          (new-coroutine (vector #f #f (lambda () (catch-jump (scm->cps body ...) id))))))))
 
 
   ;; Convert a coroutine iterator into a generator thunk!

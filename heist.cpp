@@ -4265,20 +4265,15 @@ namespace heist {
   exe_type analyze_core_syntax(scm_list& exp,const bool cps_block=false) {
     static constexpr const char * const format = 
       "\n     (core-syntax <name> (<keyword> ...) (<pattern> <template>) ...)";
-    if(exp.size() < 4)
+    if(exp.size() < 3)
       THROW_ERR("'core-syntax didn't recieve enough args!\n     In expression: " << exp << format);
     if(!exp[1].is_type(types::sym))
       THROW_ERR("'core-syntax didn't recieve enough args!\n     In expression: " << exp << format);
-    // Transform core-syntax->define-syntax, evaling via global env, then registering the analysis-time label
-    scm_list define_syntax_transform(3);
-    define_syntax_transform[0] = symconst::defn_syn;
-    define_syntax_transform[1] = exp[1];
-    define_syntax_transform[2] = scm_list();
-    define_syntax_transform[2].exp.push_back(symconst::syn_rules);
-    define_syntax_transform[2].exp.insert(define_syntax_transform[2].exp.end(),exp.begin()+2,exp.end());
     // Eval the syntax defn in the global env at runtime
-    auto core_proc = analyze_define_syntax(define_syntax_transform,cps_block,true);
-    return [core_proc=std::move(core_proc),core_syntax_name=std::move(exp[1].sym)](env_type&){
+    exp[0] = symconst::defn_syn;
+    auto core_syntax_name = exp[1].sym;
+    auto core_proc = analyze_define_syntax(exp,cps_block,true);
+    return [core_proc=std::move(core_proc),core_syntax_name=std::move(core_syntax_name)](env_type&){
       // Register the core-syntax label
       register_symbol_iff_new(G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY,core_syntax_name);
       // Trigger the definition at runtime
