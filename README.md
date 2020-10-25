@@ -259,6 +259,7 @@
      #xc0de    ; 49374
 
      30rHeistScheme ; 10326335991592274
+     2r-101/10      ; -5/2
 
      #b3r101 ; 2 radix prefixes (NaN) -> resolves to a symbol
      ```
