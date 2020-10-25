@@ -263,8 +263,7 @@
      #b3r101 ; 2 radix prefixes (NaN) -> resolves to a symbol
      ```
 1. Exactness:
-   - Inexact: `#i`
-   - Exact: `#e`
+   - Inexact: `#i`, Exact: `#e`
      ```scheme
      #i3   ; 3.0
      #i1/2 ; 0.5
