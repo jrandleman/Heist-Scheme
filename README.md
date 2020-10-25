@@ -959,8 +959,7 @@ Other primitives of this nature include:<br>
 
 #### Use: ___Construct an Analysis-Time Macro in the GLOBAL Scope!___
 
-#### Form: 
-* `(core-syntax <label> <syntax-object>)`
+#### Form: `(core-syntax <label> <syntax-object>)`
 
 #### Analysis-Time Advantanges:
 * Interpreter's [`eval`](#evalapply--symbol-append) seperates expression analysis (declaration) & execution (invocation):
