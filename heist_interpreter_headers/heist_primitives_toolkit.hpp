@@ -2904,11 +2904,20 @@ namespace heist {
                                                    !args[2].num.is_pos()))));
   }
 
+
   // primitive "number->string" conversion helper
   bool no_NUMBER_TO_STRING_precision_change_needed(const scm_list& args, const scm_string& number_as_string)noexcept{
     // No change needed if non-inexact or in scientific notation
     return args.size() < 3 || !args[0].num.is_inexact() || 
       (args[1].num == 10 && number_as_string.find("e") != number_as_string.find("E"));
+  }
+
+
+  // returns 'e', 'i', or 0 (the last denoting no exactness present)
+  char parse_exactness_numeric_prefix(const scm_string& numstr) {
+    if(numstr.size() > 2 && numstr[0] == '#' && (numstr[1] == 'i' || numstr[1] == 'e'))
+      return numstr[1];
+    return 0;
   }
 
   /******************************************************************************

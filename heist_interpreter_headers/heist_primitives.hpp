@@ -4162,6 +4162,7 @@ namespace heist {
 
   // primitive "string->number" procedure:
   data primitive_COERCE_STRING_TO_NUMBER(scm_list& args) {
+    bool convert_string_to_scm_number(const scm_string&, num_type&)noexcept; // defined in the input parser
     if(args.size() > 2 || args.empty())
       THROW_ERR("'string->number received incorrect # of arguments!"
         "\n     (string->number <string> <optional-numeric-radix>)"
@@ -4178,18 +4179,23 @@ namespace heist {
         THROW_ERR("'string->number radix (given "<<radix<<") can only range from 2-36!"
           "\n     (string->number <string> <optional-numeric-radix>)"
           << FCN_ERR("string->number", args));
+      char exactness_prefix = parse_exactness_numeric_prefix(*args[0].str);
       if(radix != 10) {
-        auto num = num_type(*args[0].str, radix);
+        auto num = exactness_prefix ? num_type(args[0].str->substr(2), radix) : num_type(*args[0].str, radix);
         if(num.is_nan()) return G::FALSE_DATA_BOOLEAN; // invalid conversion
-        return data(num);
+        switch(exactness_prefix) {
+          case 'e': return num.to_exact();
+          case 'i': return num.to_inexact();
+          default:  return num;
+        }
       }
     }
     // immediate return if given NaN
     if(*args[0].str == "+nan.0" || *args[0].str == "-nan.0")
       return data(num_type(*args[0].str));
-    auto num = num_type(*args[0].str);
-    if(num.is_nan()) return G::FALSE_DATA_BOOLEAN; // invalid conversion
-    return data(num);
+    num_type num;
+    if(convert_string_to_scm_number(*args[0].str,num)) return num;
+    return G::FALSE_DATA_BOOLEAN; // invalid conversion
   }
 
   // primitive "symbol->string" procedure:

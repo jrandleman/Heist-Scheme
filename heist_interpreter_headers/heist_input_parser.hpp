@@ -372,39 +372,42 @@ namespace heist {
     return 0; // '0' denotes to deduce the precision
   }
 
+  // Returns whether succeeded, handles the radix & exactness prefixes
+  // => NOTE: <num_type> only handles numeric literals w/o these prefixes
+  bool convert_string_to_scm_number(const scm_string& input, num_type& num)noexcept{
+    // Given NaN (special case)
+    if(input == "+nan.0" || input == "-nan.0") {
+      num = num_type("+nan.0");
+      return true;
+    }
+    // check for radices -- may contain both an exactness radix & #-base radix
+    const char radix1 = input.size() >= 2 ? is_valid_number_radix(input[0],input[1]) : 0;
+    const char radix2 = (input.size() >= 4 && radix1) ? is_valid_number_radix(input[2],input[3]) : 0;
+    if(invalid_radix_pair(radix1, radix2)) return false;
+    // determine the numeric base & exactness to parse for
+    const int  base = radix_numerical_base(radix1,radix2);
+    const char prec = radix_numerical_prec(radix1,radix2);
+    // parse the number after the radix/base
+    size_type start = (radix1 && radix2) ? 4 : radix1 ? 2 : 0; // mv past radices
+    // evaluate the parsed non-NaN token
+    num = (base!=10) ? num_type(input.substr(start),base) : num_type(input.substr(start)); // base
+    if(prec) num = (prec=='e') ? num.to_exact() : num.to_inexact(); // prec
+    return !num.is_nan(); // already accounted for parsing a NaN literal
+  }
 
   // Check whether data is a number. 
   //   => NOTE: 2.0.0 is a valid Scheme symbol
   //            -> Hence must confirm is numeric & NOT symbol prior extraction
   bool data_is_number(size_type& i, const scm_string& input, num_type& exp) noexcept {
-    const size_type n = input.size();
-
-    // check for radices -- may contain both an exactness radix & #-base radix
-    const char radix1 = is_valid_number_radix(input[i],input[i+1]);
-    const char radix2 = radix1 ? is_valid_number_radix(input[i+2],input[i+3]) : 0;
-    if(invalid_radix_pair(radix1, radix2)) return false;
-    
-    // determine the numeric base & exactness to parse for
-    const int  base = radix_numerical_base(radix1,radix2);
-    const char prec = radix_numerical_prec(radix1,radix2);
-    
-    // parse the number after the radix/base
-    size_type j = i + ((radix1 && radix2) ? 4 : radix1 ? 2 : 0); // mv past radices
     scm_string num;
+    const size_type n = input.size();
+    size_type j = i;
     while(j < n && !IS_END_OF_WORD(input[j],input[j+1])) num += input[j++];
-    // check if parsed +nan.0 (special case)
-    bool parsing_NaN = num == "+nan.0" || num == "-nan.0";
-    if(parsing_NaN) {
-      exp = num_type("+nan.0");
-      i = j - 1;
+    if(convert_string_to_scm_number(num,exp)) {
+      i = j-1;
       return true;
     }
-    // evaluate the parsed non-NaN token
-    exp = (base!=10) ? num_type(num,base) : num_type(num); // base
-    if(prec) exp = (prec=='e') ? exp.to_exact() : exp.to_inexact(); // prec
-    if(exp.is_nan()) return false; // if failed number ctor (NaN already accounted for)
-    i = j - 1;
-    return true;
+    return false;
   }
 
   /******************************************************************************
