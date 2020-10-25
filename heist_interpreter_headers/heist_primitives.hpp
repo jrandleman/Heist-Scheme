@@ -65,9 +65,14 @@ namespace heist {
 
   // primitive "expt" procedure
   data primitive_EXPT(scm_list& args) {
-    confirm_no_numeric_primitive_errors(args, "expt", "(expt <num1> <num2>)");
-    confirm_2_args(args, "expt", "(expt <num1> <num2>)");
-    return data((args[0].num.expt(args[1].num)));
+    confirm_no_numeric_primitive_errors(args, "expt", "(expt <num1> <num2> ...)");
+    if(args.size() < 2)
+      THROW_ERR("'expt less than 2 args given!\n     (expt <num1> <num2> ...)" 
+        << FCN_ERR("expt",args));
+    num_type pow(args.rbegin()->num);
+    for(size_type i = args.size()-1; i-- > 0;)
+      pow = args[i].num.expt(pow);
+    return pow;
   }
 
   // primitive "expt-mod" procedure [more efficient (modulo (expt x y) z)]

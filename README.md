@@ -1494,8 +1494,9 @@ Other primitives of this nature include:<br>
 
 5. __Absolute Value__: `(abs <real>)`
 
-6. __Exponentiation__: Raise `<number1>` to the power of `<number2>`
-   * `(expt <number1> <number2>)`
+6. __Exponentiation__: Exponentiate n numbers
+   * `(expt <number1> <number2> ...)`
+   * As in math, exponentiation is _right_ associative!
 
 7. __Exponentiation Modulo__: Raise `<real1>` to the power of `<real2>` modulo `<real3>`
    * `(expt-mod <real1> <real2> <real3>)`
