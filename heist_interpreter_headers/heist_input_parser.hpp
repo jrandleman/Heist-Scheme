@@ -372,6 +372,27 @@ namespace heist {
     return 0; // '0' denotes to deduce the precision
   }
 
+  // Returns radix (10 if dne, 0 if invalid). Alternative to Scheme's base 2,8,16 --
+  //   Smalltalk's <base>r<digits> enables literals of any base
+  // PRECONDITION: radix_numerical_base(radix1,radix2) == 10
+  int parse_smalltalk_radix(size_type& start, const scm_string& input) {
+    if(input.size()-start < 3) return 10;
+    if(input[start+1] == 'r') {
+      int base = input[start]-'0';
+      if(base < 2 || base > 9) return 0;
+      start += 2;
+      return base;
+    }
+    if(input.size()-start < 4) return 10;
+    if(input[start+2] == 'r') {
+      int base = ((input[start]-'0') * 10) + input[start+1]-'0';
+      if(base < 2 || base > 36) return 0;
+      start += 3;
+      return base;
+    }
+    return 10;
+  }
+
   // Returns whether succeeded, handles the radix & exactness prefixes
   // => NOTE: <num_type> only handles numeric literals w/o these prefixes
   bool convert_string_to_scm_number(const scm_string& input, num_type& num)noexcept{
@@ -385,10 +406,15 @@ namespace heist {
     const char radix2 = (input.size() >= 4 && radix1) ? is_valid_number_radix(input[2],input[3]) : 0;
     if(invalid_radix_pair(radix1, radix2)) return false;
     // determine the numeric base & exactness to parse for
-    const int  base = radix_numerical_base(radix1,radix2);
-    const char prec = radix_numerical_prec(radix1,radix2);
+    int  base = radix_numerical_base(radix1,radix2);
+    char prec = radix_numerical_prec(radix1,radix2);
     // parse the number after the radix/base
     size_type start = (radix1 && radix2) ? 4 : radix1 ? 2 : 0; // mv past radices
+    // check for smalltalk radices if didn't find a non-decimal scheme radix
+    if(base == 10) {
+      base = parse_smalltalk_radix(start,input);
+      if(!base) return false; // invalid smalltalk radix prefix
+    }
     // evaluate the parsed non-NaN token
     num = (base!=10) ? num_type(input.substr(start),base) : num_type(input.substr(start)); // base
     if(prec) num = (prec=='e') ? num.to_exact() : num.to_inexact(); // prec

@@ -248,19 +248,19 @@
 
 ### 2 Prefix Types:
 0. Radix:
-   - Binary: `#b`
-   - Octal: `#o`
-   - Hexadecimal: `#x`
-   - Decimal: `#d` (enabled by default)
+   - Binary: `#b`, Octal: `#o`, Hexadecimal: `#x`, Decimal: `#d` (enabled by default)
+   - 2-36: `2r`-`36r` (Smalltalk-style literals!)
      ```scheme
      #b-101    ; -5
      #b10/11   ; 2/3
      #b1010.11 ; 10.75
-   
-     #o77 ; 63
-   
-     #xC0DE ; 49374
-     #xc0de ; 49374
+     #o77      ; 63
+     #xC0DE    ; 49374
+     #xc0de    ; 49374
+
+     30rHeistScheme ; 10326335991592274
+
+     #b3r101 ; 2 radix prefixes (NaN) -> resolves to a symbol
      ```
 1. Exactness:
    - Inexact: `#i`
@@ -268,11 +268,11 @@
      ```scheme
      #i3   ; 3.0
      #i1/2 ; 0.5
-
      #e3.5 ; 7/2
      #e1.0 ; 1
 
      #e#b101.1 ; Exact & Binary! => 11/2
+     #i2r101   ; Inexact & Binary! => 5.0
      ```
 
 
