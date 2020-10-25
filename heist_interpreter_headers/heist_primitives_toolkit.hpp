@@ -5111,7 +5111,7 @@ namespace heist {
     // assign default values (deep copy members)
     obj.proto = class_proto_obj; // ptr to the prototype object
     for(size_type i = 0, n = class_proto_obj->member_values.size(); i < n; ++i)
-      obj.member_values.push_back(data::deep_copy(class_proto_obj->member_values[i]));
+      obj.member_values.push_back(class_proto_obj->member_values[i].copy());
     obj.member_names = class_proto_obj->member_names;
     obj.method_names = class_proto_obj->method_names, obj.method_values = class_proto_obj->method_values;
     // add the <prototype> member

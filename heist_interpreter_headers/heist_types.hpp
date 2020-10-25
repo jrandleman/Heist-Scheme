@@ -400,7 +400,7 @@ namespace heist {
   // data_obj.equal(datum)          => equal? deep equality
   // data_obj.noexcept_equal(datum) => <equal?> but w/o invoking object methods
   // data_obj.is_self_evaluating()  => core evaluator should reflect datum
-  // data::deep_copy(datum)         => deep-cpy vector|string|pair|hmap|object
+  // data_obj.copy()                => deep-cpy vector|string|pair|hmap|object
   struct data {
     // current type & value held by data object
     types type = types::undefined;
@@ -430,8 +430,8 @@ namespace heist {
     // check whether data is of a type
     constexpr bool is_type(const types& t) const noexcept {return type == t;}
 
-    // returns a deep copy of <d> ::= vector | string | pair | hmap | object
-    static data deep_copy(const data& d) noexcept;
+    // returns a deep copy of *this ::= vector | string | pair | hmap | object
+    data copy() const noexcept;
 
     // assignment operator
     void operator=(const data& d) noexcept {
@@ -836,26 +836,26 @@ namespace heist {
     scm_list member_values, method_values;
   };
 
-  // STATIC struct data METHOD
-  // returns a deep copy of <d> ::= vector | string | pair | hmap | object
+  // struct data METHOD
+  // returns a deep copy of *this ::= vector | string | pair | hmap | object
   data deep_copy_pair(const data& d) noexcept;
   data deep_copy_obj(const data& d) noexcept;
-  data data::deep_copy(const data& d) noexcept {
+  data data::copy() const noexcept {
     map_data m;
     scm_list new_vec;
-    switch(d.type) {
-      case types::str: return str_type(*d.str);
-      case types::par: return deep_copy_pair(d);
-      case types::obj: return deep_copy_obj(d);
+    switch(type) {
+      case types::str: return str_type(*str);
+      case types::par: return deep_copy_pair(*this);
+      case types::obj: return deep_copy_obj(*this);
       case types::vec:
-        for(size_type i = 0, n = d.vec->size(); i < n; ++i)
-          new_vec.push_back(deep_copy(d.vec->operator[](i)));
+        for(size_type i = 0, n = vec->size(); i < n; ++i)
+          new_vec.push_back(vec->operator[](i).copy());
         return vec_type(std::move(new_vec));
       case types::map:
-        for(const auto& keyval : d.map->val)
-          m.val[keyval.first] = deep_copy(keyval.second);
+        for(const auto& keyval : map->val)
+          m.val[keyval.first] = keyval.second.copy();
         return map_type(std::move(m));
-      default: return d;
+      default: return *this;
     }
   }
 

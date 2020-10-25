@@ -1265,7 +1265,7 @@ namespace heist {
       THROW_ERR("'copy recieved incorrect # of args!\n     (copy <obj>)" 
         "\n     -> Deep-Copy: Vector | String | List/Dotted/Circular | Hmap | Object"
         << FCN_ERR("copy", args));
-    return data::deep_copy(args[0]);
+    return args[0].copy();
   }
 
   /******************************************************************************

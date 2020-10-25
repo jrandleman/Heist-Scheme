@@ -743,7 +743,7 @@ namespace heist {
   ******************************************************************************/
 
   void deep_copy_cycle_link(data& p, par_type& q, par_type& cycle_start)noexcept{
-    q->first = data::deep_copy(p.par->first);
+    q->first = p.par->first.copy();
     p = p.par->second;
     if(p.par != cycle_start) {
       q->second = par_type(scm_pair());
@@ -786,14 +786,14 @@ namespace heist {
     data root = par_type(scm_pair());
     auto q = root.par;
     while(p.is_type(types::par)) {
-      q->first = data::deep_copy(p.par->first);
+      q->first = p.par->first.copy();
       p = p.par->second;
       if(p.is_type(types::par)) {
         q->second = par_type(scm_pair());
         q = q->second.par;
       }
     }
-    q->second = data::deep_copy(p);
+    q->second = p.copy();
     return root;
   }
 
@@ -818,9 +818,9 @@ namespace heist {
     o.member_names = d.obj->member_names;
     o.method_names = d.obj->method_names;
     for(const auto& member_val : d.obj->member_values)
-      o.member_values.push_back(data::deep_copy(member_val));
+      o.member_values.push_back(member_val.copy());
     for(const auto& method_val : d.obj->method_values)
-      o.method_values.push_back(data::deep_copy(method_val));
+      o.method_values.push_back(method_val.copy());
     return obj_type(std::move(o));
   }
 } // End of namespace heist
