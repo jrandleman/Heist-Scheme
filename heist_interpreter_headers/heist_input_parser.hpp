@@ -340,57 +340,46 @@ namespace heist {
   * READER NUMBER PARSING FUNCTIONS
   ******************************************************************************/
 
-  // Returns the lowercase char of the radix if IS a valid radix, else returns 0
-  // #e=exact, #i=inexact, #b=binary, #o=octal, #d=decimal, #x=hexadecimal
-  constexpr char is_valid_number_radix(const char& c, const char& c2) noexcept {
-    const char r = c ? scm_numeric::mklower(c2) : 0;
-    if(c=='#' && (r=='e' || r=='i' || r=='b' || r=='o' || r=='d' || r=='x'))
-      return r;
-    return 0;
-  }
-
-  // Confirms whether given an invalid pair of radices, ie 2 exactness or 2 bases
-  constexpr bool invalid_radix_pair(const char& r1, const char& r2) noexcept {
-    if(!r1 || !r2) return false;
-    if((r1 == 'e' || r1 == 'i') && (r2 == 'e' || r2 == 'i')) return true;
-    if(r1 != 'e' && r1 != 'i' && r2 != 'e' && r2 != 'i')     return true;
-    return false;
-  }
-
-  // Returns the numeric base to parse the number w/, as per the given radices
-  constexpr int radix_numerical_base(const char& r1, const char& r2) noexcept {
-    if(r1 && r1 != 'e' && r1 != 'i')
-      return r1 == 'b' ? 2 : r1 == 'o' ? 8 : r1 == 'd' ? 10 : 16;
-    if(r2) return r2 == 'b' ? 2 : r2 == 'o' ? 8 : r2 == 'd' ? 10 : 16;
-    return 10; // default to decimal
-  }
-
-  // Returns the exactness to convert the number to, as per the given radices
-  constexpr char radix_numerical_prec(const char& r1, const char& r2) noexcept {
-    if(r1 == 'e' || r1 == 'i') return r1;
-    if(r2 == 'e' || r2 == 'i') return r2;
-    return 0; // '0' denotes to deduce the precision
-  }
-
-  // Returns radix (10 if dne, 0 if invalid). Alternative to Scheme's base 2,8,16 --
-  //   Smalltalk's <base>r<digits> enables literals of any base
-  // PRECONDITION: radix_numerical_base(radix1,radix2) == 10
-  int parse_smalltalk_radix(size_type& start, const scm_string& input) {
-    if(input.size()-start < 3) return 10;
-    if(input[start+1] == 'r') {
-      int base = input[start]-'0';
-      if(base < 2 || base > 9) return 0;
-      start += 2;
-      return base;
+  bool parse_radix_exactness_prefix(const scm_string& input, size_type& i, int& base, char& prec)noexcept{
+    if(input[i] == '#' && input.size()-i > 2) {
+      if(input[i+1] == 'e' || input[i+1] == 'i') {
+        if(prec) return false;
+        prec = input[i+1];
+        i += 2;
+        return true;
+      }
+      if(input[i+1] == 'b' || input[i+1] == 'o' || input[i+1] == 'd' || input[i+1] == 'x') {
+        if(base) return false;
+        base = input[i+1] == 'b' ? 2 : input[i+1] == 'o' ? 8 : input[i+1] == 'd' ? 10 : 16;
+        i += 2;
+        return true;
+      }
+      if(!isdigit(input[i+1])) return false;
+      if(input.size()-i > 3 && input[i+2] == 'r') {
+        if(base) return false;
+        base = input[i+1]-'0';
+        if(base < 2 || base > 9) return false;
+        i += 3;
+        return true;
+      }
+      if(input.size()-i > 4 && isdigit(input[i+2]) && input[i+3] == 'r') {
+        if(base) return false;
+        base = 10 * (input[i+1]-'0') + (input[i+2]-'0');
+        if(base < 2 || base > 36) return false;
+        i += 4;
+        return true;
+      }
+      return false;
     }
-    if(input.size()-start < 4) return 10;
-    if(input[start+2] == 'r') {
-      int base = ((input[start]-'0') * 10) + input[start+1]-'0';
-      if(base < 2 || base > 36) return 0;
-      start += 3;
-      return base;
-    }
-    return 10;
+    return true;
+  }
+
+  // Returns whether found valid (including no) prefix.
+  bool parse_radix_exactness_prefixes(const scm_string& input, size_type& i, int& base, char& prec)noexcept{
+    if(!parse_radix_exactness_prefix(input,i,base,prec)) return false;
+    if(!parse_radix_exactness_prefix(input,i,base,prec)) return false;
+    if(!base) base = 10; // base = 10 by default
+    return true;
   }
 
   // Returns whether succeeded, handles the radix & exactness prefixes
@@ -401,22 +390,12 @@ namespace heist {
       num = num_type("+nan.0");
       return true;
     }
-    // check for radices -- may contain both an exactness radix & #-base radix
-    const char radix1 = input.size() >= 2 ? is_valid_number_radix(input[0],input[1]) : 0;
-    const char radix2 = (input.size() >= 4 && radix1) ? is_valid_number_radix(input[2],input[3]) : 0;
-    if(invalid_radix_pair(radix1, radix2)) return false;
-    // determine the numeric base & exactness to parse for
-    int  base = radix_numerical_base(radix1,radix2);
-    char prec = radix_numerical_prec(radix1,radix2);
-    // parse the number after the radix/base
-    size_type start = (radix1 && radix2) ? 4 : radix1 ? 2 : 0; // mv past radices
-    // check for smalltalk radices if didn't find a non-decimal scheme radix
-    if(base == 10) {
-      base = parse_smalltalk_radix(start,input);
-      if(!base) return false; // invalid smalltalk radix prefix
-    }
+    size_type i = 0;
+    int base    = 0;
+    char prec   = 0; // prec = 0 denotes use default exactness
+    if(!parse_radix_exactness_prefixes(input,i,base,prec)) return false;
     // evaluate the parsed non-NaN token
-    num = (base!=10) ? num_type(input.substr(start),base) : num_type(input.substr(start)); // base
+    num = (base!=10) ? num_type(input.substr(i),base) : num_type(input.substr(i)); // base
     if(prec) num = (prec=='e') ? num.to_exact() : num.to_inexact(); // prec
     return !num.is_nan(); // already accounted for parsing a NaN literal
   }
