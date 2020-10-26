@@ -213,8 +213,8 @@
 # Heist Numerics
 ### 4 Number Types:
 0. Exact/Ratnum (rational number)
-   * Has a numerator and a denominator (automatically reduced to simplest form!)
-   * _Special Case_: denominator of `1` creates a ___BigInt___ of arbitrary size
+   * Arbitrary precision numerator & denominator (automatically reduced to simplest form!)
+   * _Special Case_: denominator of `1` creates a ___BigInt___
      ```scheme
      -1/2 ; stays as a fraction!
      3    ; ratnum w/ denom of 1 = bigint

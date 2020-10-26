@@ -355,14 +355,14 @@ namespace heist {
         return true;
       }
       if(!isdigit(input[i+1])) return false;
-      if(input.size()-i > 3 && input[i+2] == 'r') {
+      if(input.size()-i > 3 && (input[i+2] == 'r' || input[i+2] == 'R')) {
         if(base) return false;
         base = input[i+1]-'0';
         if(base < 2 || base > 9) return false;
         i += 3;
         return true;
       }
-      if(input.size()-i > 4 && isdigit(input[i+2]) && input[i+3] == 'r') {
+      if(input.size()-i > 4 && isdigit(input[i+2]) && (input[i+3] == 'r' || input[i+3] == 'R')) {
         if(base) return false;
         base = 10 * (input[i+1]-'0') + (input[i+2]-'0');
         if(base < 2 || base > 36) return false;

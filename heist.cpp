@@ -1082,9 +1082,18 @@ namespace heist {
 
   #define DEFCLASS_LAYOUT\
     "\n     (defclass <class-name> (<optional-inherited-prototype>) <member-or-method-instances>)"\
-    "\n     => <member-or-method-instance> ::= (<member-name> <default-value>)"\
-    "\n                                      | ((<method-name> <arg1> <arg2> ...) <body> ...)"\
-    "\n                                      | ((make-<class-name> <arg> ...) <body> ...) ; ctor!"
+    "\n     => <member-or-method> ::= (<member-name> <default-value>)"\
+    "\n                             | ((<method-name> <arg1> <arg2> ...) <body> ...)"\
+    "\n                             | ((make-<class-name> <arg> ...) <body> ...) ; constructor"\
+    "\n                             | ((eq? <obj>) <body> ...)    ; overload eq?"\
+    "\n                             | ((eqv? <obj>) <body> ...)   ; overload eqv?"\
+    "\n                             | ((equal? <obj>) <body> ...) ; overload equal?"\
+    "\n                             | ((self= <obj>) <body> ...)  ; overload all the above"\
+    "\n                             | ((write) <body> ...)        ; overload write"\
+    "\n                             | ((display) <body> ...)      ; overload display"\
+    "\n                             | ((pprint) <body> ...)       ; overload pretty-print"\
+    "\n                             | ((self->string) <body> ...) ; overload all the above"\
+    "\n                             | ((self->procedure <arg> ...) <body> ...) ; overload application"
 
   // -- ERROR HANDLING
   void validate_defclass(scm_list& exp) {
