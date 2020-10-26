@@ -4381,11 +4381,14 @@ namespace heist {
   // %wa = write anything
   // --------
   // %n = write number
+  // %+n = number (show sign if positive too)
   // %En = %en = to-exact number ; same as "%n" (inexact->exact <number>)
   // %In = %in = to-inexact number ; same as "%n" (exact->inexact <number>)
   // %.#n = to-exact number ; same as "%n" (number->string <number> 10 <#>)
   // %#n = number in base # [throws an error if <#> !in-range of [2,36]]
-  //       -> "%e2.5n" -> convert to point 5 precision, then make exact binary
+  //       -> "+%e2.5n" -> 5 digits of precision & mk exact in binary w/ sign
+  // --------
+  // %$ = display finite real as its dollar value
   // --------
   // %s = display string
   // %ws = write string
@@ -4406,11 +4409,14 @@ namespace heist {
     "\n        %pa = pretty-print anything"\
     "\n        ----------------------------------------------------------------------"\
     "\n        %n = number"\
+    "\n        %+n = number (show sign if positive too)"\
     "\n        %En = %en = number (coerced to exact)"\
     "\n        %In = %in = number (coerced to inexact)"\
     "\n        %.#n = number (with <#> digits of precision)"\
     "\n        %#n = number (in base <#>)"\
-    "\n        -> IE: \"%e2.5n\": use 5 digits of precision & make exact in binary"\
+    "\n        -> IE: \"%+e2.5n\": 5 digits of precision & mk exact in binary w/ sign"\
+    "\n        ----------------------------------------------------------------------"\
+    "\n        %$ = display real finite as its dollar value"\
     "\n        ----------------------------------------------------------------------"\
     "\n        %s = display string"\
     "\n        %ws = write string"\

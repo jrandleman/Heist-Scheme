@@ -2264,11 +2264,14 @@ Other primitives of this nature include:<br>
    %pa = pretty-print anything
    ----------------------------------------------------------------------
    %n = number
+   %+n = number (show sign if positive too)
    %En = %en = number (coerced to exact)
    %In = %in = number (coerced to inexact)
    %.#n = number (with <#> digits of precision)
    %#n = number (in base <#>)
-   -> IE: "%e2.5n": use 5 digits of precision & make exact in binary
+   -> IE: "%+e2.5n": 5 digits of precision & mk exact in binary w/ sign
+   ----------------------------------------------------------------------
+   %$ = display real finite as its dollar value
    ----------------------------------------------------------------------
    %s = display string
    %ws = write string
@@ -2280,7 +2283,7 @@ Other primitives of this nature include:<br>
    %wb = write "true" or "false" instead of "#t" or "#f"
    ----------------------------------------------------------------------
    %%  = "%" (escapes a "%")
-   ---------------------------------------------------------------------
+   ----------------------------------------------------------------------
 ```
 
 

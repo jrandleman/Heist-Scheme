@@ -3231,13 +3231,14 @@ namespace heist {
 
   // SPRINTF TOKEN TYPE
   struct sprintf_token_t { 
-    enum class token_t {a, wa, pa, s, ws, c, wc, b, wb, n};
+    enum class token_t {a, wa, pa, s, ws, c, wc, b, wb, dollar, n};
     token_t token = token_t::a;
     // invariants for more number detail
     enum class exactness_t {exact, inexact, dflt};
     exactness_t exactness = exactness_t::dflt;
     int precision = -1; // -1 denotes 'default'
     int base      = 10;
+    bool show_sign = false; // show sign even if positive
     // ctor
     sprintf_token_t(token_t t = token_t::a) noexcept : token(t){}
   };
@@ -3268,11 +3269,31 @@ namespace heist {
   }
 
   bool is_potential_detailed_number(char c)noexcept{
-    return is_sprintf_exact(c) || is_sprintf_inexact(c) || c == '.' || isdigit(c);
+    return c == '+' || is_sprintf_exact(c) || is_sprintf_inexact(c) || c == '.' || isdigit(c);
   }
 
   bool is_invalid_detailed_number(char c, size_type i, size_type n)noexcept{
     return ((is_sprintf_exact(c) || is_sprintf_inexact(c) || isdigit(c)) && i+1 == n) || (c == '.' && i+2 == n);
+  }
+
+  bool number_is_positive_non_special_const(const num_type& n)noexcept{
+    return n.is_pos() && !n.is_pos_inf() && !n.is_neg_inf() && !n.is_nan();
+  }
+
+  bool should_show_sign(const num_type& n)noexcept{
+    return  (n.is_real() && number_is_positive_non_special_const(n)) || 
+            (n.is_complex() && number_is_positive_non_special_const(n.real_part()));
+  }
+
+  bool data_is_a_valid_dollar_value(const data& d)noexcept{
+    return d.is_type(types::num) && d.num.is_real() && !d.num.is_pos_inf() && !d.num.is_neg_inf() && !d.num.is_nan();
+  }
+
+  scm_string generate_dollar_value_string(const num_type& n)noexcept{
+    auto str = ((n * 100.0L).round() / 100.0L).str();
+    if(str.size() == 1) return "0.00";
+    if(*(str.rbegin()+1) == '.') return str + '0'; // add an extra '0' to mk it 2 decimal places
+    return str;
   }
 
 
@@ -3303,6 +3324,8 @@ namespace heist {
         // parse formatting
         if(next_ch == 'a') {
           tokens.push_back(sprintf_token_t::token_t::a), input = input.substr(i+2), i = 0;
+        } else if(next_ch == '$') {
+          tokens.push_back(sprintf_token_t::token_t::dollar), input = input.substr(i+2), i = 0;
         } else if(next_ch == 's') {
           tokens.push_back(sprintf_token_t::token_t::s), input = input.substr(i+2), i = 0;
         } else if(next_ch == 'c') {
@@ -3335,8 +3358,14 @@ namespace heist {
           // confirm minimum # of chars available
           if(is_invalid_detailed_number(next_ch,i,input.size()))
             throw_invalid_sprintf_token(input.substr(token_start));
-          // parse exactness
+          // parse sign
           sprintf_token_t num_token(sprintf_token_t::token_t::n);
+          if(input[i] == '+') num_token.show_sign = true, ++i;
+          if(input[i] == 'n') {
+            tokens.push_back(num_token), input = input.substr(i+1), i = 0;
+            continue;
+          }
+          // parse exactness
           if(is_sprintf_exact(input[i]))
             num_token.exactness = sprintf_token_t::exactness_t::exact, ++i;
           else if(is_sprintf_inexact(input[i]))
@@ -3410,6 +3439,9 @@ namespace heist {
         case sprintf_token_t::token_t::a:  formatted += args[i].display(); break;
         case sprintf_token_t::token_t::wa: formatted += args[i].write();   break;
         case sprintf_token_t::token_t::pa: formatted += args[i].pprint();  break;
+        case sprintf_token_t::token_t::dollar:  
+          if(!data_is_a_valid_dollar_value(args[i])) THROW_BAD_FORMAT_ARG("real finite numeric");
+          formatted += generate_dollar_value_string(args[i].num); break;
         case sprintf_token_t::token_t::s:  
           if(!args[i].is_type(types::str)) THROW_BAD_FORMAT_ARG("string");
           formatted += args[i].display(); break;
@@ -3447,6 +3479,7 @@ namespace heist {
           else if(tokens[i-1].exactness == sprintf_token_t::exactness_t::inexact)
             num = num.to_inexact();
           // alter base
+          if(tokens[i-1].show_sign && should_show_sign(num)) formatted += '+';
           if(tokens[i-1].base != 10) formatted += num.str(tokens[i-1].base);
           else                       formatted += num.str();
       }
