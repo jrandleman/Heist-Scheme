@@ -4416,7 +4416,7 @@ namespace heist {
     "\n        %#n = number (in base <#>)"\
     "\n        -> IE: \"%+e2.5n\": 5 digits of precision & mk exact in binary w/ sign"\
     "\n        ----------------------------------------------------------------------"\
-    "\n        %$ = display real finite as its dollar value"\
+    "\n        %$ = display real finite as a dollar value"\
     "\n        ----------------------------------------------------------------------"\
     "\n        %s = display string"\
     "\n        %ws = write string"\

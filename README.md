@@ -2271,7 +2271,7 @@ Other primitives of this nature include:<br>
    %#n = number (in base <#>)
    -> IE: "%+e2.5n": 5 digits of precision & mk exact in binary w/ sign
    ----------------------------------------------------------------------
-   %$ = display real finite as its dollar value
+   %$ = display real finite as a dollar value
    ----------------------------------------------------------------------
    %s = display string
    %ws = write string
