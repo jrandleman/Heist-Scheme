@@ -214,7 +214,7 @@
 ### 4 Number Types:
 0. Exact/Ratnum (rational number)
    * Arbitrary precision numerator & denominator (automatically reduced to simplest form!)
-   * _Special Case_: denominator of `1` creates a ___BigInt___
+   * _Special Case_: denominator of `1` creates a BigInt
      ```scheme
      -1/2 ; stays as a fraction!
      3    ; ratnum w/ denom of 1 = bigint
