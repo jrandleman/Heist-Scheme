@@ -3236,9 +3236,10 @@ namespace heist {
     // invariants for more number detail
     enum class exactness_t {exact, inexact, dflt};
     exactness_t exactness = exactness_t::dflt;
-    int precision = -1; // -1 denotes 'default'
-    int base      = 10;
+    int precision  = -1;    // -1 denotes 'default'
+    int base       = 10;
     bool show_sign = false; // show sign even if positive
+    bool upcase    = true;  // capitalize base 11+ strings
     // ctor
     sprintf_token_t(token_t t = token_t::a) noexcept : token(t){}
   };
@@ -3332,7 +3333,7 @@ namespace heist {
           tokens.push_back(sprintf_token_t::token_t::c), input = input.substr(i+2), i = 0;
         } else if(next_ch == 'b') {
           tokens.push_back(sprintf_token_t::token_t::b), input = input.substr(i+2), i = 0;
-        } else if(next_ch == 'n') {
+        } else if(next_ch == 'n' || next_ch == 'N') {
           tokens.push_back(sprintf_token_t::token_t::n), input = input.substr(i+2), i = 0;
         } else if(next_ch == 'p') {
           if(i+2 == input.size() || input[i+2] != 'a') throw_invalid_sprintf_token("%p");
@@ -3361,7 +3362,7 @@ namespace heist {
           // parse sign
           sprintf_token_t num_token(sprintf_token_t::token_t::n);
           if(input[i] == '+') num_token.show_sign = true, ++i;
-          if(input[i] == 'n') {
+          if(input[i] == 'n' || input[i] == 'N') {
             tokens.push_back(num_token), input = input.substr(i+1), i = 0;
             continue;
           }
@@ -3370,7 +3371,7 @@ namespace heist {
             num_token.exactness = sprintf_token_t::exactness_t::exact, ++i;
           else if(is_sprintf_inexact(input[i]))
             num_token.exactness = sprintf_token_t::exactness_t::inexact, ++i;
-          if(input[i] == 'n') {
+          if(input[i] == 'n' || input[i] == 'N') {
             tokens.push_back(num_token), input = input.substr(i+1), i = 0;
             continue;
           }
@@ -3382,7 +3383,8 @@ namespace heist {
                 << "\n     -> Must be in range of [2,36]!" << format 
                 << FCN_ERR(name,args));
             num_token.base = base;
-            if(input[i] == 'n') {
+            if(input[i] == 'n' || input[i] == 'N') {
+              if(input[i] == 'n') num_token.upcase = false;
               tokens.push_back(num_token), input = input.substr(i+1), i = 0;
               continue;
             }
@@ -3398,8 +3400,9 @@ namespace heist {
             num_token.precision = prec;
           }
           // finalize number parsing
-          if(input[i] != 'n')
+          if(input[i] != 'n' && input[i] != 'N')
             throw_invalid_sprintf_token(input.substr(token_start,i+(i<input.size())));
+          if(input[i] == 'n') num_token.upcase = false;
           tokens.push_back(num_token), input = input.substr(i+1), i = 0;
         } else {
           char bad_token[3] = {'%',next_ch,'\0'};
@@ -3480,8 +3483,9 @@ namespace heist {
             num = num.to_inexact();
           // alter base
           if(tokens[i-1].show_sign && should_show_sign(num)) formatted += '+';
-          if(tokens[i-1].base != 10) formatted += num.str(tokens[i-1].base);
-          else                       formatted += num.str();
+          if(tokens[i-1].base >= 11 && !tokens[i-1].upcase) formatted += lowercase_str(num.str(tokens[i-1].base));
+          else if(tokens[i-1].base != 10)                   formatted += num.str(tokens[i-1].base);
+          else                                              formatted += num.str();
       }
       formatted += split_str[i];
     }

@@ -2270,6 +2270,7 @@ Other primitives of this nature include:<br>
    %.#n = number (with <#> digits of precision)
    %#n = number (in base <#>)
    -> IE: "%+e2.5n": 5 digits of precision & mk exact in binary w/ sign
+   -> NOTE: case of 'n' in "%n" denotes case of base >= 11 letters
    ----------------------------------------------------------------------
    %$ = display real finite as a dollar value
    ----------------------------------------------------------------------

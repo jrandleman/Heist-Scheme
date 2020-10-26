@@ -4387,6 +4387,7 @@ namespace heist {
   // %.#n = to-exact number ; same as "%n" (number->string <number> 10 <#>)
   // %#n = number in base # [throws an error if <#> !in-range of [2,36]]
   //       -> "+%e2.5n" -> 5 digits of precision & mk exact in binary w/ sign
+  //       -> NOTE: case of 'n' in "%n" denotes case of base >= 11 letters
   // --------
   // %$ = display finite real as its dollar value
   // --------
@@ -4415,6 +4416,7 @@ namespace heist {
     "\n        %.#n = number (with <#> digits of precision)"\
     "\n        %#n = number (in base <#>)"\
     "\n        -> IE: \"%+e2.5n\": 5 digits of precision & mk exact in binary w/ sign"\
+    "\n        -> NOTE: case of 'n' in \"%n\" denotes case of base >= 11 letters"\
     "\n        ----------------------------------------------------------------------"\
     "\n        %$ = display real finite as a dollar value"\
     "\n        ----------------------------------------------------------------------"\
