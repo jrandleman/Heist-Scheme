@@ -4382,10 +4382,11 @@ namespace heist {
   // --------
   // %n = write number
   // %+n = number (show sign if positive too)
+  // %,n = number with commas (only for bigints)
   // %En = %en = to-exact number ; same as "%n" (inexact->exact <number>)
   // %In = %in = to-inexact number ; same as "%n" (exact->inexact <number>)
-  // %.#n = to-exact number ; same as "%n" (number->string <number> 10 <#>)
   // %#n = number in base # [throws an error if <#> !in-range of [2,36]]
+  // %.#n = to-exact number ; same as "%n" (number->string <number> 10 <#>)
   //       -> "+%e2.5n" -> 5 digits of precision & mk exact in binary w/ sign
   //       -> NOTE: case of 'n' in "%n" denotes case of base >= 11 letters
   // --------
@@ -4411,11 +4412,12 @@ namespace heist {
     "\n        ----------------------------------------------------------------------"\
     "\n        %n = number"\
     "\n        %+n = number (show sign if positive too)"\
+    "\n        %,n = number with commas (only for bigints)"\
     "\n        %En = %en = number (coerced to exact)"\
     "\n        %In = %in = number (coerced to inexact)"\
-    "\n        %.#n = number (with <#> digits of precision)"\
     "\n        %#n = number (in base <#>)"\
-    "\n        -> IE: \"%+e2.5n\": 5 digits of precision & mk exact in binary w/ sign"\
+    "\n        %.#n = number (with <#> digits of precision)"\
+    "\n        -> IE \"%+e2.5n\": 5 digits of precision & mk exact in binary w/ sign"\
     "\n        -> NOTE: case of 'n' in \"%n\" denotes case of base >= 11 letters"\
     "\n        ----------------------------------------------------------------------"\
     "\n        %$ = display real finite as a dollar value"\

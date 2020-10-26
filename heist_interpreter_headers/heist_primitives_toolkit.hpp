@@ -3231,15 +3231,16 @@ namespace heist {
 
   // SPRINTF TOKEN TYPE
   struct sprintf_token_t { 
-    enum class token_t {a, wa, pa, s, ws, c, wc, b, wb, dollar, n};
+    enum class token_t {a, wa, pa, dollar, s, ws, c, wc, b, wb, n};
     token_t token = token_t::a;
     // invariants for more number detail
     enum class exactness_t {exact, inexact, dflt};
     exactness_t exactness = exactness_t::dflt;
     int precision  = -1;    // -1 denotes 'default'
-    int base       = 10;
+    int base       = 10;    // base : [2,36]
     bool show_sign = false; // show sign even if positive
     bool upcase    = true;  // capitalize base 11+ strings
+    bool commas    = false; // print using commas iff bigint
     // ctor
     sprintf_token_t(token_t t = token_t::a) noexcept : token(t){}
   };
@@ -3270,7 +3271,7 @@ namespace heist {
   }
 
   bool is_potential_detailed_number(char c)noexcept{
-    return c == '+' || is_sprintf_exact(c) || is_sprintf_inexact(c) || c == '.' || isdigit(c);
+    return c == '+' || c == ',' || is_sprintf_exact(c) || is_sprintf_inexact(c) || c == '.' || isdigit(c);
   }
 
   bool is_invalid_detailed_number(char c, size_type i, size_type n)noexcept{
@@ -3290,11 +3291,26 @@ namespace heist {
     return d.is_type(types::num) && d.num.is_real() && !d.num.is_pos_inf() && !d.num.is_neg_inf() && !d.num.is_nan();
   }
 
+  bool should_insert_commas(const sprintf_token_t& tok, const num_type& n)noexcept{
+    return tok.commas && tok.exactness != sprintf_token_t::exactness_t::inexact && 
+           tok.precision == -1 && n.is_exact() && n.is_integer();
+  }
+
   scm_string generate_dollar_value_string(const num_type& n)noexcept{
     auto str = ((n * 100.0L).round() / 100.0L).str();
     if(str.size() == 1) return "0.00";
     if(*(str.rbegin()+1) == '.') return str + '0'; // add an extra '0' to mk it 2 decimal places
     return str;
+  }
+
+  void insert_num_commas(scm_string& num_str)noexcept{
+    scm_string comma_str;
+    for(size_type i = num_str.size(), count = 0; i-- > 0; count = (count + 1) % 3) {
+      comma_str += num_str[i];
+      if(count == 2 && i) comma_str += ',';
+    }
+    num_str = scm_string(comma_str.rbegin(),comma_str.rend());
+    if(num_str[0] == '-' && num_str[1] == ',') num_str.erase(1,1);
   }
 
 
@@ -3362,6 +3378,12 @@ namespace heist {
           // parse sign
           sprintf_token_t num_token(sprintf_token_t::token_t::n);
           if(input[i] == '+') num_token.show_sign = true, ++i;
+          if(input[i] == 'n' || input[i] == 'N') {
+            tokens.push_back(num_token), input = input.substr(i+1), i = 0;
+            continue;
+          }
+          // parse comma use
+          if(input[i] == ',') num_token.commas = true, ++i;
           if(input[i] == 'n' || input[i] == 'N') {
             tokens.push_back(num_token), input = input.substr(i+1), i = 0;
             continue;
@@ -3436,7 +3458,7 @@ namespace heist {
       THROW_ERR("-:- FATAL INTERPRETER ERROR -:- IMPROPER SPRINTF TOKEN PARSING -:-"
         "\n     => !!! NUMBER OF TOKENS != TOTAL-SPLIT-STRINGS - 1 !!!"
         "\n     => Please send your code to jrandleman@scu.edu to fix the interpreter's bug!");
-    scm_string formatted(split_str[0]);
+    scm_string formatted(split_str[0]), num_str;
     for(size_type i = 1, n = split_str.size(); i < n; ++i) {
       switch(tokens[i-1].token) {
         case sprintf_token_t::token_t::a:  formatted += args[i].display(); break;
@@ -3481,11 +3503,15 @@ namespace heist {
             num = num.to_exact();
           else if(tokens[i-1].exactness == sprintf_token_t::exactness_t::inexact)
             num = num.to_inexact();
-          // alter base
+          // add sign
           if(tokens[i-1].show_sign && should_show_sign(num)) formatted += '+';
-          if(tokens[i-1].base >= 11 && !tokens[i-1].upcase) formatted += lowercase_str(num.str(tokens[i-1].base));
-          else if(tokens[i-1].base != 10)                   formatted += num.str(tokens[i-1].base);
-          else                                              formatted += num.str();
+          // alter base
+          if(tokens[i-1].base >= 11 && !tokens[i-1].upcase) num_str = lowercase_str(num.str(tokens[i-1].base));
+          else if(tokens[i-1].base != 10)                   num_str = num.str(tokens[i-1].base);
+          else                                              num_str = num.str();
+          // insert commas
+          if(should_insert_commas(tokens[i-1],num)) insert_num_commas(num_str);
+          formatted += num_str;
       }
       formatted += split_str[i];
     }
