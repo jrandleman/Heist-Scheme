@@ -6,12 +6,12 @@
 ;; ==============================================
 
 ; -:- TABLE OF CONTENTS -:-
-; (stream-map        callable . streams)
+; (stream-map        callable s . streams)
 ; (stream-filter     pred? s)
 ; (stream-from       first . optional-step)
 ; (stream-unfold     break-cond map-callable suc-callable seed)
 ; (stream-iterate    suc-callable seed)
-; (stream-zip        . streams)
+; (stream-zip        s . streams)
 ; (stream-constant   . objs)
 ; (stream-append     s . streams)
 ; (stream-interleave stream1 stream2)
@@ -20,7 +20,7 @@
   (syntax-error name (append message "\n               " format "\n               ") variable))
 
 
-(define (stream-map callable . streams)
+(define (stream-map callable s . streams)
   (if (not (callable? callable))
       (heist:stream:error 'stream-map "1st arg isn't a callable!" 
         "(stream-map <callable> <stream1> <stream2> ...)" callable))
@@ -28,14 +28,14 @@
               (if (not (stream? s)) 
                   (heist:stream:error 'stream-map "received a non stream!" 
                     "(stream-map <callable> <stream1> <stream2> ...)" s)))
-            streams)
+            (cons s streams))
   (define (stream-map streams)
     (if (stream-null? (car streams))
         stream-null
         (scons
           (apply callable (map scar streams))
           (stream-map (map scdr streams)))))
-  (stream-map streams))
+  (stream-map (cons s streams)))
 
 
 (define (stream-filter pred? s)
@@ -99,13 +99,13 @@
   (stream-iterate seed))
 
 
-(define (stream-zip . streams)
+(define (stream-zip s . streams)
   (for-each (lambda (s) 
               (if (not (stream? s)) 
                   (heist:stream:error 'stream-zip "received a non stream!" 
                     "(stream-zip <stream1> <stream2> ...)" s)))
-            streams)
-  (apply stream-map (cons (lambda (. l) l) streams)))
+            (cons s streams))
+  (apply stream-map (cons (lambda (. l) l) (cons s streams))))
 
 
 (define (stream-constant . objs)
