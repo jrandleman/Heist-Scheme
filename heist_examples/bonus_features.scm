@@ -7,10 +7,11 @@
 ; prn, pr          ; write arbitrary # of args
 ; println, print   ; display arbitrary # of args
 ; pprintln, pprint ; pretty-print arbitrary # of args
+; define-overload  ; overload an existing procedure
+; function         ; proecdure definition that can use <return>!
+; time-operation   ; time an operation!
 ; lambda*          ; multiple-arity lambda!
 ; fn               ; lambda shorthand for automated arg placement!
-; function         ; proecdure definition that can use <return>!
-; time-operation   ; time an operation (derp)!
 ; tlambda          ; use predicates (including Type checks) on lambda args!
 ; defstruct        ; simple basic vector-based OOP
 
@@ -24,6 +25,82 @@
 (define (print . d) (for-each display d))
 (define (pprintln . d) (for-each pretty-print d) (newline))
 (define (pprint . d) (for-each pretty-print d))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; OVERLOAD EXISTING PROCEDURES
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Use "overload:original" to refer to <overloaded>
+;; Use <else> to catch all other args that don't satisfy any <pred?>
+(core-syntax define-overload
+  (syntax-rules (else)
+    ((_ overloaded (pred? function) ... (else else-function))
+      (define overloaded
+        (let ((overload:original overloaded))
+          (lambda (`@x . `@xs)
+            (cond ((pred? x) (apply function (cons x xs))) ...
+                  (else (apply else-function (cons x xs))))))))
+    ((_ overloaded (pred? function) ...)
+      (define overloaded
+        (let ((overload:original overloaded))
+          (lambda (`@x . `@xs)
+            (cond ((pred? x) (apply function (cons x xs))) ...
+                  (else 'overloaded "Unsupported Arg Type" x))))))))
+
+;; Demo overloading of existing procedures based on predicates
+;(define-overload < 
+;  (string? string<?) 
+;  (char?   char<?)
+;  (else overload:original)) ; demoing <else> use
+
+;(define-overload > 
+;  (number? overload:original) 
+;  (string? string>?) 
+;  (char?   char>?))
+
+;(define-overload =
+;  (number? overload:original)
+;  (else equal?))
+
+;(define-overload +
+;  (number? overload:original)
+;  (char? string)
+;  (seq? append))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; PROCEDURES THAT CAN USE IMMEDIATE RETURNS (SIMILAR TO C++ FUNCTIONS)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(core-syntax function 
+  (syntax-rules () ;; function procedures can use <return>
+    ((_ (name) b ...)
+      (define name (lambda () (catch-jump (lambda () b ...)))))
+    ((_ (name a ...) b ...)
+      (define name (lambda (a ...) (catch-jump (lambda () b ...)))))))
+
+(define return jump!)
+
+
+;;; Demo a immediately returning procedure
+;(function (f a b) (return a) b)
+;(prn (f 1 2))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; TIME AN OPERATION
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(core-syntax time-operation 
+  (syntax-rules ()
+    ((_ op)
+      (let ()
+        (define time-operation:start (seconds-since-epoch))
+        op
+        (define time-operation:end (seconds-since-epoch))
+        (display "\n===================================\n> Operation ")
+        (display 'op)
+        (display " took ")
+        (display (- time-operation:end time-operation:start))
+        (display "s!\n===================================\n")))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; MULTIPLE-ARITY LAMBDAS (SIMILAR TO CLOJURE'S <fn>)
@@ -90,41 +167,6 @@
 ;; Demo reader lambda shorthand
 ;; (fn (and (even? %1) (even? %2))) === (lambda (a b) (and (even? a) (even? b)))
 ;(prn (map (fn (and (even? %1) (even? %2))) '(1 2 3 4 5) '(2 2 2 2 2)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; PROCEDURES THAT CAN USE IMMEDIATE RETURNS (SIMILAR TO C++ FUNCTIONS)
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(core-syntax function 
-  (syntax-rules () ;; function procedures can use <return>
-    ((_ (name) b ...)
-      (define name (lambda () (catch-jump (lambda () b ...)))))
-    ((_ (name a ...) b ...)
-      (define name (lambda (a ...) (catch-jump (lambda () b ...)))))))
-
-(define return jump!)
-
-
-;;; Demo a immediately returning procedure
-;(function (f a b) (return a) b)
-;(prn (f 1 2))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; TIME AN OPERATION
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(core-syntax time-operation 
-  (syntax-rules ()
-    ((_ op)
-      (let ()
-        (define time-operation:start (seconds-since-epoch))
-        op
-        (define time-operation:end (seconds-since-epoch))
-        (display "\n===================================\n> Operation ")
-        (display 'op)
-        (display " took ")
-        (display (- time-operation:end time-operation:start))
-        (display "s!\n===================================\n")))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; TLAMBDA MACRO FOR AUTOMATED PREDICATED LAMBDA ARGUMENTS
