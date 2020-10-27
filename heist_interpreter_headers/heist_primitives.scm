@@ -212,13 +212,13 @@
               (cons (lambda (arg) body ...)
                     (cons x xs)))))
     ((_ (arg rest-args ...) body ...)
-      (lambda (x . xs)
-        (define curried-lambdas
-          (lambda (arg) (curry (rest-args ...) body ...)))
-        (fold (lambda (f a) (f a)) 
-              (lambda (a) a)
-              (cons curried-lambdas
-                    (cons x xs)))))))
+      (let ((heist:curry:curried-lambdas 
+              (lambda (arg) (curry (rest-args ...) body ...))))
+        (lambda (x . xs)
+          (fold (lambda (f a) (f a)) 
+                (lambda (a) a)
+                (cons heist:curry:curried-lambdas
+                      (cons x xs))))))))
 
 ;; =========================================================
 ;; =========== OVERLOAD EXISTING FUNCTIONS MACRO ===========
