@@ -311,15 +311,11 @@
   (syntax-rules () ; ONLY DESIGNED TO BE USED IN define-coroutine BODIES
     ((_ val)
       (heist:core:pass-continuation-co-call/cc
-        (lambda (k) 
-          (jump! (new-coroutine (vector val (lambda () (catch-jump k id))))))))))
-
-
-(core-syntax pause 
-  (syntax-rules () ; ONLY DESIGNED TO BE USED IN define-coroutine BODIES
-    ((_) 
+        (lambda (k)
+          (jump! (new-coroutine (vector val (lambda () (catch-jump k id))))))))
+    ((_)
       (heist:core:pass-continuation-co-call/cc
-        (lambda (k) 
+        (lambda (k)
           (jump! (new-coroutine (vector #f (lambda () (catch-jump k id))))))))))
 
 
@@ -328,8 +324,11 @@
 ;; -> IE if last expr yeilds, calling .next that result will return #<procedure id>
 (core-syntax define-coroutine 
   (syntax-rules () 
-    ((_ co-name body ...)
+    ((_ (co-name) body ...)
       (define (co-name)
+        (new-coroutine (vector #f #f (lambda () (catch-jump (scm->cps body ...) id))))))
+    ((_ (co-name arg ...) body ...)
+      (define (co-name arg ...)
         (new-coroutine (vector #f #f (lambda () (catch-jump (scm->cps body ...) id))))))))
 
 

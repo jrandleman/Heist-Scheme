@@ -1173,20 +1173,20 @@ Other primitives of this nature include:<br>
 #### Use: ___Define Coroutine-Object Generators!___
 * _Note: `define-coroutine` is actually a macro directly defined **in** Heist Scheme!_
 
-#### Form: `(define-coroutine <co-name> <body> ...)`
+#### Form: `(define-coroutine (<co-name> <arg> ...) <body> ...)`
 
 #### Use: Initial invocation `(<co-name>)` will yield a `coroutine` object!
 * Re-invoking `(<co-name>)` will return a new `coroutine` object instance!
 
 #### Coroutine Objects:
-* Creation: Either from invoking `(<co-name>)` or `yield`/`pause` in a coroutine
+* Creation: Either from invoking `(<co-name>)` or `yield` in a coroutine
 * 2 Properties, `.value` __member__ & `.next` __method__:
   - `.value`: yielded value (`#f` if object isn't from a `yield`)
   - `.next`: either starts or continues the coroutine's execution
 
-#### Associated Special Forms:
+#### Associated Special Form:
 0. `(yield <value>)`: yield a value from the coroutine via a new coroutine object!
-1. `(pause)`: same as `(yield #f)`, designed for use with [`cycle-coroutines!`](#Coroutine-Handling-Primitives)
+   * `(yield)` is equivalent to `(yield #f)`, designed for use with [`cycle-coroutines!`](#Coroutine-Handling-Primitives)
 
 #### Special Conditions:
 0. Use [`co-eval`](#Coroutine-Handling-Primitives) instead of [`eval`](#evalapply--symbol-append) in coroutines
@@ -1203,19 +1203,19 @@ Other primitives of this nature include:<br>
 
 ;; Having 2 coroutines alternate until one completes (similar to the scm->cps example)!
 
-(define-coroutine print-ints
+(define-coroutine (print-ints)
   (let loop ((count 0))
     (display count)
     (display #\space)
-    (pause)
+    (yield)
     (if (< count 25)
         (loop (+ count 1)))))
 
-(define-coroutine print-chars
+(define-coroutine (print-chars)
   (let loop ((count 0))
     (display (int->char (+ 65 count)))
     (display #\space)
-    (pause)
+    (yield)
     (if (< count 25)
         (loop (+ count 1)))))
 
