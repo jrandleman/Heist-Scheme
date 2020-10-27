@@ -55,8 +55,7 @@
    - [Lambda](#Lambda)
    - [Define](#Define), [Set!](#Set), [Defined?](#Defined)
    - [Begin](#Begin)
-   - [If](#If)
-   - [And](#And), [Or](#Or)
+   - [If](#If), [And](#And), [Or](#Or)
    - [Cond](#Cond), [Case](#Case)
    - [Let](#Let), [Let\*](#Let-1), [Letrec](#Letrec)
    - [Do](#Do)
@@ -70,6 +69,7 @@
    - [Defclass](#Defclass)
    - [Define-Coroutine](#Define-Coroutine)
    - [Curry](#Curry)
+   - [Define-Overload](#Define-Overload)
 8. [Heist Primitive Variables](#Heist-Primitive-Variables)
 9. [Heist Primitive Procedures](#Heist-Primitive-Procedures)
    - [OOP Reflection Primitives](#OOP-Reflection-Primitives)
@@ -1281,6 +1281,39 @@ Other primitives of this nature include:<br>
 (define KI (K Id)) ; Binds "Id" as the first arg to "K"!
 ((KI 1) 2) ; "Id" is selected, then 2 is passed to "Id"! ; => 2
 (KI 1 2)   ; => 2
+```
+
+
+------------------------
+## Define-Overload:
+
+#### Use: ___Define an Overload for an Existing Procedure!___
+* _Note: `define-overload` is actually a macro directly defined **in** Heist Scheme!_
+
+#### Form: `(define-overload <procedure-name> (<predicate?> <procedure>) ...)`
+* _Access the original overloaded procedure version via `overload:original`!_
+* _Use `else` as a catch-all predicate!_
+
+#### Examples:
+```scheme
+(define-overload < 
+  (string? string<?) 
+  (char?   char<?)
+  (else overload:original)) ; use <else> to catch all cases!
+
+(define-overload > 
+  (number? overload:original) ; reference original > via overload:original
+  (string? string>?) 
+  (char?   char>?))
+
+(define-overload =
+  (number? overload:original)
+  (else equal?))
+
+(define-overload +
+  (number? overload:original)
+  (char? string)
+  (seq? append))
 ```
 
 
