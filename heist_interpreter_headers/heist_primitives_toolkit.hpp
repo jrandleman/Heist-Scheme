@@ -1070,13 +1070,14 @@ namespace heist {
   }
 
 
-  void primitive_MAP_list_constructor(scm_list& curr_pairs, scm_list& proc, 
-                                      scm_list& mapped_list, env_type& env){
+  data primitive_MAP_list_constructor(scm_list& curr_pairs, scm_list& proc, env_type& env){
     scm_list args(curr_pairs.size());
-    if(check_empty_list_else_acquire_cars_advance_cdrs(curr_pairs,args)) return;
+    if(check_empty_list_else_acquire_cars_advance_cdrs(curr_pairs,args)) return symconst::emptylist;
     // Execute proc, store result, & recurse down the rest of the lists
-    mapped_list.push_back(data_cast(execute_application(proc,args,env)));
-    primitive_MAP_list_constructor(curr_pairs, proc, mapped_list, env);
+    data mapped = make_par();
+    mapped.par->first = data_cast(execute_application(proc, args, env));
+    mapped.par->second = primitive_MAP_list_constructor(curr_pairs, proc, env);
+    return mapped;
   }
 
   void primitive_MAP_BANG_list_constructor(scm_list& curr_pairs, scm_list& proc, 
@@ -1090,16 +1091,18 @@ namespace heist {
   }
 
 
-  void primitive_FILTER_list_constructor(data& curr_pair, scm_list& proc, 
-                                         scm_list& filtered_list, env_type& env){
+  data primitive_FILTER_list_constructor(data& curr_pair, scm_list& proc, env_type& env){
     // Return if fully iterated through the list
-    if(!curr_pair.is_type(types::par)) return;
+    if(!curr_pair.is_type(types::par)) return symconst::emptylist;
     // Execute proc, store result, & recurse down the rest of the lists
-    scm_list arg(1,curr_pair.par->first);
-    if(is_true_scm_condition(proc,arg,env))
-      filtered_list.push_back(curr_pair.par->first);
+    if(scm_list arg(1,curr_pair.par->first); is_true_scm_condition(proc,arg,env)) {
+      data filtered = make_par();
+      filtered.par->first = curr_pair.par->first;
+      filtered.par->second = primitive_FILTER_list_constructor(curr_pair.par->second,proc,env);
+      return filtered;
+    }
     // Recurse through the rest of the list
-    primitive_FILTER_list_constructor(curr_pair.par->second, proc, filtered_list, env);
+    return primitive_FILTER_list_constructor(curr_pair.par->second,proc,env);
   }
 
 
@@ -1345,10 +1348,17 @@ namespace heist {
 
 
   // ************************ "reverse" helpers ************************
+  data primitive_list_reverse_logic_iter(data& acc, data& d)noexcept{
+    if(!d.is_type(types::par)) return acc;
+    data rev_list = make_par();
+    rev_list.par->first = d.par->first;
+    rev_list.par->second = acc;
+    return primitive_list_reverse_logic_iter(rev_list,d.par->second);
+  }
+
   data primitive_list_reverse_logic(data& d)noexcept{
-    scm_list par_as_exp;
-    shallow_unpack_list_into_exp(d,par_as_exp);
-    return primitive_LIST_to_CONS_constructor(par_as_exp.rbegin(),par_as_exp.rend());
+    data null_data(symconst::emptylist);
+    return primitive_list_reverse_logic_iter(null_data,d);
   }
 
   template<typename SEQ_CPP_CTOR, typename SEQUENCE_CTOR, typename SEQUENCE_PTR>
@@ -1373,9 +1383,7 @@ namespace heist {
 
   // ************************ "filter" helper ************************
   data primitive_list_filter_logic(scm_list& procedure, scm_list& args, env_type& env){
-    scm_list filtered_list;
-    primitive_FILTER_list_constructor(args[1],procedure,filtered_list,env);
-    return primitive_LIST_to_CONS_constructor(filtered_list.begin(),filtered_list.end());
+    return primitive_FILTER_list_constructor(args[1],procedure,env);
   }
 
 
@@ -1385,9 +1393,7 @@ namespace heist {
     scm_list list_heads(args.begin()+1, args.end());
     primitive_confirm_proper_same_sized_lists(list_heads,"map",format,1,args);
     // Apply the procedure on each elt of each list & store the result
-    scm_list mapped_list;
-    primitive_MAP_list_constructor(list_heads,procedure,mapped_list,env);
-    return primitive_LIST_to_CONS_constructor(mapped_list.begin(),mapped_list.end());
+    return primitive_MAP_list_constructor(list_heads, procedure, env);
   }
 
 
@@ -1497,12 +1503,16 @@ namespace heist {
   }
 
   // recursively mk sublist from 'curr_pair's [start,end)
-  void primitive_MK_SUBLIST_recur(data& curr_pair,      const size_type& start, 
-                                  const size_type& end, const size_type& count, 
-                                                        scm_list& list_exp)noexcept{
-    if(count == end || !curr_pair.is_type(types::par)) return;
-    if(count >= start) list_exp.push_back(curr_pair.par->first);
-    primitive_MK_SUBLIST_recur(curr_pair.par->second, start, end, count+1, list_exp);
+  data primitive_MK_SUBLIST_recur(data& curr_pair,      const size_type& start, 
+                                  const size_type& end, const size_type& count)noexcept{
+    if(count == end || !curr_pair.is_type(types::par)) return symconst::emptylist;
+    if(count >= start) {
+      data sublist = make_par();
+      sublist.par->first = curr_pair.par->first;
+      sublist.par->second = primitive_MK_SUBLIST_recur(curr_pair.par->second, start, end, count+1);
+      return sublist;
+    }
+    return primitive_MK_SUBLIST_recur(curr_pair.par->second, start, end, count+1);
   }
 
   data primitive_sublist_extraction(scm_list& args, const char* format){  
@@ -1532,9 +1542,7 @@ namespace heist {
         <<format<<VALID_SEQUENCE_INDEX_RANGE<<FCN_ERR("slice",args));
     // Extract the sublist
     if(!length) return symconst::emptylist; // length = 0 -> '()
-    scm_list sublist_exp;
-    primitive_MK_SUBLIST_recur(args[0], start, start+length, 0, sublist_exp);
-    return primitive_LIST_to_CONS_constructor(sublist_exp.begin(),sublist_exp.end());
+    return primitive_MK_SUBLIST_recur(args[0], start, start+length, 0);
   }
 
 
@@ -1733,9 +1741,9 @@ namespace heist {
   // ************************ "remove-first" & "remove-last" helper ************************
   template <bool REMOVING_FIRST, typename SEQUENCE_TYPE>
   auto prm_remove_first_or_last(scm_list& pred, SEQUENCE_TYPE sequence, env_type& env){
-    constexpr auto get_begin = [](SEQUENCE_TYPE& s){if constexpr (REMOVING_FIRST) return s.begin(); else return s.rbegin();};
-    constexpr auto get_end   = [](SEQUENCE_TYPE& s){if constexpr (REMOVING_FIRST) return s.end();   else return s.rend();};
-    auto start = get_begin(sequence), end = get_end(sequence);
+    // constexpr version of ?:
+    auto start = [](SEQUENCE_TYPE& s){if constexpr (REMOVING_FIRST) return s.begin(); else return s.rbegin();}(sequence);
+    auto end   = [](SEQUENCE_TYPE& s){if constexpr (REMOVING_FIRST) return s.end();   else return s.rend();}(sequence);
     for(; start != end; ++start) {
       scm_list pruning_args(1,*start);
       if(is_true_scm_condition(pred,pruning_args,env)) {
@@ -1761,19 +1769,25 @@ namespace heist {
     return new_sequence;
   }
 
+  data primitive_list_delete_logic_recur(data& p, const size_type& pos, const size_type& idx, scm_list& args, const char* format) {
+    if(!p.is_type(types::par))
+      THROW_ERR("'delete <list> received out of range index " << idx <<" for list "
+        << args[0] << '!' << format << VALID_SEQUENCE_INDEX_RANGE << FCN_ERR("delete",args));
+    if(pos == idx) {
+      return primitive_list_copy_logic(p.par->second);
+    } else {
+      data del = make_par();
+      del.par->first = p.par->first;
+      del.par->second = primitive_list_delete_logic_recur(p.par->second,pos+1,idx,args,format);
+      return del;
+    }
+  }
+
   data primitive_list_delete_logic(scm_list& args, const char* format){
     if(!primitive_is_valid_index(args[1])) 
       THROW_ERR("'delete <list> 2nd arg " << PROFILE(args[1]) << " is an invalid <index>:"
         << format << VALID_SEQUENCE_INDEX_RANGE << FCN_ERR("delete",args));
-    scm_list list_exp;
-    shallow_unpack_list_into_exp(args[0],list_exp);
-    const auto idx = (size_type)args[1].num.extract_inexact();
-    if(idx >= list_exp.size())
-      THROW_ERR("'delete <list> received out of range index " << idx 
-        <<"\n     for list "<<args[0]<<" of size "<<list_exp.size()<<'!'
-        << format << VALID_SEQUENCE_INDEX_RANGE << FCN_ERR("delete",args));
-    list_exp.erase(list_exp.begin()+idx);
-    return primitive_LIST_to_CONS_constructor(list_exp.begin(), list_exp.end());
+    return primitive_list_delete_logic_recur(args[0],0,(size_type)args[1].num.extract_inexact(),args,format);
   }
 
 
@@ -1864,9 +1878,8 @@ namespace heist {
   template <bool(*truth_proc)(scm_list&,scm_list&,env_type&), typename SEQUENCE_PTR>
   data prm_search_STATIC_SEQUENCE_from_left(scm_list& procedure, scm_list& args, SEQUENCE_PTR seq_ptr, env_type& env){
     if((args[1].*seq_ptr)->empty()) return G::FALSE_DATA_BOOLEAN;
-    const auto& sequence = *(args[1].*seq_ptr);
-    for(size_type i = 0, n = sequence.size(); i < n; ++i) {
-      scm_list proc_args(1,sequence[i]);
+    for(size_type i = 0, n = (args[1].*seq_ptr)->size(); i < n; ++i) {
+      scm_list proc_args(1,(args[1].*seq_ptr)->operator[](i));
       if(truth_proc(procedure,proc_args,env))
         return num_type(i);
     }
@@ -1886,9 +1899,8 @@ namespace heist {
   template <bool(*truth_proc)(scm_list&,scm_list&,env_type&), typename SEQUENCE_PTR>
   data prm_search_STATIC_SEQUENCE_from_right(scm_list& procedure, scm_list& args, SEQUENCE_PTR seq_ptr, env_type& env){
     if((args[1].*seq_ptr)->empty()) return G::FALSE_DATA_BOOLEAN;
-    const auto& sequence = *(args[1].*seq_ptr);
-    for(size_type i = sequence.size(); i-- > 0;) {
-      scm_list proc_args(1,sequence[i]);
+    for(size_type i = (args[1].*seq_ptr)->size(); i-- > 0;) {
+      scm_list proc_args(1,(args[1].*seq_ptr)->operator[](i));
       if(truth_proc(procedure,proc_args,env))
         return num_type(i);
     }
@@ -1896,15 +1908,19 @@ namespace heist {
   }
 
   template <bool(*truth_proc)(scm_list&,scm_list&,env_type&)>
-  data prm_search_list_from_right(scm_list& procedure, scm_list& args, env_type& env){
-    scm_list sequence;
-    shallow_unpack_list_into_exp(args[1],sequence);
-    for(size_type i = sequence.size(); i-- > 0;) {
-      scm_list proc_args(1,sequence[i]);
-      if(truth_proc(procedure,proc_args,env))
-        return num_type(i);
+  data prm_search_list_from_right_recur(data& p, const size_type& pos, scm_list& procedure, env_type& env){
+    if(p.is_type(types::par)) {
+      auto res = prm_search_list_from_right_recur<truth_proc>(p.par->second,pos+1,procedure,env);
+      if(res.is_type(types::num)) return res;
+      scm_list proc_args(1,p.par->first);
+      if(truth_proc(procedure,proc_args,env)) return num_type(pos);
     }
     return G::FALSE_DATA_BOOLEAN;
+  }
+
+  template <bool(*truth_proc)(scm_list&,scm_list&,env_type&)>
+  data prm_search_list_from_right(scm_list& procedure, scm_list& args, env_type& env){
+    return prm_search_list_from_right_recur<truth_proc>(args[1],0,procedure,env);
   }
 
 
