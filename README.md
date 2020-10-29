@@ -1127,6 +1127,7 @@ Other primitives of this nature include:<br>
    - May also have specific printing polymorphism by naming methods `display`, `write`, `pprint` directly
 2. Copying: `self->copy` method will attempt to be invoked on objects for `copy`
    - Method should accept 0 arguments, and _by convention_ return a new object!
+   - Unlike the above methods, `self->copy` is _NOT_ inherited by default!
 
 #### Overload Application via Functors:
 0. The `self->procedure` method will automatically be called on any object applied as a procedure!
