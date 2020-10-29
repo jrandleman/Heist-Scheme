@@ -1316,7 +1316,8 @@ Other primitives of this nature include:<br>
 (define-overload +
   (number? overload:original)
   (char? string)
-  (seq? append))
+  (seq? append)
+  (hmap? hmap-merge))
 ```
 
 
