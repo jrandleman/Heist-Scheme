@@ -1,6 +1,122 @@
 ;; Author: Jordan Randleman -- jrandleman@scu.edu -- heist_primitives.scm
 ;; => Defines helper functions for the Heist Scheme Interpreter's Scheme primitives
 
+;; ====================================================
+;; =========== SELECTED SPECIAL FORM MACROS ===========
+;; ====================================================
+
+; -:- TABLE OF CONTENTS -:-
+; cond
+; case
+; let
+; let*
+; letrec
+; scons
+; stream
+; let-syntax
+; letrec-syntax
+
+(core-syntax cond 
+  (syntax-rules (else =>)
+    ((_ (e => f) c ...)    ; clause w/ application (cache result)
+      ((lambda (heist:core:cond-result) 
+        (if heist:core:cond-result 
+            (f heist:core:cond-result) 
+            (cond c ...))) e))
+    ((_ (e0 e1 ...) c ...) ; clause
+      (if e0 (begin e1 ...) (cond c ...)))
+    ((_ (else e ...))      ; last clause w/ 'else
+      (begin e ...))
+    ((_ (e => f))          ; last clause w/ application (cache result)
+      ((lambda (heist:core:cond-result) 
+        (if heist:core:cond-result 
+            (f heist:core:cond-result))) e))
+    ((_ (e0 e1 ...))       ; last clause
+      (if e0 (begin e1 ...)))))
+
+
+(core-syntax case 
+  (syntax-rules (else =>)
+    ((_ val ((l ...) => f) c ...)  ; clause w/ application (cache result)
+      ((lambda (heist:core:case-result)
+        (if heist:core:case-result 
+            (f heist:core:case-result)
+            (case val c ...))) (memv val (list l ...))))
+    ((_ val ((l ...) e ...) c ...) ; clause
+      (if (memv val (list l ...)) 
+          (begin e ...) 
+          (case val c ...)))
+    ((_ val (else e ...))          ; last clause w/ 'else
+      (begin e ...))
+    ((_ val ((l ...) => f))        ; last clause w/ application (cache result)
+      ((lambda (heist:core:case-result) 
+        (if heist:core:case-result 
+            (f heist:core:case-result))) (memv val (list l ...))))
+    ((_ val ((l ...) e ...))       ; last clause
+      (if (memv val (list l ...)) 
+          (begin e ...)))))
+
+
+(core-syntax let 
+  (syntax-rules ()
+    ((_ () b ...) 
+      ((lambda () b ...)))
+    ((_ ((a v) ...) b ...)
+      ((lambda (a ...) b ...) v ...))
+    ((_ name () b ...) 
+      ((lambda ()
+        (define name (lambda () b ...)) 
+        (name))))
+    ((_ name ((a v) ...) b ...)
+      ((lambda ()
+        (define name (lambda (a ...) b ...)) 
+        (name v ...))))))
+
+
+(core-syntax let* 
+  (syntax-rules ()
+    ((_ () b ...) 
+      ((lambda () b ...)))
+    ((_ ((a v)) b ...)
+      ((lambda (a) b ...) v))
+    ((_ ((a v) other-bindings ...) b ...)
+      ((lambda (a) (let* (other-bindings ...) b ...)) v))))
+
+
+(core-syntax letrec 
+  (syntax-rules ()
+    ((_ () b ...) 
+      ((lambda () b ...)))
+    ((_ ((a v) ...) b ...)
+      (let ((a (undefined)) ...)
+        (set! a v) ...
+        b ...))))
+
+
+(core-syntax scons 
+  (syntax-rules ()
+    ((_ a b) (cons (delay a) (delay b)))))
+
+
+(core-syntax stream 
+  (syntax-rules ()
+    ((_) '())
+    ((_ a) (cons (delay a) (delay '())))
+    ((_ a b ...) (cons (delay a) (delay (stream b ...))))))
+
+
+; NOTE: Our interpreter evals all macros in lazily, hence same rules
+(define heist:core:scoped-syntax-rules
+  (syntax-rules ()
+    ((_ () b ...) 
+      ((lambda () b ...)))
+    ((_ ((a v) ...) b ...)
+      ((lambda ()
+        (define-syntax a v) ...
+        b ...)))))
+(core-syntax let-syntax heist:core:scoped-syntax-rules)
+(core-syntax letrec-syntax heist:core:scoped-syntax-rules)
+
 ;; ==============================================
 ;; =========== LAZY STREAM ALGORITHMS ===========
 ;; ==============================================

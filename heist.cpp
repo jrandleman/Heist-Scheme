@@ -771,58 +771,6 @@ namespace heist {
   }
 
   /******************************************************************************
-  * REPRESENTING STREAMS: (scons <stream-car> <stream-cdr>)
-  ******************************************************************************/
-
-  // -- scons: (scons <arg1> <arg2>) = (cons (delay <arg1>) (delay <arg2>))
-  bool is_scons(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::scons);}
-
-  exe_type analyze_scons(scm_list& exp,const bool cps_block=false) {
-    if(exp.size() != 3)
-      THROW_ERR("'scons expects 2 arguments: (scons <scar> <scdr>)"<<EXP_ERR(exp));
-    scm_list scons_exp(3); 
-    scons_exp[0] = symconst::cons;
-    scons_exp[1] = scm_list(2);
-    scons_exp[1].exp[0] = symconst::delay;
-    scons_exp[1].exp[1] = exp[1];
-    scons_exp[2] = scm_list(2);
-    scons_exp[2].exp[0] = symconst::delay;
-    scons_exp[2].exp[1] = exp[2];
-    return scm_analyze(std::move(scons_exp),false,cps_block);
-  }
-
-
-  // -- stream: (stream <a> <b> ...) = (scons <a> (scons <b> ...))
-  bool is_stream(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::stream);}
-
-  void recursively_expand_stream_into_delayed_cons(const scm_node& start,const scm_node& end,scm_list& expanded)noexcept{
-    expanded[0] = symconst::cons;
-    expanded[1] = scm_list(2);
-    expanded[1].exp[0] = symconst::delay;
-    expanded[1].exp[1] = *start;
-    if(start+1 != end) {
-      expanded[2] = scm_list(3);
-      recursively_expand_stream_into_delayed_cons(start+1,end,expanded[2].exp);
-    } else {
-      expanded[2] = symconst::emptylist;
-    }
-  }
-
-  exe_type analyze_stream(scm_list& exp,const bool cps_block=false)noexcept{
-    if(exp.size() == 1 || data_is_the_SENTINEL_VAL(exp[1])) {
-      if(cps_block) return generate_unary_cps_value_expansion(symconst::emptylist,false);
-      return [](env_type&){return G::EMPTY_LIST_EXPRESSION;};
-    }
-    if(!cps_block) // no need to expand AST _unless_ in a cps block (direct stream ctor)
-      return [exp=std::move(exp)](env_type& env) mutable {
-        return scm_list(1, primitive_STREAM_to_SCONS_constructor(exp.begin()+1,exp.end(),env));
-      };
-    scm_list expanded_stream(3);
-    recursively_expand_stream_into_delayed_cons(exp.begin()+1,exp.end(),expanded_stream);
-    return scm_analyze(std::move(expanded_stream),false,cps_block);    
-  }
-
-  /******************************************************************************
   * REPRESENTING QUOTATION: (quote <expression>)
   ******************************************************************************/
 
@@ -1337,403 +1285,6 @@ namespace heist {
   }
 
   #undef DEFCLASS_LAYOUT
-
-  /******************************************************************************
-  * DERIVING COND: (cond <clause1> ... <clauseN>)
-  ******************************************************************************/
-
-  bool is_cond(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::cond);}
-
-
-  // -- CLAUSE VALIDATION
-  void confirm_valid_clause(const scm_node& current_clause, const scm_list& exp){
-    if(!current_clause->is_type(types::exp) || 
-      current_clause->exp.empty()     || 
-      data_is_the_SENTINEL_VAL(current_clause->exp[0]))
-      THROW_ERR("Invalid COND clause [ " << *current_clause << " ], expects:"
-        "\n     (cond <clause1> <clause2> ...)"
-        "\n     <clause> = (<condition> <consequent>)  -- CONVERT_COND_IF"
-        << EXP_ERR(exp));
-  }
-
-
-  // -- CLAUSE GETTERS
-  data cond_predicate(scm_node& clause)noexcept{
-    return clause->exp[0]; // variable as an expression
-  }
-
-  scm_list cond_actions(scm_node& clause)noexcept{
-    return convert_sequence_exp(scm_list(
-            clause->exp.begin()+1,clause->exp.end()));
-  }
-
-
-  // -- CLAUSE ANALYSIS
-  bool is_cond_else_clause(const scm_node& clause)noexcept{
-    return is_tagged_list(clause->exp,symconst::else_t);
-  }
-
-  bool is_cond_arrow_clause(const scm_node& clause, const scm_list& exp) {
-    const bool has_cond_arrow_notation = clause->exp.size() > 1 && 
-                                         clause->exp[1].is_type(types::sym) && 
-                                         clause->exp[1].sym == "=>";
-    if(has_cond_arrow_notation && clause->exp.size() != 3)
-      THROW_ERR("COND Clause '=> Notation didn't receive 3 args:"
-        "\n     (cond <clause1> <clause2> ...)"
-        "\n     (<condition> => <procedure>)  -- CONVERT_COND_IF"
-        << EXP_ERR(exp));
-    return has_cond_arrow_notation;
-  }
-
-  data cond_arrow_procedure(scm_node& clause)noexcept{
-    return clause->exp[2];
-  }
-
-  scm_list cond_arrow_application(scm_node& current_clause, scm_node& rest_clauses, const scm_node& end_clauses, const scm_list& exp) {
-    scm_list expand_clauses(scm_node&,const scm_node&,const scm_list&);
-    scm_list cond_arrow_transform(2);
-    cond_arrow_transform[0] = scm_list(3);
-    cond_arrow_transform[0].exp[0] = symconst::lambda;
-    cond_arrow_transform[0].exp[1] = scm_list(1,symconst::cond_result);
-    cond_arrow_transform[0].exp[2] = scm_list(4);
-    cond_arrow_transform[0].exp[2].exp[0] = symconst::if_t;
-    cond_arrow_transform[0].exp[2].exp[1] = symconst::cond_result;
-    cond_arrow_transform[0].exp[2].exp[2] = scm_list(2);
-    cond_arrow_transform[0].exp[2].exp[2].exp[0] = cond_arrow_procedure(current_clause);
-    cond_arrow_transform[0].exp[2].exp[2].exp[1] = symconst::cond_result;
-    cond_arrow_transform[0].exp[2].exp[3] = expand_clauses(rest_clauses,end_clauses,exp);
-    cond_arrow_transform[1] = cond_predicate(current_clause);
-    return cond_arrow_transform;
-  }
-
-
-  // -- CLAUSE EXPANSION
-  // Each clause consists of a <condition> & a <body>
-  scm_list expand_clauses(scm_node& current_clause, const scm_node& end_clauses, const scm_list& exp) {
-    // no else clause -- return is now implementation-dependant, I've chosen VOID
-    if(current_clause == end_clauses) {
-      scm_list void_exp(2); 
-      void_exp[0] = symconst::and_t, void_exp[1] = G::VOID_DATA_OBJECT;
-      return void_exp;
-    }
-    confirm_valid_clause(current_clause,exp);
-
-    // Set <test> as <consequent> if only given a <test> in the clause
-    if(current_clause->exp.size() == 1)
-      current_clause->exp.push_back(current_clause->exp[0]);
-
-    // Convert COND into a series of cascading 'if's
-    scm_node rest_clauses = current_clause+1;
-    if(is_cond_else_clause(current_clause)) {
-      if(rest_clauses == end_clauses)
-        return cond_actions(current_clause);
-      else
-        THROW_ERR("ELSE clause isn't last -- CONVERT_COND_IF\n     Total clauses after ELSE: " 
-          << std::distance(current_clause,end_clauses)-1
-          << "\n     (cond <clause1> <clause2> ...)"
-          << EXP_ERR(exp));
-    } else if(is_cond_arrow_clause(current_clause,exp)) {
-      return cond_arrow_application(current_clause,rest_clauses,end_clauses,exp);
-    } else {
-      return make_if(cond_predicate(current_clause),
-                     cond_actions(current_clause),
-                     expand_clauses(rest_clauses,end_clauses,exp));
-    }
-  }
-
-
-  // Expands 'cond into a series of nested 'if
-  scm_list convert_cond_if(scm_list& exp,const bool cps_block=false) {
-    if(exp.size() < 2 || data_is_the_SENTINEL_VAL(exp[1]))
-      THROW_ERR("Invalid COND expression, NO CLAUSES GIVEN:"
-        "\n     (cond <clause1> <clause2> ...)"
-        "\n     <clause> = (<condition> <consequent>)"
-        << EXP_ERR(exp));
-    scm_node start_of_clauses = exp.begin()+1;
-    const scm_node end_of_clauses = exp.end();
-    if(!cps_block)
-      return expand_clauses(start_of_clauses,end_of_clauses,exp);
-    return generate_fundamental_form_cps(expand_clauses(start_of_clauses,end_of_clauses,exp));
-  }
-
-  /******************************************************************************
-  * DERIVING LET: (let ((<var1> <val1>) ... (<varN> <valN>)) <body>)
-  ******************************************************************************/
-
-  // (let ((<var1> <val1>) ... (<varN> <valN>)) <body>) =>
-  // ((lambda (<var1> ... <varN>) <body>) <val1> ... <valN>)
-
-  bool     is_let(const scm_list& exp)        noexcept{return is_tagged_list(exp,symconst::let);}
-  bool     is_named_let(const scm_list& exp)  noexcept{return exp[1].is_type(types::sym);}
-  sym_type named_let_name(const scm_list& exp)noexcept{return exp[1].sym;}
-  scm_list let_body(scm_list& exp)            noexcept{return scm_list(exp.begin()+2,exp.end());}
-  scm_list named_let_body(scm_list& exp)      noexcept{return scm_list(exp.begin()+3,exp.end());}
-
-
-  // PARAMETERS = (<varN> <valN>) OF 'let
-  void validate_let_parameters(const data& params, const scm_list& exp) {
-    static constexpr const char * const format = 
-      "\n     (let (<var-bindings>) <body>)"
-      "\n     <var-binding> = (<name> <value>)";
-    if(!params.is_type(types::exp))
-      THROW_ERR("Invalid LET expression, parameters "<<PROFILE(params)<<
-        " aren't a list of bindings:" << format << EXP_ERR(exp));
-    for(size_type i = 0, n = params.exp.size(); i < n; ++i) {
-      if(!params.exp[i].is_type(types::exp))
-        THROW_ERR("Invalid LET expression, binding #"<<i+1<<PROFILE(params.exp[i])<<
-          " isn't binding list:" << format << EXP_ERR(exp));
-      if(params.exp[i].exp.size() != 2)
-        THROW_ERR("Invalid LET expression, binding #"<<i+1<<PROFILE(params.exp[i])<<
-          " isn't binding list of length 2:" << format << EXP_ERR(exp));
-    }
-  }
-
-  scm_list let_parameters(scm_list& exp) {
-    validate_let_parameters(exp[1],exp); 
-    return exp[1].exp;
-  }
-
-  scm_list named_let_parameters(scm_list& exp) {
-    validate_let_parameters(exp[2],exp); 
-    return exp[2].exp;
-  }
-
-  // Return list of parameter <var> names
-  scm_list let_variables(const scm_list& parameters)noexcept{
-    scm_list vars(parameters.size()); // return var names
-    for(size_type i = 0, n = parameters.size(); i < n; ++i)
-      vars[i] = parameters[i].exp[0];
-    return vars;
-  }
-
-  // Return list of parameter <val> values
-  scm_list let_expressions(const scm_list& parameters)noexcept{
-    // returns variable values (ie their assinged expressions) of parameters
-    scm_list exps(parameters.size());
-    for(size_type i = 0, n = parameters.size(); i < n; ++i)
-      exps[i] = parameters[i].exp[1];
-    return exps;
-  }
-
-
-  // Convert 'let to a 'lambda
-  scm_list convert_let_combination(scm_list exp,const bool cps_block=false) {
-    if(exp.size() < 3)
-      THROW_ERR("Invalid LET expression, didn't received 2 args:"
-        "\n     (let (<var-bindings>) <body>)"
-        "\n     <var-binding> = (<name> <value>)" << EXP_ERR(exp));
-    const bool named = is_named_let(exp);
-    if(named && exp.size() < 4)
-      THROW_ERR("Invalid NAMED LET expression, didn't received 3 args:"
-        "\n     (let <name> (<var-bindings>) <body>)"
-        "\n     <var-binding> = (<name> <value>)" << EXP_ERR(exp));
-
-    // list of var-val pairs
-    scm_list params = (named ? named_let_parameters : let_parameters)(exp);
-
-    // add the sentinel arg as a var name, if 'let' was given no parameters
-    if(params.empty()) {
-      params.push_back(scm_list(2)); // () => ((SENTINTEL_ARG, SENTINTEL_VAL))
-      params[0].exp[0] = symconst::sentinel_arg;
-      params[0].exp[1] = scm_list(2);
-      params[0].exp[1].exp[0] = symconst::quote;
-      params[0].exp[1].exp[1] = symconst::sentinel_arg;
-    }
-
-    // retreive let expressions & body
-    auto exprs             = let_expressions(params);
-    auto let_lambda_object = data(make_lambda(let_variables(params),(named ? named_let_body : let_body)(exp)));
-
-    // convert let into a lambda (both named & unnamed)
-    if(named) {
-      auto let_name_symbol = named_let_name(exp);
-      scm_list lambda_defn(3);
-      lambda_defn[0] = symconst::define;
-      lambda_defn[1] = let_name_symbol;
-      lambda_defn[2] = std::move(let_lambda_object);
-      scm_list self_invocation(exprs.size()+1);
-      self_invocation[0] = std::move(let_name_symbol);
-      // push back each expression as an arg for the self-invoked-lambda call
-      std::move(exprs.begin(), exprs.end(), self_invocation.begin()+1);
-      // bind lambda to name & immediately invoke
-      scm_list let_exp(2); 
-      let_exp[0] = std::move(lambda_defn), let_exp[1] = std::move(self_invocation);
-      // wrap the defined fcn in a self-invoking lambda to bind it to a local env
-      scm_list outer_lambda(2);
-      outer_lambda[0] = scm_list(2+let_exp.size());
-      outer_lambda[1] = symconst::sentinel_arg;
-      outer_lambda[0].exp[0] = symconst::lambda;
-      outer_lambda[0].exp[1] = scm_list(1,symconst::sentinel_arg);
-      std::move(let_exp.begin(),let_exp.end(),outer_lambda[0].exp.begin()+2);
-      if(!cps_block) return outer_lambda;
-      return generate_fundamental_form_cps(outer_lambda);
-    } else {
-      scm_list nameless_self_invoke(exprs.size()+1);
-      nameless_self_invoke[0] = std::move(let_lambda_object);
-      // push back each expression as an arg for the self-invoked-lambda call
-      std::move(exprs.begin(), exprs.end(), nameless_self_invoke.begin()+1);
-      // immediately invoke lambda w/ exps for vars
-      if(!cps_block) return nameless_self_invoke; 
-      return generate_fundamental_form_cps(nameless_self_invoke);
-    }
-  }
-
-  /******************************************************************************
-  * DERIVING LET*: (let* ((<var1> <val1>) ... (<varN> <valN>)) <body>)
-  ******************************************************************************/
-
-  // -- LET*: "LET", BUT VARIABLES CAN INVOKE ONE ANOTHER IN BINDINGS
-  bool is_let_star(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::let_star);}
-
-  scm_list make_let(const scm_list& variable_bindings,scm_list&& body)noexcept{
-    scm_list let_exp(3);
-    let_exp[0] = symconst::let, let_exp[1] = variable_bindings, let_exp[2] = body;
-    return let_exp;
-  }
-
-  // Recursively nest lets, each containing one of let*'s parameters
-  scm_list nest_lets(scm_node param, const scm_node& empty_param, scm_list& exp,const bool cps_block=false){
-    if(param == empty_param)
-      return convert_sequence_exp(let_body(exp));
-    else {
-      return convert_let_combination( // transform into combination immediately
-              make_let(scm_list(1,*param), nest_lets(param+1,empty_param,exp,cps_block)),
-              cps_block
-            );
-    }
-  }
-
-  // Convert let* into a series of nested let's
-  scm_list convert_let_star_nested_lets(scm_list& exp,const bool cps_block=false) {
-    if(exp.size() < 3)
-      THROW_ERR("Invalid LET* expression, didn't received 2 args:"
-        "\n     (let* (<var-bindings>) <body>)"
-        "\n     <var-binding> = (<name> <value>)" << EXP_ERR(exp));
-    scm_list params = let_parameters(exp);
-    if(params.empty()) 
-      return convert_let_combination(exp,cps_block);
-    return nest_lets(params.begin(),params.end(),exp,cps_block);
-  }
-
-  /******************************************************************************
-  * DERIVING LETREC: (letrec ((<var1> <val1>) ... (<varN> <valN>)) <body>)
-  ******************************************************************************/
-
-  // -- LETREC: "LET" ENABLING RECURSIVE BINDINGS
-  //            => IE "LET" W/ ALL VARS GUARENTEED TO BE EVAL'D SIMULTANEOUSLY
-  //            => TRANSFORM INTO A LET ASSIGNING EACH VAL 2B <undefined>, THEN
-  //               SETTING EACH VAL TO ITS VALUE 1ST THING W/IN THE LET'S BODY
-  //               -> LOOKING UP AN <undefined> VARIABLE THROWS AN ERROR!
-  bool is_letrec(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::letrec);}
-
-  scm_list convert_letrec_let(scm_list& exp,const bool cps_block=false) {
-    if(exp.size() < 3)
-      THROW_ERR("Invalid LETREC expression, didn't received 2 args:"
-        "\n     (letrec (<var-bindings>) <body>)"
-        "\n     <var-binding> = (<name> <value>)" << EXP_ERR(exp));
-    scm_list params = let_parameters(exp);
-    // We convert a paramterless letrec directly into a let
-    if(params.empty()) return convert_let_combination(exp,cps_block);
-    scm_list body = let_body(exp);
-    scm_list vars = let_variables(params);
-    scm_list vals = let_expressions(params);
-    // Assign var default values to be undefined
-    scm_list dflt_value_params(vars.size()), set_var_undef(2);
-    set_var_undef[1] = data();
-    for(size_type i = 0, n = vars.size(); i < n; ++i) {
-      set_var_undef[0] = vars[i]; // var name bound to undefined data type
-      dflt_value_params[i] = set_var_undef; 
-    }
-    // Define a new let, un-recursed
-    scm_list unrec_let(vars.size()+body.size()+2);
-    unrec_let[0] = symconst::let, unrec_let[1] = std::move(dflt_value_params);
-    // Set the each var's value w/in the 'letrec's body
-    for(size_type i = 0, n = vars.size(); i < n; ++i) {
-      unrec_let[i+2] = scm_list(3);
-      unrec_let[i+2].exp[0] = symconst::set;
-      unrec_let[i+2].exp[1] = vars[i];
-      unrec_let[i+2].exp[2] = vals[i];
-    }
-    // Append elts in the body, now post-assignment
-    std::move(body.begin(), body.end(), unrec_let.begin()+vars.size()+2);
-    return convert_let_combination(unrec_let,cps_block);
-  }
-
-  /******************************************************************************
-  * DERIVING CASE
-  ******************************************************************************/
-
-  // CASE => (case <val> ((<keys1>) <exp1>) ... (else <expN>))
-  //      => (cond ((memv <val> <keys1>) <exp1>) ... (else <expN>))
-  bool is_case(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::case_t);}
-
-  // Confirm 'case clause is correctly formatted
-  void confirm_valid_case_clause(const scm_node& clause,        const char* format, 
-                                 const size_type& clause_count, const scm_list& exp) {
-    // Confirm clause is an expression
-    if(!clause->is_type(types::exp))
-      THROW_ERR("'case clause #" << clause_count << " [ " << *clause << " ] isn't an expression!" 
-        << format << EXP_ERR(exp));
-    // Confirm clause contains 2 elts
-    if(clause->exp.size() != 2)
-      THROW_ERR("'case clause #" << clause_count << " isn't an expression of length 2 (length = "
-        << (!no_args_given(clause->exp) * clause->exp.size()) << ")!" 
-        << format << EXP_ERR(exp));
-    // Confirm clause was given a list of keys
-    if(!is_cond_else_clause(clause) && !clause->exp[0].is_type(types::exp))
-      THROW_ERR("'case clause #" << clause_count << " [ " << clause->exp[0]
-        << " ] doesn't have a list of keys as its 1st arg!" << format << EXP_ERR(exp));
-  }
-
-  // Construct a 'cond equality clause from the 'case clause
-  scm_list case_equality_clause(scm_node& clause, data& sought_val)noexcept{
-    data keys_list(scm_list(clause->exp[0].exp.size()+1));
-    keys_list.exp[0] = symconst::list;
-    std::copy(clause->exp[0].exp.begin(), 
-              clause->exp[0].exp.end(), 
-              keys_list.exp.begin()+1);
-    scm_list memv_exp(3);
-    memv_exp[0] = symconst::memv, memv_exp[1] = sought_val;
-    memv_exp[2] = std::move(keys_list);
-    return memv_exp;
-  }
-
-  // Extract a normal & <else> 'case clause
-  scm_list case_clause(scm_node& clause, data& sought_val)noexcept{
-    scm_list clause_exp(2);
-    clause_exp[0] = case_equality_clause(clause,sought_val);
-    clause_exp[1] = cond_actions(clause);
-    return clause_exp;
-  }
-  scm_list case_else_clause(scm_node& clause)noexcept{
-    scm_list else_exp(2);
-    else_exp[0] = symconst::else_t;
-    else_exp[1] = data_cast(cond_actions(clause));
-    return else_exp;
-  }
-
-  // Transform 'case into 'cond
-  scm_list convert_case_cond(scm_list& exp) {
-    static constexpr const char * const format = "\n     (case <val> <clause1> ... <clauseN>)"
-                                                 "\n     <clause> = (<keys-list> <consequent>)";
-    if(exp.size() < 3)
-      THROW_ERR("CASE expression didn't receive enough args:" << format << EXP_ERR(exp));
-    data& sought_val = exp[1];
-    size_type clause_count = 1;
-    scm_list converted_case(1,symconst::cond);
-    for(auto clause=exp.begin()+2, null_clause=exp.end(); clause!=null_clause; ++clause, ++clause_count) {
-      confirm_valid_case_clause(clause, format, clause_count, exp);
-      if(is_cond_else_clause(clause)) {
-        if(clause+1 == null_clause)
-          converted_case.push_back(case_else_clause(clause));
-        else
-          THROW_ERR("CASE ELSE clause isn't last!\n     Total clauses after ELSE: " 
-            << std::distance(clause,null_clause)-1 << format << EXP_ERR(exp));
-      } else
-        converted_case.push_back(case_clause(clause,sought_val));
-    }
-    return converted_case;
-  }
 
   /******************************************************************************
   * DERIVING DO
@@ -2568,11 +2119,8 @@ namespace heist {
   // Heist-specific checker to not prefix C++ derived special forms w/ application tag
   bool is_HEIST_cpp_derived_special_form(const sym_type& app)noexcept{
     return app == symconst::cps_quote || app == symconst::scm_cps      || app == symconst::map_literal  ||
-           app == symconst::and_t     || app == symconst::or_t         || app == symconst::scons        ||
-           app == symconst::stream    || app == symconst::delay        || app == symconst::cond         ||
-           app == symconst::case_t    || app == symconst::let          || app == symconst::let_star     ||
-           app == symconst::letrec    || app == symconst::do_t         || app == symconst::quasiquote   ||
-           app == symconst::let_syn   || app == symconst::letrec_syn   || app == symconst::vec_literal  ||
+           app == symconst::and_t     || app == symconst::or_t         || app == symconst::delay        || 
+           app == symconst::do_t      || app == symconst::quasiquote   || app == symconst::vec_literal  ||
            app == symconst::unquote   || app == symconst::unquo_splice;
   }
 
@@ -3107,11 +2655,6 @@ namespace heist {
   //     ((<pattern>) <template>)
   //     ((<pattern>) <template>)
   //     ((<pattern>) <template>))
-  //
-  // (let-syntax ((<label-1> <syntax-rules-1>)
-  //              ...
-  //              (<label-N> <syntax-rules-N>))
-  //             <body>)
   //
   // => token strings in the <keywords> list allow those symbols, and only 
   //    those symbols, in places where they are mentioned w/in <pattern>s
@@ -4145,8 +3688,6 @@ namespace heist {
   ******************************************************************************/
 
   bool is_define_syntax(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::defn_syn);}
-  bool is_let_syntax   (const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::let_syn);}
-  bool is_letrec_syntax(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::letrec_syn);}
 
 
   void register_symbol_iff_new(std::vector<sym_type>& registry, const sym_type& label) {
@@ -4190,46 +3731,6 @@ namespace heist {
   }
 
 
-  void confirm_valid_let_macro(const scm_list& exp, const char* name) {
-    static constexpr const char * const format = 
-      " (<syntactic-bindings-list>) <body>)"
-      "\n     <syntactic-binding> = (<label> <syntax-rules>)";
-    if(exp.size() < 2 || !exp[1].is_type(types::exp))
-      THROW_ERR('\''<<name<<" 1st argument must be a syntactic bindings list:"
-        "\n     (" << name << format << EXP_ERR(exp));
-    if(exp.size() < 3)
-      THROW_ERR('\''<<name<<" 2nd argument must be a body:"
-        "\n     (" << name << format << EXP_ERR(exp));
-    // Confirm bindings list is either EMPTY or a LIST OF LISTS, EACH OF LENGTH 2
-    for(const auto& binding : exp[1].exp)
-      if(!binding.is_type(types::exp) || binding.exp.size() != 2)
-        THROW_ERR('\''<<name<<" binding "<<binding<<" isn't a proper syntactic binding:"
-          "\n     (" << name << format << EXP_ERR(exp));
-  }
-
-
-  // Template for 'let-syntax' & 'letrec-syntax' special forms (letrec style is default)
-  exe_type let_syntactic_extension_binding_template(scm_list& exp,const char* name,
-                            const bool tail_call=false,const bool cps_block=false){
-    // Convert let-syntax/letrec-syntax to an argless let defining syntax in its body
-    confirm_valid_let_macro(exp,name);
-    scm_list let_exp(exp[1].exp.size()+exp.size());
-    let_exp[0] = symconst::let, let_exp[1] = scm_list();
-    // Splice in syntax defns
-    for(size_type i = 0, n = exp[1].exp.size(); i < n; ++i){ 
-      let_exp[i+2] = scm_list(3);
-      let_exp[i+2].exp[0] = symconst::defn_syn;
-      let_exp[i+2].exp[1] = exp[1].exp[i].exp[0];
-      let_exp[i+2].exp[2] = exp[1].exp[i].exp[1];
-    }
-    // Add let body
-    std::copy(exp.begin()+2,exp.end(),let_exp.begin()+exp[1].exp.size()+2);
-    // Analyze let of syntax defns
-    if(!cps_block) return scm_analyze(std::move(let_exp),tail_call);
-    return scm_analyze(generate_fundamental_form_cps(let_exp),tail_call,true);
-  }
-
-
   exe_type analyze_define_syntax(scm_list& exp,const bool cps_block=false,const bool core_syntax=false) {
     if(must_evaluate_2nd_arg_for_syntax_rules_object(exp)) { 
       if(!core_syntax) confirm_is_not_core_syntax_label(exp);
@@ -4254,16 +3755,6 @@ namespace heist {
       define_syntax_extension(mac,env); // establish in environment
       return G::VOID_DATA_EXPRESSION;
     };
-  }
-
-
-  exe_type analyze_let_syntax(scm_list& exp,const bool tail_call=false,const bool cps_block=false){
-    return let_syntactic_extension_binding_template(exp,symconst::let_syn,tail_call,cps_block);
-  }
-
-
-  exe_type analyze_letrec_syntax(scm_list& exp,const bool tail_call=false,const bool cps_block=false){
-    return let_syntactic_extension_binding_template(exp,symconst::letrec_syn,tail_call,cps_block);
   }
 
   /******************************************************************************
@@ -4796,14 +4287,7 @@ namespace heist {
     else if(is_lambda(exp))          return analyze_lambda(exp,cps_block);
     else if(is_begin(exp))           return analyze_sequence(begin_actions(exp),tail_call,cps_block);
     else if(is_delay(exp))           return analyze_delay(exp,cps_block);
-    else if(is_cond(exp))            return scm_analyze(convert_cond_if(exp,cps_block),tail_call,cps_block);
-    else if(is_case(exp))            return scm_analyze(convert_case_cond(exp),tail_call,cps_block);
-    else if(is_let(exp))             return scm_analyze(convert_let_combination(exp,cps_block),tail_call,cps_block);
-    else if(is_let_star(exp))        return scm_analyze(convert_let_star_nested_lets(exp,cps_block),tail_call,cps_block);
-    else if(is_letrec(exp))          return scm_analyze(convert_letrec_let(exp,cps_block),tail_call,cps_block);
     else if(is_do(exp))              return scm_analyze(convert_do_letrec(exp),tail_call,cps_block);
-    else if(is_scons(exp))           return analyze_scons(exp,cps_block);
-    else if(is_stream(exp))          return analyze_stream(exp,cps_block);
     else if(is_defclass(exp))        return analyze_defclass(exp);
     else if(is_scm_cps(exp))         return analyze_scm_cps(exp);
     else if(is_cps_quote(exp))       return analyze_cps_quote(exp,cps_block);
@@ -4811,8 +4295,6 @@ namespace heist {
     else if(is_quasiquote(exp))      return analyze_quasiquote(exp,cps_block);
     else if(is_core_syntax(exp))     return analyze_core_syntax(exp,cps_block);
     else if(is_define_syntax(exp))   return analyze_define_syntax(exp,cps_block);
-    else if(is_let_syntax(exp))      return analyze_let_syntax(exp,tail_call,cps_block);
-    else if(is_letrec_syntax(exp))   return analyze_letrec_syntax(exp,tail_call,cps_block);
     else if(is_syntax_rules(exp))    return analyze_syntax_rules(exp);
     else if(is_definedp(exp))        return analyze_definedp(exp);
     else if(is_vector_literal(exp))         THROW_ERR("Misplaced keyword 'vector-literal outside of a quotation! -- ANALYZE"   <<EXP_ERR(exp));
