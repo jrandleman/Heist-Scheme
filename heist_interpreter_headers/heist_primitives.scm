@@ -105,7 +105,7 @@
                   (heist:stream:error 'stream-zip "received a non stream!" 
                     "(stream-zip <stream1> <stream2> ...)" s)))
             (cons s streams))
-  (apply stream-map (cons (lambda (. l) l) (cons s streams))))
+  (apply stream-map (cons list (cons s streams))))
 
 
 (define (stream-constant . objs)
