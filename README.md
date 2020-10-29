@@ -1180,6 +1180,8 @@ Other primitives of this nature include:<br>
 
 #### Use: Initial invocation `(<co-name>)` will yield a `coroutine` object!
 * Re-invoking `(<co-name>)` will return a new `coroutine` object instance!
+* Hence `<co-name>` should ___not___ be called recursively internally,<br>
+  rather used the [named-let](#let) construct in order to perform recursive operations!
 
 #### Coroutine Objects:
 * Creation: Either from invoking `(<co-name>)` or `yield` in a coroutine
