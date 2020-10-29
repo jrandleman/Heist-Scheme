@@ -712,7 +712,7 @@ namespace heist {
 
   // returns whether found a valid method
   bool prm_DYNAMIC_OBJeq(const obj_type& object,const data& rhs,const char* eq_name,bool& result) {
-    // Search methods for the "->string" printing polymorphic method
+    // Search methods for the "self=" printing polymorphic method
     obj_type obj = object;
     while(obj) {
       // search object's local members
@@ -742,7 +742,7 @@ namespace heist {
   * DATA DEEP-LIST-COPYING HELPERS
   ******************************************************************************/
 
-  void deep_copy_cycle_link(data& p, par_type& q, par_type& cycle_start)noexcept{
+  void deep_copy_cycle_link(data& p, par_type& q, par_type& cycle_start) {
     q->first = p.par->first.copy();
     p = p.par->second;
     if(p.par != cycle_start) {
@@ -752,13 +752,13 @@ namespace heist {
   }
 
 
-  void deep_copy_list_until_cycle_start(data& p, par_type& q, par_type& cycle_start)noexcept{
+  void deep_copy_list_until_cycle_start(data& p, par_type& q, par_type& cycle_start) {
     while(p.par != cycle_start)
       deep_copy_cycle_link(p,q,cycle_start);
   }
 
 
-  data deep_copy_circular_list(const data& d) noexcept {
+  data deep_copy_circular_list(const data& d) {
     // find the start of the cycle
     data slow = d, fast = d;
     while(fast.is_type(types::par) && fast.par->second.is_type(types::par)) {
@@ -780,7 +780,7 @@ namespace heist {
   }
 
 
-  data deep_copy_non_circular_list(const data& d) noexcept {
+  data deep_copy_non_circular_list(const data& d) {
     // note: guarenteed by data::deep_copy <d.type> ::= types::par
     auto p = d;
     data root = par_type(scm_pair());
@@ -798,7 +798,7 @@ namespace heist {
   }
 
 
-  data deep_copy_pair(const data& d) noexcept {
+  data deep_copy_pair(const data& d) {
     switch(primitive_list_is_acyclic_and_null_terminated(d)) {
       case list_status::ok: 
       case list_status::no_null: 
@@ -811,10 +811,35 @@ namespace heist {
   * DATA DEEP-OBJECT-COPYING HELPER
   ******************************************************************************/
 
-  data deep_copy_obj(const data& d) noexcept {
+  // Search methods for the "self->copy" copying method
+  bool dynamic_object_copy(obj_type obj, data& result) {
+    // search object's local members
+    for(size_type i = 0, n = obj->method_names.size(); i < n; ++i)
+      if(obj->method_names[i] == "self->copy") {
+        result = apply_dynamic_method(obj,scm_list(1,symconst::sentinel_arg),obj->method_values[i].exp);
+        return true;
+      }
+    // search object's prototype
+    for(size_type i = 0, n = obj->proto->method_names.size(); i < n; ++i) {
+      if(obj->proto->method_names[i] == "self->copy") {
+        obj->member_names.push_back(obj->proto->method_names[i]), obj->member_values.push_back(obj->proto->method_values[i]);
+        result = apply_dynamic_method(obj,scm_list(1,symconst::sentinel_arg),obj->method_values[i].exp);
+        return true;
+      }
+    }
+    return false;
+  }
+
+
+  data deep_copy_obj(const data& d) {
+    // deep copy inherited objects
     object_type o;
     o.proto = d.obj->proto; // shallow copy the prototype (these are never deep copied!)
     if(o.inherited) o.inherited = deep_copy_obj(make_obj(*o.inherited)).obj;
+    // check for a custom self->copy
+    data result;
+    if(dynamic_object_copy(d.obj,result)) return result;
+    // apply the default object copying mechanism
     o.member_names = d.obj->member_names;
     o.method_names = d.obj->method_names;
     for(const auto& member_val : d.obj->member_values)

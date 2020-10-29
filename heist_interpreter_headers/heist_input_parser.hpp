@@ -20,6 +20,15 @@ namespace heist {
            (c=='#' && (c2=='\\' || IS_OPEN_PAREN(c2))));
   }
 
+  bool string_begins_with(const scm_string& str, const char* substr, size_type begin = 0)noexcept{
+    const size_type n = str.size();
+    if(begin >= n) return false;
+    const char* p = substr;
+    for(; begin < n && *p; ++begin, ++p)
+      if(str[begin] != *p) return false;
+    return !*p;
+  }
+
   // Check whether data is at the long-hand name of a character
   std::pair<chr_type,scm_string> data_is_named_char(const size_type& i, 
                                                     const scm_string& input)noexcept{
@@ -36,7 +45,7 @@ namespace heist {
     const scm_string name = input.substr(i,9); // "backspace".size() (largest name)
     // seek a long-hand char name instance
     for(size_type j = 0; j < n; ++j)
-      if(name.find(char_names[j]) == 0)
+      if(string_begins_with(name,char_names[j]))
         return std::make_pair(char_syms[j], char_names[j]);
     // seek a hexadecimal char name instance
     if(name[0] == 'x' && isxdigit(name[1])) {

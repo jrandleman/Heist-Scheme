@@ -5170,7 +5170,7 @@ namespace heist {
   }
 
 
-  void initialize_object_with_prototype_properties_and_inheritance(object_type& obj, cls_type& class_proto_obj)noexcept{
+  void initialize_object_with_prototype_properties_and_inheritance(object_type& obj, cls_type& class_proto_obj) {
     // assign default values (deep copy members)
     obj.proto = class_proto_obj; // ptr to the prototype object
     for(size_type i = 0, n = class_proto_obj->member_values.size(); i < n; ++i)

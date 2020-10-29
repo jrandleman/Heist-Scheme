@@ -431,7 +431,7 @@ namespace heist {
     constexpr bool is_type(const types& t) const noexcept {return type == t;}
 
     // returns a deep copy of *this ::= vector | string | pair | hmap | object
-    data copy() const noexcept;
+    data copy() const;
 
     // assignment operator
     void operator=(const data& d) noexcept {
@@ -838,9 +838,9 @@ namespace heist {
 
   // struct data METHOD
   // returns a deep copy of *this ::= vector | string | pair | hmap | object
-  data deep_copy_pair(const data& d) noexcept;
-  data deep_copy_obj(const data& d) noexcept;
-  data data::copy() const noexcept {
+  data deep_copy_pair(const data& d);
+  data deep_copy_obj(const data& d);
+  data data::copy() const {
     map_data m;
     scm_list new_vec;
     switch(type) {

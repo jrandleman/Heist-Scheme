@@ -234,7 +234,7 @@ namespace heist {
       if(!vars[i].is_type(types::sym)) // args must be symbols
         THROW_ERR("Non-Symbolic parameter [ "<<vars[i]<<" ] is an invalid arg name! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
       if(i+2 != n && vars[i].sym == symconst::period) { // variadic (.) must come just prior the last arg
-        if(i+3 == n && vars[i+2].sym.find(symconst::continuation) == 0)
+        if(i+3 == n && string_begins_with(vars[i+2].sym, symconst::continuation))
           continue; // allow continuations after variadic
         THROW_ERR("More than one item found after variadic dot (.)! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
       }
@@ -307,7 +307,7 @@ namespace heist {
   //   => ((lambda (. l) l) <arg1> <arg2> ... <argN>)      [ BECOMES -> ]
   //      ((lambda (l) l) (list <arg1> <arg2> ... <argN>))
   void transform_variadic_vals_into_a_list(frame_vars& vars,frame_vals& vals)noexcept{
-    const size_type continuation_offset = vars.rbegin()->find(symconst::continuation)==0;
+    const size_type continuation_offset = string_begins_with(*vars.rbegin(),symconst::continuation);
     const size_type va_arg_idx = vars.size()-2-continuation_offset;
     // Transform the arg names & vals as needed
     vars[va_arg_idx] = vars[va_arg_idx+1]; // shift up variadic arg name (erasing '.')
@@ -339,7 +339,7 @@ namespace heist {
   // Determine whether proc takes variadic args
   bool variadic_arg_declaration(const frame_vars& vars) {
     return (vars.size() > 1 && vars[vars.size()-2] == symconst::period) || 
-           (vars.size() > 2 && vars[vars.size()-1].find(symconst::continuation) == 0
+           (vars.size() > 2 && string_begins_with(vars[vars.size()-1],symconst::continuation)
                             && vars[vars.size()-3] == symconst::period);
   }
 
@@ -347,7 +347,7 @@ namespace heist {
   // Determine whether enough vals for the variadic arg decl
   bool invalid_variadic_arg_declaration(const frame_vars& vars, const frame_vals& vals){
     return vals.size() < vars.size() - 2 -
-      (vars.size() > 2 && vars[vars.size()-1].find(symconst::continuation) == 0
+      (vars.size() > 2 && string_begins_with(vars[vars.size()-1],symconst::continuation)
                        && vars[vars.size()-3] == symconst::period); // - again if at a continuation
   }
 
@@ -1093,6 +1093,7 @@ namespace heist {
     "\n                             | ((display) <body> ...)      ; overload display"\
     "\n                             | ((pprint) <body> ...)       ; overload pretty-print"\
     "\n                             | ((self->string) <body> ...) ; overload all the above"\
+    "\n                             | ((self->copy) <body> ...)   ; overload copy"\
     "\n                             | ((self->procedure <arg> ...) <body> ...) ; overload application"
 
   // -- ERROR HANDLING
@@ -4600,7 +4601,7 @@ namespace heist {
   ******************************************************************************/
 
   bool data_is_continuation_parameter(const data& d)noexcept{
-    return d.is_type(types::sym) && d.sym.find(symconst::continuation) == 0;
+    return d.is_type(types::sym) && string_begins_with(d.sym,symconst::continuation);
   }
 
   bool procedure_defined_outside_of_CPS_block(const scm_list& p)noexcept{
@@ -4611,8 +4612,8 @@ namespace heist {
 
   bool procedure_requires_continuation(const scm_list& p)noexcept{
     // '1' for compound procs accounts for ' ' prefix from name mangling
-    return (is_compound_procedure(p) && p[5].sym.find(symconst::pass_continuation) == 1) ||
-           (is_primitive_procedure(p) && p[2].sym.find(symconst::pass_continuation) == 0);
+    return (is_compound_procedure(p) && string_begins_with(p[5].sym,symconst::pass_continuation,1)) ||
+           (is_primitive_procedure(p) && string_begins_with(p[2].sym,symconst::pass_continuation));
   }
 
   /******************************************************************************
