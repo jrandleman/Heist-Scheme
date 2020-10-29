@@ -135,9 +135,10 @@ namespace heist {
   data primitive_DIVMOD(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, "divmod", "(divmod <real1> <real2>)");
     confirm_2_args(args, "divmod", "(divmod <real1> <real2>)");
+    auto result = args[0].num.divmod(args[1].num);
     data divmod_pair = data(make_par());
-    divmod_pair.par->first = args[0].num.quotient(args[1].num);
-    divmod_pair.par->second = args[0].num % args[1].num;
+    divmod_pair.par->first = std::move(result.first);
+    divmod_pair.par->second = std::move(result.second);
     return divmod_pair;
   }
 
@@ -5545,13 +5546,14 @@ namespace heist {
   void evaluate_primitives_written_in_heist_scheme() {
     FILE* ins = std::fopen(HEIST_DIRECTORY_FILE_PATH "/heist_interpreter_headers/heist_primitives.scm", "r");
     scm_string heist_prim_exp;
-    int ch;
-    while((ch = fgetc(ins)) != EOF) heist_prim_exp += ch;
+    char buffer[1001];
+    while(std::fgets(buffer,1000,ins))
+      heist_prim_exp += buffer;
     std::fclose(ins);
-    scm_list heist_scheme_prim;
-    parse_input_exp(std::move(heist_prim_exp), heist_scheme_prim);
-    for(auto& primitive_scm_procedure : heist_scheme_prim)
-      scm_eval(std::move(primitive_scm_procedure.exp),G::GLOBAL_ENVIRONMENT_POINTER);
+    scm_list heist_scheme_prim_defns;
+    parse_input_exp(std::move(heist_prim_exp), heist_scheme_prim_defns);
+    for(auto& primitive_scm_prim_defn : heist_scheme_prim_defns)
+      scm_eval(std::move(primitive_scm_prim_defn.exp),G::GLOBAL_ENVIRONMENT_POINTER);
   }
 
   /******************************************************************************

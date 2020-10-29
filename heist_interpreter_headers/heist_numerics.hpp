@@ -220,11 +220,12 @@ namespace scm_numeric {
     // (x+yi)(u+vi) = (xu-yv)+(xv+yu)i
     Snum  operator* (const Snum& s) const noexcept;
     Snum& operator*=(const Snum& s)noexcept{*this = *this * s; return *this;}
-    // (a+bi)(c+di) = [(ac+bd)/(c*c+d*d)]+[(bc-ad)/(c*c+d*d)]i
+    // (a+bi)/(c+di) = [(ac+bd)/(c*c+d*d)]+[(bc-ad)/(c*c+d*d)]i
     Snum  operator/ (const Snum& s) const noexcept;
     Snum& operator/=(const Snum& s)noexcept{*this = *this / s; return *this;}
     Snum  operator% (const Snum& s) const noexcept{if(imag.is_zero() && s.imag.is_zero()) return real % s.real; return Snum_real("+nan.0");}
     Snum& operator%=(const Snum& s)noexcept{*this = *this % s; return *this;}
+    std::pair<Snum,Snum> divmod(const Snum& s) const noexcept;
 
     Snum& operator++()   noexcept{*this = *this + Snum(Snum_real("1")); return *this;}
     Snum& operator--()   noexcept{*this = *this - Snum(Snum_real("1")); return *this;}
@@ -543,7 +544,7 @@ namespace scm_numeric {
   }
 
   /******************************************************************************
-  * MULTIPLICATION AND DIVIDE
+  * MULTIPLICATION, DIVIDE, & DIVMOD
   ******************************************************************************/
 
   // (x+yi)(u+vi) = (xu-yv)+(xv+yu)i
@@ -564,7 +565,7 @@ namespace scm_numeric {
   }
 
 
-  // (a+bi)(c+di) = [(ac+bd)/(c*c+d*d)]+[(bc-ad)/(c*c+d*d)]i
+  // (a+bi)/(c+di) = [(ac+bd)/(c*c+d*d)]+[(bc-ad)/(c*c+d*d)]i
   Snum Snum::operator/(const Snum& s) const noexcept {
     if(is_nan() || s.is_nan()) return Snum_real("+nan.0");
     bool this_is_real = is_real(), s_is_real = s.is_real();
@@ -579,6 +580,39 @@ namespace scm_numeric {
     // auto new_r = magnitude().real / s.magnitude().real;
     // auto new_theta = angle().real - s.angle().real;
     // return Snum(new_r * new_theta.cos(), new_r * new_theta.sin());
+  }
+
+
+  // a.divmod(b) -> std::make_pair(a.quotient(b),a%b)
+  std::pair<Snum,Snum> Snum::divmod(const Snum& s) const noexcept {
+    // more efficient implementation for 2 real bigints
+    if(is_exact() && is_integer() && s.is_exact() && s.is_integer()) {
+      // using exactVec_t = std::vector<exact_val_t>;
+      // void BIGNUM_UNSIGNED_DIVIDE_core(exactVec_t,exactVec_t,exactVec_t&,exactVec_t&)noexcept;
+      exactVec_t aVec(real.nlen,0), bVec(s.real.nlen,0), quotient, remainder;
+      for(std::size_t i = 0; i < real.nlen; ++i) aVec[i] = real.numerator[i];
+      for(std::size_t i = 0; i < s.real.nlen; ++i) bVec[i] = s.real.numerator[i];
+      BIGNUM_UNSIGNED_DIVIDE_core(aVec,bVec,quotient,remainder);
+      Snum_real div("1"), mod("1");
+      // assign div
+      if(quotient.size() == 1 && quotient[0] == 0) {
+        div = Snum_real(); // quotient is 0
+      } else {
+        div.resize_numerator(quotient.size());
+        for(std::size_t i = 0, n = quotient.size(); i < n; ++i) div.numerator[div.nlen++] = quotient[i];
+        if(real.sign != s.real.sign) div.sign = Snum_real::signs::neg;
+      }
+      // assign mod
+      if(remainder.size() == 1 && remainder[0] == 0) {
+        mod = Snum_real(); // remainder is 0
+      } else {
+        mod.resize_numerator(remainder.size());
+        for(std::size_t i = 0, n = remainder.size(); i < n; ++i) mod.numerator[mod.nlen++] = remainder[i];
+        mod.sign = real.sign;
+      }
+      return std::make_pair(Snum(std::move(div)),Snum(std::move(mod)));
+    }
+    return std::make_pair(quotient(s),operator%(s));
   }
 
   /******************************************************************************

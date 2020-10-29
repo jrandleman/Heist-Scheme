@@ -98,6 +98,7 @@ namespace scm_numeric {
   ******************************************************************************/
 
   class Snum_real {
+    friend class Snum;
   public:
     // ***************** CLASS TYPES & FLOATING POINT CONSTANTS *****************
 
