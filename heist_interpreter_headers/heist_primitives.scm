@@ -240,7 +240,7 @@
         (let ((overload:original overloaded))
           (lambda (`@x . `@xs)
             (cond ((pred? x) (apply function (cons x xs))) ...
-                  (else 'overloaded "Unsupported Arg Type" x))))))))
+                  (else (error 'overloaded "Unsupported Arg Type" x)))))))))
 
 ;; =========================================
 ;; =========== COMPOSE BIND & ID ===========
