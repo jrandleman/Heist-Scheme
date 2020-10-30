@@ -570,6 +570,7 @@ Other primitives of this nature include:<br>
 ## Cond:
 
 #### Use: ___Concise If-Else Chains!___
+* _Note: `cond` is actually a macro directly defined **in** Heist Scheme!_
 
 #### Form: `(cond <clause1> <clause2> ...)`, `<clause>` = `(<condition> <exp1> <exp2> ...)`
 * _Using `else` as the condition of the last clause is equivalent to using `#t` as the condition_
@@ -599,6 +600,7 @@ Other primitives of this nature include:<br>
 ## Case:
 
 #### Use: ___Switch-Statement Equivalent!___
+* _Note: `case` is actually a macro directly defined **in** Heist Scheme!_
 
 #### Form: 
 ```scheme
@@ -612,14 +614,15 @@ Other primitives of this nature include:<br>
 (case <key> 
   ((<val1> ...) <exp1> ...)
   ((<val2> <key> <val3> ...) <exp2> ...)
+  ((<val4> ...) => <callable>)
   (else <exp3> ...))
 
 ;; Becomes =>
 
 (cond ((memv <key> (list <val1> ...)) <exp1> ...) ; See the <memv> primitive!
       ((memv <key> (list <val2> <key> <val3> ...)) <exp2> ...)
+      ((memv <key> (list <val4> ...)) => <callable>)
       (else <exp3> ...))
-
 ```
 
 
@@ -627,6 +630,7 @@ Other primitives of this nature include:<br>
 ## Let:
 
 #### Use: ___Temporary Bindings in a New Scope!___
+* _Note: `let` is actually a macro directly defined **in** Heist Scheme!_
 
 #### Forms, `<arg-binding>` = `(<name> <value>)`:
 0. Nameless: `(let (<arg-binding1> ... <arg-bindingN>) <body> ...)`
@@ -657,6 +661,7 @@ Other primitives of this nature include:<br>
 ## Let\*:
 
 #### Use: ___Let with Bindings in Terms of One Another!___
+* _Note: `let*` is actually a macro directly defined **in** Heist Scheme!_
 
 #### Form: `(let* (<arg-binding1> ... <arg-bindingN>) <body> ...)`
 * `<arg-binding>` = `(<name> <value>)`
@@ -679,6 +684,7 @@ Other primitives of this nature include:<br>
 ## Letrec:
 
 #### Use: ___Let with Recursive Bindings!___
+* _Note: `letrec` is actually a macro directly defined **in** Heist Scheme!_
 
 #### Form: `(letrec (<arg-binding1> ... <arg-bindingN>) <body> ...)`
 * `<arg-binding>` = `(<name> <value>)`
@@ -763,6 +769,7 @@ Other primitives of this nature include:<br>
 #### Use: ___Create a Stream Pair!___
 * _Stream pairs are regular pairs with delayed `car` and `cdr`!_
 * _Allows for infinite lists (see `scar` & `scdr` primitives for manipulation)!_
+* _Note: `scons` is actually a macro directly defined **in** Heist Scheme!_
 
 #### Form: `(scons <obj1> <obj2>)`
 
@@ -779,6 +786,7 @@ Other primitives of this nature include:<br>
 
 #### Use: ___Create a Stream!___
 * _`stream` is to [`scons`](#scons) as [`list`](#list-constructors) is to [`cons`](#listpair-procedures)!_
+* _Note: `stream` is actually a macro directly defined **in** Heist Scheme!_
 
 #### Form: `(stream <obj1> <obj2> <obj3> ...)`
 
@@ -833,6 +841,7 @@ Other primitives of this nature include:<br>
 * _Note: create a `<syntax-object>` via the [`syntax-rules`](#syntax-rules) special form below!_
 * _Note: Run-Time macros are expanded **at run-time**, ie each time they're invoked!_
   - _See [`core-syntax`](#core-syntax) for an **analysis-time** macro alternative!_
+* _Note: `let-syntax` & `letrec-syntax` are actually macros directly defined **in** Heist Scheme!_
 
 #### Forms:
 0. `(define-syntax <label> <syntax-object>)`
