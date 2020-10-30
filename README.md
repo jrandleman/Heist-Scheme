@@ -1336,7 +1336,7 @@ Other primitives of this nature include:<br>
 ------------------------
 ## Math::
 
-#### Use: ___Evaluate a math expression using infix notation!___
+#### Use: ___Evaluate a Math Expression Using Infix Notation!___
 * _Note: `math:` is actually a macro directly defined **in** Heist Scheme!_
 * _Designed to be able to write math formulas in a more intuitive fashion!_
 
@@ -1358,7 +1358,7 @@ Other primitives of this nature include:<br>
 ------------------------
 ## Infix-Math-Quote:
 
-#### Use: ___Convert math expression from infix to prefix notation!___
+#### Use: ___Convert a Math Expression From Infix to Prefix Notation!___
 
 #### Form: `(infix-math-quote <exp>)`
 
