@@ -15,6 +15,7 @@
 ; stream
 ; let-syntax
 ; letrec-syntax
+; math:
 
 (core-syntax cond 
   (syntax-rules (else =>)
@@ -116,6 +117,11 @@
         b ...)))))
 (core-syntax let-syntax heist:core:scoped-syntax-rules)
 (core-syntax letrec-syntax heist:core:scoped-syntax-rules)
+
+
+(core-syntax math:
+  (syntax-rules ()
+    ((_ a ...) (eval (infix-math-quote a ...)))))
 
 ;; ==============================================
 ;; =========== LAZY STREAM ALGORITHMS ===========

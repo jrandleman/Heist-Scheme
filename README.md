@@ -70,6 +70,7 @@
    - [Define-Coroutine](#Define-Coroutine)
    - [Curry](#Curry)
    - [Define-Overload](#Define-Overload)
+   - [Math:](#Math), [Infix-Math-Quote](#Infix-Math-Quote)
 8. [Heist Primitive Variables](#Heist-Primitive-Variables)
 9. [Heist Primitive Procedures](#Heist-Primitive-Procedures)
    - [OOP Reflection Primitives](#OOP-Reflection-Primitives)
@@ -1329,6 +1330,50 @@ Other primitives of this nature include:<br>
   (char? string)
   (seq? append)
   (hmap? hmap-merge))
+```
+
+
+------------------------
+## Math::
+
+#### Use: ___Evaluate a math expression using infix notation!___
+* _Note: `math:` is actually a macro directly defined **in** Heist Scheme!_
+
+#### Form: `(math: <exp>)`
+
+#### Precedence:
+0. `**`: exponentiation
+1. `*`, `/`: multiply, divide
+2. `//`, `%`, `%%`: quotient, remainder, modulo
+2. `+`, `-`: addition, subtraction
+
+#### Derivation Using [Infix-Math-Quote](#Infix-Math-Quote):
+```scheme
+(core-syntax math:
+  ((_ a ...) (eval (infix-math-quote a ...))))
+```
+
+
+------------------------
+## Infix-Math-Quote:
+
+#### Use: ___Convert math expression from infix to prefix notation!___
+
+#### Form: `(infix-math-quote <exp>)`
+
+#### Precedence:
+0. `**`: exponentiation
+1. `*`, `/`: multiply, divide
+2. `//`, `%`, `%%`: quotient, remainder, modulo
+2. `+`, `-`: addition, subtraction
+
+#### Example:
+```scheme
+(infix-math-quote 5 + 2 ** 3 ** 2 * 2) ; (+ 5 (* (expt 2 3 2) 2))
+
+(infix-math-quote 3 * 5 / 2) ; (/ (* 3 5) 2)
+
+(infix-math-quote 3 / 5 * 2) ; (* (/ 3 5) 2)
 ```
 
 
