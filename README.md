@@ -1338,6 +1338,7 @@ Other primitives of this nature include:<br>
 
 #### Use: ___Evaluate a math expression using infix notation!___
 * _Note: `math:` is actually a macro directly defined **in** Heist Scheme!_
+* _Designed to be able to write math formulas in a more intuitive fashion!_
 
 #### Form: `(math: <exp>)`
 
