@@ -2378,12 +2378,12 @@ namespace scm_numeric {
   }
 
 
-  constexpr char HASH_BASE_10_TO_BASE_N(unsigned n)noexcept{
+  constexpr char HASH_BASE_10_TO_BASE_N(Snum_real::exact_val_t n)noexcept{
     if(n < 10) return n + '0';
     return n - 10 + 'A';
   }
 
-  constexpr unsigned HASH_BASE_N_TO_BASE_10(char n)noexcept{
+  constexpr Snum_real::exact_val_t HASH_BASE_N_TO_BASE_10(char n)noexcept{
     if(n <= '9') return n - '0';
     if(n <= 'Z') return n - 'A' + 10;
     return n - 'a' + 10;
