@@ -1061,7 +1061,7 @@ Other primitives of this nature include:<br>
     (let loop ((i 0)) 
       (if (< i 26)
           (begin
-            (display (int->char (+ i 65))) ; print char
+            (display (integer->char (+ i 65))) ; print char
             (display " ")
             (pause) ; pause coroutine to print a #
             (loop (+ 1 i)))))))
@@ -1228,7 +1228,7 @@ Other primitives of this nature include:<br>
 
 (define-coroutine (print-chars)
   (let loop ((count 0))
-    (display (int->char (+ 65 count)))
+    (display (integer->char (+ 65 count)))
     (display #\space)
     (yield)
     (if (< count 25)
@@ -2278,9 +2278,9 @@ Other primitives of this nature include:<br>
 
 ------------------------
 ## Type Coercion:
-0. __Char to Integer__: `(char->int <char>)`
+0. __Char to Integer__: `(char->integer <char>)`
 
-1. __Integer to Char__: `(int->char <int>)`
+1. __Integer to Char__: `(integer->char <int>)`
    * `<int>` must be in range of [0,255]!
 
 2. __Number to String__: `(number->string <number> <optional-radix> <optional-precision>)`

@@ -3921,29 +3921,29 @@ namespace heist {
   * TYPE COERCION PRIMITIVES
   ******************************************************************************/
 
-  // primitive "char->int" procedure:
-  data primitive_COERCE_CHAR_TO_INT(scm_list& args) {
-    confirm_given_one_char_arg(args, "char->int");
+  // primitive "char->integer" procedure:
+  data primitive_COERCE_CHAR_TO_INTEGER(scm_list& args) {
+    confirm_given_one_char_arg(args, "char->integer");
     return num_type(int(args[0].chr));
   }
 
-  // primitive "int->char" procedure:
-  data primitive_COERCE_INT_TO_CHAR(scm_list& args) {
+  // primitive "integer->char" procedure:
+  data primitive_COERCE_INTEGER_TO_CHAR(scm_list& args) {
     static constexpr const char * const format = 
-      "\n     (int->char <non_negative-integer>)"
+      "\n     (integer->char <non_negative-integer>)"
       "\n     <non_negative-integer> range: [0,255]";
     if(args.size() != 1)
-      THROW_ERR("'int->char didn't receive 1 integer arg:" << format 
-        << FCN_ERR("int->char",args));
+      THROW_ERR("'integer->char didn't receive 1 integer arg:" << format 
+        << FCN_ERR("integer->char",args));
     if(!args[0].is_type(types::num) || !args[0].num.is_integer())
-      THROW_ERR("'int->char didn't receive an integer arg:"
+      THROW_ERR("'integer->char didn't receive an integer arg:"
         "\n     Received arg " << PROFILE(args[0]) << format 
-        << FCN_ERR("int->char",args));
+        << FCN_ERR("integer->char",args));
     if((args[0].num.is_neg() || args[0].num > 255) && 
        args[0].num != EOF)
-      THROW_ERR("'int->char " << PROFILE(args[0]) << " isn't a"
+      THROW_ERR("'integer->char " << PROFILE(args[0]) << " isn't a"
         "\n     positive integer ranging from 0 to 255!" << format 
-        << FCN_ERR("int->char",args));
+        << FCN_ERR("integer->char",args));
     return chr_type(args[0].num.extract_inexact());
   }
 
@@ -5998,8 +5998,8 @@ namespace heist {
     std::make_pair(primitive_SCDDDAR, "scdddar"),
     std::make_pair(primitive_SCDDDDR, "scddddr"),
 
-    std::make_pair(primitive_COERCE_CHAR_TO_INT,      "char->int"),
-    std::make_pair(primitive_COERCE_INT_TO_CHAR,      "int->char"),
+    std::make_pair(primitive_COERCE_CHAR_TO_INTEGER,  "char->integer"),
+    std::make_pair(primitive_COERCE_INTEGER_TO_CHAR,  "integer->char"),
     std::make_pair(primitive_COERCE_NUMBER_TO_STRING, "number->string"),
     std::make_pair(primitive_COERCE_STRING_TO_NUMBER, "string->number"),
     std::make_pair(primitive_COERCE_STRING_TO_SYMBOL, "string->symbol"),
