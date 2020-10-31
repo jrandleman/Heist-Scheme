@@ -1975,7 +1975,13 @@ namespace heist {
     // handle left-associative infix symbols
     void convert_symbol_set(scm_list& exp, const std::vector<std::pair<scm_string,scm_string>>& ops, const char* name, const char* format) {
       size_type total_ops = ops.size();
-      if(total_ops && exp_begins_with_a_symbol(exp,ops)) return; // already converted
+      // already converted current expression, check subexprs
+      if(total_ops && exp_begins_with_a_symbol(exp,ops)) {
+        for(size_type i = 1, n = exp.size(); i < n; ++i)
+          if(exp[i].is_type(types::exp))
+            convert_symbol_set(exp[i].exp,ops,name,format);
+        return;
+      }
       for(size_type i = 0; i < exp.size(); ++i) {
         // recursively parse subexpression
         if(exp[i].is_type(types::exp)) {
@@ -2006,10 +2012,34 @@ namespace heist {
   } // End of namespace math_exp_conversion
 
 
+  scm_list apply_expt_mod_optimization(scm_list& exp) {
+    if(exp.size() == 3 && exp[0].is_type(types::sym) && exp[0].sym == "modulo" && 
+       exp[1].is_type(types::exp) && exp[1].exp.size() == 3 &&
+        exp[1].exp[0].is_type(types::sym) && exp[1].exp[0].sym == "expt") {
+      scm_list expt_mod(4);
+      expt_mod[0] = "expt-mod", expt_mod[1] = exp[1].exp[1], expt_mod[2] = exp[1].exp[2], expt_mod[3] = exp[2];
+      exp = expt_mod;
+    }
+    for(size_type i = 0, n = exp.size(); i < n; ++i)
+      if(exp[i].is_type(types::exp))
+        apply_expt_mod_optimization(exp[i].exp);
+    return exp;
+  }
+
+
   scm_list convert_math_expr(scm_list& exp, const char* name, const char* format) {
     if(exp.size() < 2 || data_is_the_SENTINEL_VAL(exp[1]))
       THROW_ERR('\''<<name<<" didn't recieve any arguments!"<<format<<EXP_ERR(exp));
-    scm_list math_exp(exp.begin()+1,exp.end());
+    if(exp.size() == 2 && !exp[1].is_type(types::exp)) {
+      scm_list id_exp(2);
+      id_exp[0] = "id", id_exp[1] = exp[1];
+      return id_exp;
+    }
+    scm_list math_exp;
+    if(exp.size() == 2)
+      math_exp = exp[1].exp;
+    else
+      math_exp = scm_list(exp.begin()+1,exp.end());
     math_exp_conversion::convert_expts(math_exp,name,format);
     std::vector<std::pair<scm_string,scm_string>> ops(2);
     ops[0] = std::make_pair("*","*");
@@ -2024,7 +2054,7 @@ namespace heist {
     ops.push_back(std::make_pair("+","+"));
     ops.push_back(std::make_pair("-","-"));
     math_exp_conversion::convert_symbol_set(math_exp,ops,name,format);
-    return math_exp;
+    return apply_expt_mod_optimization(math_exp);
   }
 
 
