@@ -4435,6 +4435,14 @@ namespace heist {
   // Expand a confirmed pair & w/ symbol as the 1st arg
   data prm_shallow_expand_pair(data& d, env_type& env) {
     scm_list expanded, par_as_exp = prm_EVAL_convert_list_to_AST(d);
+    // add sentinel arg in quoted form as needed (triggers nullary macros)
+    if(par_as_exp.size() == 2 && par_as_exp[0].is_type(types::sym) && 
+       par_as_exp[1].is_type(types::sym) && par_as_exp[1].sym == symconst::sentinel_arg) {
+      par_as_exp.pop_back();
+      par_as_exp.push_back(scm_list(2));
+      par_as_exp[1].exp[0] = symconst::quote;
+      par_as_exp[1].exp[1] = symconst::sentinel_arg;
+    }
     if(!par_as_exp.empty() && par_as_exp[0].is_type(types::sym) && 
        expand_macro_if_in_env(par_as_exp[0].sym,scm_list(par_as_exp.begin()+1,par_as_exp.end()),env,expanded)){
       auto quoted = scm_list(2);

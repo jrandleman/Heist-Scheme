@@ -657,8 +657,10 @@ namespace heist {
     if(exps.empty() || (exps.size()==1 && data_is_the_SENTINEL_VAL(exps[0])))
       return [](env_type&){return G::VOID_DATA_EXPRESSION;}; // void data
     const size_type n = exps.size();
-    std::vector<exe_type> sequence_exe_procs(exps.size());
+    // If begin only has 1 expression, return exec proc of expression
+    if(exps.size() == 1) return scm_analyze(scm_list_cast(exps[0]),tail_call,cps_block);
     // Analyze each expression
+    std::vector<exe_type> sequence_exe_procs(exps.size());
     for(size_type i = 0, n = exps.size(); i < n; ++i)
       sequence_exe_procs[i] = scm_analyze(scm_list_cast(exps[i]),(i+1==n)&&tail_call,cps_block);
     // Return a lambda sequentially invoking each exec procedure
