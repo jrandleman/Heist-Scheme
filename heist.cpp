@@ -187,10 +187,8 @@ namespace heist {
   // 'Casts' a scm_list object to a data object
   //   => If scm_list only contains 1 data object, degrades scm_list to the data
   //   => Else, wraps scm_list in a datum
-  data data_cast(const scm_list& l)noexcept{
-    if(l.size() == 1) return l[0]; 
-    return data(l);
-  }
+  data data_cast(const scm_list& l)noexcept{if(l.size() == 1) return l[0]; return data(l);}
+  data data_cast(scm_list&& l)     noexcept{if(l.size() == 1) return l[0]; return data(l);}
 
 
   // Generate a call signature from a procedure name & its given values
@@ -425,8 +423,7 @@ namespace heist {
   // -- NAME MANGLING
   // defining/set!ing an anonymous lambda generates a named procedure
   void mangle_bound_anonymous_procedure_name(const frame_var& var, frame_val& val)noexcept{
-    if(val.is_type(types::exp) && is_tagged_list(val.exp,symconst::procedure) && val.exp[5].sym.empty())
-      val.exp[5].sym = ' ' + var;
+    if(val.is_type(types::fcn) && val.fcn.name.empty()) val.fcn.name = ' ' + var;
   }
 
 
@@ -705,8 +702,7 @@ namespace heist {
   ******************************************************************************/
 
   bool is_definition(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::define);}
-  scm_list make_lambda(scm_list parameters, // Lambda ctor
-                       scm_list body)noexcept; 
+  scm_list make_lambda(scm_list parameters, scm_list body)noexcept; // Lambda ctor
 
   frame_var& definition_variable(scm_list& exp)noexcept{
     // if defining a variable, else defining a procedure
@@ -950,46 +946,6 @@ namespace heist {
   * REPRESENTING PROCEDURES
   ******************************************************************************/
 
-  // PROCEDURE CONSTRUCTION
-  scm_list make_procedure(const scm_list& parameters, const exe_type& body_proc,
-                          env_type& env, const frame_var& name)noexcept{
-    scm_list procedure_exp(8);
-    procedure_exp[0] = symconst::procedure, procedure_exp[1] = parameters;
-    procedure_exp[2] = body_proc,           procedure_exp[3] = env;
-    procedure_exp[4] = make_cal(0),         procedure_exp[5] = name;
-    procedure_exp[6] = boolean(false); // inline-invocation? (SEE cps-load & cps-eval)
-    procedure_exp[7] = obj_type(nullptr);
-    return procedure_exp;
-  }
-
-  bool is_compound_procedure(const scm_list& p)    noexcept{return is_tagged_list(p,symconst::procedure);}
-  exe_type& procedure_body(scm_list& p)            noexcept{return p[2].exe;}
-  env_type& procedure_environment(scm_list& p)     noexcept{return p[3].env;}
-  size_type& procedure_recursive_depth(scm_list& p)noexcept{return *p[4].cal;}
-  bool procedure_inlines_call(scm_list& p)         noexcept{return p[6].bol.val;}
-  obj_type& procedure_self(scm_list& p)            noexcept{return p[7].obj;}
-
-  frame_var procedure_name(const scm_list& p)noexcept{
-    if(is_compound_procedure(p)) // compound procedure name
-      return p[5].sym;
-    return ' ' + p[2].sym; // primitive procedure name
-  }
-
-  frame_var printable_procedure_name(const scm_list& p)noexcept{
-    auto name = procedure_name(p);
-    if(name.empty()) return "#<procedure>"; // lambda
-    name.erase(0,1); // rm prefixing ' '
-    return name;
-  }
-
-  frame_vars procedure_parameters(scm_list& p)noexcept{
-    frame_vars var_names(p[1].exp.size());
-    for(size_type i = 0, n = p[1].exp.size(); i < n; ++i)
-      var_names[i] = p[1].exp[i].sym;
-    return var_names;
-  }
-
-
   // -- LAMBDAS: (lambda (<parameters>) <body>)
   bool     is_lambda(const scm_list& exp)  noexcept{return is_tagged_list(exp,symconst::lambda);}
   scm_list lambda_parameters(scm_list& exp)noexcept{return exp[1].exp;}
@@ -1014,7 +970,7 @@ namespace heist {
     auto body_proc = analyze_sequence(lambda_body(exp),true,cps_block);// analyze body syntax
     return [vars=std::move(vars),body_proc=std::move(body_proc)]
       (env_type& env){
-        return make_procedure(vars, body_proc, env, ""); // empty "" name by default (anon proc)
+        return scm_list(1,scm_fcn(vars, body_proc, env, "")); // empty "" name by default (anon proc)
       };
   }
 
@@ -3998,11 +3954,10 @@ namespace heist {
   ******************************************************************************/
 
   // Prints Debugging Call Trace (see <set-trace-calls!> primitive)
-  void output_debug_call_trace(const scm_list& procedure,const scm_list& arguments,
-                               const bool tail_call,     const bool callceing)noexcept{
-    if(!primitive_data_is_a_procedure(procedure)) return;
+  void output_debug_call_trace(const scm_fcn& procedure,const scm_list& arguments,
+                               const bool tail_call,    const bool callceing)noexcept{
     // Generate the call signature & Application-Affecting Call States
-    auto call_signature = procedure_call_signature(printable_procedure_name(procedure),arguments);
+    auto call_signature = procedure_call_signature(procedure.str(),arguments);
     const char* in_tail_call = tail_call ? "#t" : "#f";
     const char* using_callce = callceing ? "#t" : "#f";
     const char* using_inline = G::USING_INLINE_INVOCATIONS ? "#t" : "#f";
@@ -4026,10 +3981,10 @@ namespace heist {
 
 
   // Prints Call Trace (see <trace> primitive)
-  void print_call_trace_depth_indentation(const scm_list& procedure,const bool tail_call=false)noexcept{
+  void print_call_trace_depth_indentation(const scm_fcn& procedure,const bool tail_call=false)noexcept{
     size_type recursive_depth = 0; // default to 0 (level for all prims)
-    if(is_compound_procedure(procedure)) {
-      recursive_depth = *procedure[4].cal;
+    if(procedure.is_compound()) {
+      recursive_depth = procedure.recursive_depth();
       if(recursive_depth && tail_call) --recursive_depth;
     }
     for(size_type i = 0; i <= recursive_depth; ++i) {
@@ -4041,9 +3996,8 @@ namespace heist {
 
 
   // Print the current recursive depth as indentation, and the current invocation signature
-  void output_call_trace_invocation(const scm_list& procedure, const scm_list& arguments,const bool tail_call=false)noexcept{
-    if(!primitive_data_is_a_procedure(procedure)) return;
-    auto call_signature = procedure_call_signature(printable_procedure_name(procedure),arguments);
+  void output_call_trace_invocation(const scm_fcn& procedure, const scm_list& arguments,const bool tail_call=false)noexcept{
+    auto call_signature = procedure_call_signature(procedure.str(),arguments);
     print_call_trace_depth_indentation(procedure,tail_call);
     fprintf(G::CURRENT_OUTPUT_PORT, "%s\n", call_signature.c_str());
     fflush(G::CURRENT_OUTPUT_PORT);
@@ -4051,8 +4005,7 @@ namespace heist {
 
 
   // Print the current recursive depth as indentation, and the result string
-  void output_call_trace_result(const scm_list& procedure, const data& result)noexcept{
-    if(!primitive_data_is_a_procedure(procedure)) return;
+  void output_call_trace_result(const scm_fcn& procedure, const data& result)noexcept{
     print_call_trace_depth_indentation(procedure);
     fprintf(G::CURRENT_OUTPUT_PORT, "%s\n", result.noexcept_write().c_str());
     fflush(G::CURRENT_OUTPUT_PORT);
@@ -4085,8 +4038,8 @@ namespace heist {
 
 
   // extend <procedure>'s env with <calling_obj> as "self"
-  data extend_method_env_with_SELF_object(data& calling_obj, scm_list& procedure)noexcept{
-    procedure[7] = calling_obj;
+  data extend_method_env_with_SELF_object(obj_type& calling_obj, scm_fcn& procedure)noexcept{
+    procedure.self = calling_obj;
     return procedure;
   }
 
@@ -4109,7 +4062,7 @@ namespace heist {
         // cache accessed inherited method
         value.obj->method_names.push_back(sought_property);
         value.obj->method_values.push_back(proto->method_values[i]);
-        value = extend_method_env_with_SELF_object(value, proto->method_values[i].exp);
+        value = extend_method_env_with_SELF_object(value.obj, proto->method_values[i].fcn);
         is_member = false;
         return true;
       }
@@ -4135,7 +4088,7 @@ namespace heist {
     auto& methods = value.obj->method_names;
     for(size_type i = 0, n = methods.size(); i < n; ++i)
       if(methods[i] == property) {
-        value = extend_method_env_with_SELF_object(value, value.obj->method_values[i].exp);
+        value = extend_method_env_with_SELF_object(value.obj, value.obj->method_values[i].fcn);
         is_member = false;
         return true;
       }
@@ -4188,32 +4141,28 @@ namespace heist {
   ******************************************************************************/
 
   // -- OPERATOR EVALUATION
-  // generates <scm_list proc>: macro avoids extra copies
+  // generates <data proc.is_type(types::fcn)>: macro avoids extra copies
   #define evaluate_operator(OPERATOR_PROC,OPERATOR_ENV)\
-    auto proc = OPERATOR_PROC(OPERATOR_ENV);\
-    if(proc.size() == 1 && proc[0].is_type(types::obj) && primitive_data_is_a_functor(proc[0]))\
-      proc = primitive_extract_callable_procedure(proc[0]);
+    auto proc = data_cast(OPERATOR_PROC(OPERATOR_ENV));\
+    if(proc.is_type(types::obj) && primitive_data_is_a_functor(proc))\
+      proc = primitive_extract_callable_procedure(proc);
 
 
-  // -- PRIMITIVE PROCEDURES: identification & application
-  bool is_primitive_procedure(const scm_list& p)noexcept{
-    return is_tagged_list(p,symconst::primitive);
-  }
-
-  scm_list apply_primitive_procedure(scm_list& proc,scm_list& args,env_type& env,const bool tail_call){
+  // -- APPLYING PRIMITIVE PROCEDURES
+  scm_list apply_primitive_procedure(data& proc,scm_list& args,env_type& env,const bool tail_call){
     // Rm "sentinel-arg" value from args (if present from an argless application)
     if(args.size()==1 && args[0].is_type(types::sym) && args[0].sym == symconst::sentinel_arg)
       args.pop_back();
     // Output tracing information as needed
-    auto tracing_proc = tracing_procedure(proc[2].sym);
-    if(tracing_proc) output_call_trace_invocation(proc,args);
+    auto tracing_proc = tracing_procedure(proc.fcn.name);
+    if(tracing_proc) output_call_trace_invocation(proc.fcn,args);
     // Provide the environment to primitives applying user-defined procedures
-    if(primitive_requires_environment(proc[1].prm)) args.push_back(env);
-    if(proc[1].prm == primitive_APPLY) args.push_back(boolean(tail_call));
-    if(!tracing_proc) return scm_list_cast(proc[1].prm(args));
+    if(primitive_requires_environment(proc.fcn.prm)) args.push_back(env);
+    if(proc.fcn.prm == primitive_APPLY) args.push_back(boolean(tail_call));
+    if(!tracing_proc) return scm_list_cast(proc.fcn.prm(args));
     // Output result's trace as needed
-    auto result = scm_list_cast(proc[1].prm(args));
-    output_call_trace_result(proc,data_cast(result));
+    auto result = scm_list_cast(proc.fcn.prm(args));
+    output_call_trace_result(proc.fcn,data_cast(result));
     return result;
   }
 
@@ -4233,67 +4182,64 @@ namespace heist {
   // Analogue to "apply", except no need to analyze the body of compound 
   //   procedures (already done). Hence only calls the execution procedure 
   //   for the proc's body w/ the extended environment
-  scm_list execute_application(scm_list& procedure,scm_list& arguments,env_type& env,
-                                            const bool tail_call,const bool callceing){
+  scm_list execute_application(data& procedure,scm_list& arguments,env_type& env,
+                                        const bool tail_call,const bool callceing){
+    if(!procedure.is_type(types::fcn))
+      THROW_ERR("Invalid application of unknown procedure "<<PROFILE(procedure)<<"! "<<FCN_ERR(procedure.noexcept_write(),arguments));
     // output debugger call trace as needed
     if(G::TRACING_ALL_FUNCTION_CALLS)
-      output_debug_call_trace(procedure,arguments,tail_call,callceing);
+      output_debug_call_trace(procedure.fcn,arguments,tail_call,callceing);
     // execute primitive procedure directly
-    if(is_primitive_procedure(procedure))
+    if(procedure.fcn.is_primitive())
       return apply_primitive_procedure(procedure,arguments,env,tail_call);
-    else if(is_compound_procedure(procedure)) {
-      // create the procedure body's extended environment frame
-      auto extended_env = extend_environment(procedure_parameters(procedure),
-                                             arguments,
-                                             procedure_environment(procedure),
-                                             procedure_name(procedure));
-      // determine whether to inline call
-      const bool inline_call = !G::USING_INLINE_INVOCATIONS && procedure_inlines_call(procedure);
-      if(inline_call) G::USING_INLINE_INVOCATIONS = true;
-      // splice in current env for dynamic scope as needed
-      if(callceing || G::USING_INLINE_INVOCATIONS)
-        extended_env->insert(extended_env->begin()+1, env->begin(), env->end());
-      // add the 'self' object iff applying a method
-      if(procedure[7].obj) {
-        frame_variables(*extended_env->operator[](0)).push_back("self");
-        frame_values(*extended_env->operator[](0)).push_back(procedure[7].obj);         
-      }
-      // confirm max recursive depth hasn't been exceeded
-      auto& recursive_depth = procedure_recursive_depth(procedure);
-      if(recursive_depth > G::MAX_RECURSION_DEPTH) {
-        if(inline_call) G::USING_INLINE_INVOCATIONS = false;
-        recursive_depth = 0;
-        THROW_ERR("Maximum recursion depth of "<<G::MAX_RECURSION_DEPTH<<" exceeded!"
-          << FCN_ERR(printable_procedure_name(procedure), arguments));
-      }
-      // output tracing information as needed
-      auto tracing_proc = tracing_procedure(procedure[5].sym);
-      if(tracing_proc) output_call_trace_invocation(procedure,arguments,tail_call);
-      // store application data & return such back up to the last call if in a tail call
-      if(tail_call) {
-        if(inline_call) G::USING_INLINE_INVOCATIONS = false;
-        scm_list tail_call_signature(3); // {tail-call-tag, proc-body, extended-env}
-        tail_call_signature[0] = symconst::tail_call;
-        tail_call_signature[1] = procedure_body(procedure);
-        tail_call_signature[2] = extended_env;
-        return tail_call_signature;
-      }
-      ++recursive_depth;
-      auto result = apply_compound_procedure(procedure_body(procedure),extended_env);
-      --recursive_depth;
-      // output result's trace as needed
-      if(tracing_proc) output_call_trace_result(procedure,data_cast(result));
-      if(inline_call) G::USING_INLINE_INVOCATIONS = false;
-      return result;
+    // compound proc -- create the procedure body's extended environment frame
+    auto extended_env = extend_environment(procedure.fcn.procedure_parameters(),
+                                           arguments,
+                                           procedure.fcn.env,
+                                           procedure.fcn.procedure_name());
+    // determine whether to inline call
+    const bool inline_call = !G::USING_INLINE_INVOCATIONS && procedure.fcn.is_inline_invocation;
+    if(inline_call) G::USING_INLINE_INVOCATIONS = true;
+    // splice in current env for dynamic scope as needed
+    if(callceing || G::USING_INLINE_INVOCATIONS)
+      extended_env->insert(extended_env->begin()+1, env->begin(), env->end());
+    // add the 'self' object iff applying a method
+    if(procedure.fcn.self) {
+      frame_variables(*extended_env->operator[](0)).push_back("self");
+      frame_values(*extended_env->operator[](0)).push_back(procedure.fcn.self);
     }
-    if(procedure.empty())
-      THROW_ERR("Invalid application of unknown procedure type NULL (received an empty expression)!");
-    THROW_ERR("Invalid application of unknown procedure "<<PROFILE(procedure[0])<<"! "<<FCN_ERR(procedure[0].noexcept_write(),arguments));
+    // confirm max recursive depth hasn't been exceeded
+    auto& recursive_depth = procedure.fcn.recursive_depth();
+    if(recursive_depth > G::MAX_RECURSION_DEPTH) {
+      if(inline_call) G::USING_INLINE_INVOCATIONS = false;
+      recursive_depth = 0;
+      THROW_ERR("Maximum recursion depth of "<<G::MAX_RECURSION_DEPTH<<" exceeded!"
+        << FCN_ERR(procedure.fcn.str(), arguments));
+    }
+    // output tracing information as needed
+    auto tracing_proc = tracing_procedure(procedure.fcn.name);
+    if(tracing_proc) output_call_trace_invocation(procedure.fcn,arguments,tail_call);
+    // store application data & return such back up to the last call if in a tail call
+    if(tail_call) {
+      if(inline_call) G::USING_INLINE_INVOCATIONS = false;
+      scm_list tail_call_signature(3); // {tail-call-tag, proc-body, extended-env}
+      tail_call_signature[0] = symconst::tail_call;
+      tail_call_signature[1] = procedure.fcn.body;
+      tail_call_signature[2] = extended_env;
+      return tail_call_signature;
+    }
+    ++recursive_depth;
+    auto result = apply_compound_procedure(procedure.fcn.body,extended_env);
+    --recursive_depth;
+    // output result's trace as needed
+    if(tracing_proc) output_call_trace_result(procedure.fcn,data_cast(result));
+    if(inline_call) G::USING_INLINE_INVOCATIONS = false;
+    return result;
   }
 
   // R-value overload
-  scm_list execute_application(scm_list&& procedure,scm_list& arguments,env_type& env,
-                                             const bool tail_call,const bool callceing){
+  scm_list execute_application(data&& procedure,scm_list& arguments,env_type& env,
+                                       const bool tail_call,const bool callceing){
     return execute_application(procedure,arguments,env,tail_call,callceing);
   }
 
@@ -4305,16 +4251,17 @@ namespace heist {
     return d.is_type(types::sym) && string_begins_with(d.sym,symconst::continuation);
   }
 
-  bool procedure_defined_outside_of_CPS_block(const scm_list& p)noexcept{
-    return is_primitive_procedure(p) || 
-      (is_compound_procedure(p) && (p[1].exp.empty() || 
-        !data_is_continuation_parameter(*p[1].exp.rbegin())));
+  bool procedure_defined_outside_of_CPS_block(const data& p)noexcept{
+    return p.is_type(types::fcn) && 
+            (p.fcn.is_primitive() || 
+              (p.fcn.is_compound() && 
+                (p.fcn.params.empty() || !data_is_continuation_parameter(*p.fcn.params.rbegin()))));
   }
 
-  bool procedure_requires_continuation(const scm_list& p)noexcept{
+  bool procedure_requires_continuation(const scm_fcn& p)noexcept{
     // '1' for compound procs accounts for ' ' prefix from name mangling
-    return (is_compound_procedure(p) && string_begins_with(p[5].sym,symconst::pass_continuation,1)) ||
-           (is_primitive_procedure(p) && string_begins_with(p[2].sym,symconst::pass_continuation));
+    return (p.is_compound() && string_begins_with(p.name,symconst::pass_continuation,1)) ||
+           (p.is_primitive() && string_begins_with(p.name,symconst::pass_continuation));
   }
 
   /******************************************************************************
@@ -4336,13 +4283,13 @@ namespace heist {
       arg_procs[i] = scm_analyze(scm_list_cast(arg_exps[i]),false,true);
     return [op_proc=std::move(op_proc),arg_procs=std::move(arg_procs),
             tail_call=std::move(tail_call)](env_type& env)mutable{
-      evaluate_operator(op_proc,env); // generates <scm_list proc>
+      evaluate_operator(op_proc,env); // generates <data proc.is_type(types::fcn)>
       // Pass the result of the proc to the current continuation IFF
       //   proc was defined OUTSIDE of a scm->cps block
       if(procedure_defined_outside_of_CPS_block(proc)) {
         // Extract the continuation from the parameter list as needed
         auto continuation = (*arg_procs.rbegin())(env);
-        bool passing_continuation = procedure_requires_continuation(proc);
+        bool passing_continuation = procedure_requires_continuation(proc.fcn);
         scm_list arg_vals(arg_procs.size() - !passing_continuation);
         // Eval each arg's exec proc to obtain the actual arg values
         if(!passing_continuation) {
@@ -4451,7 +4398,7 @@ namespace heist {
               tail_call=std::move(tail_call)](env_type& env){
         scm_list arg_vals(arg_procs.size());
         eval_application_arg_procs(arg_procs,arg_vals,env);
-        evaluate_operator(op_proc,env); // generates <scm_list proc>
+        evaluate_operator(op_proc,env); // generates <data proc.is_type(types::fcn)>
         return execute_application(proc,arg_vals,env,tail_call);
       };
     }
@@ -4466,7 +4413,7 @@ namespace heist {
       scm_list arg_vals(arg_exps.size());
       for(size_type i = 0, n = arg_exps.size(); i < n; ++i)
         arg_vals[i] = data_cast(scm_analyze(scm_list_cast(arg_exps[i]),false,cps_block)(env));
-      evaluate_operator(op_proc,env); // generates <scm_list proc>
+      evaluate_operator(op_proc,env); // generates <data proc.is_type(types::fcn)>
       return execute_application(proc,arg_vals,env,tail_call);
     };
   }
@@ -4635,9 +4582,7 @@ void account_for_whether_printed_data(const heist::scm_list& val,bool& printed_d
 
 // Print output object
 void user_print(FILE* outs, heist::scm_list& object) {
-  if(heist::is_compound_procedure(object) || heist::is_primitive_procedure(object))
-    fprintf(outs, "#<procedure%s>", heist::procedure_name(object).c_str());
-  else if(heist::is_delay(object) && object.size() > 1)
+  if(heist::is_delay(object) && object.size() > 1)
     fputs("#<delay>", outs);
   else
     fputs(object[0].pprint().c_str(), outs);
@@ -4768,12 +4713,8 @@ int load_script(char* argv[], const int& script_pos){
   load_args[0] = heist::make_str(argv[script_pos]);
   load_args[1 + heist::G::USING_CPS_CMD_LINE_FLAG] = heist::G::GLOBAL_ENVIRONMENT_POINTER;
   // Bind "id" as the topmost continuation if "-cps" was passed
-  if(heist::G::USING_CPS_CMD_LINE_FLAG) {
-    load_args[1] = heist::scm_list(3);
-    load_args[1].exp[0] = heist::symconst::primitive;
-    load_args[1].exp[1] = (heist::prm_type)[](heist::scm_list& args){return args[0];};
-    load_args[1].exp[2] = "id";
-  }
+  if(heist::G::USING_CPS_CMD_LINE_FLAG)
+    load_args[1] = heist::scm_fcn("id",(heist::prm_ptr_t)[](heist::scm_list& args){return args[0];});
   try {
     if(heist::G::USING_CPS_CMD_LINE_FLAG)
       heist::primitive_CPS_LOAD(load_args);

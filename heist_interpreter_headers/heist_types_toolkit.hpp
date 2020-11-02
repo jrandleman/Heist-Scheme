@@ -267,24 +267,18 @@ namespace heist {
   }
 
 
-  // Handle appending delay & procedural expressions
+  // Handle appending delay expressions
   template <typename const_scm_node>
-  bool exp_is_delay_or_procedure(const const_scm_node& d, const exp_type& exp_object,
-                                                                scm_string& exp_str)noexcept{
+  bool exp_is_delay(const const_scm_node& d, const exp_type& exp_object,scm_string& exp_str)noexcept{
     // Ignore sentinel-arg expressions
     if(data_is_the_SENTINEL_VAL(*d)) {
       if(is_not_end_of_expression(d, exp_object.end())) exp_str += ' ';
       return true;
     }
-    // Append delayed/procedure expressions as needed
+    // Append delayed expressions as needed
     if(d->is_type(types::exp) && !d->exp.empty()) {
       if(is_delay(d->exp)) {
         exp_str += "#<delay>"; 
-        if(is_not_end_of_expression(d, exp_object.end())) exp_str += ' ';
-        return true;
-      }
-      if(is_compound_procedure(d->exp) || is_primitive_procedure(d->exp)){ 
-        exp_str += "#<procedure" + procedure_name(d->exp) + '>'; 
         if(is_not_end_of_expression(d, exp_object.end())) exp_str += ' ';
         return true;
       }
@@ -299,7 +293,7 @@ namespace heist {
     if(no_args_given(exp_object)) return; // empty expression
     for(auto d = exp_object.begin(); d != exp_object.end(); ++d) {
       // Append delay & procedure expressions w/ a special format
-      if(exp_is_delay_or_procedure(d, exp_object, exp_str)) 
+      if(exp_is_delay(d, exp_object, exp_str)) 
         continue;
       // Recursively append expressions
       if(d->is_type(types::exp)) {
@@ -321,13 +315,9 @@ namespace heist {
   template<DATA_PRINTER to_str>
   scm_string cio_expr_str(const exp_type& exp_object) {
     // Sentinel Values are exclusively used internally, hence are never printed
-    if(no_args_given(exp_object)||data_is_the_SENTINEL_VAL(data(exp_object)))
-      return "";
+    if(no_args_given(exp_object)||data_is_the_SENTINEL_VAL(data(exp_object))) return "";
     // Delayed expressions print identically to delayed values
-    if(is_delay(exp_object)) 
-      return "#<delay>";
-    if(is_compound_procedure(exp_object) || is_primitive_procedure(exp_object))
-      return "#<procedure" + procedure_name(exp_object) + '>';
+    if(is_delay(exp_object)) return "#<delay>";
     scm_string exp_str;
     cio_expr_str_rec<to_str>(exp_object, exp_str);
     return '(' + exp_str + ')';
@@ -520,14 +510,13 @@ namespace heist {
   * OBJECT PRINTING HELPER (CHECKS IF OBJECT HAS A display write pprint MEMBER)
   ******************************************************************************/
 
-  scm_list execute_application(scm_list&,scm_list&,env_type&,const bool tail_call=false,const bool inlined=false);
-  scm_list execute_application(scm_list&&,scm_list&,env_type&,const bool tail_call=false,const bool inlined=false);
-  data     extend_method_env_with_SELF_object(data& calling_obj, scm_list& procedure)noexcept;
+  scm_list execute_application(data&,scm_list&,env_type&,const bool tail_call=false,const bool inlined=false);
+  scm_list execute_application(data&&,scm_list&,env_type&,const bool tail_call=false,const bool inlined=false);
+  data     extend_method_env_with_SELF_object(obj_type& calling_obj, scm_fcn& procedure)noexcept;
   data     data_cast(const scm_list& l)noexcept;
 
-  data apply_dynamic_method(obj_type& obj, scm_list arg, scm_list procedure_cpy) {
-    data calling_object(obj);
-    scm_list procedure = extend_method_env_with_SELF_object(calling_object,procedure_cpy).exp;
+  data apply_dynamic_method(obj_type& obj, scm_list arg, scm_fcn procedure_cpy) {
+    scm_fcn procedure = extend_method_env_with_SELF_object(obj,procedure_cpy).fcn;
     env_type env = obj->proto->defn_env;
     return data_cast(execute_application(procedure,arg,env));
   }
@@ -539,7 +528,7 @@ namespace heist {
       // search object's local members
       for(size_type i = 0, n = obj->method_names.size(); i < n; ++i) {
         if(obj->method_names[i] == "self->string" || obj->method_names[i] == printer_name) {
-          data result = apply_dynamic_method(obj,scm_list(1,symconst::sentinel_arg),obj->method_values[i].exp);
+          data result = apply_dynamic_method(obj,scm_list(1,symconst::sentinel_arg),obj->method_values[i].fcn);
           if(result.is_type(types::str)) return *result.str;
           return (result.*to_str)();
         }
@@ -548,7 +537,7 @@ namespace heist {
       for(size_type i = 0, n = obj->proto->method_names.size(); i < n; ++i) {
         if(obj->proto->method_names[i] == "self->string" || obj->proto->method_names[i] == printer_name) {
           obj->member_names.push_back(obj->proto->method_names[i]), obj->member_values.push_back(obj->proto->method_values[i]);
-          data result = apply_dynamic_method(obj,scm_list(1,symconst::sentinel_arg),obj->method_values[i].exp);
+          data result = apply_dynamic_method(obj,scm_list(1,symconst::sentinel_arg),obj->method_values[i].fcn);
           if(result.is_type(types::str)) return *result.str;
           return (result.*to_str)();
         }
@@ -612,12 +601,6 @@ namespace heist {
   * DATA EQUALITY HELPERS
   ******************************************************************************/
 
-  bool prm_comparing_primitives(const scm_list& l1, const scm_list& l2)noexcept{
-    return l1.size() == 3 && l1[0].is_type(types::sym) && l2[0].is_type(types::sym) &&
-      l1[0].sym == l2[0].sym && l1[0].sym == symconst::primitive;
-  }
-
-
   template<DATA_COMPARER same_as>
   bool prm_compare_atomic_values(const data& v1,const data& v2,const types& t) {
     switch(t) {
@@ -632,10 +615,9 @@ namespace heist {
       case types::obj: return v1.obj == v2.obj;
       case types::par: return v1.par == v2.par;
       case types::vec: return v1.vec == v2.vec;
-      case types::prm: return v1.prm == v2.prm;
+      case types::fcn: return v1.fcn == v2.fcn;
       case types::del: return v1.del == v2.del;
       case types::env: return v1.env == v2.env;
-      case types::cal: return v1.cal == v2.cal;
       case types::fip: return v1.fip.port_idx == v2.fip.port_idx;
       case types::fop: return v1.fop.port_idx == v2.fop.port_idx;
       case types::syn: return prm_compare_SNTXs<same_as>(v1.syn, v2.syn);
@@ -648,7 +630,6 @@ namespace heist {
   template<DATA_COMPARER same_as>
   bool prm_compare_EXPRs(const scm_list& l1, const scm_list& l2) {
     if(l1.size() != l2.size()) return false;
-    if(prm_comparing_primitives(l1,l2)) return l1[1].prm == l2[1].prm;
     for(size_type i = 0, n = l1.size(); i < n; ++i)
       if(!(l1[i].*same_as)(l2[i])) return false;
     return true;
@@ -718,7 +699,7 @@ namespace heist {
       // search object's local members
       for(size_type i = 0, n = obj->method_names.size(); i < n; ++i) {
         if(obj->method_names[i] == "self=" || obj->method_names[i] == eq_name) {
-          data eq_result = apply_dynamic_method(obj,scm_list(1,rhs),obj->method_values[i].exp);
+          data eq_result = apply_dynamic_method(obj,scm_list(1,rhs),obj->method_values[i].fcn);
           result = (eq_result.type != types::bol || eq_result.bol.val);
           return true;
         }
@@ -727,7 +708,7 @@ namespace heist {
       for(size_type i = 0, n = obj->proto->method_names.size(); i < n; ++i) {
         if(obj->proto->method_names[i] == "self=" || obj->proto->method_names[i] == eq_name) {
           obj->member_names.push_back(obj->proto->method_names[i]), obj->member_values.push_back(obj->proto->method_values[i]);
-          data eq_result = apply_dynamic_method(obj,scm_list(1,rhs),obj->method_values[i].exp);
+          data eq_result = apply_dynamic_method(obj,scm_list(1,rhs),obj->method_values[i].fcn);
           result = (eq_result.type != types::bol || eq_result.bol.val);
           return true;
         }
@@ -816,14 +797,14 @@ namespace heist {
     // search object's local members
     for(size_type i = 0, n = obj->method_names.size(); i < n; ++i)
       if(obj->method_names[i] == "self->copy") {
-        result = apply_dynamic_method(obj,scm_list(1,symconst::sentinel_arg),obj->method_values[i].exp);
+        result = apply_dynamic_method(obj,scm_list(1,symconst::sentinel_arg),obj->method_values[i].fcn);
         return true;
       }
     // search object's prototype
     for(size_type i = 0, n = obj->proto->method_names.size(); i < n; ++i) {
       if(obj->proto->method_names[i] == "self->copy") {
         obj->member_names.push_back(obj->proto->method_names[i]), obj->member_values.push_back(obj->proto->method_values[i]);
-        result = apply_dynamic_method(obj,scm_list(1,symconst::sentinel_arg),obj->method_values[i].exp);
+        result = apply_dynamic_method(obj,scm_list(1,symconst::sentinel_arg),obj->method_values[i].fcn);
         return true;
       }
     }

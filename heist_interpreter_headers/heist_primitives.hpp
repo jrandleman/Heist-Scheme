@@ -1255,9 +1255,9 @@ namespace heist {
     if(args.size() != 1)
       THROW_ERR("'typeof recieved incorrect # of args!\n     (typeof <obj>)" 
         << FCN_ERR("typeof", args));
-    if(data_is_stream_pair(args[0]))           return "#<stream>";
-    if(primitive_data_is_a_procedure(args[0])) return "#<procedure>";
-    if(data_is_a_delay(args[0]))               return "#<delay>";
+    if(data_is_stream_pair(args[0])) return "#<stream>";
+    if(args[0].is_type(types::fcn))  return "#<procedure>";
+    if(data_is_a_delay(args[0]))     return "#<delay>";
     return args[0].type_name();
   }
 
@@ -1387,7 +1387,7 @@ namespace heist {
       auto env = args.rbegin()->env;\
       args.pop_back();\
       hmap_confirm_binary_procedure_map(NAME,"\n     (" NAME " <callable> <hash-map>)",args);\
-      scm_list procedure(primitive_extract_callable_procedure(args[0]));\
+      auto procedure(primitive_extract_callable_procedure(args[0]));\
       size_type n = args[1].map->val.size(), i = 0;\
       std::vector<scm_string> keys(n);\
       for(auto& keyvalue : args[1].map->val)\
@@ -1423,7 +1423,7 @@ namespace heist {
     auto env = args.rbegin()->env;
     args.pop_back();
     hmap_confirm_binary_procedure_map("hmap-map","\n     (hmap-map <callable> <hash-map>)",args);
-    scm_list procedure(primitive_extract_callable_procedure(args[0]));
+    auto procedure(primitive_extract_callable_procedure(args[0]));
     map_data map;
     for(auto& keyvalue : args[1].map->val) {
       scm_list arg(1,keyvalue.second);
@@ -3163,15 +3163,14 @@ namespace heist {
   // primitive "procedure?" procedure:
   data primitive_PROCEDUREP(scm_list& args) {
     confirm_given_one_arg(args, "procedure?");
-    return data(boolean(primitive_data_is_a_procedure(args[0])));
+    return data(boolean(args[0].is_type(types::fcn)));
   }
 
   // primitive "cps-procedure?" procedure:
   data primitive_CPS_PROCEDUREP(scm_list& args) {
     confirm_given_one_arg(args, "cps-procedure?");
-    return data(boolean(args[0].is_type(types::exp) && args[0].exp[0].is_type(types::sym) && 
-      args[0].exp[0].sym == symconst::procedure && !args[0].exp[1].exp.empty() && 
-      data_is_continuation_parameter(*args[0].exp[1].exp.rbegin())));
+    return data(boolean(args[0].is_type(types::fcn) && !args[0].fcn.params.empty() && 
+      data_is_continuation_parameter(*args[0].fcn.params.rbegin())));
   }
 
   // primitive "input-port?" procedure:
@@ -3341,7 +3340,7 @@ namespace heist {
       THROW_ERR("'cps-eval received incorrect # of arguments:"
         << format << FCN_ERR("cps-eval", args));
     // Extract the continuation & confirm its a procedure
-    auto continuation = *args.rbegin();;
+    auto continuation = *args.rbegin();
     auto continuation_procedure = validate_and_extract_callable(continuation, "cps-eval", format, args);
     // set the continuation to be inlined on application
     prm_set_procedure_INLINE_INVOCATION(continuation_procedure, true);
@@ -3758,7 +3757,7 @@ namespace heist {
     scm_list stream_heads(args.begin()+1, args.end());
     primitive_confirm_only_given_streams(stream_heads,"stream-for-each",format,1,args);
     // Apply the procedure on each elt of each stream
-    scm_list procedure(validate_and_extract_callable(args[0], "stream-for-each", format, args));
+    auto procedure(validate_and_extract_callable(args[0], "stream-for-each", format, args));
     primitive_STREAM_FOR_EACH_applicator(stream_heads, procedure, env);
     return G::VOID_DATA_OBJECT;
   }
@@ -4980,11 +4979,8 @@ namespace heist {
     scm_list trace_args(args.begin()+1,args.end());
     if(trace_args.empty()) trace_args.push_back(symconst::sentinel_arg);
     // Set name of the function to trace
-    if(args[0].exp[0].sym == symconst::procedure)
-      G::TRACED_FUNCTION_NAME = args[0].exp[5].sym;
-    else
-      G::TRACED_FUNCTION_NAME = args[0].exp[2].sym;
-    auto result = data_cast(execute_application(args[0].exp,trace_args,env));
+    G::TRACED_FUNCTION_NAME = args[0].fcn.name;
+    auto result = data_cast(execute_application(args[0].fcn,trace_args,env));
     G::TRACED_FUNCTION_NAME = "";
     return result;
   }
@@ -5395,7 +5391,7 @@ namespace heist {
     confirm_given_unary_object_arg(args,"object-methods");
     map_data m;
     for(size_type i = 0, n = args[0].obj->method_names.size(); i < n; ++i)
-      m.val[args[0].obj->method_names[i]+char(types::sym)] = extend_method_env_with_SELF_object(args[0],args[0].obj->method_values[i].exp);
+      m.val[args[0].obj->method_names[i]+char(types::sym)] = extend_method_env_with_SELF_object(args[0].obj,args[0].obj->method_values[i].fcn);
     return make_map(std::move(m));
   }
 
@@ -5560,7 +5556,7 @@ namespace heist {
   * REGISTRY OF PRIMITIVES ALSO REQUIRING AN ENVIRONMENT (TO APPLY A PROCEDURE)
   ******************************************************************************/
 
-  constexpr const prm_type ENV_REQUIRING_PRIMITIVES[] = {
+  constexpr const prm_ptr_t ENV_REQUIRING_PRIMITIVES[] = {
     primitive_EVAL,             primitive_APPLY,                primitive_FOR_EACH,
     primitive_MAP,              primitive_FILTER,               primitive_MERGE,
     primitive_SORT,             primitive_SORT_BANG,            primitive_SORTEDP,
@@ -5599,14 +5595,14 @@ namespace heist {
   };
 
 #ifndef HEIST_CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
-  constexpr bool primitive_requires_environment(const prm_type& prm)noexcept{
+  constexpr bool primitive_requires_environment(const prm_ptr_t& prm)noexcept{
     for(const auto& p : ENV_REQUIRING_PRIMITIVES)
       if(p == prm) return true;
     return false;
   }
 #else // @EMBEDDED-IN-C++
-  namespace G { std::vector<prm_type> USER_DEFINED_PRIMITIVES_REQUIRING_ENV; }
-  bool primitive_requires_environment(const prm_type& prm)noexcept{
+  namespace G { std::vector<prm_ptr_t> USER_DEFINED_PRIMITIVES_REQUIRING_ENV; }
+  bool primitive_requires_environment(const prm_ptr_t& prm)noexcept{
     for(const auto& p : ENV_REQUIRING_PRIMITIVES)
       if(p == prm) return true;
     for(const auto& p : G::USER_DEFINED_PRIMITIVES_REQUIRING_ENV)
@@ -5619,7 +5615,7 @@ namespace heist {
   * PRIMITIVE NAMES & OBJECTS AS FRAME VARS & VALS FOR THE GLOBAL ENVIRONMENT
   ******************************************************************************/
 
-  constexpr const std::pair<prm_type,const char*>primitive_procedure_declarations[]={
+  constexpr const std::pair<prm_ptr_t,const char*>primitive_procedure_declarations[]={
     std::make_pair(primitive_ADD, "+"),
     std::make_pair(primitive_SUB, "-"),
     std::make_pair(primitive_MUL, "*"),
@@ -6129,12 +6125,8 @@ namespace heist {
   frame_vals primitive_procedure_objects()noexcept{
     constexpr const auto n = sizeof(primitive_procedure_declarations) / sizeof(primitive_procedure_declarations[0]);
     frame_vals primitive_procedures(n);
-    for(size_type i = 0; i < n; ++i) {
-      primitive_procedures[i] = scm_list(3);
-      primitive_procedures[i].exp[0] = symconst::primitive;
-      primitive_procedures[i].exp[1] = primitive_procedure_declarations[i].first;
-      primitive_procedures[i].exp[2] = primitive_procedure_declarations[i].second;
-    }
+    for(size_type i = 0; i < n; ++i)
+      primitive_procedures[i] = scm_fcn(primitive_procedure_declarations[i].second,primitive_procedure_declarations[i].first);
     return primitive_procedures;
   }
 

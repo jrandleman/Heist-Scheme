@@ -62,13 +62,9 @@ namespace heist {
   // Define C++ Primitive for Heist Scheme
   //  => NOTE: "append_env_to_args" is used by higher-order procedures to apply
   //           heist procedures recieved as arguments
-  void defun(const std::string& heist_primitive_name, prm_type cpp_function, bool append_env_to_args=false) noexcept {
+  void defun(const std::string& heist_primitive_name, prm_ptr_t cpp_function, bool append_env_to_args=false) noexcept {
     if(!G::GLOBAL_ENVIRONMENT_POINTER) set_default_global_environment(), atexit(close_port_registry);
-    scm_list primitive_procedure(3);
-    primitive_procedure[0] = symconst::primitive;
-    primitive_procedure[1] = cpp_function;
-    primitive_procedure[2] = heist_primitive_name;
-    define_variable(heist_primitive_name, primitive_procedure, G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable(heist_primitive_name, scm_fcn(heist_primitive_name,cpp_function), G::GLOBAL_ENVIRONMENT_POINTER);
     if(append_env_to_args)
       G::USER_DEFINED_PRIMITIVES_REQUIRING_ENV.push_back(cpp_function);
   }

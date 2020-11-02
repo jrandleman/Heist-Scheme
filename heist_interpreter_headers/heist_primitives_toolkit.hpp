@@ -101,22 +101,14 @@ namespace heist {
   }
 
 
-  bool primitive_data_is_a_procedure(const data& d)noexcept{
-    return d.is_type(types::exp) && 
-      d.exp[0].is_type(types::sym) &&
-      (d.exp[0].sym == symconst::procedure || 
-       d.exp[0].sym == symconst::primitive);
-  }
-
-
   bool primitive_data_is_a_callable(const data& d)noexcept{
-    return primitive_data_is_a_procedure(d) || primitive_data_is_a_functor(d);
+    return d.is_type(types::fcn) || primitive_data_is_a_functor(d);
   }
 
 
   void primitive_confirm_data_is_a_procedure(const data& d,      const char* name, 
                                              const char* format, const scm_list& args){
-    if(!primitive_data_is_a_procedure(d))
+    if(!d.is_type(types::fcn))
       THROW_ERR('\'' << name << " arg " << PROFILE(d) 
         << " isn't a procedure!" << format << FCN_ERR(name,args));
   }
@@ -131,35 +123,32 @@ namespace heist {
 
 
   // PRECONDITION: primitive_data_is_a_callable(d)
-  scm_list primitive_extract_callable_procedure(data& d)noexcept{
+  data primitive_extract_callable_procedure(data& d)noexcept{
     // handle primitive or compound procedure
-    if(d.is_type(types::exp)) return d.exp;
-    if(!d.is_type(types::obj)) return scm_list(); // never triggered iff precondition met
+    if(d.is_type(types::fcn)) return d;
+    if(!d.is_type(types::obj)) return data(); // never triggered iff precondition met
     // handle functor
     obj_type obj = d.obj;
     while(obj) {
       // search object's local members
       for(size_type i = 0, n = obj->method_names.size(); i < n; ++i)
-        if(obj->method_names[i] == "self->procedure") {
-          data calling_object(obj);
-          return extend_method_env_with_SELF_object(calling_object,obj->method_values[i].exp).exp;
-        }
+        if(obj->method_names[i] == "self->procedure")
+          return extend_method_env_with_SELF_object(obj,obj->method_values[i].fcn).fcn;
       // search object's prototype
       for(size_type i = 0, n = obj->proto->method_names.size(); i < n; ++i)
         if(obj->proto->method_names[i] == "self->procedure") {
           // Cache the method dynamically added to the object's prototype IN the object
           obj->method_names.push_back("self->procedure"), obj->method_values.push_back(obj->proto->method_values[i]);
-          data calling_object(obj);
-          return extend_method_env_with_SELF_object(calling_object,obj->method_values.rbegin()->exp).exp;
+          return extend_method_env_with_SELF_object(obj,obj->method_values.rbegin()->fcn).fcn;
         }
       // search inherited object prototype
       obj = obj->inherited;
     }
-    return scm_list(); // never triggered iff precondition met
+    return data(); // never triggered iff precondition met
   }
 
 
-  scm_list validate_and_extract_callable(data& d, const char* name, const char* format, const scm_list& args) {
+  data validate_and_extract_callable(data& d, const char* name, const char* format, const scm_list& args) {
     primitive_confirm_data_is_a_callable(d,name,format,args);
     return primitive_extract_callable_procedure(d);
   }
@@ -194,21 +183,21 @@ namespace heist {
 
 
   // (apply procedure args) == true
-  bool is_true_scm_condition(scm_list& procedure,scm_list& args,env_type& env){
+  bool is_true_scm_condition(data& procedure,scm_list& args,env_type& env){
     return is_true(execute_application(procedure,args,env));
   }
 
-  bool is_true_scm_condition(scm_list&& procedure,scm_list& args,env_type& env){
+  bool is_true_scm_condition(data&& procedure,scm_list& args,env_type& env){
     return is_true(execute_application(procedure,args,env));
   }
 
 
   // (apply procedure args) == false
-  bool is_false_scm_condition(scm_list& procedure,scm_list& args,env_type& env){
+  bool is_false_scm_condition(data& procedure,scm_list& args,env_type& env){
     return !is_true(execute_application(procedure,args,env));
   }
 
-  bool is_false_scm_condition(scm_list&& procedure,scm_list& args,env_type& env){
+  bool is_false_scm_condition(data&& procedure,scm_list& args,env_type& env){
     return !is_true(execute_application(procedure,args,env));
   }
 
@@ -401,7 +390,7 @@ namespace heist {
 
 
   template<typename SEQUENCE_PTR>
-  void primitive_FOLD_sequence_accumulator(scm_list& sequences,     scm_list& proc, 
+  void primitive_FOLD_sequence_accumulator(scm_list& sequences,     data& proc, 
                                            data& init_val,          env_type& env, 
                                            const bool& folding_left,SEQUENCE_PTR seq_ptr) {
     if((sequences[0].*seq_ptr)->empty()) return;
@@ -450,7 +439,7 @@ namespace heist {
 
   // primitive "fold" & "fold-right" procedure helper for strings & vectors
   template<typename SEQUENCE_PTR>
-  data primitive_STATIC_SEQUENCE_FOLD_template(scm_list& procedure, scm_list& args, const char* name, 
+  data primitive_STATIC_SEQUENCE_FOLD_template(data& procedure, scm_list& args, const char* name, 
                                                const char* format,   const bool& folding_left,
                                                const types& seq_type,const char* seq_name, 
                                                SEQUENCE_PTR seq_ptr, env_type& env){
@@ -466,7 +455,7 @@ namespace heist {
 
   // "mpa" construction helper for strings/vectors
   template<typename SEQUENCE_PTR>
-  void primitive_MAP_sequence_constructor(scm_list& sequences,       scm_list& proc, 
+  void primitive_MAP_sequence_constructor(scm_list& sequences,       data& proc, 
                                           scm_list& mapped_sequence, env_type& env,
                                           SEQUENCE_PTR seq_ptr){
     const size_type total_sequences = sequences.size();
@@ -484,7 +473,7 @@ namespace heist {
 
 
   template<typename SEQUENCE_PTR>
-  data primitive_STATIC_SEQUENCE_MAP_template(scm_list& procedure, scm_list& args, const char* name, 
+  data primitive_STATIC_SEQUENCE_MAP_template(data& procedure, scm_list& args, const char* name, 
                                               const char* format,  const types& seq_type, 
                                               const char* seq_name,SEQUENCE_PTR seq_ptr,
                                                                    env_type& env){
@@ -502,7 +491,7 @@ namespace heist {
 
   // "for-each" application helper for strings/vectors
   template<typename SEQUENCE_PTR>
-  void primitive_FOR_EACH_sequence_applicator(scm_list& sequences, scm_list& proc, 
+  void primitive_FOR_EACH_sequence_applicator(scm_list& sequences, data& proc, 
                                               env_type& env, SEQUENCE_PTR seq_ptr){
     const size_type total_sequences = sequences.size();
     const size_type total_elts = (sequences[0].*seq_ptr)->size();
@@ -519,7 +508,7 @@ namespace heist {
 
 
   template<typename SEQUENCE_PTR>
-  data primitive_STATIC_SEQUENCE_FOR_EACH_template(scm_list& procedure, scm_list& args, const char* name, 
+  data primitive_STATIC_SEQUENCE_FOR_EACH_template(data& procedure, scm_list& args, const char* name, 
                                                    const char* format,   const types& seq_type, 
                                                    const char* seq_name, SEQUENCE_PTR seq_ptr,
                                                                          env_type& env){
@@ -533,7 +522,7 @@ namespace heist {
 
 
   template<typename SEQUENCE_PTR>
-  data primitive_STATIC_SEQUENCE_COUNT_template(scm_list& procedure, scm_list& args, SEQUENCE_PTR seq_ptr, env_type& env){
+  data primitive_STATIC_SEQUENCE_COUNT_template(data& procedure, scm_list& args, SEQUENCE_PTR seq_ptr, env_type& env){
     size_type count = 0;
     for(auto& d : *(args[1].*seq_ptr)){
       scm_list count_args(1,d);
@@ -544,8 +533,8 @@ namespace heist {
 
 
   // Helper for string/vector filtration & removal
-  template <bool(*truth_proc)(scm_list&,scm_list&,env_type&), typename SEQUENCE_PTR>
-  data prm_sequence_selective_iteration_template(scm_list& procedure, scm_list& args, const types& seq_type, 
+  template <bool(*truth_proc)(data&,scm_list&,env_type&), typename SEQUENCE_PTR>
+  data prm_sequence_selective_iteration_template(data& procedure, scm_list& args, const types& seq_type, 
                                                  SEQUENCE_PTR seq_ptr, env_type& env){
     scm_list pruned_sequence;
     for(auto& d : *(args[1].*seq_ptr)){
@@ -670,7 +659,7 @@ namespace heist {
     scm_string str(*args[0].str);
     const size_type n = str.size();
     size_type i = 0;
-    scm_list procedure(primitive_extract_callable_procedure(args[1]));
+    auto procedure(primitive_extract_callable_procedure(args[1]));
     if(args.size() == 1) { // no predicate given, trim whitespace
       for(; i < n && isspace(str[i]); ++i);
     } else {
@@ -690,7 +679,7 @@ namespace heist {
     scm_string str(*args[0].str);
     const size_type n = str.size();
     size_type i = n-1;
-    scm_list procedure(primitive_extract_callable_procedure(args[1]));
+    auto procedure(primitive_extract_callable_procedure(args[1]));
     if(args.size() == 1) { // no predicate given, trim whitespace
       for(; i > 0 && isspace(str[i]); --i);
       if(i == 0 && isspace(str[i])) return make_str("");
@@ -955,7 +944,7 @@ namespace heist {
 
   // "count" primitive helper
   void primitive_LIST_COUNT_computation(const data& curr_pair, num_type& exact_count, 
-                                        scm_list& pred, env_type& env, size_type count = 1){
+                                        data& pred, env_type& env, size_type count = 1){
     if(count == G::MAX_SIZE_TYPE) {
       exact_count += count;
       count = 0;
@@ -1061,7 +1050,7 @@ namespace heist {
   }
 
 
-  void primitive_FOR_EACH_applicator(scm_list& curr_pairs, scm_list& proc, env_type& env){
+  void primitive_FOR_EACH_applicator(scm_list& curr_pairs, data& proc, env_type& env){
     scm_list args(curr_pairs.size());
     if(check_empty_list_else_acquire_cars_advance_cdrs(curr_pairs,args)) return;
     // Execute proc & recurse down the rest of the lists
@@ -1070,7 +1059,7 @@ namespace heist {
   }
 
 
-  data primitive_MAP_list_constructor(scm_list& curr_pairs, scm_list& proc, env_type& env){
+  data primitive_MAP_list_constructor(scm_list& curr_pairs, data& proc, env_type& env){
     scm_list args(curr_pairs.size());
     if(check_empty_list_else_acquire_cars_advance_cdrs(curr_pairs,args)) return symconst::emptylist;
     // Execute proc, store result, & recurse down the rest of the lists
@@ -1080,7 +1069,7 @@ namespace heist {
     return mapped;
   }
 
-  void primitive_MAP_BANG_list_constructor(scm_list& curr_pairs, scm_list& proc, 
+  void primitive_MAP_BANG_list_constructor(scm_list& curr_pairs, data& proc, 
                                                                  env_type& env){
     scm_list args(curr_pairs.size());
     auto map_to = curr_pairs[0];
@@ -1091,7 +1080,7 @@ namespace heist {
   }
 
 
-  data primitive_FILTER_list_constructor(data& curr_pair, scm_list& proc, env_type& env){
+  data primitive_FILTER_list_constructor(data& curr_pair, data& proc, env_type& env){
     // Return if fully iterated through the list
     if(!curr_pair.is_type(types::par)) return symconst::emptylist;
     // Execute proc, store result, & recurse down the rest of the lists
@@ -1108,7 +1097,7 @@ namespace heist {
 
   // "fold" & "fold-right" primitives helper: recursively applies 'proc' 
   //   to each 'curr_pair', and accumulates their result in 'init_val'
-  void primitive_FOLD_accumulator(scm_list& curr_pairs, scm_list& proc, 
+  void primitive_FOLD_accumulator(scm_list& curr_pairs, data& proc, 
                                    data& init_val, env_type& env, 
                                    const bool& folding_left){
     // Return if fully iterated through each list
@@ -1133,7 +1122,7 @@ namespace heist {
 
 
   // "fold" & "fold-right" primitive helper template:
-  data primitive_FOLD_template(scm_list& procedure, scm_list& args, const char* name, 
+  data primitive_FOLD_template(data& procedure, scm_list& args, const char* name, 
                                const char* format, const bool& folding_left, env_type& env){
     // Confirm only given proper lists of the same length
     scm_list list_heads(args.begin()+2, args.end());
@@ -1172,7 +1161,7 @@ namespace heist {
   // "member" "memv" "memq" primitive helper: recursively compares cars to 'obj'
   //   & returns a sublist w/ 'obj' as its 'car' if found. Else returns #f
   data primitive_MEM_car_comparison(data& curr_pair, const data& obj, 
-                                                     const prm_type& equality_fcn){
+                                                     const prm_ptr_t& equality_fcn){
     if(!curr_pair.is_type(types::par)) return G::FALSE_DATA_BOOLEAN;
     scm_list args(2);
     args[0] = curr_pair.par->first, args[1] = obj;
@@ -1184,7 +1173,7 @@ namespace heist {
 
   // Template helper fcn for the "member" "memv" "memq" primitives.
   data primitive_MEM_template(scm_list& args, const char* name, 
-                                              const prm_type& equality_fcn){
+                                              const prm_ptr_t& equality_fcn){
     // Confirm given the correct # of args
     if(args.size() != 2)
       THROW_ERR('\''<<name<<" received incorrect # of args:\n     ("
@@ -1206,7 +1195,7 @@ namespace heist {
   //   throws an error. Else returns #f.
   data primitive_ASSOCIATION_key_seeker(data& curr_pair,  const data& obj, 
                                         const data& head, const char* name, 
-                                        const prm_type& equality_fcn,
+                                        const prm_ptr_t& equality_fcn,
                                         const scm_list& args) {
     if(!curr_pair.is_type(types::par))
       return G::FALSE_DATA_BOOLEAN;
@@ -1225,7 +1214,7 @@ namespace heist {
 
   // Template helper fcn for the "assoc" "assv" "assq" primitives.
   data primitive_ASSOCIATION_template(scm_list& args, const char* name, 
-                                                      const prm_type& equality_fcn){
+                                                      const prm_ptr_t& equality_fcn){
     // Confirm given the correct # of args
     if(args.size() != 2)
       THROW_ERR('\''<<name<<" received incorrect # of args:\n     ("
@@ -1382,13 +1371,13 @@ namespace heist {
 
 
   // ************************ "filter" helper ************************
-  data primitive_list_filter_logic(scm_list& procedure, scm_list& args, env_type& env){
+  data primitive_list_filter_logic(data& procedure, scm_list& args, env_type& env){
     return primitive_FILTER_list_constructor(args[1],procedure,env);
   }
 
 
   // ************************ "map" helper ************************
-  data primitive_list_map_logic(scm_list& procedure, scm_list& args, env_type& env, const char* format){
+  data primitive_list_map_logic(data& procedure, scm_list& args, env_type& env, const char* format){
     // Mapping a list or '() -> get the head of each list
     scm_list list_heads(args.begin()+1, args.end());
     primitive_confirm_proper_same_sized_lists(list_heads,"map",format,1,args);
@@ -1398,7 +1387,7 @@ namespace heist {
 
 
   // ************************ "for-each" helper ************************
-  data primitive_list_for_each_logic(scm_list& procedure, scm_list& args, env_type& env, const char* format){
+  data primitive_list_for_each_logic(data& procedure, scm_list& args, env_type& env, const char* format){
     scm_list list_heads(args.begin()+1, args.end());
     primitive_confirm_proper_same_sized_lists(list_heads,"for-each",format,1,args);
     primitive_FOR_EACH_applicator(list_heads, procedure, env);
@@ -1434,7 +1423,7 @@ namespace heist {
 
 
   // ************************ "count" helper ************************
-  data primitive_list_count_logic(scm_list& procedure, scm_list& args, env_type& env){
+  data primitive_list_count_logic(data& procedure, scm_list& args, env_type& env){
     num_type count;
     primitive_LIST_COUNT_computation(args[1],count,procedure,env);
     return count;
@@ -1723,7 +1712,7 @@ namespace heist {
 
 
   // ************************ "remove" helper ************************
-  data primitive_remove_list_logic(data& curr_pair, scm_list& proc, env_type& env) {
+  data primitive_remove_list_logic(data& curr_pair, data& proc, env_type& env) {
     if(curr_pair.is_type(types::par)) {
       scm_list pruning_args(1,curr_pair.par->first);
       if(is_false_scm_condition(proc,pruning_args,env)){
@@ -1740,7 +1729,7 @@ namespace heist {
 
   // ************************ "remove-first" & "remove-last" helper ************************
   template <bool REMOVING_FIRST, typename SEQUENCE_TYPE>
-  auto prm_remove_first_or_last(scm_list& pred, SEQUENCE_TYPE sequence, env_type& env){
+  auto prm_remove_first_or_last(data& pred, SEQUENCE_TYPE sequence, env_type& env){
     // constexpr version of ?:
     auto start = [](SEQUENCE_TYPE& s){if constexpr (REMOVING_FIRST) return s.begin(); else return s.rbegin();}(sequence);
     auto end   = [](SEQUENCE_TYPE& s){if constexpr (REMOVING_FIRST) return s.end();   else return s.rend();}(sequence);
@@ -1812,7 +1801,7 @@ namespace heist {
 
   // ************************ "seq=" helpers ************************
   template<typename SEQUENCE_PTR>
-  data primitive_STATIC_SEQUENCE_sequence_eq_logic(scm_list& procedure,
+  data primitive_STATIC_SEQUENCE_sequence_eq_logic(data& procedure,
                                                    scm_list& args, const char* format,
                                                    env_type& env,  const types& t,
                                                    SEQUENCE_PTR seq_ptr){
@@ -1843,7 +1832,7 @@ namespace heist {
   }
 
 
-  data primitive_list_sequence_eq_logic(scm_list& procedure, scm_list& args, const char* format, env_type& env){
+  data primitive_list_sequence_eq_logic(data& procedure, scm_list& args, const char* format, env_type& env){
     // Confirm only given lists (besides the procedure)
     bool same_sizes = true;
     const size_type total_lists = args.size();
@@ -1875,8 +1864,8 @@ namespace heist {
 
 
   // ************************ "skip" & "index" helpers ************************
-  template <bool(*truth_proc)(scm_list&,scm_list&,env_type&), typename SEQUENCE_PTR>
-  data prm_search_STATIC_SEQUENCE_from_left(scm_list& procedure, scm_list& args, SEQUENCE_PTR seq_ptr, env_type& env){
+  template <bool(*truth_proc)(data&,scm_list&,env_type&), typename SEQUENCE_PTR>
+  data prm_search_STATIC_SEQUENCE_from_left(data& procedure, scm_list& args, SEQUENCE_PTR seq_ptr, env_type& env){
     if((args[1].*seq_ptr)->empty()) return G::FALSE_DATA_BOOLEAN;
     for(size_type i = 0, n = (args[1].*seq_ptr)->size(); i < n; ++i) {
       scm_list proc_args(1,(args[1].*seq_ptr)->operator[](i));
@@ -1886,8 +1875,8 @@ namespace heist {
     return G::FALSE_DATA_BOOLEAN;
   }
 
-  template <bool(*truth_proc)(scm_list&,scm_list&,env_type&)>
-  data prm_search_list_from_left(scm_list& procedure,data& curr_pair,env_type& env,const size_type& count=0){
+  template <bool(*truth_proc)(data&,scm_list&,env_type&)>
+  data prm_search_list_from_left(data& procedure,data& curr_pair,env_type& env,const size_type& count=0){
     if(!curr_pair.is_type(types::par)) return G::FALSE_DATA_BOOLEAN;
     scm_list proc_args(1,curr_pair.par->first);
     if(truth_proc(procedure,proc_args,env)) return num_type(count);
@@ -1896,8 +1885,8 @@ namespace heist {
 
 
   // ************************ "skip-right" & "index-right" helpers ************************
-  template <bool(*truth_proc)(scm_list&,scm_list&,env_type&), typename SEQUENCE_PTR>
-  data prm_search_STATIC_SEQUENCE_from_right(scm_list& procedure, scm_list& args, SEQUENCE_PTR seq_ptr, env_type& env){
+  template <bool(*truth_proc)(data&,scm_list&,env_type&), typename SEQUENCE_PTR>
+  data prm_search_STATIC_SEQUENCE_from_right(data& procedure, scm_list& args, SEQUENCE_PTR seq_ptr, env_type& env){
     if((args[1].*seq_ptr)->empty()) return G::FALSE_DATA_BOOLEAN;
     for(size_type i = (args[1].*seq_ptr)->size(); i-- > 0;) {
       scm_list proc_args(1,(args[1].*seq_ptr)->operator[](i));
@@ -1907,8 +1896,8 @@ namespace heist {
     return G::FALSE_DATA_BOOLEAN;
   }
 
-  template <bool(*truth_proc)(scm_list&,scm_list&,env_type&)>
-  data prm_search_list_from_right_recur(data& p, const size_type& pos, scm_list& procedure, env_type& env){
+  template <bool(*truth_proc)(data&,scm_list&,env_type&)>
+  data prm_search_list_from_right_recur(data& p, const size_type& pos, data& procedure, env_type& env){
     if(p.is_type(types::par)) {
       auto res = prm_search_list_from_right_recur<truth_proc>(p.par->second,pos+1,procedure,env);
       if(res.is_type(types::num)) return res;
@@ -1918,8 +1907,8 @@ namespace heist {
     return G::FALSE_DATA_BOOLEAN;
   }
 
-  template <bool(*truth_proc)(scm_list&,scm_list&,env_type&)>
-  data prm_search_list_from_right(scm_list& procedure, scm_list& args, env_type& env){
+  template <bool(*truth_proc)(data&,scm_list&,env_type&)>
+  data prm_search_list_from_right(data& procedure, scm_list& args, env_type& env){
     return prm_search_list_from_right_recur<truth_proc>(args[1],0,procedure,env);
   }
 
@@ -2042,9 +2031,9 @@ namespace heist {
 
 
   // ************************ "take-while" "drop-while" "...-right-while" helper ************************
-  template<data(*primitive_vector_logic)(scm_list&,vec_type(*)(scm_list&&),scm_list&,env_type&),
-           data(*primitive_string_logic)(scm_string&,str_type(*)(scm_string&&),scm_list&,env_type&),
-           data(*primitive_list_logic)(scm_list&,decltype(primitive_LIST_to_CONS_constructor<scm_node>),scm_list&,env_type&)>
+  template<data(*primitive_vector_logic)(scm_list&,vec_type(*)(scm_list&&),data&,env_type&),
+           data(*primitive_string_logic)(scm_string&,str_type(*)(scm_string&&),data&,env_type&),
+           data(*primitive_list_logic)(scm_list&,decltype(primitive_LIST_to_CONS_constructor<scm_node>),data&,env_type&)>
   data primitive_take_drop_while_template(scm_list& args,const char* name,const char* format){
     auto env = args.rbegin()->env;
     args.pop_back();
@@ -2067,7 +2056,7 @@ namespace heist {
   template<bool MAKING_A_LIST, typename SEQUENCE_TYPE, typename SEQUENCE_CTOR>
   data primitive_drop_while_GENERIC_logic(SEQUENCE_TYPE& sequence,  
                                           SEQUENCE_CTOR make_heist_sequence, 
-                                          scm_list& proc, env_type& env){
+                                          data& proc, env_type& env){
     size_type i = 0;
     for(const size_type n = sequence.size(); i < n; ++i){
       scm_list arg(1,sequence[i]);
@@ -2086,7 +2075,7 @@ namespace heist {
   template<bool MAKING_A_LIST, typename SEQUENCE_TYPE, typename SEQUENCE_CTOR>
   data primitive_drop_right_while_GENERIC_logic(SEQUENCE_TYPE& sequence,
                                                 SEQUENCE_CTOR make_heist_sequence, 
-                                                scm_list& proc, env_type& env){
+                                                data& proc, env_type& env){
     size_type i = sequence.size();
     for(; i-- > 0;){
       scm_list arg(1,sequence[i]);
@@ -2104,7 +2093,7 @@ namespace heist {
   template<bool MAKING_A_LIST, typename SEQUENCE_TYPE, typename SEQUENCE_CTOR>
   data primitive_take_while_GENERIC_logic(SEQUENCE_TYPE& sequence,
                                           SEQUENCE_CTOR make_heist_sequence, 
-                                          scm_list& proc, env_type& env){
+                                          data& proc, env_type& env){
     size_type i = 0;
     for(const size_type n = sequence.size(); i < n; ++i){
       scm_list arg(1,sequence[i]);
@@ -2122,7 +2111,7 @@ namespace heist {
   template<bool MAKING_A_LIST, typename SEQUENCE_TYPE, typename SEQUENCE_CTOR>
   data primitive_take_right_while_GENERIC_logic(SEQUENCE_TYPE& sequence,
                                                 SEQUENCE_CTOR make_heist_sequence, 
-                                                scm_list& proc, env_type& env){
+                                                data& proc, env_type& env){
     size_type i = sequence.size();
     for(; i-- > 0;){
       scm_list arg(1,sequence[i]);
@@ -2182,7 +2171,7 @@ namespace heist {
 
   // ************************ "any" helper ************************
   template <types SEQUENCE_TYPE, typename SEQUENCE_PTR>
-  data primitive_STATIC_SEQUENCE_any_logic(scm_list& procedure, scm_list& args, env_type& env, 
+  data primitive_STATIC_SEQUENCE_any_logic(data& procedure, scm_list& args, env_type& env, 
                                            SEQUENCE_PTR seq_ptr, const char* seq_name, 
                                                                  const char* format){
     size_type min_length = confirm_proper_STATIC_SEQUENCE_any_every_args<SEQUENCE_TYPE>(args,
@@ -2207,7 +2196,7 @@ namespace heist {
     return G::FALSE_DATA_BOOLEAN; // else return false
   }
 
-  data primitive_list_any_logic(scm_list& procedure, scm_list& args, env_type& env, const char* format){
+  data primitive_list_any_logic(data& procedure, scm_list& args, env_type& env, const char* format){
     scm_list list_exps;
     if(convert_lists_to_exp_matrix_and_return_if_empty(args,list_exps,"any",format))
       return G::FALSE_DATA_BOOLEAN;
@@ -2217,7 +2206,7 @@ namespace heist {
 
   // ************************ "every" helper ************************
   template <types SEQUENCE_TYPE, typename SEQUENCE_PTR>
-  data primitive_STATIC_SEQUENCE_every_logic(scm_list& procedure, scm_list& args, env_type& env, SEQUENCE_PTR seq_ptr, 
+  data primitive_STATIC_SEQUENCE_every_logic(data& procedure, scm_list& args, env_type& env, SEQUENCE_PTR seq_ptr, 
                                              const char* seq_name, const char* format){
     size_type min_length = confirm_proper_STATIC_SEQUENCE_any_every_args<SEQUENCE_TYPE>(args,
       seq_ptr, "every",format, seq_name);
@@ -2242,7 +2231,7 @@ namespace heist {
     return G::FALSE_DATA_BOOLEAN; // else return false
   }
 
-  data primitive_list_every_logic(scm_list& procedure, scm_list& args, env_type& env, const char* format){
+  data primitive_list_every_logic(data& procedure, scm_list& args, env_type& env, const char* format){
     scm_list list_exps;
     convert_lists_to_exp_matrix_and_return_if_empty(args,list_exps,"every",format);
     return primitive_STATIC_SEQUENCE_every_logic<types::exp>(procedure,list_exps,env,nullptr,"list",format);
@@ -2307,7 +2296,7 @@ namespace heist {
   }
 
 
-  void primitive_MERGE_list_constructor(scm_list& curr_pairs, scm_list& proc, 
+  void primitive_MERGE_list_constructor(scm_list& curr_pairs, data& proc, 
                                         scm_list& merged_list, env_type& env){
     // If fully iterated both lists, return
     if(!curr_pairs[0].is_type(types::par) && !curr_pairs[1].is_type(types::par))return;
@@ -2337,7 +2326,7 @@ namespace heist {
 
   data primitive_MERGE_vector_string_constructor(scm_list& args, scm_list& merged, 
                                                  env_type& env,  const char* format){
-    scm_list procedure(primitive_extract_callable_procedure(args[0]));
+    auto procedure(primitive_extract_callable_procedure(args[0]));
     scm_list sequence1, sequence2;
     cast_scheme_sequence_to_ast(args[1],sequence1);
     cast_scheme_sequence_to_ast(args[2],sequence2);
@@ -2725,7 +2714,7 @@ namespace heist {
   }
 
 
-  void primitive_STREAM_FOR_EACH_applicator(scm_list& curr_streams, scm_list& proc,
+  void primitive_STREAM_FOR_EACH_applicator(scm_list& curr_streams, data& proc,
                                                                     env_type& env){
     scm_list args(curr_streams.size());
     if(acquire_scars_advance_scdrs(curr_streams,args, "stream-for-each",
@@ -2758,7 +2747,7 @@ namespace heist {
   }
 
 
-  data primitive_DROP_WHILE_ctor(data&& curr_pair, scm_list& proc, env_type& env){
+  data primitive_DROP_WHILE_ctor(data&& curr_pair, data& proc, env_type& env){
     if(!data_is_stream_pair(curr_pair))
       return std::move(curr_pair);
     scm_list args(1,get_stream_data_car(curr_pair));
@@ -2768,7 +2757,7 @@ namespace heist {
   }
 
 
-  void primitive_TAKE_WHILE_ctor(data&& curr_pair, scm_list& proc, 
+  void primitive_TAKE_WHILE_ctor(data&& curr_pair, data& proc, 
                                  scm_list& substream, env_type& env){
     if(!data_is_stream_pair(curr_pair)) return;
     scm_list args(1,get_stream_data_car(curr_pair));
@@ -2778,7 +2767,7 @@ namespace heist {
   }
 
 
-  void primitive_STREAM_FOLD_accumulator(data&& curr_pair, scm_list& proc, 
+  void primitive_STREAM_FOLD_accumulator(data&& curr_pair, data& proc, 
                                          data& init_val,   env_type& env,
                                          const bool& folding_left){
     // Return if fully iterated through stream
@@ -3539,7 +3528,7 @@ namespace heist {
 
 
   // DISPLAYF, WRITEF, PPRINTF VALIDATION
-  template<prm_type OUTPUT_FCN>
+  template<prm_ptr_t OUTPUT_FCN>
   data generic_formatted_output_prm(scm_list& args, const char* format, const char* name) {
     if(args.empty())
       THROW_ERR('\''<<name<<" no args recieved!" << format << FCN_ERR(name,args));
@@ -4081,10 +4070,10 @@ namespace heist {
   }
 
 
-  // PRECONDITION: primitive_data_is_a_procedure(proc) == true
   // NOTE: Has no effect on primitive procedures
-  void prm_set_procedure_INLINE_INVOCATION(scm_list& proc, const bool status)noexcept{
-    if(proc[0].sym == symconst::procedure) proc[6].bol = status;
+  // PRECONDITION: proc.is_type(types::fcn)
+  void prm_set_procedure_INLINE_INVOCATION(data& proc, const bool status)noexcept{
+    if(proc.fcn.is_compound()) proc.fcn.is_inline_invocation = status;
   }
 
 
@@ -5010,7 +4999,7 @@ namespace heist {
   template<bool REPLACE_ONE>
   data regex_replace_fcn_generic(scm_string target, const scm_string& regex, 
                                  const scm_list& args,const char* format, const char* name,
-                                 scm_list&& procedure, env_type& env){
+                                 data&& procedure, env_type& env){
     const std::regex reg(regex);
     std::smatch reg_matches;
     while(std::regex_search(target, reg_matches, reg)) {
@@ -5023,7 +5012,7 @@ namespace heist {
       // pass to given procedure & confirm returned a string
       data result = data_cast(execute_application(procedure,reg_args,env));
       if(!result.is_type(types::str))
-        THROW_ERR('\''<<name<<" procedure \""<<procedure_name(procedure).substr(1) // skip prefixing ' '
+        THROW_ERR('\''<<name<<" procedure \""<<procedure.fcn.name // skip prefixing ' '
           <<"\" didn't return a string (returned "<<PROFILE(result)<<")!"<<format<<FCN_ERR(name,args));
       // replace as often as needed
       if constexpr (REPLACE_ONE) {
@@ -5361,9 +5350,9 @@ namespace heist {
     auto& methods = d.obj->method_names;
     for(size_type i = 0, n = methods.size(); i < n; ++i)
       if(methods[i] == "next") {
-        d = extend_method_env_with_SELF_object(d,d.obj->method_values[i].exp);
+        d = extend_method_env_with_SELF_object(d.obj,d.obj->method_values[i].fcn);
         scm_list arg(1,symconst::sentinel_arg);
-        return data_cast(execute_application(d.exp,arg,d.obj->proto->defn_env));
+        return data_cast(execute_application(d.fcn,arg,d.obj->proto->defn_env));
       }
     THROW_ERR("'cycle-coroutines! 'coroutine object " << d
       << " is missing the \"next\" method!" << format); 
