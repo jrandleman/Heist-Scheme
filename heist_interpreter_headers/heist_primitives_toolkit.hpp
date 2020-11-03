@@ -133,13 +133,13 @@ namespace heist {
       // search object's local members
       for(size_type i = 0, n = obj->method_names.size(); i < n; ++i)
         if(obj->method_names[i] == "self->procedure")
-          return extend_method_env_with_SELF_object(obj,obj->method_values[i].fcn).fcn;
+          return extend_method_env_with_SELF_object(obj,obj->method_values[i].fcn);
       // search object's prototype
       for(size_type i = 0, n = obj->proto->method_names.size(); i < n; ++i)
         if(obj->proto->method_names[i] == "self->procedure") {
           // Cache the method dynamically added to the object's prototype IN the object
           obj->method_names.push_back("self->procedure"), obj->method_values.push_back(obj->proto->method_values[i]);
-          return extend_method_env_with_SELF_object(obj,obj->method_values.rbegin()->fcn).fcn;
+          return extend_method_env_with_SELF_object(obj,obj->method_values.rbegin()->fcn);
         }
       // search inherited object prototype
       obj = obj->inherited;

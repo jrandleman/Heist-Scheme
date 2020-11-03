@@ -514,6 +514,7 @@ namespace heist {
   scm_list execute_application(data&&,scm_list&,env_type&,const bool tail_call=false,const bool inlined=false);
   data     extend_method_env_with_SELF_object(obj_type& calling_obj, scm_fcn& procedure)noexcept;
   data     data_cast(const scm_list& l)noexcept;
+  data     data_cast(scm_list&& l)noexcept;
 
   data apply_dynamic_method(obj_type& obj, scm_list arg, scm_fcn procedure_cpy) {
     data procedure = extend_method_env_with_SELF_object(obj,procedure_cpy);

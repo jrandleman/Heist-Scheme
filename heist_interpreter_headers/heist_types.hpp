@@ -225,23 +225,23 @@ namespace heist {
   * DATA TYPE ALIASES & CONSTRUCTORS
   ******************************************************************************/
 
-  using exp_type = scm_list;                           // expression
-  using par_type = tgc_ptr<scm_pair>;                  // pair
-  using num_type = scm_numeric::Snum;                  // number (float/int/frac)
-  using str_type = tgc_ptr<scm_string>;                // string
-  using chr_type = int;                                // character
-  using sym_type = scm_string;                         // symbol
-  using vec_type = tgc_ptr<scm_list>;                  // vector
-  using bol_type = struct boolean;                     // boolean
-  using env_type = tgc_ptr<environment>;               // evironment
-  using del_type = tgc_ptr<struct delay_data>;         // delay
-  using fcn_type = struct scm_fcn;                     // compound procedure
-  using fip_type = struct iport;                       // file input port
-  using fop_type = struct oport;                       // file output port
-  using syn_type = struct scm_macro;                   // syntax-rules object
-  using map_type = tgc_ptr<struct map_data>;           // hash-map
-  using cls_type = tgc_ptr<struct class_prototype>;    // class-prototype
-  using obj_type = tgc_ptr<struct object_type>;        // object
+  using exp_type = scm_list;                        // expression
+  using par_type = tgc_ptr<scm_pair>;               // pair
+  using num_type = scm_numeric::Snum;               // number (float/int/frac)
+  using str_type = tgc_ptr<scm_string>;             // string
+  using chr_type = int;                             // character
+  using sym_type = scm_string;                      // symbol
+  using vec_type = tgc_ptr<scm_list>;               // vector
+  using bol_type = struct boolean;                  // boolean
+  using env_type = tgc_ptr<environment>;            // evironment
+  using del_type = tgc_ptr<struct delay_data>;      // delay
+  using fcn_type = struct scm_fcn;                  // procedure (compound & primitive)
+  using fip_type = struct iport;                    // file input port
+  using fop_type = struct oport;                    // file output port
+  using syn_type = struct scm_macro;                // syntax-rules object
+  using map_type = tgc_ptr<struct map_data>;        // hash-map
+  using cls_type = tgc_ptr<struct class_prototype>; // class-prototype
+  using obj_type = tgc_ptr<struct object_type>;     // object
 
   /******************************************************************************
   * PROCEDURE HELPER ALIASES
@@ -892,6 +892,7 @@ namespace heist {
     return true;
   }
 
+  // compound procedure parameter list extraction
   frame_vars scm_fcn::procedure_parameters()const noexcept{
     frame_vars var_names;
     for(size_type i = 0, n = params.size(); i < n; ++i)

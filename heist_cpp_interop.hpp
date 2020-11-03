@@ -83,7 +83,7 @@ namespace heist {
     if(args.empty()) args.push_back(symconst::sentinel_arg);
     try {
       return data_cast(execute_application(
-              scm_list_cast(lookup_variable_value(heist_procedure_name,G::GLOBAL_ENVIRONMENT_POINTER)),
+              lookup_variable_value(heist_procedure_name,G::GLOBAL_ENVIRONMENT_POINTER),
               args, G::GLOBAL_ENVIRONMENT_POINTER));
     } catch(const SCM_EXCEPT& eval_throw) {
       if(eval_throw == heist::SCM_EXCEPT::JUMP)
