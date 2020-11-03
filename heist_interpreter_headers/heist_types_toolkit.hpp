@@ -604,7 +604,7 @@ namespace heist {
   template<DATA_COMPARER same_as>
   bool prm_compare_atomic_values(const data& v1,const data& v2,const types& t) {
     switch(t) {
-      case types::undefined: case types::dne: case types::exe: return true;
+      case types::undefined: case types::dne: return true;
       case types::num: return v1.num.is_exact() == v2.num.is_exact() && v1.num == v2.num;
       case types::chr: return v1.chr == v2.chr;
       case types::str: return *v1.str == *v2.str;

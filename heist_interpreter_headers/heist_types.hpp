@@ -222,12 +222,6 @@ namespace heist {
   using environment = std::vector<frame_ptr>;
 
   /******************************************************************************
-  * PRIMITIVE PROCEDURE FUNCTION POINTER HELPER ALIAS
-  ******************************************************************************/
-
-  using prm_ptr_t = struct data(*)(scm_list&); // primitive procedure ptr
-
-  /******************************************************************************
   * DATA TYPE ALIASES & CONSTRUCTORS
   ******************************************************************************/
 
@@ -248,7 +242,13 @@ namespace heist {
   using map_type = tgc_ptr<struct map_data>;           // hash-map
   using cls_type = tgc_ptr<struct class_prototype>;    // class-prototype
   using obj_type = tgc_ptr<struct object_type>;        // object
-  using exe_type = std::function<scm_list(env_type&)>; // fcn execution procedure
+
+  /******************************************************************************
+  * PROCEDURE HELPER ALIASES
+  ******************************************************************************/
+
+  using prm_ptr_t = struct data(*)(scm_list&);          // primitive procedure ptr
+  using exe_fcn_t = std::function<scm_list(env_type&)>; // fcn execution procedure
 
   /******************************************************************************
   * GLOBAL ENVIRONMENT POINTER
@@ -291,8 +291,8 @@ namespace heist {
 
   // enum of "struct data" types
   // => expression, pair, number, string, character, symbol, vector, boolean, environment, delay, procedure (compound & primitive),
-  //    input port, output port, does-not-exist, syntax-rules, hash-map, class-prototype, object, execution procedure, undefined value
-  enum class types {exp=1, par, num, str, chr, sym, vec, bol, env, del, fcn, fip, fop, dne, syn, map, cls, obj, exe, undefined};
+  //    input port, output port, does-not-exist, syntax-rules, hash-map, class-prototype, object, undefined value
+  enum class types {exp=1, par, num, str, chr, sym, vec, bol, env, del, fcn, fip, fop, dne, syn, map, cls, obj, undefined};
 
   /******************************************************************************
   * DATA EQUALITY HELPER FUNCTION PROTOTYPES
@@ -389,14 +389,14 @@ namespace heist {
     prm_ptr_t prm = nullptr;
     // COMPOUND
     std::vector<struct data> params;
-    exe_type body;
+    exe_fcn_t body;
     obj_type self             = nullptr;
     env_type env              = nullptr;
     depth_t rec_depth         = nullptr;
     bool is_inline_invocation = false;
     scm_fcn() = default;
     scm_fcn(const scm_string& n, prm_ptr_t p)noexcept : name(n), prm(p) {}
-    scm_fcn(const exp_type& p,const exe_type& b,env_type& e,const frame_var& n)noexcept : name(n), params(p), body(b), env(e), rec_depth(depth_t(size_type(0))) {}
+    scm_fcn(const exp_type& p,const exe_fcn_t& b,env_type& e,const frame_var& n)noexcept : name(n), params(p), body(b), env(e), rec_depth(depth_t(size_type(0))) {}
     scm_fcn(const scm_fcn& f)noexcept{*this = f;}
     scm_fcn(const scm_fcn&& f)noexcept{*this = std::move(f);}
     void operator=(const scm_fcn& f)noexcept{
@@ -463,7 +463,6 @@ namespace heist {
       map_type map; // hash-map smrt ptr
       cls_type cls; // class-prototype smrt ptr
       obj_type obj; // object smrt ptr
-      exe_type exe; // execution procedure
     };
 
     // check whether data is of a type
@@ -494,7 +493,6 @@ namespace heist {
           case types::map: map = d.map; return;
           case types::cls: cls = d.cls; return;
           case types::obj: obj = d.obj; return;
-          case types::exe: exe = d.exe; return;
           default:                      return;
         }
       } else {
@@ -517,7 +515,6 @@ namespace heist {
           case types::map: new (this) data(d.map); return;
           case types::cls: new (this) data(d.cls); return;
           case types::obj: new (this) data(d.obj); return;
-          case types::exe: new (this) data(d.exe); return;
           case types::dne: new (this) data(d.type);return;
           default:         new (this) data();      return; // types::undefined
         }
@@ -546,7 +543,6 @@ namespace heist {
           case types::map: map = std::move(d.map); return;
           case types::cls: cls = std::move(d.cls); return;
           case types::obj: obj = std::move(d.obj); return;
-          case types::exe: exe = std::move(d.exe); return;
           default:                                 return;
         }
       } else {
@@ -569,7 +565,6 @@ namespace heist {
           case types::map: new (this) data(std::move(d.map)); return;
           case types::cls: new (this) data(std::move(d.cls)); return;
           case types::obj: new (this) data(std::move(d.obj)); return;
-          case types::exe: new (this) data(std::move(d.exe)); return;
           case types::dne: new (this) data(std::move(d.type));return;
           default:         new (this) data();                 return; // types::undefined
         }
@@ -612,7 +607,6 @@ namespace heist {
         case types::obj: return "#<object[0x"+pointer_to_hexstring(obj.ptr)+"]>";
         case types::env: return "#<environment[0x"+pointer_to_hexstring(env.ptr)+"]>";
         case types::del: return "#<delay[0x"+pointer_to_hexstring(del.ptr)+"]>";
-        case types::exe: return "#<execution-procedure>";
         case types::fip: return "#<input-port>";
         case types::fop: return "#<output-port>";
         case types::dne: return "";
@@ -672,7 +666,7 @@ namespace heist {
       constexpr const char* const type_names[] = {
         "null", "expression", "pair", "number", "string", "character", "symbol", "vector",
         "boolean", "environment", "delay", "procedure", "input-port", "output-port", "void", 
-        "syntax-rules", "hash-map", "class-prototype", "object", "execution-procedure", "undefined"
+        "syntax-rules", "hash-map", "class-prototype", "object", "undefined"
       };
       return type_names[int(type) * (type!=types::sym || sym[0])]; // idx 0 for '() typename
     }
@@ -754,7 +748,6 @@ namespace heist {
     data(const map_type& new_value) noexcept : type(types::map), map(new_value) {}
     data(const cls_type& new_value) noexcept : type(types::cls), cls(new_value) {}
     data(const obj_type& new_value) noexcept : type(types::obj), obj(new_value) {}
-    data(const exe_type& new_value) noexcept : type(types::exe), exe(new_value) {}
 
     data(par_type&& new_value) noexcept : type(types::par), par(std::move(new_value)) {}
     data(str_type&& new_value) noexcept : type(types::str), str(std::move(new_value)) {}
@@ -773,7 +766,6 @@ namespace heist {
     data(map_type&& new_value) noexcept : type(types::map), map(std::move(new_value)) {}
     data(cls_type&& new_value) noexcept : type(types::cls), cls(std::move(new_value)) {}
     data(obj_type&& new_value) noexcept : type(types::obj), obj(std::move(new_value)) {}
-    data(exe_type&& new_value) noexcept : type(types::exe), exe(std::move(new_value)) {}
 
     data(const types& t) noexcept : type(t) {} // to set 'dne
     data(types&& t)      noexcept : type(t) {} // to set 'dne
@@ -795,7 +787,6 @@ namespace heist {
         case types::map: map.~map_type(); return;
         case types::cls: cls.~cls_type(); return;
         case types::obj: obj.~obj_type(); return;
-        case types::exe: exe.~exe_type(); return;
         default:                          return;
       }
     }

@@ -35,10 +35,10 @@ namespace heist {
   scm_list generate_fundamental_form_cps(const data& code,const bool topmost_call=true);
   scm_list make_delay(const scm_list& exp, env_type& env)noexcept;
   scm_list read_user_input(FILE* outs,FILE* ins,const bool& in_repl=true);
-  scm_list scm_eval(scm_list&& exp, env_type& env);
-  exe_type scm_analyze(scm_list&& exp,const bool tail_call=false,const bool cps_block=false);
   scm_list execute_application(data&,scm_list&,env_type&,const bool tail_call,const bool inlined);
   scm_list execute_application(data&&,scm_list&,env_type&,const bool tail_call,const bool inlined);
+  scm_list scm_eval(scm_list&& exp, env_type& env);
+  exe_fcn_t scm_analyze(scm_list&& exp,const bool tail_call=false,const bool cps_block=false);
   size_type is_expandable_reader_macro(const scm_string&, const size_type)noexcept;
   constexpr bool IS_END_OF_WORD(const char& c, const char& c2)noexcept;
   std::pair<chr_type,scm_string> data_is_named_char(const size_type&,const scm_string&)noexcept;

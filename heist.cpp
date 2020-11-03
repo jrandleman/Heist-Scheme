@@ -153,7 +153,7 @@
 namespace heist {
 
   scm_list scm_eval(scm_list&& exp, env_type& env);
-  exe_type scm_analyze(scm_list&& exp,const bool tail_call,const bool cps_block);
+  exe_fcn_t scm_analyze(scm_list&& exp,const bool tail_call,const bool cps_block);
   scm_string generate_unique_cps_hash()noexcept;
 
   /******************************************************************************
@@ -534,7 +534,7 @@ namespace heist {
 
   // Returns lambda so that if true, only eval consequent: 
   //   else, only eval alternative
-  exe_type analyze_if(scm_list& exp,const bool tail_call=false,const bool cps_block=false) { 
+  exe_fcn_t analyze_if(scm_list& exp,const bool tail_call=false,const bool cps_block=false) { 
     confirm_valid_if(exp);
     auto pproc = scm_analyze(if_predicate(exp),false,cps_block);
     auto cproc = scm_analyze(if_consequent(exp),tail_call,cps_block);
@@ -556,7 +556,7 @@ namespace heist {
 
 
   // -- GENERATING CPS-STYLE VALUE EVALUATION (for unary 'and 'or in scm->cps blocks)
-  exe_type generate_unary_cps_value_expansion(const data& d, const bool tail_call){
+  exe_fcn_t generate_unary_cps_value_expansion(const data& d, const bool tail_call){
     scm_list cps_val(3);
     cps_val[0] = symconst::lambda;
     cps_val[1] = scm_list(1,generate_unique_cps_hash()); // "k"
@@ -600,7 +600,7 @@ namespace heist {
 
   // -- AND: (and <condition1> <condition2> ...)
   // Returns an exec proc to confirm whether all exp's are true
-  exe_type analyze_and(scm_list& and_exp,const bool tail_call=false,const bool cps_block=false) {
+  exe_fcn_t analyze_and(scm_list& and_exp,const bool tail_call=false,const bool cps_block=false) {
     const size_type n = and_exp.size();
     // (and) = #t
     if(n == 1 || data_is_the_SENTINEL_VAL(and_exp[1])) {
@@ -622,7 +622,7 @@ namespace heist {
 
   // -- OR: (or <condition1> <condition2> ...)
   // Returns an exec proc to confirm whether >= 1 exp is true
-  exe_type analyze_or(scm_list& or_exp,const bool tail_call=false,const bool cps_block=false) {
+  exe_fcn_t analyze_or(scm_list& or_exp,const bool tail_call=false,const bool cps_block=false) {
     const size_type n = or_exp.size();
     // (or) = #f
     if(n == 1 || data_is_the_SENTINEL_VAL(or_exp[1])) {
@@ -650,14 +650,14 @@ namespace heist {
 
   // Analyzes each expression, then returns an exec proc which 
   //   sequentially invokes each expression's exec proc
-  exe_type analyze_sequence(scm_list&& exps,const bool tail_call=false,const bool cps_block=false){ // used for 'begin' & lambda bodies
+  exe_fcn_t analyze_sequence(scm_list&& exps,const bool tail_call=false,const bool cps_block=false){ // used for 'begin' & lambda bodies
     if(exps.empty() || (exps.size()==1 && data_is_the_SENTINEL_VAL(exps[0])))
       return [](env_type&){return G::VOID_DATA_EXPRESSION;}; // void data
     const size_type n = exps.size();
     // If begin only has 1 expression, return exec proc of expression
     if(exps.size() == 1) return scm_analyze(scm_list_cast(exps[0]),tail_call,cps_block);
     // Analyze each expression
-    std::vector<exe_type> sequence_exe_procs(exps.size());
+    std::vector<exe_fcn_t> sequence_exe_procs(exps.size());
     for(size_type i = 0, n = exps.size(); i < n; ++i)
       sequence_exe_procs[i] = scm_analyze(scm_list_cast(exps[i]),(i+1==n)&&tail_call,cps_block);
     // Return a lambda sequentially invoking each exec procedure
@@ -687,7 +687,7 @@ namespace heist {
 
   // Analyzes value being assigned, & returns an execution procedure 
   //   to install it as the variable in the designated env
-  exe_type analyze_assignment(scm_list& exp,const bool cps_block=false) { 
+  exe_fcn_t analyze_assignment(scm_list& exp,const bool cps_block=false) { 
     confirm_valid_assignment(exp);
     auto& var       = assignment_variable(exp);
     auto value_proc = scm_analyze(assignment_value(exp),false,cps_block);
@@ -720,7 +720,7 @@ namespace heist {
 
   // Analyzes value being defined, & returns an execution procedure 
   //   to install it as the variable in the designated env
-  exe_type analyze_definition(scm_list& exp,const bool cps_block=false) { 
+  exe_fcn_t analyze_definition(scm_list& exp,const bool cps_block=false) { 
     confirm_valid_definition(exp);
     auto& var       = definition_variable(exp);
     auto value_proc = scm_analyze(definition_value(exp),false,cps_block);
@@ -744,7 +744,7 @@ namespace heist {
   }
 
   // Extracts the delayed expression and returns an exec proc ctor'ing a promise
-  exe_type analyze_delay(scm_list& exp,const bool cps_block=false) {
+  exe_fcn_t analyze_delay(scm_list& exp,const bool cps_block=false) {
     if(exp.size() != 2 || data_is_the_SENTINEL_VAL(exp[1])) {
       exp[0].sym += ' '; // add space to tag, avoiding #<delay> degradation
       auto delay_call = cio_expr_str<&data::noexcept_write>(exp);
@@ -840,7 +840,7 @@ namespace heist {
 
   // Analyzes the quote's vector/hmap literal & returns its execution procedure
   template <bool IS_VECTOR_LITERAL>
-  exe_type analyze_quoted_vh_literal(scm_list& exp, const char* name) {
+  exe_fcn_t analyze_quoted_vh_literal(scm_list& exp, const char* name) {
     scm_list args(exp.begin()+1,exp.end());
     if(is_quoted_cons(args, symconst::quote))
       THROW_ERR('\''<<name<<" had an unexpected dot (.)!"<<EXP_ERR(exp));
@@ -867,18 +867,18 @@ namespace heist {
   }
 
 
-  exe_type analyze_quoted_vector_literal(scm_list& exp) {
+  exe_fcn_t analyze_quoted_vector_literal(scm_list& exp) {
     return analyze_quoted_vh_literal<true>(exp,"vector-literal");
   }
 
 
-  exe_type analyze_quoted_hmap_literal(scm_list& exp) {
+  exe_fcn_t analyze_quoted_hmap_literal(scm_list& exp) {
     return analyze_quoted_vh_literal<false>(exp,"hmap-literal");
   }
 
 
   // Analyzes the quote's text & returns an execution procedure for such
-  exe_type analyze_quoted(scm_list& exp) {
+  exe_fcn_t analyze_quoted(scm_list& exp) {
     if(exp.size() != 2 || data_is_the_SENTINEL_VAL(exp[1])) 
       THROW_ERR("'quote form expects one argument: (quote <quoted-data>)!"<<EXP_ERR(exp));
     
@@ -962,7 +962,7 @@ namespace heist {
   }
 
   // Returns an exec proc to mk a lambda w/ the analyzed parameter list & body
-  exe_type analyze_lambda(scm_list& exp,const bool cps_block=false) {
+  exe_fcn_t analyze_lambda(scm_list& exp,const bool cps_block=false) {
     confirm_valid_lambda(exp);
     auto vars = lambda_parameters(exp);
     confirm_valid_procedure_parameters(vars,exp);                      // validate parameters
@@ -1051,7 +1051,7 @@ namespace heist {
 
 
   // -- CLASS PROTOTYPE GENERATION HELPERS
-  exe_type convert_method_to_lambda(scm_list& method_exp) {
+  exe_fcn_t convert_method_to_lambda(scm_list& method_exp) {
     scm_list method_lambda(1+method_exp.size());
     method_lambda[0] = symconst::lambda;
     method_lambda[1] = scm_list(method_exp[0].exp.begin()+1,method_exp[0].exp.end());
@@ -1059,8 +1059,8 @@ namespace heist {
     return scm_analyze(std::move(method_lambda));
   }
 
-  void evaluate_method_and_member_exec_procs(class_prototype& proto, std::vector<exe_type>& member_exec_procs, 
-                                             std::vector<exe_type>& method_exec_procs, env_type& env) {
+  void evaluate_method_and_member_exec_procs(class_prototype& proto, std::vector<exe_fcn_t>& member_exec_procs, 
+                                             std::vector<exe_fcn_t>& method_exec_procs, env_type& env) {
     for(size_type i = 0, n = member_exec_procs.size(); i < n; ++i)
       proto.member_values.push_back(data_cast(member_exec_procs[i](env)));
     for(size_type i = 0, n = method_exec_procs.size(); i < n; ++i)
@@ -1179,8 +1179,8 @@ namespace heist {
     scm_eval(std::move(custom_ctor),env);
   }
 
-  void parse_defclass_expression(scm_list& exp, class_prototype& proto, std::vector<exe_type>& member_exec_procs, 
-                                                                        std::vector<exe_type>& method_exec_procs, 
+  void parse_defclass_expression(scm_list& exp, class_prototype& proto, std::vector<exe_fcn_t>& member_exec_procs, 
+                                                                        std::vector<exe_fcn_t>& method_exec_procs, 
                                                                         scm_list& ctor_proc) {
     const scm_string ctor_name("make-"+exp[1].sym);
     for(size_type i = 3, n = exp.size(); i < n; ++i) {
@@ -1208,12 +1208,12 @@ namespace heist {
 
 
   // -- CLASS PROTOTYPE GENERATION MAIN
-  exe_type analyze_defclass(scm_list& exp) {
+  exe_fcn_t analyze_defclass(scm_list& exp) {
     validate_defclass(exp);
     class_prototype proto;
     proto.class_name = exp[1].sym;
     // get exec procs for member values & method procedures
-    std::vector<exe_type> member_exec_procs, method_exec_procs;
+    std::vector<exe_fcn_t> member_exec_procs, method_exec_procs;
     scm_list ctor_proc;
     parse_defclass_expression(exp,proto,member_exec_procs,method_exec_procs,ctor_proc);
     return [proto=std::move(proto),member_exec_procs=std::move(member_exec_procs),
@@ -1660,7 +1660,7 @@ namespace heist {
   // Works similarly to 'analyze_quoted', except that quoted 'unquote's are
   //   (wait for it) unquoted (BAYUM), and quoted 'unquote-splicing's are both
   //   unquoted & expanded.
-  exe_type analyze_quasiquote(scm_list& exp,const bool cps_block=false) {
+  exe_fcn_t analyze_quasiquote(scm_list& exp,const bool cps_block=false) {
     if(exp.size() != 2 || data_is_the_SENTINEL_VAL(exp[1]))
       THROW_ERR("'quasiquote expects one argument: (quasiquote <expression>)"<<EXP_ERR(exp));
     // Get quasiquoted data
@@ -1802,7 +1802,7 @@ namespace heist {
 
 
   // NOTE: USE runtime-syntax? core-syntax? reader-syntax? TO CHECK MACROS !!!
-  exe_type analyze_definedp(scm_list& exp) {
+  exe_fcn_t analyze_definedp(scm_list& exp) {
     if(exp.size() != 2 || data_is_the_SENTINEL_VAL(exp[1]))
       THROW_ERR("'defined? didn't recieve 1 argument!\n     (defined? <symbol>)"<<EXP_ERR(exp));
     if(!exp[1].is_type(types::sym))
@@ -2018,7 +2018,7 @@ namespace heist {
 
   // PRECEDENCE: ** (* /) (// % %%) (+ -)
   // ** = expt, // = quotient, %  = remainder, %% = modulo
-  exe_type analyze_infix_math_quote(scm_list& exp,const bool tail_call = false,const bool cps_block = false) {
+  exe_fcn_t analyze_infix_math_quote(scm_list& exp,const bool tail_call = false,const bool cps_block = false) {
     scm_list quoted(2);
     quoted[0] = symconst::quote;
     quoted[1] = convert_math_expr(exp,symconst::infix_math_quote,"\n     (infix-math-quote <exp>)");
@@ -2768,7 +2768,7 @@ namespace heist {
 
 
   // Process convert & eval exp in CPS (Continuation Passing Style)
-  exe_type analyze_scm_cps(scm_list& exp) {
+  exe_fcn_t analyze_scm_cps(scm_list& exp) {
     if(exp.size() == 1 || (exp.size() == 2 && data_is_the_SENTINEL_VAL(exp[1])))
       THROW_ERR("'scm->cps expects at least 1 expression: (scm->cps <exp-1> ... <exp-N>)"<<EXP_ERR(exp));
     if(exp.size() == 2) {
@@ -2783,7 +2783,7 @@ namespace heist {
 
 
   // Returns the generated CPS form of exp as a quoted list of data
-  exe_type analyze_cps_quote(scm_list& exp,const bool cps_block) {
+  exe_fcn_t analyze_cps_quote(scm_list& exp,const bool cps_block) {
     if(exp.size() == 1 || (exp.size() == 2 && data_is_the_SENTINEL_VAL(exp[1])))
       THROW_ERR("'cps-quote expects at least 1 expression: (cps-quote <exp-1> ... <exp-N>)"<<EXP_ERR(exp));
     scm_list quoted_cps(2);
@@ -2802,7 +2802,7 @@ namespace heist {
 
 
   // Return whether in a <scm->cps> block or the <-cps> flag is active
-  exe_type analyze_using_cpsp(scm_list& exp,const bool cps_block) {
+  exe_fcn_t analyze_using_cpsp(scm_list& exp,const bool cps_block) {
     if(exp.size() == 1) goto return_cps_block_status;
     if(exp.size() != 2 || !data_is_the_SENTINEL_VAL(exp[1]))
       THROW_ERR("'using-cps? expects 0 args: (using-cps?)"<<EXP_ERR(exp));
@@ -3822,7 +3822,7 @@ namespace heist {
   }
 
 
-  exe_type analyze_syntax_rules(scm_list& exp) {
+  exe_fcn_t analyze_syntax_rules(scm_list& exp) {
     syn_type mac("");
     confirm_valid_syntax_rules_and_extract_keywords(exp, mac);
     // Extract pattern-template clauses
@@ -3897,7 +3897,7 @@ namespace heist {
   }
 
 
-  exe_type analyze_define_syntax(scm_list& exp,const bool cps_block=false,const bool core_syntax=false) {
+  exe_fcn_t analyze_define_syntax(scm_list& exp,const bool cps_block=false,const bool core_syntax=false) {
     if(must_evaluate_2nd_arg_for_syntax_rules_object(exp)) { 
       if(!core_syntax) confirm_is_not_core_syntax_label(exp);
       auto syntax_rules_obj_proc = scm_analyze(scm_list_cast(exp[2]),false,cps_block);
@@ -3929,7 +3929,7 @@ namespace heist {
 
   bool is_core_syntax(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::core_syn);}
 
-  exe_type analyze_core_syntax(scm_list& exp,const bool cps_block=false) {
+  exe_fcn_t analyze_core_syntax(scm_list& exp,const bool cps_block=false) {
     static constexpr const char * const format = 
       "\n     (core-syntax <name> (<keyword> ...) (<pattern> <template>) ...)";
     if(exp.size() < 3)
@@ -4124,7 +4124,7 @@ namespace heist {
   }
 
 
-  exe_type analyze_variable(scm_string variable) {
+  exe_fcn_t analyze_variable(scm_string variable) {
     // If a regular variable (no object property chain)
     if(variable.find('.') == scm_string::npos || variable == "..")
       return [variable=std::move(variable)](env_type& env){
@@ -4169,11 +4169,11 @@ namespace heist {
 
   // -- APPLY
   // Applies the given procedure, & then reapplies iteratively if at a tail call
-  scm_list apply_compound_procedure(exe_type& proc, env_type& extended_env) {
+  scm_list apply_compound_procedure(exe_fcn_t& proc, env_type& extended_env) {
     auto result = proc(extended_env);
   tail_call_recur:
     if(is_tagged_list(result,symconst::tail_call)) { // if tail call
-      result = result[1].exe(result[2].env);
+      result = result[1].fcn.body(result[1].fcn.env);
       goto tail_call_recur;
     }
     return result;
@@ -4222,10 +4222,11 @@ namespace heist {
     // store application data & return such back up to the last call if in a tail call
     if(tail_call) {
       if(inline_call) G::USING_INLINE_INVOCATIONS = false;
-      scm_list tail_call_signature(3); // {tail-call-tag, proc-body, extended-env}
+      scm_list tail_call_signature(2); // {tail-call-tag, proc-body, extended-env}
       tail_call_signature[0] = symconst::tail_call;
-      tail_call_signature[1] = procedure.fcn.body;
-      tail_call_signature[2] = extended_env;
+      tail_call_signature[1] = scm_fcn();
+      tail_call_signature[1].fcn.env = extended_env;
+      tail_call_signature[1].fcn.body = procedure.fcn.body;
       return tail_call_signature;
     }
     ++recursive_depth;
@@ -4268,17 +4269,17 @@ namespace heist {
   * CPS-BLOCK APPLICATION
   ******************************************************************************/
 
-  void eval_application_arg_procs(const std::vector<exe_type>& arg_procs,scm_list& arg_vals,env_type& env){
+  void eval_application_arg_procs(const std::vector<exe_fcn_t>& arg_procs,scm_list& arg_vals,env_type& env){
     for(size_type i = 0, n = arg_procs.size(); i < n; ++i)
       arg_vals[i] = data_cast(arg_procs[i](env));
   }
 
 
   // Application of CPS-block defined procedure in a CPS block
-  exe_type analyze_CPS_block_application_of_CPS_proc(scm_list& exp,const bool tail_call){
+  exe_fcn_t analyze_CPS_block_application_of_CPS_proc(scm_list& exp,const bool tail_call){
     auto op_proc  = scm_analyze(operator_of(exp),false,true);
     auto arg_exps = operands(exp);
-    std::vector<exe_type> arg_procs(arg_exps.size());
+    std::vector<exe_fcn_t> arg_procs(arg_exps.size());
     for(size_type i = 0, n = arg_exps.size(); i < n; ++i)
       arg_procs[i] = scm_analyze(scm_list_cast(arg_exps[i]),false,true);
     return [op_proc=std::move(op_proc),arg_procs=std::move(arg_procs),
@@ -4316,7 +4317,7 @@ namespace heist {
 
 
   // Application of a macro OR non-CPS-block defined procedure entity in a CPS block
-  exe_type analyze_CPS_block_application_of_non_CPS_proc(scm_list& exp,const bool tail_call){
+  exe_fcn_t analyze_CPS_block_application_of_non_CPS_proc(scm_list& exp,const bool tail_call){
     auto arg_exps = operands(exp);
     // Add sentinel value as needed (signals possible empty macro application)
     if(arg_exps.empty()) {
@@ -4348,7 +4349,7 @@ namespace heist {
 
 
   // Macro/procedure application in a CPS block
-  exe_type analyze_CPS_block_application(scm_list& exp,const bool tail_call=false){
+  exe_fcn_t analyze_CPS_block_application(scm_list& exp,const bool tail_call=false){
     // If application is already expanded (given a continuation as last arg),
     //   GUARANTEED such is applying to a function and NOT a macro
     if(data_is_continuation_parameter(*exp.rbegin()))
@@ -4370,7 +4371,7 @@ namespace heist {
   // Analyzes the operator & operands, then returns an exec proc passing 
   //   both the operator/operand proc exec's to 'execute-application'
   //   (after having checked for macro use as well)
-  exe_type analyze_application(scm_list& exp,const bool tail_call=false,const bool cps_block=false){
+  exe_fcn_t analyze_application(scm_list& exp,const bool tail_call=false,const bool cps_block=false){
     // If in a scm->cps block
     if(cps_block && is_cps_application(exp)) {
       exp.erase(exp.begin()); // Rm the cps-application prefix
@@ -4391,7 +4392,7 @@ namespace heist {
     }
     // If _NOT_ a possible macro, analyze the applicator's args ahead of time
     if(!application_is_a_potential_macro(op_name,G::MACRO_LABEL_REGISTRY)) {
-      std::vector<exe_type> arg_procs(arg_exps.size());
+      std::vector<exe_fcn_t> arg_procs(arg_exps.size());
       for(size_type i = 0, n = arg_exps.size(); i < n; ++i)
         arg_procs[i] = scm_analyze(scm_list_cast(arg_exps[i]),false,cps_block);
       return [op_proc=std::move(op_proc),arg_procs=std::move(arg_procs),
@@ -4432,7 +4433,7 @@ namespace heist {
   }
 
 
-  exe_type scm_analyze(scm_list&& exp,const bool tail_call,const bool cps_block) { // analyze expression
+  exe_fcn_t scm_analyze(scm_list&& exp,const bool tail_call,const bool cps_block) { // analyze expression
     if(exp.empty())                         THROW_ERR("Can't eval an empty expression!"<<EXP_ERR("()"));
     else if(is_self_evaluating(exp)) return [exp=std::move(exp)](env_type&){return exp;};
     else if(is_quoted(exp))          return analyze_quoted(exp);
@@ -4462,7 +4463,7 @@ namespace heist {
     else if(is_application(exp))     return analyze_application(exp,tail_call,cps_block);
     else if(is_variable(exp))        return analyze_variable(exp[0].sym);
     throw_unknown_analysis_anomalous_error(exp);
-    return exe_type();
+    return exe_fcn_t();
   }
 
   #undef evaluate_operator
