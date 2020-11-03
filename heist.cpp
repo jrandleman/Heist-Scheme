@@ -3957,7 +3957,7 @@ namespace heist {
   void output_debug_call_trace(const scm_fcn& procedure,const scm_list& arguments,
                                const bool tail_call,    const bool callceing)noexcept{
     // Generate the call signature & Application-Affecting Call States
-    auto call_signature = procedure_call_signature(procedure.str(),arguments);
+    auto call_signature = procedure_call_signature(procedure.printable_procedure_name(),arguments);
     const char* in_tail_call = tail_call ? "#t" : "#f";
     const char* using_callce = callceing ? "#t" : "#f";
     const char* using_inline = G::USING_INLINE_INVOCATIONS ? "#t" : "#f";
@@ -3997,7 +3997,7 @@ namespace heist {
 
   // Print the current recursive depth as indentation, and the current invocation signature
   void output_call_trace_invocation(const scm_fcn& procedure, const scm_list& arguments,const bool tail_call=false)noexcept{
-    auto call_signature = procedure_call_signature(procedure.str(),arguments);
+    auto call_signature = procedure_call_signature(procedure.printable_procedure_name(),arguments);
     print_call_trace_depth_indentation(procedure,tail_call);
     fprintf(G::CURRENT_OUTPUT_PORT, "%s\n", call_signature.c_str());
     fflush(G::CURRENT_OUTPUT_PORT);
