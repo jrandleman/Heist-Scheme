@@ -37,8 +37,8 @@ namespace heist {
   scm_list read_user_input(FILE* outs,FILE* ins,const bool& in_repl=true);
   scm_list scm_eval(scm_list&& exp, env_type& env);
   exe_type scm_analyze(scm_list&& exp,const bool tail_call=false,const bool cps_block=false);
-  scm_list execute_application(scm_list&,scm_list&,env_type&,const bool tail_call,const bool inlined);
-  scm_list execute_application(scm_list&&,scm_list&,env_type&,const bool tail_call,const bool inlined);
+  scm_list execute_application(data&,scm_list&,env_type&,const bool tail_call,const bool inlined);
+  scm_list execute_application(data&&,scm_list&,env_type&,const bool tail_call,const bool inlined);
   size_type is_expandable_reader_macro(const scm_string&, const size_type)noexcept;
   constexpr bool IS_END_OF_WORD(const char& c, const char& c2)noexcept;
   std::pair<chr_type,scm_string> data_is_named_char(const size_type&,const scm_string&)noexcept;
@@ -5350,9 +5350,10 @@ namespace heist {
     auto& methods = d.obj->method_names;
     for(size_type i = 0, n = methods.size(); i < n; ++i)
       if(methods[i] == "next") {
+        auto& env = d.obj->proto->defn_env;
         d = extend_method_env_with_SELF_object(d.obj,d.obj->method_values[i].fcn);
         scm_list arg(1,symconst::sentinel_arg);
-        return data_cast(execute_application(d.fcn,arg,d.obj->proto->defn_env));
+        return data_cast(execute_application(d,arg,env));
       }
     THROW_ERR("'cycle-coroutines! 'coroutine object " << d
       << " is missing the \"next\" method!" << format); 

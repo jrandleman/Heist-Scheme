@@ -4288,7 +4288,7 @@ namespace heist {
       //   proc was defined OUTSIDE of a scm->cps block
       if(procedure_defined_outside_of_CPS_block(proc)) {
         // Extract the continuation from the parameter list as needed
-        auto continuation = (*arg_procs.rbegin())(env);
+        auto continuation = data_cast((*arg_procs.rbegin())(env));
         bool passing_continuation = procedure_requires_continuation(proc.fcn);
         scm_list arg_vals(arg_procs.size() - !passing_continuation);
         // Eval each arg's exec proc to obtain the actual arg values
@@ -4303,7 +4303,7 @@ namespace heist {
         // Apply the proc w/ the continuation
         size_type i = 0, n = arg_procs.size()-1;
         for(; i < n; ++i) arg_vals[i] = data_cast(arg_procs[i](env));
-        arg_vals[n] = data_cast(continuation); // don't re-eval the continuation
+        arg_vals[n] = continuation; // don't re-eval the continuation
         return execute_application(proc,arg_vals,env);
       // Else, apply the proc defined IN the CPS block as-is
       } else {

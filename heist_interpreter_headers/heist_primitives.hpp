@@ -3358,7 +3358,7 @@ namespace heist {
     if(prm_EVAL_data_is_self_evaluating(args[0])) {
       if(must_reset_global_env) G::GLOBAL_ENVIRONMENT_POINTER = original_global_env;
       scm_list cps_eval_args(1,continuation);
-      return data_cast(execute_application(scm_analyze(generate_fundamental_form_cps(args[0]),false,true)(env),cps_eval_args,env));
+      return data_cast(execute_application(data_cast(scm_analyze(generate_fundamental_form_cps(args[0]),false,true)(env)),cps_eval_args,env));
     }
     // if arg is a symbol, cps-eval the symbol
     if(args[0].is_type(types::sym)) {
@@ -3370,7 +3370,7 @@ namespace heist {
       }
       try {
         scm_list cps_eval_args(1,continuation);
-        auto result = data_cast(execute_application(scm_analyze(generate_fundamental_form_cps(args[0]),false,true)(env),cps_eval_args,env));
+        auto result = data_cast(execute_application(data_cast(scm_analyze(generate_fundamental_form_cps(args[0]),false,true)(env)),cps_eval_args,env));
         if(must_reset_global_env) G::GLOBAL_ENVIRONMENT_POINTER = original_global_env;
         return result;
       } catch(const SCM_EXCEPT& eval_throw) {
@@ -3393,8 +3393,8 @@ namespace heist {
     try {
       scm_list cps_eval_args(1,continuation);
       auto result = data_cast(
-        execute_application(scm_analyze(generate_fundamental_form_cps(
-          prm_EVAL_convert_list_to_AST(args[0])),false,true)(env),cps_eval_args,env));
+        execute_application(data_cast(scm_analyze(generate_fundamental_form_cps(
+          prm_EVAL_convert_list_to_AST(args[0])),false,true)(env)),cps_eval_args,env));
       if(must_reset_global_env) G::GLOBAL_ENVIRONMENT_POINTER = original_global_env;
       return result;
     } catch(const SCM_EXCEPT& eval_throw) {
@@ -4686,7 +4686,7 @@ namespace heist {
           scm_list cps_load_arg(1,continuation);
           // pass the continuation to the loaded file
           auto result = data_cast(execute_application(
-            primitive_CPS_LOAD_interpret_file_contents(args,G::GLOBAL_ENVIRONMENT_POINTER,format),
+            data_cast(primitive_CPS_LOAD_interpret_file_contents(args,G::GLOBAL_ENVIRONMENT_POINTER,format)),
             cps_load_arg,G::GLOBAL_ENVIRONMENT_POINTER));
           // Reset G::GLOBAL_ENVIRONMENT_POINTER to its original bindings
           G::GLOBAL_ENVIRONMENT_POINTER = env;
@@ -4706,7 +4706,7 @@ namespace heist {
     }
     // pass the continuation to the loaded file
     scm_list cps_load_arg(1,continuation);
-    return data_cast(execute_application(primitive_CPS_LOAD_interpret_file_contents(args,env,format),cps_load_arg,env));
+    return data_cast(execute_application(data_cast(primitive_CPS_LOAD_interpret_file_contents(args,env,format)),cps_load_arg,env));
   }
 
   // Compiles a given filename's file's Heist-Scheme code into a C++ File
@@ -4980,7 +4980,7 @@ namespace heist {
     if(trace_args.empty()) trace_args.push_back(symconst::sentinel_arg);
     // Set name of the function to trace
     G::TRACED_FUNCTION_NAME = args[0].fcn.name;
-    auto result = data_cast(execute_application(args[0].fcn,trace_args,env));
+    auto result = data_cast(execute_application(args[0],trace_args,env));
     G::TRACED_FUNCTION_NAME = "";
     return result;
   }
