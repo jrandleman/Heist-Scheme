@@ -1171,8 +1171,8 @@ Other primitives of this nature include:<br>
     (and (null? self.left) (null? self.right))))
 
 (define root (make-node))
-(root.set-left! (make-node))
-(root.left.set-val! 42)
+(set! root.left (make-node))
+(set! root.left.val 42)
 
 (display root.val) ; 0
 (newline)
