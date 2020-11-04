@@ -5095,7 +5095,7 @@ namespace heist {
   ******************************************************************************/
 
   // Correct arg validation for primitive "heist:core:oo:set-member!":
-  void validate_oo_member_setter(scm_list& args, const char* name, const char* format) {
+  void validate_oo_member_setter(scm_list& args, const char* name, const char* format, const char* property_name) {
     if(args.size() != 3)
       THROW_ERR('\''<<name<<" didn't receive 3 args!"
         <<format<<FCN_ERR(name,args));
@@ -5103,7 +5103,13 @@ namespace heist {
       THROW_ERR('\''<<name<<" 1st object arg "<<PROFILE(args[0])<<" isn't an object!"
         <<format<<FCN_ERR(name,args));
     if(!args[1].is_type(types::sym))
-      THROW_ERR('\''<<name<<" 2nd member-name arg "<<PROFILE(args[1])<<" isn't a symbol!"
+      THROW_ERR('\''<<name<<" 2nd "<<property_name<<"-name arg "<<PROFILE(args[1])<<" isn't a symbol!"
+        <<format<<FCN_ERR(name,args));
+    if(args[1].sym == "super")
+      THROW_ERR('\''<<name<<' '<<property_name<<" <super> can't be set to a new value!"
+        <<format<<FCN_ERR(name,args));
+    if(args[1].sym == "prototype")
+      THROW_ERR('\''<<name<<' '<<property_name<<" <prototype> can't be set to a new value!"
         <<format<<FCN_ERR(name,args));
   }
 

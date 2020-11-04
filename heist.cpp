@@ -248,12 +248,12 @@ namespace heist {
   void confirm_valid_assignment(const scm_list& exp) {
     if(exp.size() != 3)
       THROW_ERR("'set! didn't receive 2 arguments: (set! <var> <val>)" << EXP_ERR(exp));
-    if(!exp[1].is_type(types::sym))
+    if(!exp[1].is_type(types::sym) || exp[1].sym.empty())
       THROW_ERR("'set! 1st arg " << PROFILE(exp[1]) << " can't be reassigned"
         " (only symbols)!\n     (set! <var> <val>)" << EXP_ERR(exp));
-    if(exp[1].sym.find('.') != scm_string::npos)
-      THROW_ERR("'set! 1st arg object property-chain-access [ " << exp[1] 
-        << " ] can't be defined (only symbols):\n     (set! <var> <val>)" << EXP_ERR(exp));
+    if(*exp[1].sym.rbegin() == '.')
+      THROW_ERR("'set! 1st arg is invalid object property-chain-access [ " << exp[1] 
+          << " ] ends with a '.':\n     (set! <var> <val>)" << EXP_ERR(exp));
   }
 
 
@@ -685,16 +685,27 @@ namespace heist {
   frame_var& assignment_variable(scm_list& exp) noexcept{return exp[1].sym;}
   scm_list assignment_value(const scm_list& exp)noexcept{return scm_list_cast(exp[2]);}
 
+  // PRECONDITION: call_chain.find('.') != scm_string::npos
+  scm_string convert_member_access_to_setter(scm_string& call_chain) {
+    call_chain.insert(call_chain.rfind('.')+1,"set-");
+    return call_chain + '!';
+  }
+
   // Analyzes value being assigned, & returns an execution procedure 
   //   to install it as the variable in the designated env
   exe_fcn_t analyze_assignment(scm_list& exp,const bool cps_block=false) { 
     confirm_valid_assignment(exp);
     auto& var       = assignment_variable(exp);
     auto value_proc = scm_analyze(assignment_value(exp),false,cps_block);
-    return [var=std::move(var),value_proc=std::move(value_proc)](env_type& env){
-      set_variable_value(var,data_cast(value_proc(env)),env);
-      return G::VOID_DATA_EXPRESSION; // return is undefined
-    };
+    if(exp[1].sym.find('.') == scm_string::npos)
+      return [var=std::move(var),value_proc=std::move(value_proc)](env_type& env){
+        set_variable_value(var,data_cast(value_proc(env)),env);
+        return G::VOID_DATA_EXPRESSION; // return is undefined
+      };
+    scm_list set_call(2);
+    set_call[0] = convert_member_access_to_setter(exp[1].sym);
+    set_call[1] = std::move(exp[2]);
+    return scm_analyze(std::move(set_call),false,cps_block);
   }
 
   /******************************************************************************
@@ -1021,6 +1032,10 @@ namespace heist {
       if(exp[i].exp[0].is_type(types::sym)) { // member
         if(exp[i].exp.size() != 2)
           THROW_ERR("'defclass invalid <member-or-method-instance> => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
+        if(exp[i].exp[0].sym == "super")
+          THROW_ERR("'defclass invalid member name, <super> already defined => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
+        if(exp[i].exp[0].sym == "prototype")
+          THROW_ERR("'defclass invalid member name, <prototype> already defined => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
         continue;
       }
       if(exp[i].exp[0].is_type(types::exp)) { // method
