@@ -1374,13 +1374,13 @@ Other primitives of this nature include:<br>
 
 #### Example:
 ```scheme
-(infix-math-quote 5 + 2 ** 3 ** 2 * 2) ; (+ 5 (* (expt 2 3 2) 2))
+(infix-math-quote 5 + 2 ** 3 ** 2 * 2) ; '(+ 5 (* (expt 2 3 2) 2))
 
-(infix-math-quote (2 + 5) ** 3) ; (expt (+ 2 5) 3)
+(infix-math-quote (2 + 5) ** 3) ; '(expt (+ 2 5) 3)
 
-(infix-math-quote 3 * 5 / 2) ; (/ (* 3 5) 2)
+(infix-math-quote 3 * 5 / 2) ; '(/ (* 3 5) 2)
 
-(infix-math-quote 3 / 5 * 2) ; (* (/ 3 5) 2)
+(infix-math-quote 3 / 5 * 2) ; '(* (/ 3 5) 2)
 ```
 
 
