@@ -1245,7 +1245,7 @@ Other primitives of this nature include:<br>
 
 ;; Create a generator thunk to iterate over all powers of 2!
 
-(define-coroutine all-pows-of-2
+(define-coroutine (all-pows-of-2)
   (let loop ((count 0))
     (yield (expt 2 count))
     (loop (+ count 1))))
@@ -1261,7 +1261,7 @@ Other primitives of this nature include:<br>
 
 ;; Step through a coroutine using coroutine objects!
 
-(define-coroutine example
+(define-coroutine (example)
   (yield 1)
   (yield 2)
   (yield 3)
