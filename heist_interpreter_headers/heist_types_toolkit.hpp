@@ -537,7 +537,7 @@ namespace heist {
       // search object's prototype
       for(size_type i = 0, n = obj->proto->method_names.size(); i < n; ++i) {
         if(obj->proto->method_names[i] == "self->string" || obj->proto->method_names[i] == printer_name) {
-          obj->member_names.push_back(obj->proto->method_names[i]), obj->member_values.push_back(obj->proto->method_values[i]);
+          obj->method_names.push_back(obj->proto->method_names[i]), obj->method_values.push_back(obj->proto->method_values[i]);
           data result = apply_dynamic_method(obj,scm_list(1,symconst::sentinel_arg),obj->method_values[i].fcn);
           if(result.is_type(types::str)) return *result.str;
           return (result.*to_str)();
@@ -708,7 +708,7 @@ namespace heist {
       // search object's prototype
       for(size_type i = 0, n = obj->proto->method_names.size(); i < n; ++i) {
         if(obj->proto->method_names[i] == "self=" || obj->proto->method_names[i] == eq_name) {
-          obj->member_names.push_back(obj->proto->method_names[i]), obj->member_values.push_back(obj->proto->method_values[i]);
+          obj->method_names.push_back(obj->proto->method_names[i]), obj->method_values.push_back(obj->proto->method_values[i]);
           data eq_result = apply_dynamic_method(obj,scm_list(1,rhs),obj->method_values[i].fcn);
           result = (eq_result.type != types::bol || eq_result.bol.val);
           return true;
@@ -804,7 +804,7 @@ namespace heist {
     // search object's prototype
     for(size_type i = 0, n = obj->proto->method_names.size(); i < n; ++i) {
       if(obj->proto->method_names[i] == "self->copy") {
-        obj->member_names.push_back(obj->proto->method_names[i]), obj->member_values.push_back(obj->proto->method_values[i]);
+        obj->method_names.push_back(obj->proto->method_names[i]), obj->method_values.push_back(obj->proto->method_values[i]);
         result = apply_dynamic_method(obj,scm_list(1,symconst::sentinel_arg),obj->method_values[i].fcn);
         return true;
       }

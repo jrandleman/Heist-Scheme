@@ -400,6 +400,7 @@ namespace heist {
     scm_fcn(const scm_fcn& f)noexcept{*this = f;}
     scm_fcn(const scm_fcn&& f)noexcept{*this = std::move(f);}
     void operator=(const scm_fcn& f)noexcept{
+      if(this == &f) return;
       name = f.name;
       if(f.prm) {
         prm = f.prm;
@@ -409,6 +410,7 @@ namespace heist {
       }
     }
     void operator=(scm_fcn&& f)noexcept{
+      if(this == &f) return;
       name = std::move(f.name);
       if(f.prm) {
         prm = std::move(f.prm);
