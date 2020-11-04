@@ -1128,8 +1128,8 @@ Other primitives of this nature include:<br>
    - If member/method exists: sets value, else: adds it as a new property
 
 #### Prototype, Self, & Inherited Object Access:
-0. `.prototype` member returns the class prototype of the object
-1. `.self` refers to the current invoking object (designed for use in methods)
+0. `self` refers to the current invoking object (designed for use in methods)
+1. `.prototype` member returns the class prototype of the object
 2. `.super` member returns object's underlying inherited object (returns `#f` if dne)
 
 #### Overload Equality, Printing, & Copying:
