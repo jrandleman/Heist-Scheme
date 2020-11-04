@@ -480,7 +480,7 @@ Other primitives of this nature include:<br>
 
 #### Form: `(set! <name> <new-value>)`
 
-#### Special Case: calls `(obj.set-name! <new-value>)` if `<name>` = `<obj.name>`
+#### Special Case: becomes `(obj.set-name! <new-value>)` if `<name>` = `<obj.name>`
 
 
 ------------------------
