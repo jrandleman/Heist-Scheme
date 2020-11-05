@@ -4622,6 +4622,19 @@ void cpsify_inputs(heist::scm_list& AST) {
 }
 
 
+// returns (begin (define #it <d>) #it)
+heist::exp_type repl_tag_expression(const heist::data& d)noexcept{
+  heist::exp_type tag_exp(3);
+  tag_exp[0] = heist::symconst::begin;
+  tag_exp[1] = heist::exp_type(3);
+  tag_exp[1].exp[0] = heist::symconst::define;
+  tag_exp[1].exp[1] = "#it";
+  tag_exp[1].exp[2] = d;
+  tag_exp[2] = "#it";
+  return tag_exp;
+}
+
+
 void driver_loop() {
   bool printed_data = true;
   print_repl_newline(printed_data);
@@ -4632,7 +4645,7 @@ void driver_loop() {
     // Eval each expression given
     for(const auto& input : AST) {
       try {
-        auto value = heist::scm_eval(heist::scm_list_cast(input),heist::G::GLOBAL_ENVIRONMENT_POINTER);
+        auto value = heist::scm_eval(repl_tag_expression(input),heist::G::GLOBAL_ENVIRONMENT_POINTER);
         account_for_whether_printed_data(value,printed_data);
         user_print(stdout, value);
         print_repl_newline(printed_data);

@@ -146,6 +146,7 @@
 * `!` suffix denotes a mutative (non-purely-functional) procedure
 * `(`, `[`, & `{` are interchangeable (as are `)`, `]`, & `}`)
 * `procedure` is said instead of `function`
+* `#it` refers to the REPL's last evaluated expression
 
 ## Metaprogramming Advantages:
 * Code is data (parentheses construct an Abstract Syntax Tree)
