@@ -202,8 +202,7 @@ namespace heist {
   // Generate an improper procedure call error message
   sym_type improper_call_alert(sym_type name, const frame_vals& vals,
                                               const frame_vars& vars)noexcept{
-    if(name.empty()) name = " #<procedure>"; // anonymous lambda
-    name.erase(0,1);                         // rm initial ' '
+    if(name.empty()) name = "#<procedure>"; // anonymous lambda
     // Generate the call signature
     auto call_signature = procedure_call_signature(name,vals);
     // Generate the definition signature (w/o sentinel arg)
@@ -423,7 +422,7 @@ namespace heist {
   // -- NAME MANGLING
   // defining/set!ing an anonymous lambda generates a named procedure
   void mangle_bound_anonymous_procedure_name(const frame_var& var, frame_val& val)noexcept{
-    if(val.is_type(types::fcn) && val.fcn.name.empty()) val.fcn.name = ' ' + var;
+    if(val.is_type(types::fcn) && val.fcn.name.empty()) val.fcn.name = var;
   }
 
 
@@ -4211,7 +4210,7 @@ namespace heist {
     auto extended_env = extend_environment(procedure.fcn.procedure_parameters(),
                                            arguments,
                                            procedure.fcn.env,
-                                           procedure.fcn.procedure_name());
+                                           procedure.fcn.name);
     // determine whether to inline call
     const bool inline_call = !G::USING_INLINE_INVOCATIONS && procedure.fcn.is_inline_invocation;
     if(inline_call) G::USING_INLINE_INVOCATIONS = true;
@@ -4275,8 +4274,7 @@ namespace heist {
   }
 
   bool procedure_requires_continuation(const scm_fcn& p)noexcept{
-    // '1' for compound procs accounts for ' ' prefix from name mangling
-    return (p.is_compound() && string_begins_with(p.name,symconst::pass_continuation,1)) ||
+    return (p.is_compound() && string_begins_with(p.name,symconst::pass_continuation)) ||
            (p.is_primitive() && string_begins_with(p.name,symconst::pass_continuation));
   }
 

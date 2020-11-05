@@ -424,9 +424,8 @@ namespace heist {
     bool is_primitive()const noexcept{return prm;};
     bool is_compound()const noexcept{return !prm;};
     bool operator==(const scm_fcn& f)const noexcept;
-    scm_string str()const noexcept{return (prm ? "#<procedure " : "#<procedure") + name + '>';}
-    scm_string procedure_name()const noexcept{return prm ? ' ' + name : name;}
-    scm_string printable_procedure_name()const noexcept{return prm ? name : name.empty() ? "#<procedure>" : name.substr(1);}
+    scm_string str()const noexcept{return name.empty() ? "#<procedure>" : "#<procedure " + name + '>';}
+    scm_string printable_procedure_name()const noexcept{return name.empty() ? "#<procedure>" : name;}
     frame_vars procedure_parameters()const noexcept;
   };
 

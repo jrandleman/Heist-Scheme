@@ -15,9 +15,6 @@ namespace heist {
 
   list_status primitive_list_is_acyclic_and_null_terminated(const data& curr_pair)noexcept;
   sym_type    procedure_call_signature(const sym_type& name,const frame_vals& vals)noexcept;
-  frame_var   procedure_name          (const scm_list& p)noexcept;
-  bool        is_primitive_procedure  (const scm_list& p)noexcept;
-  bool        is_compound_procedure   (const scm_list& p)noexcept;
   bool        is_delay                (const scm_list& exp)noexcept;
   bool        data_is_stream_pair     (const data& d)noexcept;
   bool        data_is_proper_list     (const data& d)noexcept;
