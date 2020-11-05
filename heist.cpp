@@ -4199,7 +4199,7 @@ namespace heist {
   scm_list execute_application(data& procedure,scm_list& arguments,env_type& env,
                                         const bool tail_call,const bool callceing){
     if(!procedure.is_type(types::fcn))
-      THROW_ERR("Invalid application of unknown procedure "<<PROFILE(procedure)<<"! "<<FCN_ERR(procedure.noexcept_write(),arguments));
+      THROW_ERR("Invalid application of non-procedure "<<PROFILE(procedure)<<'!'<<FCN_ERR(procedure.noexcept_write(),arguments));
     // output debugger call trace as needed
     if(G::TRACING_ALL_FUNCTION_CALLS)
       output_debug_call_trace(procedure.fcn,arguments,tail_call,callceing);
@@ -4228,7 +4228,7 @@ namespace heist {
       if(inline_call) G::USING_INLINE_INVOCATIONS = false;
       recursive_depth = 0;
       THROW_ERR("Maximum recursion depth of "<<G::MAX_RECURSION_DEPTH<<" exceeded!"
-        << FCN_ERR(procedure.fcn.str(), arguments));
+        << FCN_ERR(procedure.fcn.printable_procedure_name(), arguments));
     }
     // output tracing information as needed
     auto tracing_proc = tracing_procedure(procedure.fcn.name);

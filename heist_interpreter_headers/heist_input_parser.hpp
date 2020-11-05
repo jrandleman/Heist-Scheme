@@ -466,9 +466,8 @@ namespace heist {
   * READER MAIN FUNCTIONS -- ABSTRACT SYNTAX TREE CONSTRUCTION
   ******************************************************************************/
 
-  // Parses the scheme expression buffer into a scm_list
-  void construct_abstract_syntax_tree(size_type& i, const scm_string& input, 
-                                                          scm_list& tree) {
+  // Parses the scheme expression buffer into a exp_type
+  void construct_abstract_syntax_tree(size_type& i, const scm_string& input, exp_type& tree) {
     const size_type n = input.size();
     scm_string tmp_str = "", tmp_sym = "";
     chr_type tmp_chr = 0;
@@ -484,7 +483,7 @@ namespace heist {
       else if(data_is_number(i,input,tmp_num)) // found number atom
         tree.push_back(data(tmp_num));
       else if(IS_OPEN_PAREN(input[i])) {       // found new list, recursively parse contents
-        scm_list new_list;
+        exp_type new_list;
         construct_abstract_syntax_tree(++i,input,new_list);
         tree.push_back(data(new_list));
       } else if(IS_CLOSE_PAREN(input[i]))      // found end of this list, return
@@ -509,7 +508,7 @@ namespace heist {
 
   // Expands scheme input quote-shorthands & returns derived Abstract Syntax Tree
   // => GIVEN THE RAW USER INPUT
-  void parse_input_exp(scm_string&& input, scm_list& abstract_syntax_tree) {
+  void parse_input_exp(scm_string&& input, exp_type& abstract_syntax_tree) {
     if(!prepare_string_for_AST_generation(input)) return;
     size_type start_index = 0;
     construct_abstract_syntax_tree(start_index,input,abstract_syntax_tree);

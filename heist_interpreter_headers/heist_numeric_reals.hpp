@@ -405,7 +405,7 @@ namespace scm_numeric {
 
     // Construct number from the given data
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
-    void construct_number(NumericData num_str)noexcept{construct_number(convert_numeric_to_str(num_str));}
+    void construct_number(NumericData num_str)noexcept{if(num_str != 0) construct_number(convert_numeric_to_str(num_str));}
     void construct_number(std::string num_str)noexcept;
 
     // Convert a base-n big int string into a decimal Snum_real

@@ -384,7 +384,7 @@ namespace heist {
   // function (compound & primitive) data structure
   struct scm_fcn {
     using depth_t = tgc_ptr<size_type>;
-    scm_string name;
+    scm_string name; // name == "" denotes an anonymous procedure
     // PRIMITIVE
     prm_ptr_t prm = nullptr;
     // COMPOUND
