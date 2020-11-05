@@ -510,8 +510,8 @@ namespace heist {
   * OBJECT PRINTING HELPER (CHECKS IF OBJECT HAS A display write pprint MEMBER)
   ******************************************************************************/
 
-  scm_list execute_application(data&,scm_list&,env_type&,const bool tail_call=false,const bool inlined=false);
-  scm_list execute_application(data&&,scm_list&,env_type&,const bool tail_call=false,const bool inlined=false);
+  scm_list execute_application(data&,scm_list&,env_type& env=G::GLOBAL_ENVIRONMENT_POINTER,const bool tail_call=false,const bool inlined=false);
+  scm_list execute_application(data&&,scm_list&,env_type& env=G::GLOBAL_ENVIRONMENT_POINTER,const bool tail_call=false,const bool inlined=false);
   data     extend_method_env_with_SELF_object(obj_type& calling_obj, scm_fcn& procedure)noexcept;
   data     data_cast(const scm_list& l)noexcept;
   data     data_cast(scm_list&& l)noexcept;

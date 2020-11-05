@@ -420,23 +420,17 @@ namespace heist {
   }
 
   // primitive "make-log-base" procedure
-  // (define (make-log-base n) (lambda (num) (/ (log num) (log n))))
+  // (define (make-log-base n) (lambda (num) (log num n)))
   data primitive_MAKE_LOG_BASE(scm_list& args) {
-    auto env = args.rbegin()->env;
-    args.pop_back();
     confirm_unary_real_numeric(args, "make-log-base", "(make-log-base <real>)");
     scm_list new_log(3);
     new_log[0] = symconst::lambda;
     new_log[1] = scm_list(1, "num");
     new_log[2] = scm_list(3);
-    new_log[2].exp[0] = "/";
-    new_log[2].exp[1] = scm_list(2);
-    new_log[2].exp[1].exp[0] = "log";
-    new_log[2].exp[1].exp[1] = "num";
-    new_log[2].exp[2] = scm_list(2);
-    new_log[2].exp[2].exp[0] = "log";
-    new_log[2].exp[2].exp[1] = args[0];
-    return data_cast(scm_eval(std::move(new_log),env));
+    new_log[2].exp[0] = "log";
+    new_log[2].exp[1] = "num";
+    new_log[2].exp[2] = args[0];
+    return data_cast(scm_eval(std::move(new_log),G::GLOBAL_ENVIRONMENT_POINTER));
   }
 
   /******************************************************************************
@@ -960,36 +954,27 @@ namespace heist {
 
   // primitive "string-trim" procedure:
   data primitive_STRING_TRIM(scm_list& args) {
-    // extract the environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     confirm_valid_string_trim_args(args, "string-trim",
       "\n     (string-trim <string> <optional-predicate>)");
-    return prm_trim_left_of_string(args,env);
+    return prm_trim_left_of_string(args);
   }
 
   // primitive "string-trim-right" procedure:
   data primitive_STRING_TRIM_RIGHT(scm_list& args) {
-    // extract the environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     confirm_valid_string_trim_args(args, "string-trim-right",
       "\n     (string-trim-right <string> <optional-predicate>)");
-    return prm_trim_right_of_string(args,env);
+    return prm_trim_right_of_string(args);
   }
 
   // primitive "string-trim-both" procedure:
   data primitive_STRING_TRIM_BOTH(scm_list& args) {
-    // extract the environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     confirm_valid_string_trim_args(args, "string-trim-both",
       "\n     (string-trim-both <string> <optional-predicate>)");
     scm_list right_trim_args;
-    right_trim_args.push_back(make_str(*prm_trim_left_of_string(args,env).str));
+    right_trim_args.push_back(make_str(*prm_trim_left_of_string(args).str));
     if(args.size() == 2)
       right_trim_args.push_back(args[1]);
-    return prm_trim_right_of_string(right_trim_args,env);
+    return prm_trim_right_of_string(right_trim_args);
   }
 
   // primitive "string-replace" procedure:
@@ -1382,9 +1367,6 @@ namespace heist {
   //       HMAP ITERATORS IN THE LOOP FROM POTENTIALLY DELETING THE KEY IN THE USER'S FCN
   #define GENERATE_HMAP_ITERATION_FCN(FCN_NAME,NAME,...)\
     data FCN_NAME(scm_list& args) {\
-      /* extract the environment */\
-      auto env = args.rbegin()->env;\
-      args.pop_back();\
       hmap_confirm_binary_procedure_map(NAME,"\n     (" NAME " <callable> <hash-map>)",args);\
       auto procedure(primitive_extract_callable_procedure(args[0]));\
       size_type n = args[1].map->val.size(), i = 0;\
@@ -1399,34 +1381,31 @@ namespace heist {
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_FOR_EACH_KEY,"hmap-for-each-key",
     scm_list arg(1,map_data::unhash_key(keys[i]));
-    execute_application(procedure,arg,env););
+    execute_application(procedure,arg););
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_FOR_EACH_VAL,"hmap-for-each-val",
     scm_list arg(1,args[1].map->val[keys[i]]);
-    execute_application(procedure,arg,env););
+    execute_application(procedure,arg););
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_FOR_EACH,"hmap-for-each",
     auto p = make_par();
     p->first = map_data::unhash_key(keys[i]);
     p->second = args[1].map->val[keys[i]];
     scm_list arg(1,p);
-    execute_application(procedure,arg,env););
+    execute_application(procedure,arg););
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_MAP_BANG,"hmap-map!",
     scm_list arg(1,args[1].map->val[keys[i]]);
-    args[1].map->val[keys[i]] = data_cast(execute_application(procedure,arg,env)););
+    args[1].map->val[keys[i]] = data_cast(execute_application(procedure,arg)););
 
   // primitive "hmap-map"
   data primitive_HMAP_MAP(scm_list& args) {
-    // extract the environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     hmap_confirm_binary_procedure_map("hmap-map","\n     (hmap-map <callable> <hash-map>)",args);
     auto procedure(primitive_extract_callable_procedure(args[0]));
     map_data map;
     for(auto& keyvalue : args[1].map->val) {
       scm_list arg(1,keyvalue.second);
-      map.val[keyvalue.first] = data_cast(execute_application(procedure,arg,env));
+      map.val[keyvalue.first] = data_cast(execute_application(procedure,arg));
     }
     return make_map(std::move(map));
   }
@@ -2081,9 +2060,6 @@ namespace heist {
       "\n     ; a < b -> (<3-way-comparison> a b) < 0"
       "\n     ; a = b -> (<3-way-comparison> a b) = 0"
       "\n     ; a > b -> (<3-way-comparison> a b) > 0";
-    // extract the environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     // Confirm proper args
     if(args.size() != 3)
       THROW_ERR("'vector-binary-search received incorrect # of args (given "
@@ -2102,7 +2078,7 @@ namespace heist {
       const auto mid = low + (high-low)/2; // no overflow on mid
       scm_list bsearch_args(2);
       bsearch_args[0] = vec[mid], bsearch_args[1] = value;
-      auto cmp_result = data_cast(execute_application(proc,bsearch_args,env));
+      auto cmp_result = data_cast(execute_application(proc,bsearch_args));
       if(!cmp_result.is_type(types::num))
         THROW_ERR("'vector-binary-search result "<<PROFILE(cmp_result)<<
           " from callable "<<args[2]<<"\n     applied to args "<<vec[mid]
@@ -2209,8 +2185,6 @@ namespace heist {
   data primitive_FOLD(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (fold <callable> <init> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
-    auto env = args.rbegin()->env;
-    args.pop_back();
     if(args.size() < 3) 
       THROW_ERR("'fold received insufficient args (only " 
         << args.size() << "):" << format << FCN_ERR("fold",args));
@@ -2218,14 +2192,14 @@ namespace heist {
     switch(is_proper_sequence(args[2],args,"fold",format)) {
       case heist_sequence::vec:
         return primitive_STATIC_SEQUENCE_FOLD_template(procedure, args, "fold", 
-          format, true, types::vec, "vector", &data::vec, env);
+          format, true, types::vec, "vector", &data::vec);
       case heist_sequence::str:
         return primitive_STATIC_SEQUENCE_FOLD_template(procedure, args, "fold", 
-          format, true, types::str, "string", &data::str, env);
+          format, true, types::str, "string", &data::str);
       case heist_sequence::nul:
         return args[1];
       default:
-        return primitive_FOLD_template(procedure, args, "fold", format, true, env);
+        return primitive_FOLD_template(procedure, args, "fold", format, true);
     }
   }
 
@@ -2233,8 +2207,6 @@ namespace heist {
   data primitive_FOLD_RIGHT(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (fold-right <callable> <init> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
-    auto env = args.rbegin()->env;
-    args.pop_back();
     if(args.size() < 3) 
       THROW_ERR("'fold-right received insufficient args (only " 
         << args.size() << "):" << format << FCN_ERR("fold-right",args));
@@ -2242,21 +2214,19 @@ namespace heist {
     switch(is_proper_sequence(args[2],args,"fold-right",format)) {
       case heist_sequence::vec:
         return primitive_STATIC_SEQUENCE_FOLD_template(procedure, args, "fold-right", 
-          format, false, types::vec, "vector", &data::vec, env);
+          format, false, types::vec, "vector", &data::vec);
       case heist_sequence::str:
         return primitive_STATIC_SEQUENCE_FOLD_template(procedure, args, "fold-right", 
-          format, false, types::str, "string", &data::str, env);
+          format, false, types::str, "string", &data::str);
       case heist_sequence::nul:
         return args[1];
       default:
-        return primitive_FOLD_template(procedure, args, "fold-right", format, false, env);
+        return primitive_FOLD_template(procedure, args, "fold-right", format, false);
     }
   }
 
   // primitive "filter" procedure:
   data primitive_FILTER(scm_list& args) {
-    auto env = args.rbegin()->env;
-    args.pop_back();
     static constexpr const char * const format = 
       "\n     (filter <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
     if(args.size() != 2) 
@@ -2265,20 +2235,18 @@ namespace heist {
     auto procedure = validate_and_extract_callable(args[0], "filter", format, args);
     switch(is_proper_sequence(args[1],args,"filter",format)) {
       case heist_sequence::vec:
-        return prm_sequence_selective_iteration_template<is_true_scm_condition>(procedure, args, types::vec, &data::vec, env);
+        return prm_sequence_selective_iteration_template<is_true_scm_condition>(procedure, args, types::vec, &data::vec);
       case heist_sequence::str:
-        return prm_sequence_selective_iteration_template<is_true_scm_condition>(procedure, args, types::str, &data::str, env);
+        return prm_sequence_selective_iteration_template<is_true_scm_condition>(procedure, args, types::str, &data::str);
       case heist_sequence::nul:
         return args[1];
       default:
-        return primitive_list_filter_logic(procedure, args, env);
+        return primitive_list_filter_logic(procedure, args);
     }
   }
 
   // primitive "map" procedure:
   data primitive_MAP(scm_list& args) {
-    auto env = args.rbegin()->env;
-    args.pop_back();
     static constexpr const char * const format = 
       "\n     (map <callable> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
     if(args.size() < 2) 
@@ -2288,19 +2256,17 @@ namespace heist {
     switch(is_proper_sequence(args[1],args,"map",format)) {
       case heist_sequence::vec:
         return primitive_STATIC_SEQUENCE_MAP_template(procedure, args, "map", 
-          format, types::vec, "vector", &data::vec, env);
+          format, types::vec, "vector", &data::vec);
       case heist_sequence::str:
         return primitive_STATIC_SEQUENCE_MAP_template(procedure, args, "map", 
-          format, types::str, "string", &data::str, env);
+          format, types::str, "string", &data::str);
       default:
-        return primitive_list_map_logic(procedure, args, env, format);
+        return primitive_list_map_logic(procedure, args, format);
     }
   }
 
   // primitive "map!" procedure:
   data primitive_MAP_BANG(scm_list& args) {
-    auto env = args.rbegin()->env;
-    args.pop_back();
     static constexpr const char * const format = 
       "\n     (map! <callable> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
     if(args.size() < 2) 
@@ -2310,24 +2276,22 @@ namespace heist {
     switch(is_proper_sequence(args[1],args,"map!",format)) {
       case heist_sequence::vec:
         *args[1].vec = *primitive_STATIC_SEQUENCE_MAP_template(procedure, args, "map!",
-          format, types::vec, "vector", &data::vec, env).vec;
+          format, types::vec, "vector", &data::vec).vec;
         return G::VOID_DATA_OBJECT;
       case heist_sequence::str:
         *args[1].str = *primitive_STATIC_SEQUENCE_MAP_template(procedure, args, "map!",
-          format, types::str, "string", &data::str, env).str;
+          format, types::str, "string", &data::str).str;
         return G::VOID_DATA_OBJECT;
       default:
         scm_list list_heads(args.begin()+1, args.end());
         primitive_confirm_proper_same_sized_lists(list_heads,"map!",format,1,args);
-        primitive_MAP_BANG_list_constructor(list_heads, procedure, env);
+        primitive_MAP_BANG_list_constructor(list_heads, procedure);
         return G::VOID_DATA_OBJECT;
     }
   }
 
   // primitive "for-each" procedure:
   data primitive_FOR_EACH(scm_list& args) {
-    auto env = args.rbegin()->env;
-    args.pop_back();
     static constexpr const char * const format = 
       "\n     (for-each <callable> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
     if(args.size() < 2) 
@@ -2337,12 +2301,12 @@ namespace heist {
     switch(is_proper_sequence(args[1],args,"for-each",format)) {
       case heist_sequence::vec:
         return primitive_STATIC_SEQUENCE_FOR_EACH_template(procedure, args, "for-each", 
-          format, types::vec, "vector", &data::vec, env);
+          format, types::vec, "vector", &data::vec);
       case heist_sequence::str:
         return primitive_STATIC_SEQUENCE_FOR_EACH_template(procedure, args, "for-each", 
-          format, types::str, "string", &data::str, env);
+          format, types::str, "string", &data::str);
       default:
-        return primitive_list_for_each_logic(procedure, args,env,format);
+        return primitive_list_for_each_logic(procedure, args, format);
     }
   }
 
@@ -2380,8 +2344,6 @@ namespace heist {
 
   // primitive "count" procedure:
   data primitive_COUNT(scm_list& args) {
-    auto env = args.rbegin()->env;
-    args.pop_back();
     static constexpr const char * const format = 
       "\n     (count <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
     if(args.size() != 2) 
@@ -2390,13 +2352,13 @@ namespace heist {
     auto procedure = validate_and_extract_callable(args[0], "count", format, args);
     switch(is_proper_sequence(args[1],args,"count",format)) {
       case heist_sequence::vec:
-        return primitive_STATIC_SEQUENCE_COUNT_template(procedure, args, &data::vec, env);
+        return primitive_STATIC_SEQUENCE_COUNT_template(procedure, args, &data::vec);
       case heist_sequence::str:
-        return primitive_STATIC_SEQUENCE_COUNT_template(procedure, args, &data::str, env);
+        return primitive_STATIC_SEQUENCE_COUNT_template(procedure, args, &data::str);
       case heist_sequence::nul:
         return num_type();
       default:
-        return primitive_list_count_logic(procedure,args,env);
+        return primitive_list_count_logic(procedure,args);
     }
   }
 
@@ -2530,8 +2492,6 @@ namespace heist {
   data primitive_REMOVE(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (remove <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
-    auto env = args.rbegin()->env;
-    args.pop_back();
     if(args.size() != 2) 
       THROW_ERR("'remove received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("remove",args));
@@ -2540,11 +2500,11 @@ namespace heist {
       case heist_sequence::nul:
         return args[1];
       case heist_sequence::vec:
-        return prm_sequence_selective_iteration_template<is_false_scm_condition>(procedure, args, types::vec, &data::vec, env);
+        return prm_sequence_selective_iteration_template<is_false_scm_condition>(procedure, args, types::vec, &data::vec);
       case heist_sequence::str:
-        return prm_sequence_selective_iteration_template<is_false_scm_condition>(procedure, args, types::str, &data::str, env);
+        return prm_sequence_selective_iteration_template<is_false_scm_condition>(procedure, args, types::str, &data::str);
       default:
-        return primitive_remove_list_logic(args[1],procedure,env);
+        return primitive_remove_list_logic(args[1],procedure);
     }
   }
 
@@ -2552,8 +2512,6 @@ namespace heist {
   data primitive_REMOVE_FIRST(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (remove-first <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
-    auto env = args.rbegin()->env;
-    args.pop_back();
     if(args.size() != 2) 
       THROW_ERR("'remove-first received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("remove-first",args));
@@ -2562,13 +2520,13 @@ namespace heist {
       case heist_sequence::nul:
         return args[1];
       case heist_sequence::vec:
-        return make_vec(prm_remove_first_or_last<true>(procedure,*args[1].vec,env));
+        return make_vec(prm_remove_first_or_last<true>(procedure,*args[1].vec));
       case heist_sequence::str:
-        return make_str(prm_remove_first_or_last<true>(procedure,*args[1].str,env));
+        return make_str(prm_remove_first_or_last<true>(procedure,*args[1].str));
       default:
         scm_list par_as_exp;
         shallow_unpack_list_into_exp(args[1],par_as_exp);
-        par_as_exp = prm_remove_first_or_last<true>(procedure,par_as_exp,env);
+        par_as_exp = prm_remove_first_or_last<true>(procedure,par_as_exp);
         return primitive_LIST_to_CONS_constructor(par_as_exp.begin(),par_as_exp.end());
     }
   }
@@ -2577,8 +2535,6 @@ namespace heist {
   data primitive_REMOVE_LAST(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (remove-last <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
-    auto env = args.rbegin()->env;
-    args.pop_back();
     if(args.size() != 2) 
       THROW_ERR("'remove-last received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("remove-last",args));
@@ -2587,13 +2543,13 @@ namespace heist {
       case heist_sequence::nul:
         return args[1];
       case heist_sequence::vec:
-        return make_vec(prm_remove_first_or_last<false>(procedure,*args[1].vec,env));
+        return make_vec(prm_remove_first_or_last<false>(procedure,*args[1].vec));
       case heist_sequence::str:
-        return make_str(prm_remove_first_or_last<false>(procedure,*args[1].str,env));
+        return make_str(prm_remove_first_or_last<false>(procedure,*args[1].str));
       default:
         scm_list par_as_exp;
         shallow_unpack_list_into_exp(args[1],par_as_exp);
-        par_as_exp = prm_remove_first_or_last<false>(procedure,par_as_exp,env);
+        par_as_exp = prm_remove_first_or_last<false>(procedure,par_as_exp);
         return primitive_LIST_to_CONS_constructor(par_as_exp.begin(),par_as_exp.end());
     }
   }
@@ -2692,19 +2648,17 @@ namespace heist {
     static constexpr const char * const format = 
       "\n     (seq= <elt=?> <sequence1> <sequence2> ...)"
       SEQUENCE_DESCRIPTION;
-    auto env = args.rbegin()->env;
-    args.pop_back();
     if(args.empty())
       THROW_ERR("'seq= didn't recieve any args:" 
         << format << FCN_ERR("seq=", args));
     auto procedure = validate_and_extract_callable(args[0], "seq=", format, args);
     switch(is_proper_sequence(args[1],args,"seq=",format)) {
       case heist_sequence::vec:
-        return primitive_STATIC_SEQUENCE_sequence_eq_logic(procedure,args,format,env,types::vec,&data::vec);
+        return primitive_STATIC_SEQUENCE_sequence_eq_logic(procedure,args,format,types::vec,&data::vec);
       case heist_sequence::str:
-        return primitive_STATIC_SEQUENCE_sequence_eq_logic(procedure,args,format,env,types::str,&data::str);
+        return primitive_STATIC_SEQUENCE_sequence_eq_logic(procedure,args,format,types::str,&data::str);
       default:
-        return primitive_list_sequence_eq_logic(procedure,args,format,env);
+        return primitive_list_sequence_eq_logic(procedure,args,format);
     }
   }
 
@@ -2712,8 +2666,6 @@ namespace heist {
   data primitive_SKIP(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (skip <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
-    auto env = args.rbegin()->env;
-    args.pop_back();
     if(args.size() != 2) 
       THROW_ERR("'skip received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("skip",args));
@@ -2722,11 +2674,11 @@ namespace heist {
       case heist_sequence::nul: 
         return G::FALSE_DATA_BOOLEAN;
       case heist_sequence::vec:
-        return prm_search_STATIC_SEQUENCE_from_left<is_false_scm_condition>(procedure,args,&data::vec,env);
+        return prm_search_STATIC_SEQUENCE_from_left<is_false_scm_condition>(procedure,args,&data::vec);
       case heist_sequence::str:
-        return prm_search_STATIC_SEQUENCE_from_left<is_false_scm_condition>(procedure,args,&data::str,env);
+        return prm_search_STATIC_SEQUENCE_from_left<is_false_scm_condition>(procedure,args,&data::str);
       default:
-        return prm_search_list_from_left<is_false_scm_condition>(procedure,args[1],env);
+        return prm_search_list_from_left<is_false_scm_condition>(procedure,args[1]);
     }
   }
 
@@ -2734,8 +2686,6 @@ namespace heist {
   data primitive_SKIP_RIGHT(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (skip-right <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
-    auto env = args.rbegin()->env;
-    args.pop_back();
     if(args.size() != 2) 
       THROW_ERR("'skip-right received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("skip-right",args));
@@ -2744,11 +2694,11 @@ namespace heist {
       case heist_sequence::nul: 
         return args[1];
       case heist_sequence::vec:
-        return prm_search_STATIC_SEQUENCE_from_right<is_false_scm_condition>(procedure,args,&data::vec,env);
+        return prm_search_STATIC_SEQUENCE_from_right<is_false_scm_condition>(procedure,args,&data::vec);
       case heist_sequence::str:
-        return prm_search_STATIC_SEQUENCE_from_right<is_false_scm_condition>(procedure,args,&data::str,env);
+        return prm_search_STATIC_SEQUENCE_from_right<is_false_scm_condition>(procedure,args,&data::str);
       default:
-        return prm_search_list_from_right<is_false_scm_condition>(procedure,args,env);
+        return prm_search_list_from_right<is_false_scm_condition>(procedure,args);
     }
   }
 
@@ -2756,8 +2706,6 @@ namespace heist {
   data primitive_INDEX(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (index <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
-    auto env = args.rbegin()->env;
-    args.pop_back();
     if(args.size() != 2) 
       THROW_ERR("'index received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("index",args));
@@ -2766,11 +2714,11 @@ namespace heist {
       case heist_sequence::nul:
         return G::FALSE_DATA_BOOLEAN;
       case heist_sequence::vec:
-        return prm_search_STATIC_SEQUENCE_from_left<is_true_scm_condition>(procedure,args,&data::vec,env);
+        return prm_search_STATIC_SEQUENCE_from_left<is_true_scm_condition>(procedure,args,&data::vec);
       case heist_sequence::str:
-        return prm_search_STATIC_SEQUENCE_from_left<is_true_scm_condition>(procedure,args,&data::str,env);
+        return prm_search_STATIC_SEQUENCE_from_left<is_true_scm_condition>(procedure,args,&data::str);
       default:
-        return prm_search_list_from_left<is_true_scm_condition>(procedure,args[1],env);
+        return prm_search_list_from_left<is_true_scm_condition>(procedure,args[1]);
     }
   }
 
@@ -2778,8 +2726,6 @@ namespace heist {
   data primitive_INDEX_RIGHT(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (index-right <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
-    auto env = args.rbegin()->env;
-    args.pop_back();
     if(args.size() != 2) 
       THROW_ERR("'index-right received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("index-right",args));
@@ -2788,11 +2734,11 @@ namespace heist {
       case heist_sequence::nul:
         return args[1];
       case heist_sequence::vec:
-        return prm_search_STATIC_SEQUENCE_from_right<is_true_scm_condition>(procedure,args,&data::vec,env);
+        return prm_search_STATIC_SEQUENCE_from_right<is_true_scm_condition>(procedure,args,&data::vec);
       case heist_sequence::str:
-        return prm_search_STATIC_SEQUENCE_from_right<is_true_scm_condition>(procedure,args,&data::str,env);
+        return prm_search_STATIC_SEQUENCE_from_right<is_true_scm_condition>(procedure,args,&data::str);
       default:
-        return prm_search_list_from_right<is_true_scm_condition>(procedure,args,env);
+        return prm_search_list_from_right<is_true_scm_condition>(procedure,args);
     }
   }
 
@@ -2870,8 +2816,6 @@ namespace heist {
 
   // primitive "any" procedure:
   data primitive_ANY(scm_list& args) {
-    auto env = args.rbegin()->env;
-    args.pop_back();
     static constexpr const char * const format = 
       "\n     (any <predicate> <sequence1> <sequence2> ...)" 
       SEQUENCE_DESCRIPTION;
@@ -2883,18 +2827,16 @@ namespace heist {
       case heist_sequence::nul:
         return G::FALSE_DATA_BOOLEAN;
       case heist_sequence::vec:
-        return primitive_STATIC_SEQUENCE_any_logic<types::vec>(procedure,args,env,&data::vec,"vector",format);
+        return primitive_STATIC_SEQUENCE_any_logic<types::vec>(procedure,args,&data::vec,"vector",format);
       case heist_sequence::str:
-        return primitive_STATIC_SEQUENCE_any_logic<types::str>(procedure,args,env,&data::str,"string",format);
+        return primitive_STATIC_SEQUENCE_any_logic<types::str>(procedure,args,&data::str,"string",format);
       default:
-        return primitive_list_any_logic(procedure,args,env,format);
+        return primitive_list_any_logic(procedure,args,format);
     }
   }
 
   // primitive "every" procedure:
   data primitive_EVERY(scm_list& args) {
-    auto env = args.rbegin()->env;
-    args.pop_back();
     static constexpr const char * const format = 
       "\n     (every <predicate> <sequence1> <sequence2> ...)" 
       SEQUENCE_DESCRIPTION;
@@ -2906,11 +2848,11 @@ namespace heist {
       case heist_sequence::nul:
         return G::FALSE_DATA_BOOLEAN;
       case heist_sequence::vec:
-        return primitive_STATIC_SEQUENCE_every_logic<types::vec>(procedure,args,env,&data::vec,"vector",format);
+        return primitive_STATIC_SEQUENCE_every_logic<types::vec>(procedure,args,&data::vec,"vector",format);
       case heist_sequence::str:
-        return primitive_STATIC_SEQUENCE_every_logic<types::str>(procedure,args,env,&data::str,"string",format);
+        return primitive_STATIC_SEQUENCE_every_logic<types::str>(procedure,args,&data::str,"string",format);
       default:
-        return primitive_list_every_logic(procedure,args,env,format);
+        return primitive_list_every_logic(procedure,args,format);
     }
   }
 
@@ -2948,38 +2890,29 @@ namespace heist {
   data primitive_SORT(scm_list& args) {
     constexpr const char * const format = 
       "\n     (sort <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
-    // extract the environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     // confirm has a valid argument signature
     primitive_confirm_sortable_sequence(args, "sort", format);
     // return if sorting the empty list
     if(args[1].is_type(types::sym)) return args[1];
     // sort the sequence
-    return primitive_sort_sequence(args, env, "sort", format);
+    return primitive_sort_sequence(args, "sort", format);
   }
 
   // primitive "sort!" procedure:
   data primitive_SORT_BANG(scm_list& args) {
     constexpr const char * const format = 
       "\n     (sort! <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
-    // extract the environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     // confirm has a valid argument signature
     primitive_confirm_sortable_sequence(args, "sort!", format);
     // return if sorting the empty list (already sorted)
     if(args[1].is_type(types::sym)) return G::VOID_DATA_OBJECT;
     // set the sequence to its sorted variant
     return mutatable_assign_scm_sequence(args[1],
-      primitive_sort_sequence(args,env,"sort!",format));
+      primitive_sort_sequence(args,"sort!",format));
   }
 
   // primitive "sorted?" procedure:
   data primitive_SORTEDP(scm_list& args) {
-    // extract the environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     // confirm has a valid argument signature
     primitive_confirm_sortable_sequence(args, "sorted?", 
       "\n     (sorted? <predicate> <sequence>)" SEQUENCE_DESCRIPTION);
@@ -2994,7 +2927,7 @@ namespace heist {
       for(size_type i = 0, n = sequence.size(); i+1 < n; ++i) {
         scm_list args_list(2);
         args_list[0] = sequence[i], args_list[1] = sequence[i+1];
-        if(is_false_scm_condition(procedure,args_list,env))
+        if(is_false_scm_condition(procedure,args_list))
           return G::FALSE_DATA_BOOLEAN;
       }
     }
@@ -3006,9 +2939,6 @@ namespace heist {
     constexpr const char * const format = 
       "\n     (merge <predicate> <sequence1> <sequence2>)"
       SEQUENCE_DESCRIPTION;
-    // extract the environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     // Confirm given correct # of args needed
     if(args.size() != 3) 
       THROW_ERR("'merge received incorrect # of args (given " 
@@ -3030,10 +2960,10 @@ namespace heist {
     // If merging vectors or strings: 
     scm_list merged_sequence;
     if(!args[1].is_type(types::par)) 
-      return primitive_MERGE_vector_string_constructor(args,merged_sequence,env,format);
+      return primitive_MERGE_vector_string_constructor(args,merged_sequence,format);
     // Else apply the procedure on each list elt & merge args as per the result into a list
     scm_list list_heads(args.begin()+1, args.end());
-    primitive_MERGE_list_constructor(list_heads,procedure,merged_sequence,env);
+    primitive_MERGE_list_constructor(list_heads,procedure,merged_sequence);
     return primitive_LIST_to_CONS_constructor(merged_sequence.begin(),merged_sequence.end());
   }
 
@@ -3412,9 +3342,6 @@ namespace heist {
     // get whether in a tail call
     bool tail_call = args.rbegin()->bol.val;
     args.pop_back();
-    // extract the environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     // confirm the correct # of arguments were passed
     static constexpr const char * const format = "\n     (apply <callable> <argument-list>)";
     if(args.size() != 2)
@@ -3429,7 +3356,7 @@ namespace heist {
     scm_list args_list;
     shallow_unpack_list_into_exp(args[1], args_list);
     if(args_list.empty()) args_list.push_back(symconst::sentinel_arg);
-    return data_cast(execute_callable(args[0],args_list,env,tail_call));
+    return data_cast(execute_callable(args[0],args_list,G::GLOBAL_ENVIRONMENT_POINTER,tail_call));
   }
 
   /******************************************************************************
@@ -3743,9 +3670,6 @@ namespace heist {
 
   // primitive "stream-for-each" procedure:
   data primitive_STREAM_FOR_EACH(scm_list& args) {
-    // extract the environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     // Confirm given minimum # of args needed
     static constexpr const char * const format = 
       "\n     (stream-for-each <callable> <stream1> <stream2> ...)";
@@ -3757,7 +3681,7 @@ namespace heist {
     primitive_confirm_only_given_streams(stream_heads,"stream-for-each",format,1,args);
     // Apply the procedure on each elt of each stream
     auto procedure(validate_and_extract_callable(args[0], "stream-for-each", format, args));
-    primitive_STREAM_FOR_EACH_applicator(stream_heads, procedure, env);
+    primitive_STREAM_FOR_EACH_applicator(stream_heads, procedure);
     return G::VOID_DATA_OBJECT;
   }
 
@@ -3804,23 +3728,17 @@ namespace heist {
 
   // primitive "stream-drop-while" procedure:
   data primitive_STREAM_DROP_WHILE(scm_list& args) {
-    // extract the environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     // Confirm appropriate # of args given
     primitive_TEMPLATE_TAKE_DROP_WHILE_VALIDATION(args, "stream-drop-while", 
       "\n     (stream-drop-while <predicate> <stream>)");
     // Get keep dropping items while 'predicate' is true, then return result
     if(data_is_the_empty_expression(args[1])) return args[1];
     auto procedure = primitive_extract_callable_procedure(args[0]);
-    return primitive_DROP_WHILE_ctor(std::move(args[1]), procedure, env);
+    return primitive_DROP_WHILE_ctor(std::move(args[1]), procedure);
   }
 
   // primitive "stream-take" procedure:
   data primitive_STREAM_TAKE(scm_list& args){
-    // extract the environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     // Confirm appropriate # of args given
     primitive_TEMPLATE_TAKE_DROP_VALIDATION(args, "stream-take", 
       "\n     (stream-take <stream> <n>)");
@@ -3830,14 +3748,11 @@ namespace heist {
     if(!n) return data(symconst::emptylist);
     scm_list substream;
     primitive_TAKE_SUBSTREAM_seeker(std::move(args[0]),n,substream);
-    return primitive_STREAM_to_SCONS_constructor(substream.begin(),substream.end(),env);
+    return primitive_STREAM_to_SCONS_constructor(substream.begin(),substream.end());
   }
 
   // primitive "stream-take-while" procedure:
   data primitive_STREAM_TAKE_WHILE(scm_list& args) {
-    // extract the environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     // Confirm appropriate # of args given
     primitive_TEMPLATE_TAKE_DROP_WHILE_VALIDATION(args, "stream-take-while", 
       "\n     (stream-take-while <predicate> <stream>)");
@@ -3845,16 +3760,13 @@ namespace heist {
     if(data_is_the_empty_expression(args[1])) return args[1];
     scm_list substream;
     auto procedure = primitive_extract_callable_procedure(args[0]);
-    primitive_TAKE_WHILE_ctor(std::move(args[1]), procedure, substream, env);
+    primitive_STREAM_TAKE_WHILE_ctor(std::move(args[1]), procedure, substream);
     if(substream.empty()) return data(symconst::emptylist);
-    return primitive_STREAM_to_SCONS_constructor(substream.begin(),substream.end(),env);
+    return primitive_STREAM_to_SCONS_constructor(substream.begin(),substream.end());
   }
 
   // primitive "stream-reverse" procedure:
   data primitive_STREAM_REVERSE(scm_list& args) {
-    // extract the environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     // Confirm given a single stream arg
     confirm_given_one_arg(args,"stream-reverse","<stream>");
     if(!data_is_stream(args[0]))
@@ -3865,7 +3777,7 @@ namespace heist {
     scm_list stream_as_exp;
     unpack_stream_into_exp(std::move(args[0]), stream_as_exp);
     std::reverse(stream_as_exp.begin(),stream_as_exp.end());
-    return primitive_STREAM_to_SCONS_constructor(stream_as_exp.begin(),stream_as_exp.end(),env);
+    return primitive_STREAM_to_SCONS_constructor(stream_as_exp.begin(),stream_as_exp.end());
   }
 
   // primitive "stream-fold" procedure:
@@ -3882,15 +3794,11 @@ namespace heist {
 
   // primitive "stream->list" procedure:
   data primitive_CONVERT_STREAM_LIST(scm_list& args) {
-    // extract the environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     // Confirm given proper args (same signature as stream-drop & stream-take)
     primitive_TEMPLATE_TAKE_DROP_VALIDATION(args, "stream->list", 
                                             "\n     (stream->list <stream> <size>)");
     // Invoke stream-take, convert substream -> exp -> list
     if(data_is_the_empty_expression(args[0])) return args[0];
-    args.push_back(env); // reinsert env for stream-take
     auto substream = primitive_STREAM_TAKE(args);
     scm_list stream_as_exp;
     unpack_stream_into_exp(std::move(substream), stream_as_exp);
@@ -3899,9 +3807,6 @@ namespace heist {
 
   // primitive "list->stream" procedure:
   data primitive_CONVERT_LIST_STREAM(scm_list& args) {
-    // extract the environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     // Confirm given a single proper list arg
     confirm_given_one_arg(args,"list->stream","<list>");
     if(!data_is_proper_list(args[0]))
@@ -3912,7 +3817,7 @@ namespace heist {
     scm_list par_as_exp;
     shallow_unpack_list_into_exp(args[0], par_as_exp);
     if(par_as_exp.empty()) return data(symconst::emptylist);
-    return primitive_STREAM_to_SCONS_constructor(par_as_exp.begin(),par_as_exp.end(),env);
+    return primitive_STREAM_to_SCONS_constructor(par_as_exp.begin(),par_as_exp.end());
   }
 
   /******************************************************************************
@@ -4302,31 +4207,25 @@ namespace heist {
   ******************************************************************************/
 
   data primitive_READ(scm_list& args) {
-    // Extract the environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     // Confirm either given an open input port or string or no args
     FILE* outs = G::CURRENT_OUTPUT_PORT, *ins = G::CURRENT_INPUT_PORT;
     bool reading_stdin = (G::CURRENT_INPUT_PORT == stdin), reading_string = false;
     if(!confirm_valid_input_args_and_non_EOF(args, ins, "read", reading_stdin, reading_string)) 
       return chr_type(EOF);
     if(reading_string)
-      return primitive_read_from_string_logic(*args[0].str,env);
-    return primitive_read_from_input_port_logic(outs,ins,reading_stdin,env);
+      return primitive_read_from_string_logic(*args[0].str);
+    return primitive_read_from_input_port_logic(outs,ins,reading_stdin);
   }
 
   data primitive_READ_STRING(scm_list& args) {
-    // extract the environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     // return string w/ next valid scheme expression, if successfully parsed one
     FILE* outs = G::CURRENT_OUTPUT_PORT, *ins = G::CURRENT_INPUT_PORT;
     bool reading_stdin = (G::CURRENT_INPUT_PORT == stdin), reading_string = false;
     if(!confirm_valid_input_args_and_non_EOF(args, ins, "read-string", reading_stdin, reading_string)) 
       return make_str("");
     if(reading_string)
-      return make_str(primitive_read_from_string_logic(*args[0].str,env).write());
-    return make_str(primitive_read_from_input_port_logic(outs,ins,reading_stdin,env).write());
+      return make_str(primitive_read_from_string_logic(*args[0].str).write());
+    return make_str(primitive_read_from_input_port_logic(outs,ins,reading_stdin).write());
   }
 
   data primitive_READ_LINE(scm_list& args) {
@@ -4544,9 +4443,6 @@ namespace heist {
 
   // retrieve a port for a file
   data primitive_OPEN_INPUT_FILE(scm_list& args){
-    // extract the environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     // confirm given a filename string
     confirm_given_one_arg(args,"open-input-file","<filename-string>");
     G::PORT_REGISTRY.push_back(confirm_valid_input_file(args[0],"open-input-file",
@@ -4555,9 +4451,6 @@ namespace heist {
   }
 
   data primitive_OPEN_OUTPUT_FILE(scm_list& args){ // open iff filename dne
-    // extract the environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     // confirm given a filename string
     confirm_given_one_arg(args,"open-output-file","<filename-string>");
     G::PORT_REGISTRY.push_back(confirm_valid_output_file(args[0],"open-output-file",
@@ -4566,9 +4459,6 @@ namespace heist {
   }
 
   data primitive_OPEN_OUTPUT_FILE_PLUS(scm_list& args){ // open via "append"
-    // extract the environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     // confirm given a filename string
     confirm_given_one_arg(args,"open-output-file+","<filename-string>");
     G::PORT_REGISTRY.push_back(confirm_valid_output_append_file(args[0],"open-output-file+",
@@ -4577,9 +4467,6 @@ namespace heist {
   }
 
   data primitive_OPEN_OUTPUT_FILE_BANG(scm_list& args){ // deletes if exists, and opens anew
-    // extract the environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     // confirm given a filename string, & rm file if exists
     confirm_given_one_string_arg(args, "open-output-file!", "\n     (open-output-file! <filename-string>)");
     std::remove(args[0].str->c_str());
@@ -4929,9 +4816,6 @@ namespace heist {
   }
 
   data primitive_CATCH_JUMP(scm_list& args) {
-    // extract the local environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     if(args.empty())
       THROW_ERR("'catch-jump recieved incorrect # of args!"
         "\n     (catch-jump <callable> <arg1> ... <argN>)" << FCN_ERR("catch-jump",args));
@@ -4941,7 +4825,7 @@ namespace heist {
     if(catch_jump_args.empty()) catch_jump_args.push_back(symconst::sentinel_arg);
     const bool inline_status = G::USING_INLINE_INVOCATIONS;
     try {
-      return data_cast(execute_callable(args[0],catch_jump_args,env));
+      return data_cast(execute_callable(args[0],catch_jump_args));
     } catch(const SCM_EXCEPT& jump_error) {
       G::USING_INLINE_INVOCATIONS = inline_status;
       if(jump_error == SCM_EXCEPT::JUMP)
@@ -4968,8 +4852,6 @@ namespace heist {
   // Invoke <proc> w/ args & trace the application (esp. helpful to trace recursion)
   // NOTE: The procedure MUST be a NAMED procedure (no anonymous lambda tracing support)!
   data primitive_TRACE(scm_list& args) {
-    auto env = args.rbegin()->env;
-    args.pop_back();
     if(args.empty())
       THROW_ERR("'trace recieved incorrect # of args!"
         "\n     (trace <procedure> <arg1> ... <argN>)" << FCN_ERR("trace",args));
@@ -4979,7 +4861,7 @@ namespace heist {
     if(trace_args.empty()) trace_args.push_back(symconst::sentinel_arg);
     // Set name of the function to trace
     G::TRACED_FUNCTION_NAME = args[0].fcn.name;
-    auto result = data_cast(execute_application(args[0],trace_args,env));
+    auto result = data_cast(execute_application(args[0],trace_args));
     G::TRACED_FUNCTION_NAME = "";
     return result;
   }
@@ -5200,27 +5082,23 @@ namespace heist {
 
   // primitive "regex-replace": replaces 1st instance w/ a string or using the given callable
   data primitive_REGEX_REPLACE(scm_list& args) {
-    auto env = args.rbegin()->env;
-    args.pop_back();
     static constexpr const char * const format = 
       "\n     (regex-replace <target-string> <regex-string> <replacement-string>)"
       "\n     (regex-replace <target-string> <regex-string> <callable>)"
       "\n     -> <callable> ::= (lambda (<prefix>, <suffix>, <match1>, ...) <body>)";
     confirm_n_args_and_first_2_args_are_strings(args,3,format,"regex-replace");
-    return regex_primitive_replace_application(args,format,"regex-replace",env,regex_replace,regex_replace_fcn);
+    return regex_primitive_replace_application(args,format,"regex-replace",regex_replace,regex_replace_fcn);
   }
 
 
   // primitive "regex-replace-all": replaces all instances w/ a string or using the given callable
   data primitive_REGEX_REPLACE_ALL(scm_list& args) {
-    auto env = args.rbegin()->env;
-    args.pop_back();
     static constexpr const char * const format = 
       "\n     (regex-replace-all <target-string> <regex-string> <replacement-string>)"
       "\n     (regex-replace-all <target-string> <regex-string> <callable>)"
       "\n     -> <callable> ::= (lambda (<prefix>, <suffix>, <match1>, ...) <body>)";
     confirm_n_args_and_first_2_args_are_strings(args,3,format,"regex-replace-all");
-    return regex_primitive_replace_application(args,format,"regex-replace-all",env,regex_replace_all,regex_replace_all_fcn);
+    return regex_primitive_replace_application(args,format,"regex-replace-all",regex_replace_all,regex_replace_all_fcn);
   }
 
 
@@ -5556,41 +5434,11 @@ namespace heist {
   ******************************************************************************/
 
   constexpr const prm_ptr_t ENV_REQUIRING_PRIMITIVES[] = {
-    primitive_EVAL,             primitive_APPLY,                primitive_FOR_EACH,
-    primitive_MAP,              primitive_FILTER,               primitive_MERGE,
-    primitive_SORT,             primitive_SORT_BANG,            primitive_SORTEDP,
-    primitive_READ,             primitive_READ_STRING,          primitive_FOLD,
-    primitive_FOLD_RIGHT,       primitive_DELETE_NEIGHBOR_DUPS, primitive_UNFOLD,
-    primitive_UNFOLD_RIGHT,     primitive_VECTOR_UNFOLD,        primitive_VECTOR_UNFOLD_RIGHT,
-    primitive_STRING_UNFOLD,    primitive_STRING_UNFOLD_RIGHT,  primitive_GETENV,
-    primitive_STRING_TRIM_BOTH, primitive_STRING_TRIM,          primitive_STRING_TRIM_RIGHT,
-    primitive_COUNT,            primitive_SEQ_EQ,               primitive_DELETE_NEIGHBOR_DUPS_BANG,
-    primitive_MAP_BANG,         primitive_INDEX,                primitive_INDEX_RIGHT,
-    primitive_SKIP,             primitive_SKIP_RIGHT,           primitive_VECTOR_BINARY_SEARCH,
-    primitive_EVERY,            primitive_ANY,                  primitive_TAKE_WHILE,
-    primitive_TAKE_RIGHT_WHILE, primitive_DROP_WHILE,           primitive_DROP_RIGHT_WHILE,
-    primitive_MAKE_LOG_BASE,    primitive_REMOVE_FIRST,         primitive_REMOVE_LAST, 
-    primitive_REMOVE,
-
-    primitive_STREAM_FOR_EACH,     primitive_STREAM_DROP_WHILE,
-    primitive_STREAM_TAKE,         primitive_STREAM_TAKE_WHILE,
-    primitive_STREAM_REVERSE,      primitive_CONVERT_STREAM_LIST,
-    primitive_CONVERT_LIST_STREAM, primitive_STREAM_FOLD,
-    primitive_STREAM_FOLD_RIGHT, 
-
-    primitive_CALL_WITH_INPUT_FILE,  primitive_CALL_WITH_OUTPUT_FILE,
-    primitive_WITH_INPUT_FROM_FILE,  primitive_WITH_OUTPUT_TO_FILE,
-    primitive_OPEN_INPUT_FILE,       primitive_OPEN_OUTPUT_FILE, 
-    primitive_OPEN_OUTPUT_FILE_PLUS, primitive_OPEN_OUTPUT_FILE_BANG, 
-    primitive_LOAD,                  primitive_CATCH_JUMP,
-    primitive_INLINE,                primitive_CALL_CE, 
-    primitive_CPS_EVAL,              primitive_CPS_LOAD, 
-    primitive_EXPAND,                primitive_TRACE, 
-    primitive_RUNTIME_SYNTAXP,       primitive_SET_RUNTIME_SYNTAX_BANG, 
-    primitive_REGEX_REPLACE,         primitive_REGEX_REPLACE_ALL, 
-    primitive_HMAP_FOR_EACH,         primitive_HMAP_MAP_BANG,
-    primitive_HMAP_FOR_EACH_KEY,     primitive_HMAP_FOR_EACH_VAL,
-    primitive_HMAP_MAP,
+    primitive_EVAL,            primitive_CPS_EVAL,
+    primitive_LOAD,            primitive_CPS_LOAD, 
+    primitive_INLINE,          primitive_CALL_CE, 
+    primitive_GETENV,          primitive_EXPAND,
+    primitive_RUNTIME_SYNTAXP, primitive_SET_RUNTIME_SYNTAX_BANG, 
   };
 
 #ifndef HEIST_CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
