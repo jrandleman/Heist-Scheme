@@ -202,6 +202,7 @@ namespace heist {
     constexpr const char * const hmap              = "hmap";
     constexpr const char * const definedp          = "defined?";
     constexpr const char * const infix_math_quote  = "infix-math-quote";
+    constexpr const char * const defmethod         = "defmethod";
   } // End namespace symconst
 
   /******************************************************************************

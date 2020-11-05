@@ -1001,6 +1001,7 @@ namespace heist {
     "\n     (defclass <class-name> (<optional-inherited-prototype>) <member-or-method-instances>)"\
     "\n     => <member-or-method> ::= (<member-name> <default-value>)"\
     "\n                             | ((<method-name> <arg1> <arg2> ...) <body> ...)"\
+    "\n                             | (defmethod <method-name> <procedure-value>)"\
     "\n                             | ((make-<class-name> <arg> ...) <body> ...) ; constructor"\
     "\n                             | ((eq? <obj>) <body> ...)    ; overload eq?"\
     "\n                             | ((eqv? <obj>) <body> ...)   ; overload eqv?"\
@@ -1028,7 +1029,12 @@ namespace heist {
     for(size_type i = 3, n = exp.size(); i < n; ++i) {
       if(!exp[i].is_type(types::exp) || exp[i].exp.size() < 2)
         THROW_ERR("'defclass invalid <member-or-method-instance> => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
-      if(exp[i].exp[0].is_type(types::sym)) { // member
+      if(exp[i].exp[0].is_type(types::sym)) { // member | defmethod
+        if(exp[i].exp[0].sym == symconst::defmethod) {
+          if(exp[i].exp.size() != 3 || !exp[i].exp[1].is_type(types::sym))
+            THROW_ERR("'defclass invalid method definition => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
+          continue;
+        }
         if(exp[i].exp.size() != 2)
           THROW_ERR("'defclass invalid <member-or-method-instance> => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
         if(exp[i].exp[0].sym == "super")
@@ -1199,15 +1205,21 @@ namespace heist {
     const scm_string ctor_name("make-"+exp[1].sym);
     for(size_type i = 3, n = exp.size(); i < n; ++i) {
       // parse member
-      if(exp[i].exp[0].is_type(types::sym)) {
+      if(exp[i].exp[0].is_type(types::sym) && exp[i].exp[0].sym != symconst::defmethod) {
         validate_unique_member_or_method_name(exp,exp[i].exp[0].sym,proto.method_names,"member already defined as a method");
         validate_unique_member_or_method_name(exp,exp[i].exp[0].sym,proto.member_names,"member is already defined");
         proto.member_names.push_back(exp[i].exp[0].sym);
         member_exec_procs.push_back(scm_analyze(scm_list_cast(exp[i].exp[1])));
       // parse method
       } else { 
+        // extract defmethod
+        if(exp[i].exp[0].is_type(types::sym)) {
+          validate_unique_member_or_method_name(exp,exp[i].exp[1].sym,proto.member_names,"method already defined as a member");
+          validate_unique_member_or_method_name(exp,exp[i].exp[1].sym,proto.method_names,"method is already defined");
+          proto.method_names.push_back(exp[i].exp[1].sym);
+          method_exec_procs.push_back(scm_analyze(scm_list_cast(exp[i].exp[2])));
         // extract ctor
-        if(exp[i].exp[0].exp[0].sym == ctor_name) {
+        } else if(exp[i].exp[0].exp[0].sym == ctor_name) {
           ctor_proc = exp[i].exp;
         // regular method
         } else {
