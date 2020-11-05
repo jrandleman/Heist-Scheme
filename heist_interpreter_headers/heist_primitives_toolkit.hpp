@@ -813,7 +813,7 @@ namespace heist {
     if(!args[0].is_type(types::map))
       THROW_ERR('\''<<name<<" arg "<<PROFILE(args[0])<<" isn't a hash-map!" 
         << format << HEIST_HASH_MAP_KEY_FORMAT << FCN_ERR(name, args));
-    if(!map_data::hashable(args[1]))
+    if(!scm_map::hashable(args[1]))
       THROW_ERR('\''<<name<<" arg "<<PROFILE(args[1])<<" isn't a valid hashable key!" 
         << format << HEIST_HASH_MAP_KEY_FORMAT << FCN_ERR(name, args));
   }
@@ -5103,7 +5103,7 @@ namespace heist {
   data initialize_OO_ctord_object_HMAP(scm_list& args, cls_type& class_proto_obj, object_type& obj, const char* format) {
     const size_type total_members = obj.member_names.size();
     for(auto& keyval : args[1].map->val) {
-      auto key = map_data::unhash_key(keyval.first);
+      auto key = scm_map::unhash_key(keyval.first);
       if(!key.is_type(types::sym))
         THROW_ERR("'make-"<< class_proto_obj->class_name<<" member-name key "<<PROFILE(key) 
           << " isn't a symbol!" << format << FCN_ERR("'make-"+class_proto_obj->class_name,args));
@@ -5187,7 +5187,7 @@ namespace heist {
   // <DONT_INCLUDE_SUPER_PROTOTYPE_MEMBERS> -> true iff generating JSON
   template<bool DONT_INCLUDE_SUPER_PROTOTYPE_MEMBERS>
   data prm_recursively_convert_OBJ_to_HMAP(const data& d)noexcept{
-    map_data m;
+    scm_map m;
     for(size_type i = 0, n = d.obj->member_names.size(); i < n; ++i) {
       if constexpr (DONT_INCLUDE_SUPER_PROTOTYPE_MEMBERS)
         if(d.obj->member_names[i] == "super" || d.obj->member_names[i] == "prototype") 
@@ -5206,7 +5206,7 @@ namespace heist {
     scm_list alist;
     for(const auto& keyval : d.map->val) {
       data p = make_par();
-      p.par->first = map_data::unhash_key(keyval.first);
+      p.par->first = scm_map::unhash_key(keyval.first);
       p.par->second = make_par();
       if(keyval.second.is_type(types::map))
         p.par->second.par->first = prm_recursively_convert_HMAP_to_ALIST(keyval.second);
@@ -5224,7 +5224,7 @@ namespace heist {
     scm_list alist;
     for(const auto& keyval : d.map->val) {
       data p = make_par();
-      auto key = map_data::unhash_key(keyval.first);
+      auto key = scm_map::unhash_key(keyval.first);
       // convert the key into a JSON string key
       switch(key.type) {
         case types::str:

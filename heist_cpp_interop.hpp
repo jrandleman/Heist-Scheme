@@ -11,8 +11,7 @@
 // Defines 4 Functions for C++ Interop w/ Heist:
 //   0) eval   // evaluate heist code string, same as _heist literal (see below)
 //   1) apply  // apply args to Heist procedure
-//   2) defun  // define C++ Heist primitive
-//   3) defvar // define a global Heist variable
+//   2) define // define C++ Heist primitive _OR_ a global Heist variable
 
 #include "heist.cpp"
 
@@ -62,7 +61,7 @@ namespace heist {
   // Define C++ Primitive for Heist Scheme
   //  => NOTE: "append_env_to_args" is used by higher-order procedures to apply
   //           heist procedures recieved as arguments
-  void defun(const std::string& heist_primitive_name, prm_ptr_t cpp_function, bool append_env_to_args=false) noexcept {
+  void define(const std::string& heist_primitive_name, prm_ptr_t cpp_function, bool append_env_to_args=false) noexcept {
     if(!G::GLOBAL_ENVIRONMENT_POINTER) set_default_global_environment(), atexit(close_port_registry);
     define_variable(heist_primitive_name, scm_fcn(heist_primitive_name,cpp_function), G::GLOBAL_ENVIRONMENT_POINTER);
     if(append_env_to_args)
@@ -71,7 +70,7 @@ namespace heist {
 
 
   // Define Heist Scheme Variable
-  void defvar(const std::string& heist_variable_name, const data& variable_value) noexcept {
+  void define(const std::string& heist_variable_name, const data& variable_value) noexcept {
     if(!G::GLOBAL_ENVIRONMENT_POINTER) set_default_global_environment(), atexit(close_port_registry);
     define_variable(heist_variable_name, variable_value, G::GLOBAL_ENVIRONMENT_POINTER);
   }

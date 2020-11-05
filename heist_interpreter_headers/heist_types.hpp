@@ -234,12 +234,12 @@ namespace heist {
   using vec_type = tgc_ptr<scm_list>;               // vector
   using bol_type = struct boolean;                  // boolean
   using env_type = tgc_ptr<environment>;            // evironment
-  using del_type = tgc_ptr<struct delay_data>;      // delay
+  using del_type = tgc_ptr<struct scm_delay>;       // delay
   using fcn_type = struct scm_fcn;                  // procedure (compound & primitive)
   using fip_type = struct iport;                    // file input port
   using fop_type = struct oport;                    // file output port
   using syn_type = struct scm_macro;                // syntax-rules object
-  using map_type = tgc_ptr<struct map_data>;        // hash-map
+  using map_type = tgc_ptr<struct scm_map>;         // hash-map
   using cls_type = tgc_ptr<struct class_prototype>; // class-prototype
   using obj_type = tgc_ptr<struct object_type>;     // object
 
@@ -796,29 +796,29 @@ namespace heist {
   }; // End struct data
 
   // delay structure
-  struct delay_data {
+  struct scm_delay {
     scm_list exp;
     env_type env;
     bool already_forced;
     data result;
-    delay_data(const scm_list& delayed_exp = scm_list(), env_type delay_env = nullptr) noexcept
+    scm_delay(const scm_list& delayed_exp = scm_list(), env_type delay_env = nullptr) noexcept
       : exp(delayed_exp), env(delay_env), already_forced(false), result(boolean(false)) {}
-    void operator=(const delay_data& d) noexcept {
+    void operator=(const scm_delay& d) noexcept {
       if(this == &d) return;
       exp=d.exp, env=d.env, already_forced=d.already_forced, result=d.result;
     }
-    void operator=(delay_data&& d) noexcept {
+    void operator=(scm_delay&& d) noexcept {
       if(this == &d) return;
       exp=std::move(d.exp), env=std::move(d.env);
       already_forced=std::move(d.already_forced), result=std::move(d.result);
     }
-    delay_data(const delay_data& d) noexcept {*this = d;}
-    delay_data(delay_data&& d)      noexcept {*this = std::move(d);}
-    ~delay_data()                   noexcept {}
+    scm_delay(const scm_delay& d) noexcept {*this = d;}
+    scm_delay(scm_delay&& d)      noexcept {*this = std::move(d);}
+    ~scm_delay()                   noexcept {}
   };
 
   // hash-map structure
-  struct map_data {
+  struct scm_map {
     std::unordered_map<sym_type,struct data> val;
     static bool hashable(const data& key)noexcept{
       return key.type==types::num||key.type==types::str||key.type==types::chr||
@@ -866,7 +866,7 @@ namespace heist {
   data deep_copy_pair(const data& d);
   data deep_copy_obj(const data& d);
   data data::copy() const {
-    map_data m;
+    scm_map m;
     scm_list new_vec;
     switch(type) {
       case types::str: return str_type(*str);
@@ -914,10 +914,10 @@ namespace heist {
   str_type make_str(scm_string&& o)                     noexcept{return str_type(std::move(o));}
   vec_type make_vec(const scm_list& o)                  noexcept{return vec_type(o);}
   vec_type make_vec(scm_list&& o)                       noexcept{return vec_type(std::move(o));}
-  del_type make_del(const scm_list& l,const env_type& e)noexcept{return del_type(delay_data(l,e));}
+  del_type make_del(const scm_list& l,const env_type& e)noexcept{return del_type(scm_delay(l,e));}
   par_type make_par()                                   noexcept{return par_type(scm_pair());}
-  map_type make_map(const map_data& m)                  noexcept{return map_type(m);}
-  map_type make_map(map_data&& m)                       noexcept{return map_type(std::move(m));}
+  map_type make_map(const scm_map& m)                  noexcept{return map_type(m);}
+  map_type make_map(scm_map&& m)                       noexcept{return map_type(std::move(m));}
   env_type make_env()                                   noexcept{return env_type(environment());}
   cls_type make_cls(const class_prototype& c)           noexcept{return cls_type(c);}
   obj_type make_obj(const object_type& o)               noexcept{return obj_type(o);}

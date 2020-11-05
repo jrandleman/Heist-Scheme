@@ -332,7 +332,7 @@ namespace heist {
   scm_string cio_hmap_str(const map_type& map_object) {
     scm_string map_str("$(");
     for(const auto& keyval : map_object->val)
-      map_str += (map_data::unhash_key(keyval.first).*to_str)() + ' ' + (keyval.second.*to_str)() + ' ';
+      map_str += (scm_map::unhash_key(keyval.first).*to_str)() + ' ' + (keyval.second.*to_str)() + ' ';
     if(map_str.size() > 2)
       *map_str.rbegin() = ')';
     else

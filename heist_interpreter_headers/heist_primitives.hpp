@@ -1261,13 +1261,13 @@ namespace heist {
   data primitive_HMAP(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (hmap <key1> <val1> <key2> <val2> ...)" HEIST_HASH_MAP_KEY_FORMAT;
-    if(args.empty()) return make_map(map_data());
+    if(args.empty()) return make_map(scm_map());
     if(args.size() & 1) 
       THROW_ERR("'hmap recieved uneven # of args!"<<format<<FCN_ERR("hmap",args));
-    map_data hmap;
+    scm_map hmap;
     // verify all keys are hashable
     for(size_type i = args.size()-2; i != G::MAX_SIZE_TYPE-1; i -= 2) {
-      if(!map_data::hashable(args[i]))
+      if(!scm_map::hashable(args[i]))
         THROW_ERR("'hmap key " << PROFILE(args[i]) << " isn't hashable!"
           << format << FCN_ERR("hmap", args));
       hmap[args[i]] = args[i+1];
@@ -1280,7 +1280,7 @@ namespace heist {
     hmap_confirm_unary_map("hmap-keys","\n     (hmap-keys <hash-map>)",args);
     scm_list keys_list;
     for(const auto& keyval : args[0].map->val)
-      keys_list.push_back(map_data::unhash_key(keyval.first));
+      keys_list.push_back(scm_map::unhash_key(keyval.first));
     return primitive_LIST_to_CONS_constructor(keys_list.begin(),keys_list.end());
   }
 
@@ -1296,7 +1296,7 @@ namespace heist {
   // primitive "hmap-key?":
   data primitive_HMAP_KEYP(scm_list& args) {
     hmap_confirm_binary_map_key("hmap-key?","\n     (hmap-key? <hash-map> <key>)",args);
-    return boolean(args[0].map->val.count(map_data::hash_key(args[1])));
+    return boolean(args[0].map->val.count(scm_map::hash_key(args[1])));
   }
 
   // primitive "hmap-hashable?":
@@ -1304,13 +1304,13 @@ namespace heist {
     if(args.size() != 1) 
       THROW_ERR("'hmap-hashable? didn't receive 1 arg!" 
         "\n     (hmap-hashable? <obj>)" << FCN_ERR("hmap-hashable?", args));
-    return boolean(map_data::hashable(args[0]));
+    return boolean(scm_map::hashable(args[0]));
   }
 
   // primitive "hmap-ref":
   data primitive_HMAP_REF(scm_list& args) {
     hmap_confirm_binary_map_key("hmap-ref","\n     (hmap-ref <hash-map> <key>)",args);
-    auto hashed_key = map_data::hash_key(args[1]);
+    auto hashed_key = scm_map::hash_key(args[1]);
     if(!args[0].map->val.count(hashed_key))
       THROW_ERR("'hmap-ref arg "<<PROFILE(args[1])<<" isn't a key in hash-map "
         << args[0] << "!\n     (hmap-ref <hash-map> <key>)" << FCN_ERR("hmap-ref", args));
@@ -1327,13 +1327,19 @@ namespace heist {
   // primitive "hmap-delete!":
   data primitive_HMAP_DELETE_BANG(scm_list& args) {
     hmap_confirm_binary_map_key("hmap-delete!","\n     (hmap-delete! <hash-map> <key>)",args);
-    return boolean(args[0].map->val.erase(map_data::hash_key(args[1])));
+    return boolean(args[0].map->val.erase(scm_map::hash_key(args[1])));
   }
 
   // primitive "hmap-length":
   data primitive_HMAP_LENGTH(scm_list& args) {
     hmap_confirm_unary_map("hmap-length","\n     (hmap-length <hash-map>)",args);
     return num_type(args[0].map->val.size());
+  }
+
+  // primitive "hmap-empty?":
+  data primitive_HMAP_EMPTYP(scm_list& args) {
+    hmap_confirm_unary_map("hmap-empty?","\n     (hmap-empty? <hash-map>)",args);
+    return boolean(args[0].map->val.empty());
   }
 
   // primitive "hmap-copy":
@@ -1345,7 +1351,7 @@ namespace heist {
   // primitive "hmap-merge":
   data primitive_HMAP_MERGE(scm_list& args) {
     hmap_confirm_given_2_maps("hmap-merge","\n     (hmap-merge <hash-map-1> <hash-map-2>)",args);
-    map_data map;
+    scm_map map;
     for(const auto& keyval : args[1].map->val)
       map.val[keyval.first] = keyval.second;
     for(const auto& keyval : args[0].map->val) // 1st arg key vals supersede 2nd arg key vals
@@ -1380,7 +1386,7 @@ namespace heist {
     }
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_FOR_EACH_KEY,"hmap-for-each-key",
-    scm_list arg(1,map_data::unhash_key(keys[i]));
+    scm_list arg(1,scm_map::unhash_key(keys[i]));
     execute_application(procedure,arg););
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_FOR_EACH_VAL,"hmap-for-each-val",
@@ -1389,7 +1395,7 @@ namespace heist {
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_FOR_EACH,"hmap-for-each",
     auto p = make_par();
-    p->first = map_data::unhash_key(keys[i]);
+    p->first = scm_map::unhash_key(keys[i]);
     p->second = args[1].map->val[keys[i]];
     scm_list arg(1,p);
     execute_application(procedure,arg););
@@ -1402,10 +1408,17 @@ namespace heist {
   data primitive_HMAP_MAP(scm_list& args) {
     hmap_confirm_binary_procedure_map("hmap-map","\n     (hmap-map <callable> <hash-map>)",args);
     auto procedure(primitive_extract_callable_procedure(args[0]));
-    map_data map;
-    for(auto& keyvalue : args[1].map->val) {
-      scm_list arg(1,keyvalue.second);
-      map.val[keyvalue.first] = data_cast(execute_application(procedure,arg));
+    size_type n = args[1].map->val.size(), i = 0;
+    // extract all keys, then iterate thru keys (avoids iterator invalidation
+    // in case the procedure passed by the user [for some reason] erases elts 
+    // from the map being iterated through)
+    std::vector<scm_string> keys(n);
+    for(auto& keyvalue : args[1].map->val)
+      keys[i++] = keyvalue.first;
+    scm_map map;
+    for(i = 0; i < n; ++i) {
+      scm_list arg(1,args[1].map->val[keys[i]]);
+      map.val[keys[i]] = data_cast(execute_application(procedure,arg));
     }
     return make_map(std::move(map));
   }
@@ -1417,7 +1430,7 @@ namespace heist {
     size_type i = 0;
     for(auto& keyvalue : args[0].map->val) {
       auto p = make_par();
-      p->first = map_data::unhash_key(keyvalue.first);
+      p->first = scm_map::unhash_key(keyvalue.first);
       p->second = make_par();
       p->second.par->first = keyvalue.second;
       p->second.par->second = symconst::emptylist;
@@ -1435,7 +1448,7 @@ namespace heist {
       THROW_ERR("'alist->hmap arg "<<PROFILE(args[0])<<" isn't an <alist> of proper-list pairs of items!"
         "\n     (alist->hmap <alist>)" << FCN_ERR("alist->hmap",args));
     scm_list alist_exp;
-    map_data map;
+    scm_map map;
     shallow_unpack_list_into_exp(args[0],alist_exp);
     for(auto& p : alist_exp) {
       if(!p.is_type(types::par))
@@ -1444,7 +1457,7 @@ namespace heist {
       if(!p.par->second.is_type(types::par))
         THROW_ERR("'alist->hmap arg "<<PROFILE(args[0])<<" isn't an <alist> of proper-list pairs of items!"
           "\n     (alist->hmap <alist>)" << FCN_ERR("alist->hmap",args));
-      if(!map_data::hashable(p.par->first))
+      if(!scm_map::hashable(p.par->first))
         THROW_ERR("'alist->hmap key "<<PROFILE(p.par->first)<<" isn't hashable!"
           "\n     (alist->hmap <alist>)" HEIST_HASH_MAP_KEY_FORMAT << FCN_ERR("alist->hmap",args));
       map[p.par->first] = p.par->second.par->first;
@@ -5258,7 +5271,7 @@ namespace heist {
 
   data primitive_OBJECT_MEMBERS(scm_list& args) {
     confirm_given_unary_object_arg(args,"object-members");
-    map_data m;
+    scm_map m;
     for(size_type i = 0, n = args[0].obj->member_names.size(); i < n; ++i)
       m.val[args[0].obj->member_names[i]+char(types::sym)] = args[0].obj->member_values[i];
     return make_map(std::move(m));
@@ -5266,7 +5279,7 @@ namespace heist {
 
   data primitive_OBJECT_METHODS(scm_list& args) {
     confirm_given_unary_object_arg(args,"object-methods");
-    map_data m;
+    scm_map m;
     for(size_type i = 0, n = args[0].obj->method_names.size(); i < n; ++i)
       m.val[args[0].obj->method_names[i]+char(types::sym)] = extend_method_env_with_SELF_object(args[0].obj,args[0].obj->method_values[i].fcn);
     return make_map(std::move(m));
@@ -5433,7 +5446,7 @@ namespace heist {
   * REGISTRY OF PRIMITIVES ALSO REQUIRING AN ENVIRONMENT (TO APPLY A PROCEDURE)
   ******************************************************************************/
 
-  constexpr const prm_ptr_t ENV_REQUIRING_PRIMITIVES[] = {
+  constexpr const prm_ptr_t PRIMITIVES_REQUIRING_CURRENT_ENVIRONMENT[] = {
     primitive_EVAL,            primitive_CPS_EVAL,
     primitive_LOAD,            primitive_CPS_LOAD, 
     primitive_INLINE,          primitive_CALL_CE, 
@@ -5443,14 +5456,14 @@ namespace heist {
 
 #ifndef HEIST_CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
   constexpr bool primitive_requires_environment(const prm_ptr_t& prm)noexcept{
-    for(const auto& p : ENV_REQUIRING_PRIMITIVES)
+    for(const auto& p : PRIMITIVES_REQUIRING_CURRENT_ENVIRONMENT)
       if(p == prm) return true;
     return false;
   }
 #else // @EMBEDDED-IN-C++
   namespace G { std::vector<prm_ptr_t> USER_DEFINED_PRIMITIVES_REQUIRING_ENV; }
   bool primitive_requires_environment(const prm_ptr_t& prm)noexcept{
-    for(const auto& p : ENV_REQUIRING_PRIMITIVES)
+    for(const auto& p : PRIMITIVES_REQUIRING_CURRENT_ENVIRONMENT)
       if(p == prm) return true;
     for(const auto& p : G::USER_DEFINED_PRIMITIVES_REQUIRING_ENV)
       if(p == prm) return true;
@@ -5624,6 +5637,7 @@ namespace heist {
     std::make_pair(primitive_HMAP_SET_BANG,    "hmap-set!"),
     std::make_pair(primitive_HMAP_DELETE_BANG, "hmap-delete!"),
     std::make_pair(primitive_HMAP_LENGTH,      "hmap-length"),
+    std::make_pair(primitive_HMAP_EMPTYP,      "hmap-empty?"),
     std::make_pair(primitive_HMAP_COPY,        "hmap-copy"),
     std::make_pair(primitive_HMAP_MERGE,       "hmap-merge"),
     std::make_pair(primitive_HMAP_MERGE_BANG,  "hmap-merge!"),

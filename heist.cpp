@@ -860,7 +860,7 @@ namespace heist {
       if constexpr (IS_VECTOR_LITERAL)
         return [](env_type&){return scm_list(1,make_vec(scm_list()));};
       else
-        return [](env_type&){return scm_list(1,make_map(map_data()));};
+        return [](env_type&){return scm_list(1,make_map(scm_map()));};
     }
     // quote each item in the vector
     scm_list literal(args.size()+1);

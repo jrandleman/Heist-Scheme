@@ -23,7 +23,7 @@ heist::data my_factorial(std::vector<heist::data>& args){ // C++ Hiest User-Defi
 
 int main() {
   // Bind our C++ primitive to a symbol in Heist
-  heist::defun("!", my_factorial);
+  heist::define("!", my_factorial);
 
 
   // Get the result of multiplying 50! by 2, using our factorial
@@ -43,7 +43,7 @@ int main() {
 
 
   // Define a variable in the global environment with our 5! value
-  heist::defvar("factorial-of-5", fact_of_5);
+  heist::define("factorial-of-5", fact_of_5);
 
 
   // Evaluate Heist code directly via a string heist literal

@@ -2034,23 +2034,25 @@ Other primitives of this nature include:<br>
 
 8. __Total Entries__: `(hmap-length <hash-map>)`
 
-9. __Allocate a New Copy__: `(hmap-copy <hash-map>)`
+9. __Empty? Predicate__: `(hmap-empty? <hash-map>)`
 
-10. __Merge Hash-Maps into a New Copy__: `(hmap-merge <hash-map-1> <hash-map-2>)`
+10. __Allocate a New Copy__: `(hmap-copy <hash-map>)`
+
+11. __Merge Hash-Maps into a New Copy__: `(hmap-merge <hash-map-1> <hash-map-2>)`
     * _Note: if both maps share a key, `<hash-map-1>`'s value takes precedence_
 
-11. __Merge `<hash-map-2>` into `<hash-map-1>`__: `(hmap-merge! <hash-map-1> <hash-map-2>)`
+12. __Merge `<hash-map-2>` into `<hash-map-1>`__: `(hmap-merge! <hash-map-1> <hash-map-2>)`
     * _Note: if both maps share a key, `<hash-map-1>`'s value takes precedence_
 
-12. __Iterate Over Key-Value Pairs__: `(hmap-for-each <callable> <hash-map>)` 
+13. __Iterate Over Key-Value Pairs__: `(hmap-for-each <callable> <hash-map>)` 
 
-13. __Iterate Over Keys__: `(hmap-for-each-key <callable> <hash-map>)` 
+14. __Iterate Over Keys__: `(hmap-for-each-key <callable> <hash-map>)` 
 
-14. __Iterate Over Values__: `(hmap-for-each-val <callable> <hash-map>)` 
+15. __Iterate Over Values__: `(hmap-for-each-val <callable> <hash-map>)` 
 
-15. __Map Procedure Over Values Making a New Hash-Map__: `(hmap-map <callable> <hash-map>)`
+16. __Map Procedure Over Values Making a New Hash-Map__: `(hmap-map <callable> <hash-map>)`
 
-16. __Mutative Map Procedure Over Values__: `(hmap-map! <callable> <hash-map>)`
+17. __Mutative Map Procedure Over Values__: `(hmap-map! <callable> <hash-map>)`
 
 
 
