@@ -4823,7 +4823,8 @@ void POPULATE_ARGV_REGISTRY(int argc,int& i,char* argv[]) {
 
 bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
                                      int& compile_pos,std::string& compile_as,
-                                     bool& immediate_exit, bool& trace_calls)noexcept{
+                                     bool& immediate_exit, bool& trace_calls,
+                                     std::vector<char*>& LOADED_FILES)noexcept{
   if(argc == 1) return true;
 
   // Validate argument layout
@@ -4850,6 +4851,15 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
       heist::G::USING_ANSI_ESCAPE_SEQUENCES = false;
     } else if(cmd_flag == "-cps") {
       heist::G::USING_CPS_CMD_LINE_FLAG = true;
+    } else if(cmd_flag == "-l") {
+      if(i == argc-1) {
+        fprintf(stderr,"\n> \"-l\" wasn't followed by a file!\n" HEIST_COMMAND_LINE_ARGS "\n\n");
+        return false;
+      } else if(compile_pos != -1) {
+        fprintf(stderr,"\n> Can't load & compile files simultaneously!\n" HEIST_COMMAND_LINE_ARGS "\n\n");
+        return false;
+      }
+      LOADED_FILES.push_back(argv[++i]);
     } else if(cmd_flag == "-script") {
       if(i == argc-1) {
         fprintf(stderr,"\n> \"-script\" wasn't followed by a file!\n" HEIST_COMMAND_LINE_ARGS "\n\n");
@@ -4860,6 +4870,9 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
     } else if(cmd_flag == "-compile") {
       if(i == argc-1) {
         fprintf(stderr,"\n> \"-compile\" wasn't followed by a file!\n" HEIST_COMMAND_LINE_ARGS "\n\n");
+        return false;
+      } else if(!LOADED_FILES.empty()) {
+        fprintf(stderr,"\n> Can't load & compile files simultaneously!\n" HEIST_COMMAND_LINE_ARGS "\n\n");
         return false;
       }
       compile_pos = ++i;
@@ -4878,10 +4891,10 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
 * INTERPRET SCRIPT HELPER FUNCTION
 ******************************************************************************/
 
-int load_script(char* argv[], const int& script_pos){
+int load_script(char* filename){
   // Load the script & immediately exit
   heist::scm_list load_args(2 + heist::G::USING_CPS_CMD_LINE_FLAG);
-  load_args[0] = heist::make_str(argv[script_pos]);
+  load_args[0] = heist::make_str(filename);
   load_args[1 + heist::G::USING_CPS_CMD_LINE_FLAG] = heist::G::GLOBAL_ENVIRONMENT_POINTER;
   // Bind "id" as the topmost continuation if "-cps" was passed
   if(heist::G::USING_CPS_CMD_LINE_FLAG)
@@ -4897,18 +4910,17 @@ int load_script(char* argv[], const int& script_pos){
         << PROFILE(heist::G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
     /* catch errors already output to stdout */ 
     putchar('\n');
+    return 1;
   } catch(...) {
     /* catch uncaught C++ exceptions -:- ANOMALY -:- */
     PRINT_ERR(afmt(heist::AFMT_1) << 
       "\nUncaught C++ Exception Detected! -:- BUG ALERT -:-"
-      "\n  => While interpreting script \"" << argv[script_pos] << "\""
+      "\n  => While interpreting script \"" << filename << "\""
       "\n  => Please send your code to jrandleman@scu.edu to fix"
       "\n     the interpreter's bug!"
       "\n  => Terminating Heist Scheme Interpretation.\n\n" << afmt(heist::AFMT_0));
-    heist::close_port_registry();
     return 1;
   }
-  heist::close_port_registry();
   return 0;
 }
 
@@ -4948,25 +4960,47 @@ int compile_script(char* argv[], const int& compile_pos, std::string& compile_as
 }
 
 /******************************************************************************
+* LOAD SCRIPT HELPER FUNCTION
+******************************************************************************/
+
+int load_scripts(const std::vector<char*>& LOADED_FILES) {
+  bool old_cps_val = heist::G::USING_CPS_CMD_LINE_FLAG;
+  heist::G::USING_CPS_CMD_LINE_FLAG = false;
+  for(auto filename : LOADED_FILES)
+    if(load_script(filename)) {
+      heist::close_port_registry();
+      return 1;
+    }
+  heist::G::USING_CPS_CMD_LINE_FLAG = old_cps_val;
+  return 0;
+}
+
+/******************************************************************************
 * MAIN INTERPRETER EXECUTION
 ******************************************************************************/
 
 int main(int argc, char* argv[]) {
   // Validate arguments
   int script_pos = -1, compile_pos = -1;
-  std::string compile_as = "HEIST_COMPILER_OUTPUT.cpp";
   bool immediate_exit = false, trace_calls = false;
-  if(!confirm_valid_command_line_args(argc,argv,script_pos,compile_pos,compile_as,immediate_exit,trace_calls)) 
-    return 1;
+  std::string compile_as = "HEIST_COMPILER_OUTPUT.cpp";
+  std::vector<char*> LOADED_FILES;
+  if(!confirm_valid_command_line_args(argc,argv,script_pos,compile_pos,compile_as,
+    immediate_exit,trace_calls,LOADED_FILES)) return 1;
   // "--version" & "--help" trigger an immediate exit
   if(immediate_exit) return 0;
   // Set up the environment (allocates & fills G::GLOBAL_ENVIRONMENT_POINTER)
   heist::set_default_global_environment();
   // Trace All Subsequent Calls (as needed)
   if(trace_calls) heist::G::TRACING_ALL_FUNCTION_CALLS = true;
+  // Load Files (as needed)
+  if(!LOADED_FILES.empty() && load_scripts(LOADED_FILES)) return 1;
   // Interpret a Script (as needed)
-  if(script_pos != -1) 
-    return load_script(argv, script_pos);
+  if(script_pos != -1) {
+    int result = load_script(argv[script_pos]);
+    heist::close_port_registry();
+    return result;
+  }
   // Compile a Script (as needed)
   if(compile_pos != -1) 
     return compile_script(argv, compile_pos, compile_as);

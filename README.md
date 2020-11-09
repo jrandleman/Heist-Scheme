@@ -176,12 +176,13 @@
 # Heist Command-Line Flags
 0. Interpret Script: `-script <script-filename> <argv1> <argv2> ...`
 1. Compile Script: `-compile <script-filename> <optional-compiled-filename>`
-2. With CPS Evaluation: `-cps`
-3. Disable ANSI Colors: `-nansi`
-4. Case Insensitivity:  `-ci`
-5. Trace All Fcn Calls: `-trace-calls`
-6. Interpreter Version: `--version`
-7. Show These Options:  `--help`
+2. Load Script: `-l <script-filename>`
+3. With CPS Evaluation: `-cps`
+4. Disable ANSI Colors: `-nansi`
+5. Case Insensitivity:  `-ci`
+6. Trace All Fcn Calls: `-trace-calls`
+7. Interpreter Version: `--version`
+8. Show These Options:  `--help`
 
 
 
