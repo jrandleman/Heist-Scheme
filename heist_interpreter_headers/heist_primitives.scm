@@ -381,11 +381,13 @@
 
 ; COMPOSE PROCS (RETURNS A PROC OF N ARGS APPLYING THEM TO THE COMPOSITION)
 (define (compose proc . procs)
-  (define fst-proc (last (cons proc procs)))
-  (define rest-procs (init (cons proc procs)))
+  (define rev-procs (reverse (cons proc procs)))
+  (define fst-proc (car rev-procs))
+  (define rest-procs (cdr rev-procs))
   (lambda (. args)
-    (define fst-result (apply fst-proc args))
-    (fold (lambda (result fcn) (fcn result)) fst-result rest-procs)))
+    (fold (lambda (result fcn) (fcn result)) 
+          (apply fst-proc args) 
+          rest-procs)))
 
 
 ; BIND ARGUMENTS TO A PROC PRODUCING A NEW PROC
