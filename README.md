@@ -174,7 +174,7 @@
 
 ------------------------
 # Heist Command-Line Flags
-0. Interpret Script: `-script <script-filename>`
+0. Interpret Script: `-script <script-filename> <argv1> <argv2> ...`
 1. Compile Script: `-compile <script-filename> <optional-compiled-filename>`
 2. With CPS Evaluation: `-cps`
 3. Disable ANSI Colors: `-nansi`
