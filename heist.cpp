@@ -4132,15 +4132,12 @@ namespace heist {
     const auto inline_color = G::USING_INLINE_INVOCATIONS ? AFMT_32 : AFMT_31;
     // Output Trace Data
     fprintf(G::CURRENT_OUTPUT_PORT,
-            "\n%s-----------------------------------------------------"
-            "\n%s#<CALL-TRACE>:%s Tail-Call: %s%s%s, Call/ce: %s%s%s, Inline: %s%s%s"
-            "\n%s"
-            "\n-----------------------------------------------------%s\n",
+            "%s%s#<CALL-TRACE>%s Tail-Call: %s%s%s, Call/ce: %s%s%s, Inline: %s%s%s %s]=>%s %s%s\n",
             afmt(AFMT_01), afmt(AFMT_35), afmt(AFMT_01), 
             afmt(tail_c_color), in_tail_call, afmt(AFMT_01), 
             afmt(callce_color), using_callce, afmt(AFMT_01), 
             afmt(inline_color), using_inline, afmt(AFMT_01), 
-            call_signature.c_str(), afmt(AFMT_0));
+            afmt(AFMT_35), afmt(AFMT_01), call_signature.c_str(), afmt(AFMT_0));
     fflush(G::CURRENT_OUTPUT_PORT);
   }
 
