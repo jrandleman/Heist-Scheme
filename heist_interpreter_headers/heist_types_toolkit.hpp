@@ -94,6 +94,7 @@ namespace heist {
     "\n> With CPS Evaluation: -cps"\
     "\n> Disable ANSI Colors: -nansi"\
     "\n> Case Insensitivity:  -ci"\
+    "\n> Trace All Fcn Calls: -trace-calls"\
     "\n> Interpreter Version: --version"\
     "\n> Show This Message:   --help"
 

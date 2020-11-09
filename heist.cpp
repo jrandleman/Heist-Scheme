@@ -4823,7 +4823,7 @@ void POPULATE_ARGV_REGISTRY(int argc,int& i,char* argv[]) {
 
 bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
                                      int& compile_pos,std::string& compile_as,
-                                     bool& should_exit_immediately)noexcept{
+                                     bool& immediate_exit, bool& trace_calls)noexcept{
   if(argc == 1) return true;
 
   // Validate argument layout
@@ -4837,13 +4837,15 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
     if(std::string cmd_flag(argv[i]); cmd_flag == "-ci") {
       heist::G::USING_CASE_SENSITIVE_SYMBOLS = false;
     } else if(cmd_flag == "--version") {
-      should_exit_immediately = true;
+      immediate_exit = true;
       puts("Heist Scheme Version 6.0\nTarget: " HEIST_EXACT_PLATFORM "\nInstalledDir: " HEIST_DIRECTORY_FILE_PATH);
       return true;
     } else if(cmd_flag == "--help") {
-      should_exit_immediately = true;
+      immediate_exit = true;
       puts(HEIST_COMMAND_LINE_ARGS);
       return true;
+    } else if(cmd_flag == "-trace-calls") {
+      trace_calls = true;
     } else if(cmd_flag == "-nansi") {
       heist::G::USING_ANSI_ESCAPE_SEQUENCES = false;
     } else if(cmd_flag == "-cps") {
@@ -4953,13 +4955,15 @@ int main(int argc, char* argv[]) {
   // Validate arguments
   int script_pos = -1, compile_pos = -1;
   std::string compile_as = "HEIST_COMPILER_OUTPUT.cpp";
-  bool should_exit_immediately = false;
-  if(!confirm_valid_command_line_args(argc,argv,script_pos,compile_pos,compile_as,should_exit_immediately)) 
+  bool immediate_exit = false, trace_calls = false;
+  if(!confirm_valid_command_line_args(argc,argv,script_pos,compile_pos,compile_as,immediate_exit,trace_calls)) 
     return 1;
   // "--version" & "--help" trigger an immediate exit
-  if(should_exit_immediately) return 0;
+  if(immediate_exit) return 0;
   // Set up the environment (allocates & fills G::GLOBAL_ENVIRONMENT_POINTER)
   heist::set_default_global_environment();
+  // Trace All Subsequent Calls (as needed)
+  if(trace_calls) heist::G::TRACING_ALL_FUNCTION_CALLS = true;
   // Interpret a Script (as needed)
   if(script_pos != -1) 
     return load_script(argv, script_pos);

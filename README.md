@@ -179,8 +179,9 @@
 2. With CPS Evaluation: `-cps`
 3. Disable ANSI Colors: `-nansi`
 4. Case Insensitivity:  `-ci`
-5. Interpreter Version: `--version`
-6. Show These Options:  `--help`
+5. Trace All Fcn Calls: `-trace-calls`
+6. Interpreter Version: `--version`
+7. Show These Options:  `--help`
 
 
 
