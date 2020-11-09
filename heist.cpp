@@ -4826,21 +4826,12 @@ void POPULATE_ARGV_REGISTRY(int argc,int& i,char* argv[]) {
 
 bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
                                      int& compile_pos,std::string& compile_as,
-                                     bool& found_version_flag)noexcept{
+                                     bool& should_exit_immediately)noexcept{
   if(argc == 1) return true;
-  
-  constexpr const char * const cmd_line_options = 
-    "\n> Interpret Script:    -script <script-filename> <argv1> <argv2> ..."
-    "\n> Compile Script:      -compile <script-filename> <optional-compiled-filename>"
-    "\n> With CPS Evaluation: -cps"
-    "\n> Disable ANSI Colors: -nansi"
-    "\n> Case Insensitivity:  -ci"
-    "\n> Interpreter Version: --version"
-    "\n> Terminating Heist Scheme Interpretation.\n\n";
 
   // Validate argument layout
   if(argc > 7) {
-    fprintf(stderr, "\n> Invalid # of command-line args (given %d)!%s", argc-1, cmd_line_options);
+    fprintf(stderr, "\n> Invalid # of command-line args (given %d)!\n" HEIST_COMMAND_LINE_ARGS "\n\n", argc-1);
     return false;
   }
 
@@ -4849,8 +4840,12 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
     if(std::string cmd_flag(argv[i]); cmd_flag == "-ci") {
       heist::G::USING_CASE_SENSITIVE_SYMBOLS = false;
     } else if(cmd_flag == "--version") {
-      found_version_flag = true;
+      should_exit_immediately = true;
       puts("Heist Scheme Version 6.0\nTarget: " HEIST_EXACT_PLATFORM "\nInstalledDir: " HEIST_DIRECTORY_FILE_PATH);
+      return true;
+    } else if(cmd_flag == "--help") {
+      should_exit_immediately = true;
+      puts(HEIST_COMMAND_LINE_ARGS);
       return true;
     } else if(cmd_flag == "-nansi") {
       heist::G::USING_ANSI_ESCAPE_SEQUENCES = false;
@@ -4858,14 +4853,14 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
       heist::G::USING_CPS_CMD_LINE_FLAG = true;
     } else if(cmd_flag == "-script") {
       if(i == argc-1) {
-        fprintf(stderr,"\n> \"-script\" wasn't followed by a file!%s",cmd_line_options);
+        fprintf(stderr,"\n> \"-script\" wasn't followed by a file!\n" HEIST_COMMAND_LINE_ARGS "\n\n");
         return false;
       }
       script_pos = ++i;
       POPULATE_ARGV_REGISTRY(argc,i,argv);
     } else if(cmd_flag == "-compile") {
       if(i == argc-1) {
-        fprintf(stderr,"\n> \"-compile\" wasn't followed by a file!%s",cmd_line_options);
+        fprintf(stderr,"\n> \"-compile\" wasn't followed by a file!\n" HEIST_COMMAND_LINE_ARGS "\n\n");
         return false;
       }
       compile_pos = ++i;
@@ -4873,7 +4868,7 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
          next_cmd != "-script" && next_cmd != "-compile" && next_cmd != "-ci")
         compile_as = argv[++i];
     } else {
-      fprintf(stderr,"\n> Invalid command-line flag \"%s\"!%s",argv[i],cmd_line_options);
+      fprintf(stderr,"\n> Invalid command-line flag \"%s\"!\n" HEIST_COMMAND_LINE_ARGS "\n\n",argv[i]);
       return false;
     }
   }
@@ -4961,11 +4956,11 @@ int main(int argc, char* argv[]) {
   // Validate arguments
   int script_pos = -1, compile_pos = -1;
   std::string compile_as = "HEIST_COMPILER_OUTPUT.cpp";
-  bool found_version_flag = false;
-  if(!confirm_valid_command_line_args(argc,argv,script_pos,compile_pos,compile_as,found_version_flag)) 
+  bool should_exit_immediately = false;
+  if(!confirm_valid_command_line_args(argc,argv,script_pos,compile_pos,compile_as,should_exit_immediately)) 
     return 1;
-  // "--version" triggers an immediate exit
-  if(found_version_flag) return 0;
+  // "--version" & "--help" trigger an immediate exit
+  if(should_exit_immediately) return 0;
   // Set up the environment (allocates & fills G::GLOBAL_ENVIRONMENT_POINTER)
   heist::set_default_global_environment();
   // Interpret a Script (as needed)
@@ -5028,4 +5023,5 @@ int main(int argc, char* argv[]) {
 #undef PRINT_ERR
 #undef THROW_ERR
 #endif // @NOT-EMBEDDED-IN-C++
+#undef HEIST_COMMAND_LINE_ARGS
 #endif

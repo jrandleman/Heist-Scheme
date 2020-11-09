@@ -85,6 +85,19 @@ namespace heist {
   #define THROW_ERR(...) ({PRINT_ERR(__VA_ARGS__); throw heist::SCM_EXCEPT::EVAL;})
 
   /******************************************************************************
+  * COMMAND-LINE FLAG SET
+  ******************************************************************************/
+
+  #define HEIST_COMMAND_LINE_ARGS\
+    "> Interpret Script:    -script <script-filename> <argv1> <argv2> ..."\
+    "\n> Compile Script:      -compile <script-filename> <optional-compiled-filename>"\
+    "\n> With CPS Evaluation: -cps"\
+    "\n> Disable ANSI Colors: -nansi"\
+    "\n> Case Insensitivity:  -ci"\
+    "\n> Interpreter Version: --version"\
+    "\n> Show This Message:   --help"
+
+  /******************************************************************************
   * PLATFORM IDENTIFICATION
   ******************************************************************************/
 

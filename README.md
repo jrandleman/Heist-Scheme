@@ -180,6 +180,7 @@
 3. Disable ANSI Colors: `-nansi`
 4. Case Insensitivity:  `-ci`
 5. Interpreter Version: `--version`
+6. Show These Options:  `--help`
 
 
 
