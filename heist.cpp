@@ -996,7 +996,7 @@ namespace heist {
   bool is_fn(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::fn);}
 
 
-  #define FN_LAYOUT "\n     (fn ((arg ...) body ...) ...)"
+  #define FN_LAYOUT "\n     (fn ((<arg> ...) <body> ...) ...)"
   void validate_fn_arg_quote_or_container_literal(const scm_list&,const scm_list&);
   void validate_fn_vect_arg_literal(const scm_list& exp, const scm_list& vect_arg) {
     for(size_type i = 1, n = vect_arg.size(); i < n; ++i)
