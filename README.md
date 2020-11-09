@@ -536,7 +536,8 @@ Other primitives of this nature include:<br>
 ------------------------
 ## Defn:
 
-#### Use: ___Macro Combining [`define`](#define) & [`fn`](#fn)!___
+#### Use: ___Combine [`define`](#define) & [`fn`](#fn)!___
+* _Note: `defn` is actually a macro directly defined **in** Heist Scheme!_
 
 #### Form: `(defn <name> ((<arg> ...) <body> ...) ...)`
 
