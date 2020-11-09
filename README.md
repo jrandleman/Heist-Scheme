@@ -199,7 +199,7 @@
 8. Input Port, Output Port ([see port primitives](#File--Port-Procedures))
 9. Syntax-Rules Object (see [`syntax-rules`](#Define-Syntax-Let-Syntax-Letrec-Syntax) special form)
 10. Delayed Data (see [`delay`](#Delay) special form)
-11. Procedure (via primitives or the [`lambda`](#Lambda) special form)
+11. Procedure (via primitives or the [`lambda`](#Lambda)/[`fn`](#Fn) special forms)
 12. Object (see [`defclass`](#Defclass))
 13. Class-Prototype (see [`defclass`](#Defclass))
 14. Void Datum [`(void)`](#Type-Predicates-Undefined--Void)
