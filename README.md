@@ -22,7 +22,7 @@
 0. [Tail-Call Optimization](#quick-overview)
 1. [Unhygienic & Reader Macros](#Heist-Macro-System-Procedures-vs-Macros)
 2. [OOP Support](#Defclass)
-3. [Coroutines](#Define-Coroutine)
+3. [Multi-Arity Pattern-Matching](#Fn)
 4. [First-Class Hash-Maps](#Hash-Map-Procedures)
 5. [Opt-In Dynamic Scoping](#control-flow-procedures)
 6. [Opt-In Continuations](#Scm-Cps)
@@ -32,7 +32,7 @@
 10. [Eval](#evalapply--symbol-append)
 11. [String I/O](#Output-Procedures)
 12. [Recursive Depth Control](#Interpreter-Invariants-Manipulation)
-13. [A](#Curry)[n](#Heist-Mathematical-Flonum-Constants)[d](#Control-Flow-Procedures) [M](#Gensym)[o](#JSON-Interop)[r](#compose-bind--id)[e](#System-Interface-Procedures)[!](#Syntax-Procedures)
+13. [A](#Curry)[n](#Heist-Mathematical-Flonum-Constants)[d](#Control-Flow-Procedures) [M](#Gensym)[o](#JSON-Interop)[r](#Define-Coroutine)[e](#System-Interface-Procedures)[!](#Syntax-Procedures)
 
 ------------------------ 
 # Table of Contents
@@ -52,23 +52,21 @@
 6. [CPS: Continuation Passing Style](#CPS-Continuation-Passing-Style)
 7. [Heist Special Forms](#Heist-Special-Forms)
    - [Quote](#Quote), [Quasiquote](#Quasiquote-Unquote--Unquote-Splicing)
-   - [Lambda](#Lambda)
-   - [Define](#Define), [Set!](#Set), [Defined?](#Defined)
+   - [Lambda](#Lambda), [Fn](#Fn)
+   - [Define](#Define), [Set!](#Set), [Defined?](#Defined), [Defn](#Defn)
    - [Begin](#Begin)
    - [If](#If), [And](#And), [Or](#Or)
    - [Cond](#Cond), [Case](#Case)
    - [Let](#Let), [Let\*](#Let-1), [Letrec](#Letrec)
    - [Do](#Do)
-   - [Delay](#Delay)
-   - [Scons](#Scons), [Stream](#Stream)
+   - [Delay](#Delay), [Scons](#Scons), [Stream](#Stream)
    - [Vector-Literal](#Vector-Literal), [Hmap-Literal](#Hmap-Literal)
-   - [Define-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax), [Let-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax), [Letrec-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax)
+   - [Define-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax), [Core-Syntax](#Core-Syntax), [Let-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax), [Letrec-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax)
    - [Syntax-Rules](#Syntax-Rules), [Syntax-Hash](#Syntax-Hash)
-   - [Core-Syntax](#Core-Syntax)
    - [Scm->Cps](#Scm-Cps), [Cps-Quote](#Cps-Quote), [Using-Cps?](#Using-Cps)
+   - [Curry](#Curry)
    - [Defclass](#Defclass)
    - [Define-Coroutine](#Define-Coroutine)
-   - [Curry](#Curry)
    - [Define-Overload](#Define-Overload)
    - [Math:](#Math), [Infix-Math-Quote](#Infix-Math-Quote)
 8. [Heist Primitive Variables](#Heist-Primitive-Variables)
@@ -413,7 +411,7 @@ Other primitives of this nature include:<br>
 
 #### Use: ___Selectivly Eval & Convert Code to Data!___
 
-#### Quoting a Datum (exactly like `quote`, with 2 key exceptions):
+#### Quoting a Datum (exactly like [`quote`](#quote), with 2 key exceptions):
 0. `unquote`ing data undoes the quotation done by `quasiquote`
 1. `unquote-splice` = `unquote` _and_ "unwraps" parenthesis
    * Hence result of `unquote-splice` **must** eval to acyclic list
@@ -450,6 +448,30 @@ Other primitives of this nature include:<br>
     (lambda (a b . va-args-list) <body> ...)   ; OK
     (lambda (a b . va-args-list c) <body> ...) ; ERROR: Variadic Arg Name Isn't Last!
     ```
+
+
+------------------------
+## Fn:
+
+#### Use: ___Generates Anonymous Multi-Arity Pattern-Matching Procedure!___
+
+#### Form: `(fn ((<arg> ...) <body> ...) ...)`
+* _Note: Pass a variadic number of args (0+) by using `.` (like [`lambda`](#Lambda)!)_
+* _Note: Pattern-match against lists by using literal syntax!_
+  * _Like [`syntax-rules`](#syntax-rules), write more restrictive patterns first!_
+  * _Match against symbol literals by using [`quote`](#quote)!_
+
+#### Examples:
+```scheme
+(define list-map
+  (fn ((f ()) '()) ; match against nil
+      ((f (x . xs)) (cons (f x) (list-map f xs))))) ; match & unpack pair
+
+(define factorial
+  (fn ((n) (factorial n 1))
+      ((0 p) p) ; 0 is more restrictive than 'n', so place 1st!
+      ((n p) (factorial (- n 1) (* n p)))))
+```
 
 
 ------------------------
@@ -509,6 +531,14 @@ Other primitives of this nature include:<br>
 (undefined? a) ; #t ; `undefined?` checks values!
 
 ```
+
+
+------------------------
+## Defn:
+
+#### Use: ___Macro Combining [`define`](#define) & [`fn`](#fn)!___
+
+#### Form: `(defn <name> ((<arg> ...) <body> ...) ...)`
 
 
 ------------------------
@@ -1014,6 +1044,11 @@ Other primitives of this nature include:<br>
 
 #### Form: `(scm->cps <exp1> <exp2> ...)`
 
+#### Danger Zone:
+* With CPS, avoid macros expanding to a [`define`](#define) in the current envrionment!
+  - Lazy expansion breaks this functionality (may expand to localized bindings though!)
+  - Includes [`defn`](#defn) & [`define-overload`](#Define-Overload) (manually write expansion)
+
 #### Coroutine Example Using [`call/cc`](#scm-cps-procedures):
 ```scheme
 ((scm->cps
@@ -1093,6 +1128,30 @@ Other primitives of this nature include:<br>
 #### Use: ___Determine Whether in a [`scm->cps`](#Scm-Cps) Block or [`-cps`](#Heist-Command-Line-Flags) is Active!___
 
 #### Form: `(using-cps?)`
+
+
+------------------------
+## Curry:
+
+#### Use: ___Define Curriable Lambdas with a Nicer Interface!___
+* _Note: `curry` is actually a macro directly defined **in** Heist Scheme!_
+* _Enables trivial means to bind arguments to values (especially helps w/ lambda calculus)_
+
+#### Form: `(curry (<arg1> <arg2> ...) <body> ...)`
+* _Note: it is undefined behavior to have a variadic `curry` lambda using `.`!_
+
+#### Example:
+```scheme
+(define K (curry (a b) a))
+; The following invocations are identical!
+((K 1) 2) ; Traditional LISP curried call works!   ; => 1
+(K 1 2)   ; Nicer invocation interface also works! ; => 1
+
+(define Id (curry (a) a))
+(define KI (K Id)) ; Binds "Id" as the first arg to "K"!
+((KI 1) 2) ; "Id" is selected, then 2 is passed to "Id"! ; => 2
+(KI 1 2)   ; => 2
+```
 
 
 ------------------------
@@ -1228,6 +1287,7 @@ Other primitives of this nature include:<br>
 0. Nesting `define-coroutine` instances is undefined behavior!
 1. Using `define-coroutine` in a [`scm->cps`](#Scm-Cps) block is undefined behavior!
 2. The [`id`](#compose-bind--id) procedure is returned if no expressions exist after the last `yield`/`pause`!
+3. Like [`scm->cps`](#Scm-Cps), avoid macros expanding to a `define` in the current environment!
 
 #### Examples:
 ```scheme
@@ -1288,30 +1348,6 @@ Other primitives of this nature include:<br>
 (display cobj.value)    ; 3
 (set! cobj (cobj.next)) ; last iteration returns the final value!
 (display cobj)          ; 4
-```
-
-
-------------------------
-## Curry:
-
-#### Use: ___Define Curriable Lambdas with a Nicer Interface!___
-* _Note: `curry` is actually a macro directly defined **in** Heist Scheme!_
-* _Enables trivial means to bind arguments to values (especially helps w/ lambda calculus)_
-
-#### Form: `(curry (<arg1> <arg2> ...) <body> ...)`
-* _Note: it is undefined behavior to have a variadic `curry` lambda using `.`!_
-
-#### Example:
-```scheme
-(define K (curry (a b) a))
-; The following invocations are identical!
-((K 1) 2) ; Traditional LISP curried call works!   ; => 1
-(K 1 2)   ; Nicer invocation interface also works! ; => 1
-
-(define Id (curry (a) a))
-(define KI (K Id)) ; Binds "Id" as the first arg to "K"!
-((KI 1) 2) ; "Id" is selected, then 2 is passed to "Id"! ; => 2
-(KI 1 2)   ; => 2
 ```
 
 

@@ -168,6 +168,7 @@ namespace heist {
     constexpr const char * const local_env         = "local-environment";
     constexpr const char * const global_env        = "global-environment";
     constexpr const char * const lambda            = "lambda";
+    constexpr const char * const fn                = "fn";
     constexpr const char * const vec_literal       = "vector-literal";
     constexpr const char * const map_literal       = "hmap-literal";
     constexpr const char * const delay             = "delay";
@@ -389,45 +390,42 @@ namespace heist {
     // PRIMITIVE
     prm_ptr_t prm = nullptr;
     // COMPOUND
-    std::vector<struct data> params;
-    exe_fcn_t body;
-    obj_type self             = nullptr;
-    env_type env              = nullptr;
-    depth_t rec_depth         = nullptr;
-    bool is_inline_invocation = false;
+    std::vector<exp_type>  param_instances;
+    std::vector<exe_fcn_t> bodies;
+    env_type env        = nullptr ;
+    obj_type self       = nullptr;
+    depth_t rec_depth   = nullptr;
+    unsigned char flags = 2; // is_inline_invocation | is_lambda (as opposed to 'fn) [is lambda by default]
     scm_fcn() = default;
-    scm_fcn(const scm_string& n, prm_ptr_t p)noexcept : name(n), prm(p) {}
-    scm_fcn(const exp_type& p,const exe_fcn_t& b,env_type& e,const frame_var& n)noexcept : name(n), params(p), body(b), env(e), rec_depth(depth_t(size_type(0))) {}
+    // primitive ctor
+    scm_fcn(const scm_string& n, prm_ptr_t p)noexcept:name(n),prm(p) {}
+    // tail call wrapper ctor (gets returned up)
+    scm_fcn(env_type& e,const exe_fcn_t& b)noexcept:env(e){bodies.push_back(b);}
+    // lambda ctor
+    scm_fcn(const exp_type& p,const exe_fcn_t& b,env_type& e,const frame_var& n)noexcept:name(n),env(e),rec_depth(depth_t(size_type(0))){
+      param_instances.push_back(p), bodies.push_back(b);
+    }
+    // fn ctor
+    scm_fcn(const std::vector<exp_type>& ps,const std::vector<exe_fcn_t>& bs,env_type& e,const frame_var& n)noexcept:name(n),param_instances(ps),bodies(bs),
+                                                                                                                     env(e),rec_depth(depth_t(size_type(0))),
+                                                                                                                     flags(0){}
     scm_fcn(const scm_fcn& f)noexcept{*this = f;}
     scm_fcn(const scm_fcn&& f)noexcept{*this = std::move(f);}
-    void operator=(const scm_fcn& f)noexcept{
-      if(this == &f) return;
-      name = f.name;
-      if(f.prm) {
-        prm = f.prm;
-      } else {
-        params = f.params, body = f.body, self = f.self, prm = nullptr;
-        env = f.env, rec_depth = f.rec_depth, is_inline_invocation = f.is_inline_invocation;
-      }
-    }
-    void operator=(scm_fcn&& f)noexcept{
-      if(this == &f) return;
-      name = std::move(f.name);
-      if(f.prm) {
-        prm = std::move(f.prm);
-      } else {
-        params = std::move(f.params), body = std::move(f.body), self = std::move(f.self), prm = nullptr;
-        env = std::move(f.env), rec_depth = std::move(f.rec_depth), is_inline_invocation = std::move(f.is_inline_invocation);
-      }
-    }
-    size_type& recursive_depth()noexcept{return *rec_depth;} // PRECONDITION: rec_depth
-    size_type recursive_depth()const noexcept{return *rec_depth;} // PRECONDITION: rec_depth
-    bool is_primitive()const noexcept{return prm;};
-    bool is_compound()const noexcept{return !prm;};
+    void operator=(const scm_fcn& f)noexcept;
+    void operator=(scm_fcn&& f)noexcept;
     bool operator==(const scm_fcn& f)const noexcept;
+    bool is_primitive()const noexcept{return prm;};
+    bool is_compound() const noexcept{return !prm;};
+    bool is_inline_invocation()const noexcept{return flags & 1;}
+    void set_inline_invocation(bool status)noexcept{if(status) flags |= 1; else flags &= ~1;}
+    bool is_lambda()const noexcept{return flags & 2;}
+    void set_lambda(bool status)noexcept{if(status) flags |= 2; else flags &= ~2;}
+    size_type& recursive_depth()noexcept{return *rec_depth;} // PRECONDITION: rec_depth
+    size_type  recursive_depth()const noexcept{return *rec_depth;} // PRECONDITION: rec_depth
     scm_string str()const noexcept{return name.empty() ? "#<procedure>" : "#<procedure " + name + '>';}
     scm_string printable_procedure_name()const noexcept{return name.empty() ? "#<procedure>" : name;}
-    frame_vars procedure_parameters()const noexcept;
+    frame_vars lambda_parameters()const noexcept;
+    env_type   get_extended_environment(exp_type& arguments,exe_fcn_t& body);
   };
 
   // data_obj.type                  => current type enum
@@ -833,7 +831,7 @@ namespace heist {
         case types::str: return str_type(key);
         case types::bol: return boolean(key[1] == 't');
         case types::chr: return key[0];
-        default:  return data();
+        default:         return data(); // ONLY TRIGGERED IF GIVEN INVALID KEY
       }
     }
     static sym_type hash_key(const data& key)noexcept{
@@ -888,20 +886,46 @@ namespace heist {
   bool scm_fcn::operator==(const scm_fcn& f)const noexcept{
     if(prm || f.prm) return prm == f.prm;
     if(env != f.env || self != f.self || rec_depth != f.rec_depth || name != f.name || 
-       is_inline_invocation != f.is_inline_invocation || params.size() != f.params.size())
+       flags != f.flags || param_instances.size() != f.param_instances.size())
        return false;
-    for(size_type i = 0, n = params.size(); i < n; ++i)
-      if(!params[i].equal(f.params[i])) return false;
+    for(size_type i = 0, n = param_instances.size(); i < n; ++i) {
+      if(param_instances[i].size() != f.param_instances[i].size()) return false;
+      for(size_type j = 0, m = param_instances[i].size(); j < m; ++j)
+        if(!param_instances[i][j].equal(f.param_instances[i][j])) return false;
+    }
     return true;
   }
 
   // compound procedure parameter list extraction
-  frame_vars scm_fcn::procedure_parameters()const noexcept{
+  frame_vars scm_fcn::lambda_parameters()const noexcept{
     frame_vars var_names;
-    for(size_type i = 0, n = params.size(); i < n; ++i)
-      if(params[i].is_type(types::sym))
-        var_names.push_back(params[i].sym);
+    for(size_type i = 0, n = param_instances[0].size(); i < n; ++i)
+      if(param_instances[0][i].is_type(types::sym))
+        var_names.push_back(param_instances[0][i].sym);
     return var_names;
+  }
+
+  // procedure assignment
+  void scm_fcn::operator=(const scm_fcn& f)noexcept{
+    if(this == &f) return;
+    name = f.name;
+    if(f.prm) {
+      prm = f.prm;
+    } else {
+      param_instances = f.param_instances, bodies = f.bodies, self = f.self, prm = nullptr;
+      env = f.env, rec_depth = f.rec_depth, flags = f.flags;
+    }
+  }
+
+  void scm_fcn::operator=(scm_fcn&& f)noexcept{
+    if(this == &f) return;
+    name = std::move(f.name);
+    if(f.prm) {
+      prm = std::move(f.prm);
+    } else {
+      param_instances = std::move(f.param_instances), bodies = std::move(f.bodies), self = std::move(f.self), prm = nullptr;
+      env = std::move(f.env), rec_depth = std::move(f.rec_depth), flags = std::move(f.flags);
+    }
   }
 
   /******************************************************************************
@@ -916,8 +940,8 @@ namespace heist {
   vec_type make_vec(scm_list&& o)                       noexcept{return vec_type(std::move(o));}
   del_type make_del(const scm_list& l,const env_type& e)noexcept{return del_type(scm_delay(l,e));}
   par_type make_par()                                   noexcept{return par_type(scm_pair());}
-  map_type make_map(const scm_map& m)                  noexcept{return map_type(m);}
-  map_type make_map(scm_map&& m)                       noexcept{return map_type(std::move(m));}
+  map_type make_map(const scm_map& m)                   noexcept{return map_type(m);}
+  map_type make_map(scm_map&& m)                        noexcept{return map_type(std::move(m));}
   env_type make_env()                                   noexcept{return env_type(environment());}
   cls_type make_cls(const class_prototype& c)           noexcept{return cls_type(c);}
   obj_type make_obj(const object_type& o)               noexcept{return obj_type(o);}
@@ -926,10 +950,284 @@ namespace heist {
 } // End of namespace heist
 
 /******************************************************************************
-* PRINTING HELPER FUNCTIONS
+* PRINTING/EQUALITY/DEEP-COPYING HELPER FUNCTIONS
 ******************************************************************************/
 
 // Link toolkit here to inherit all of the above type defns
 #include "heist_types_toolkit.hpp"
+
+/******************************************************************************
+* FN PARAMETER MATCHING & PROCEDURE ENVIRONMENT EXTENSION
+******************************************************************************/
+
+namespace heist {
+  namespace fn_param_matching {
+    scm_string get_possible_signature(const exp_type& params)noexcept{
+      scm_string buff;
+      for(size_type i = 0, n = params.size(); i < n; ++i) {
+        if(params[i].is_type(types::exp)) {
+          if(!params[i].exp.empty() && params[i].exp[0].is_type(types::sym) && 
+            (params[i].exp[0].sym == symconst::vec_literal || params[i].exp[0].sym == symconst::map_literal)){
+            buff += params[i].exp[0].sym == symconst::vec_literal ? '#' : '$';
+            buff += '(' + get_possible_signature(exp_type(params[i].exp.begin()+1,params[i].exp.end()));
+          } else {
+            buff += '(' + get_possible_signature(params[i].exp);
+          }
+        } else {
+          buff += params[i].noexcept_write();
+        }
+        if(i+1 < n) buff += ' ';
+      }
+      return buff + ')';
+    }
+
+    scm_string get_possible_signatures(const std::vector<exp_type>& param_instances,const scm_string& name)noexcept{
+      scm_string buff;
+      for(size_type i = 0, n = param_instances.size(); i < n; ++i) {
+        if(no_args_given(param_instances[i]))
+          buff += "\n        (" + name + ')';
+        else
+          buff += "\n        (" + name + ' ' + get_possible_signature(param_instances[i]);
+      }
+      return buff;
+    }
+
+
+    bool param_is_variadic(const data& d)noexcept{
+      return d.is_type(types::sym) && d.sym == ".";
+    }
+
+    bool param_is_token(const data& d)noexcept{
+      return d.is_type(types::sym);
+    }
+
+    bool param_is_symbol_literal(const data& d)noexcept{
+      return d.is_type(types::exp) && d.exp.size() == 2 && 
+             d.exp[0].is_type(types::sym) && d.exp[1].is_type(types::sym) && 
+             d.exp[0].sym == symconst::quote;
+    }
+
+    bool param_symbol_mismatch(const sym_type& sym, const data& arg)noexcept{
+      return !arg.is_type(types::sym) || sym != arg.sym;
+    }
+
+    bool param_is_non_container_literal(const data& d)noexcept{
+      return !d.is_type(types::exp);
+    }
+
+    bool param_non_container_literal_mismatch(const data& lhs, const data& rhs)noexcept{
+      if(lhs.type != rhs.type) return true;
+      if(lhs.is_type(types::num)) return lhs.num != rhs.num; // use = for numbers (* COMMENT THIS LINE OUT FOR EXACTNESS SENSITIVITY *)
+      return !lhs.noexcept_equal(rhs); // noexcept equal since only matching against literals (ie no objects)
+    }
+
+    bool param_is_vector_literal(const data& d)noexcept{ // PRECONDITION: d.is_type(types::exp)
+      return !d.exp.empty() && d.exp[0].is_type(types::sym) && d.exp[0].sym == symconst::vec_literal;
+    }
+
+    bool param_is_hmap_literal(const data& d)noexcept{ // PRECONDITION: d.is_type(types::exp)
+      return !d.exp.empty() && d.exp[0].is_type(types::sym) && d.exp[0].sym == symconst::map_literal;
+    }
+
+
+    bool param_parse_hmap_literal(const data&,data&,exp_type&,frame_vars&)noexcept;
+    bool param_parse_list_literal(const data&,data&,exp_type&,frame_vars&)noexcept;
+
+    bool param_parse_vector_literal(const data& vec, data& arg, exp_type& values, frame_vars& unpacked_params)noexcept{
+      if(!arg.is_type(types::vec)) return false;
+      if(vec.exp.size() != arg.vec->size()+1) return false;
+      for(size_type i = 1, j = 0, n = vec.exp.size(); i < n; ++i, ++j) {
+        // tokens match anything
+        if(param_is_token(vec.exp[i])) {
+          unpacked_params.push_back(vec.exp[i].sym);
+          values.push_back(arg.vec->operator[](j));
+        // match against quoted non-nil literal symbols
+        } else if(param_is_symbol_literal(vec.exp[i])) {
+          if(param_symbol_mismatch(vec.exp[i].exp[1].sym,arg.vec->operator[](j))) return false;
+        // match against non-container literals
+        } else if(param_is_non_container_literal(vec.exp[i])) {
+          if(param_non_container_literal_mismatch(vec.exp[i],arg.vec->operator[](j))) return false;
+        // match against vector literals
+        } else if(param_is_vector_literal(vec.exp[i])) {
+          if(!param_parse_vector_literal(vec.exp[i],arg.vec->operator[](j),values,unpacked_params)) return false;
+        // match against hmap literals
+        } else if(param_is_hmap_literal(vec.exp[i])) {
+          if(!param_parse_hmap_literal(vec.exp[i],arg.vec->operator[](j),values,unpacked_params)) return false;
+        // match against list literals
+        } else {
+          if(!param_parse_list_literal(vec.exp[i],arg.vec->operator[](j),values,unpacked_params)) return false;
+        }
+      }
+      return true;
+    }
+
+    bool param_parse_hmap_literal(const data& map, data& arg, exp_type& values, frame_vars& unpacked_params)noexcept{
+      if(!arg.is_type(types::map)) return false;
+      if((map.exp.size()-1)/2 != arg.map->val.size()) return false;
+      auto iter = arg.map->val.begin();
+      for(size_type i = 1, n = map.exp.size(); i < n; i += 2, ++iter) {
+        data elt = scm_map::unhash_key(iter->first);
+        for(size_type offset = 0; offset < 2; ++offset) {
+          // tokens match anything
+          if(param_is_token(map.exp[i+offset])) {
+            unpacked_params.push_back(map.exp[i+offset].sym);
+            values.push_back(elt);
+          // match against quoted non-nil literal symbols
+          } else if(param_is_symbol_literal(map.exp[i+offset])) {
+            if(param_symbol_mismatch(map.exp[i+offset].exp[1].sym,elt)) return false;
+          // match against non-container literals
+          } else if(param_is_non_container_literal(map.exp[i+offset])) {
+            if(param_non_container_literal_mismatch(map.exp[i+offset],elt)) return false;
+          // match against vector literals
+          } else if(param_is_vector_literal(map.exp[i+offset])) {
+            if(!param_parse_vector_literal(map.exp[i+offset],elt,values,unpacked_params)) return false;
+          // match against hmap literals
+          } else if(param_is_hmap_literal(map.exp[i+offset])) {
+            if(!param_parse_hmap_literal(map.exp[i+offset],elt,values,unpacked_params)) return false;
+          // match against list literals
+          } else {
+            if(!param_parse_list_literal(map.exp[i+offset],elt,values,unpacked_params)) return false;
+          }
+          if(!offset) elt = iter->second;
+        }
+      }
+      return true;
+    }
+
+    bool param_parse_list_literal(const data& lst, data& arg, exp_type& values, frame_vars& unpacked_params)noexcept{
+      if(lst.exp.empty()) return arg.is_type(types::sym) && arg.sym == symconst::emptylist; // match NIL
+      if(!arg.is_type(types::par)) return false;
+      size_type i = 0, n = lst.exp.size();
+      auto iter = arg;
+      for(; i < n; ++i) {
+        // dotted list may match all remaining values
+        if(param_is_variadic(lst.exp[i])) {
+          // pattern match dotted elt
+          if(param_is_token(lst.exp[i+1])) {
+            unpacked_params.push_back(lst.exp[i+1].sym);
+            values.push_back(iter);
+            return true;
+          } 
+          // match against quoted non-nil literal symbols
+          if(param_is_symbol_literal(lst.exp[i+1]))
+            return !param_symbol_mismatch(lst.exp[i+1].exp[1].sym,iter);
+          // match against non-container literals
+          if(param_is_non_container_literal(lst.exp[i+1]))
+            return !param_non_container_literal_mismatch(lst.exp[i+1],iter);
+          // match against vector literals
+          if(param_is_vector_literal(lst.exp[i+1]))
+            return param_parse_vector_literal(lst.exp[i+1],iter,values,unpacked_params);
+          // match against hmap literals
+          if(param_is_hmap_literal(lst.exp[i+1]))
+            return param_parse_hmap_literal(lst.exp[i+1],iter,values,unpacked_params);
+          // match against list literals
+          return param_parse_list_literal(lst.exp[i+1],iter,values,unpacked_params);
+        }
+        // non-dotted list must currently match against a pair elt
+        if(!iter.is_type(types::par)) return false;
+        // tokens match anything
+        if(param_is_token(lst.exp[i])) {
+          unpacked_params.push_back(lst.exp[i].sym);
+          values.push_back(iter.par->first);
+        // match against quoted non-nil literal symbols
+        } else if(param_is_symbol_literal(lst.exp[i])) {
+          if(param_symbol_mismatch(lst.exp[i].exp[1].sym,iter.par->first)) return false;
+        // match against non-container literals
+        } else if(param_is_non_container_literal(lst.exp[i])) {
+          if(param_non_container_literal_mismatch(lst.exp[i],iter.par->first)) return false;
+        // match against vector literals
+        } else if(param_is_vector_literal(lst.exp[i])) {
+          if(!param_parse_vector_literal(lst.exp[i],iter.par->first,values,unpacked_params)) return false;
+        // match against hmap literals
+        } else if(param_is_hmap_literal(lst.exp[i])) {
+          if(!param_parse_hmap_literal(lst.exp[i],iter.par->first,values,unpacked_params)) return false;
+        // match against list literals
+        } else {
+          if(!param_parse_list_literal(lst.exp[i],iter.par->first,values,unpacked_params)) return false;
+        }
+        iter = iter.par->second;
+      }
+      return i == n && iter.is_type(types::sym) && iter.sym == symconst::emptylist;
+    }
+
+
+    // ACCOUNT FOR:
+    // 0. VARIADICS VIA "."
+    // 1. PARAMETER SYMBOLIC TOKENS (MATCH AGAINST ANYTHING)
+    // 2. MATCHING SYMBOLS AGAINST QUOTED SYMBOL LITERALS (NOT NIL: FN PARAMETER SHOULD BE () NOT '())
+    // 3. MATCHING NON-CONTAINER NON-QUOTED-SYMBOL LITERALS
+    // 4. MATCHING & UPPACKING LIST/VECTOR/HMAP CONTAINER LITERALS
+    bool is_fn_call_match(const exp_type& params, exp_type& arguments, exp_type& values, frame_vars& unpacked_params)noexcept{
+      // confirm emptiness match
+      if(bool no_params = no_args_given(params); 
+        (params.empty() || !param_is_variadic(params[0])) && (no_params ^ no_args_given(arguments))) {
+        return false;
+      } else if(no_params) {
+        return true;
+      }
+      size_type i = 0, j = 0, n = params.size(), m = arguments.size();
+      for(; i < n && j < m+1; ++i, ++j) { // j < m+1 to match no args against varaidic args
+        // variadics match all remaining values
+        if(param_is_variadic(params[i])) {
+          for(auto iter = params.begin()+i, end = params.end(); iter != end; ++iter)
+            unpacked_params.push_back(iter->sym);
+          values.insert(values.end(),arguments.begin()+j,arguments.end());
+          return true;
+        }
+        if(j == m) return false;
+        // tokens match anything
+        if(param_is_token(params[i])) {
+          unpacked_params.push_back(params[i].sym);
+          values.push_back(arguments[j]);
+        // match against quoted non-nil literal symbols
+        } else if(param_is_symbol_literal(params[i])) {
+          if(param_symbol_mismatch(params[i].exp[1].sym,arguments[j])) return false;
+        // match against non-container literals
+        } else if(param_is_non_container_literal(params[i])) {
+          if(param_non_container_literal_mismatch(params[i],arguments[j])) return false;
+        // match against vector literals
+        } else if(param_is_vector_literal(params[i])) {
+          if(!param_parse_vector_literal(params[i],arguments[j],values,unpacked_params)) return false;
+        // match against hmap literals
+        } else if(param_is_hmap_literal(params[i])) {
+          if(!param_parse_hmap_literal(params[i],arguments[j],values,unpacked_params)) return false;
+        // match against list literals
+        } else {
+          if(!param_parse_list_literal(params[i],arguments[j],values,unpacked_params)) return false;
+        }
+      }
+      return i == n && j == m;
+    }
+
+    void match_fn_call_signature(const std::vector<exp_type>& param_instances, const std::vector<exe_fcn_t>& bodies, 
+                                 const scm_string& name,exp_type& arguments, exp_type& values,frame_vars& unpacked_params, exe_fcn_t& body){
+      for(size_type i = 0, n = param_instances.size(); i < n; ++i) {
+        if(is_fn_call_match(param_instances[i],arguments,values,unpacked_params)) {
+          body = bodies[i];
+          return;
+        }
+        unpacked_params.clear(), values.clear();
+      }
+      THROW_ERR("'fn arguments "<<data(arguments)<<" don't match any signatures!\n     => Possible Signatures:" 
+        << get_possible_signatures(param_instances,name) << FCN_ERR(name,arguments));
+    }
+  }; // End of namespace fn_param_matching
+
+
+  // get the extended environment for the compound procedure given <arguments>
+  env_type scm_fcn::get_extended_environment(exp_type& arguments, exe_fcn_t& body){
+    env_type extend_environment(frame_vars&&,frame_vals&,env_type&,const sym_type&);
+    if(is_lambda()) {
+      body = bodies[0];
+      return extend_environment(lambda_parameters(), arguments, env, name);
+    }
+    frame_vars unpacked_params;
+    exp_type values;
+    fn_param_matching::match_fn_call_signature(param_instances,bodies,printable_procedure_name(),arguments,values,unpacked_params,body);
+    if(unpacked_params.empty()) unpacked_params.push_back(symconst::sentinel_arg);
+    if(values.empty()) values.push_back(symconst::sentinel_arg);
+    return extend_environment(std::move(unpacked_params), values, env, name);
+  }
+}; // End of namespace heist
 
 #endif

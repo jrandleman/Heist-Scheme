@@ -15,6 +15,7 @@
 ; stream
 ; let-syntax
 ; letrec-syntax
+; defn
 ; math:
 
 (core-syntax cond 
@@ -117,6 +118,16 @@
         b ...)))))
 (core-syntax let-syntax heist:core:scoped-syntax-rules)
 (core-syntax letrec-syntax heist:core:scoped-syntax-rules)
+
+
+(core-syntax defn
+  (syntax-rules ()
+    ((_ (name) b ...)
+     (define (name) b ...))
+    ((_ (name a ...) b ...)
+     (define name (fn ((a ...) b ...))))
+    ((_ name instance ...) 
+     (define name (fn instance ...)))))
 
 
 (core-syntax math:

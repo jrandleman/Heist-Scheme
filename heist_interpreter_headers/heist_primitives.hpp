@@ -3111,8 +3111,8 @@ namespace heist {
   // primitive "cps-procedure?" procedure:
   data primitive_CPS_PROCEDUREP(scm_list& args) {
     confirm_given_one_arg(args, "cps-procedure?");
-    return data(boolean(args[0].is_type(types::fcn) && !args[0].fcn.params.empty() && 
-      data_is_continuation_parameter(*args[0].fcn.params.rbegin())));
+    return data(boolean(args[0].is_type(types::fcn) && !args[0].fcn.param_instances.empty() && 
+      !args[0].fcn.param_instances[0].empty() && data_is_continuation_parameter(*args[0].fcn.param_instances[0].rbegin())));
   }
 
   // primitive "input-port?" procedure:

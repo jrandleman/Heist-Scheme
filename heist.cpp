@@ -953,7 +953,7 @@ namespace heist {
   bool is_variable(const scm_list& exp)noexcept{return exp[0].is_type(types::sym);}
 
   /******************************************************************************
-  * REPRESENTING PROCEDURES
+  * REPRESENTING LAMBDA PROCEDURES (FASTER THAN FN)
   ******************************************************************************/
 
   // -- LAMBDAS: (lambda (<parameters>) <body>)
@@ -978,10 +978,9 @@ namespace heist {
     confirm_valid_procedure_parameters(vars,exp);                      // validate parameters
     if(vars.empty()) vars.push_back(symconst::sentinel_arg);           // add sentinel-arg
     auto body_proc = analyze_sequence(lambda_body(exp),true,cps_block);// analyze body syntax
-    return [vars=std::move(vars),body_proc=std::move(body_proc)]
-      (env_type& env){
-        return scm_list(1,scm_fcn(vars, body_proc, env, "")); // empty "" name by default (anon proc)
-      };
+    return [vars=std::move(vars),body_proc=std::move(body_proc)](env_type& env){
+      return scm_list(1,scm_fcn(vars, body_proc, env, "")); // empty "" name by default (anon proc)
+    };
   }
 
 
@@ -989,6 +988,115 @@ namespace heist {
   bool is_application(const scm_list& exp) noexcept{return exp.size()>1;}
   scm_list operator_of(const scm_list& exp)noexcept{return scm_list_cast(exp[0]);}
   scm_list operands(const scm_list& exp)   noexcept{return scm_list(exp.begin()+1, exp.end());}
+
+  /******************************************************************************
+  * REPRESENTING FN PROCEDURES (MORE DYNAMIC THAN LAMBDA)
+  ******************************************************************************/
+
+  bool is_fn(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::fn);}
+
+
+  #define FN_LAYOUT "\n     (fn ((arg ...) body ...) ...)"
+  void validate_fn_arg_quote_or_container_literal(const scm_list&,const scm_list&);
+  void validate_fn_vect_arg_literal(const scm_list& exp, const scm_list& vect_arg) {
+    for(size_type i = 1, n = vect_arg.size(); i < n; ++i)
+      if(vect_arg[i].is_type(types::exp)) 
+        validate_fn_arg_quote_or_container_literal(exp,vect_arg[i].exp);
+  }
+
+  void validate_fn_hmap_arg_literal(const scm_list& exp, const scm_list& hmap_arg) {
+    if(!(hmap_arg.size() & 1)) // with literal tag, odd # of items = even # of args
+      THROW_ERR("'fn invalid hmap literal in arg paramters,"
+        "\n     uneven # of elts: " << data(hmap_arg) << FN_LAYOUT << EXP_ERR(exp));
+    for(size_type i = 1, n = hmap_arg.size(); i < n; i += 2) {
+      if(hmap_arg[i].is_type(types::exp))
+        THROW_ERR("'fn invalid hmap literal in arg paramters,"
+          "\n     found unhashable container key: " << data(hmap_arg) << FN_LAYOUT << EXP_ERR(exp));
+      if(hmap_arg[i+1].is_type(types::exp)) 
+        validate_fn_arg_quote_or_container_literal(exp,hmap_arg[i+1].exp);
+    }
+  }
+
+  void validate_fn_list_arg_literal(const scm_list& exp, const scm_list& list_arg) {
+    for(size_type i = 0, n = list_arg.size(); i < n; ++i) {
+      if(list_arg[i].is_type(types::sym) && list_arg[i].sym == "." && i+2 != n) {
+        THROW_ERR("'fn invalid variadic list literal in arg (\".\" must be 2nd to last arg): "
+          << data(list_arg) << FN_LAYOUT << EXP_ERR(exp));
+      } else if(list_arg[i].is_type(types::exp)) {
+        validate_fn_arg_quote_or_container_literal(exp,list_arg[i].exp);
+      }
+    }
+  }
+
+  void validate_fn_arg_quote_or_container_literal(const scm_list& exp, const scm_list& container) {
+    if(container.empty()) return;
+    // Guarenteed to be a list literal
+    if(!container[0].is_type(types::sym)) {
+      validate_fn_list_arg_literal(exp, container);
+    } else if(container[0].sym == symconst::quote) {
+      if(container.size() != 2 || !container[1].is_type(types::sym))
+        THROW_ERR("'fn invalid quote in arg, did NOT quote a single symbol: " 
+          << data(container) << FN_LAYOUT << EXP_ERR(exp));
+    } else if(container[0].sym == symconst::vec_literal) {
+      validate_fn_vect_arg_literal(exp, container);
+    } else if(container[0].sym == symconst::map_literal) {
+      validate_fn_hmap_arg_literal(exp, container);
+    } else {
+      validate_fn_list_arg_literal(exp, container);
+    }
+  }
+
+  bool fn_invalid_variadic_arg(const size_type& i, const size_type& n, const scm_list& args)noexcept{
+    return args[i].is_type(types::sym) && args[i].sym == "." &&
+      !((i+2 == n && args[i+1].is_type(types::sym)) || 
+        (i+3 == n && args[i+1].is_type(types::sym) && data_is_continuation_parameter(args[i+2])));
+  }
+
+  // Verify:
+  // 0. variadics (must have a symbol token after ".") (only checked for in topmost call)
+  // 1. hmaps (must have non-container keys & an even # of elts)
+  // 2. validate list literals have "." as 2nd to last elt
+  // 3. validate only quoting symbols
+  void validate_fn_arg_signature(const scm_list& exp, const scm_list& args) {
+    for(size_type i = 0, n = args.size(); i < n; ++i) {
+      // validate symbol's proper variadic arg use
+      if(fn_invalid_variadic_arg(i,n,args)) {
+        THROW_ERR("'fn invalid variadic arg use (\".\" must be 2nd to last arg,"
+          "\n     & last arg must be symbolic): " << data(args) << FN_LAYOUT << EXP_ERR(exp));
+      // validate quote/hmap/vector/list literal
+      } else if(args[i].is_type(types::exp)) {
+        validate_fn_arg_quote_or_container_literal(exp,args[i].exp);
+      }
+    }
+  }
+
+  void validate_fn(const scm_list& exp) {
+    if(exp.size() == 1 || data_is_the_SENTINEL_VAL(exp[1]))
+      THROW_ERR("'fn didn't recieve any match expressions!" FN_LAYOUT << EXP_ERR(exp));
+    for(size_type i = 1, n = exp.size(); i < n; ++i) {
+      if(!exp[i].is_type(types::exp) || exp[i].exp.size() < 2)
+        THROW_ERR("'fn invalid non-exp match expression: " << PROFILE(exp[i]) << "!" FN_LAYOUT << EXP_ERR(exp));
+      if(!exp[i].exp[0].is_type(types::exp))
+        THROW_ERR("'fn invalid args-list in match expression: " << PROFILE(exp[i]) << "!" FN_LAYOUT << EXP_ERR(exp));
+      validate_fn_arg_signature(exp,exp[i].exp[0].exp);
+    }
+  }
+  #undef FN_LAYOUT
+
+
+  exe_fcn_t analyze_fn(scm_list& exp,const bool cps_block=false) {
+    validate_fn(exp);
+    const size_type total_matches = exp.size()-1;
+    std::vector<exp_type> param_insts(total_matches);
+    std::vector<exe_fcn_t> bodies(total_matches);
+    for(size_type i = 0; i < total_matches; ++i) {
+      param_insts[i] = exp[i+1].exp[0].exp;
+      bodies[i] = analyze_sequence(scm_list(exp[i+1].exp.begin()+1,exp[i+1].exp.end()),true,cps_block);
+    }
+    return [param_insts=std::move(param_insts),bodies=std::move(bodies)](env_type& env){
+      return scm_list(1,scm_fcn(param_insts, bodies, env, "")); // empty "" name by default (anon proc)
+    };
+  }
 
   /******************************************************************************
   * DEFCLASS: (defclass <name> (<inheritance-list>) ...)
@@ -2532,6 +2640,34 @@ namespace heist {
   }
 
 
+  // PRECONDITION: lambda.capacity() == 3
+  void generate_cps_lambda_form(const data& code, scm_list& lambda) {
+    confirm_valid_lambda(code.exp);
+    lambda[0] = symconst::lambda;
+    lambda[1] = scm_list(1,generate_unique_cps_hash()); // "k"
+    lambda[2] = scm_list(2);
+    lambda[2].exp[0] = lambda[1].exp[0];
+    lambda[2].exp[1] = scm_list(3);
+    lambda[2].exp[1].exp[0] = symconst::lambda;
+    if(code.exp[1].exp.empty()) { // ARGLESS
+      lambda[2].exp[1].exp[1] = scm_list(2);
+      lambda[2].exp[1].exp[1].exp[0] = symconst::sentinel_arg;
+      lambda[2].exp[1].exp[1].exp[1] = generate_unique_cps_hash(); // "dyn-k"
+    } else { // N ARGS
+      const auto param_len = code.exp[1].exp.size();
+      lambda[2].exp[1].exp[1] = scm_list(param_len+1);
+      std::copy(code.exp[1].exp.begin(),code.exp[1].exp.end(),lambda[2].exp[1].exp[1].exp.begin());
+      lambda[2].exp[1].exp[1].exp[param_len] = generate_unique_cps_hash(); // "dyn-k"
+    }
+    get_cps_lambda_body(code.exp,lambda[2].exp[1].exp);
+  }
+
+
+  scm_list fn_unwrap_inner_lambda(const scm_list& lambda_exp)noexcept{
+    return scm_list(lambda_exp[2].exp[1].exp.begin()+1,lambda_exp[2].exp[1].exp.end());
+  }
+
+
   scm_list get_cps_IF_consequent(const data& code, const data& continuation){
     scm_list consequent(2);
     if(data_is_cps_atomic(code.exp[2])) { // (k <atomic-consequent>)
@@ -2696,28 +2832,31 @@ namespace heist {
 
     // LAMBDA
     } else if(is_tagged_list(code.exp,symconst::lambda)) {
-      confirm_valid_lambda(code.exp);
       scm_list lambda(3);
-      lambda[0] = symconst::lambda;
-      lambda[1] = scm_list(1,generate_unique_cps_hash()); // "k"
-      lambda[2] = scm_list(2);
-      lambda[2].exp[0] = lambda[1].exp[0];
-
-      lambda[2].exp[1] = scm_list(3);
-      lambda[2].exp[1].exp[0] = symconst::lambda;
-      if(code.exp[1].exp.empty()) { // ARGLESS
-        lambda[2].exp[1].exp[1] = scm_list(2);
-        lambda[2].exp[1].exp[1].exp[0] = symconst::sentinel_arg;
-        lambda[2].exp[1].exp[1].exp[1] = generate_unique_cps_hash(); // "dyn-k"
-      } else { // N ARGS
-        const auto param_len = code.exp[1].exp.size();
-        lambda[2].exp[1].exp[1] = scm_list(param_len+1);
-        std::copy(code.exp[1].exp.begin(),code.exp[1].exp.end(),lambda[2].exp[1].exp[1].exp.begin());
-        lambda[2].exp[1].exp[1].exp[param_len] = generate_unique_cps_hash(); // "dyn-k"
-      }
-      get_cps_lambda_body(code.exp,lambda[2].exp[1].exp);
+      generate_cps_lambda_form(code,lambda);
       if(topmost_call) optimize_CPS_code_generation(lambda);
       return lambda;
+
+    // FN
+    } else if(is_tagged_list(code.exp,symconst::fn)) {
+      validate_fn(code.exp);
+      scm_list fn_exp(3);
+      fn_exp[0] = symconst::lambda;
+      fn_exp[1] = scm_list(1,generate_unique_cps_hash()); // "k"
+      fn_exp[2] = scm_list(2);
+      fn_exp[2].exp[0] = fn_exp[1].exp[0];
+      fn_exp[2].exp[1] = scm_list(code.exp.size());
+      fn_exp[2].exp[1].exp[0] = symconst::fn;
+      for(size_type i = 1, n = code.exp.size(); i < n; ++i) {
+        scm_list lambda(3);
+        data lambda_exp(scm_list(1+code.exp[i].exp.size()));
+        lambda_exp.exp[0] = symconst::lambda;
+        std::copy(code.exp[i].exp.begin(),code.exp[i].exp.end(),lambda_exp.exp.begin()+1);
+        generate_cps_lambda_form(lambda_exp,lambda);
+        fn_exp[2].exp[1].exp[i] = fn_unwrap_inner_lambda(lambda);
+      }
+      if(topmost_call) optimize_CPS_code_generation(fn_exp);
+      return fn_exp;
 
     // IF
     } else if(is_tagged_list(code.exp,symconst::if_t)) {
@@ -3667,7 +3806,7 @@ namespace heist {
     for(auto& frame : *env) {
       // Get Macro List of the current frame & search 
       //   for a match with the current label & args
-      if(handle_macro_transformation(label,args,frame_macros(*frame),expanded_exp)) 
+      if(handle_macro_transformation(label,args,frame_macros(*frame),expanded_exp))
         return true;
     }
     return false;
@@ -4199,7 +4338,7 @@ namespace heist {
     auto result = proc(extended_env);
   tail_call_recur:
     if(is_tagged_list(result,symconst::tail_call)) { // if tail call
-      result = result[1].fcn.body(result[1].fcn.env);
+      result = result[1].fcn.bodies[0](result[1].fcn.env);
       goto tail_call_recur;
     }
     return result;
@@ -4211,7 +4350,8 @@ namespace heist {
   scm_list execute_application(data& procedure,scm_list& arguments,env_type& env,
                                         const bool tail_call,const bool callceing){
     if(!procedure.is_type(types::fcn))
-      THROW_ERR("Invalid application of non-procedure "<<PROFILE(procedure)<<'!'<<FCN_ERR(procedure.noexcept_write(),arguments));
+      THROW_ERR("Invalid application of non-procedure "<<PROFILE(procedure)<<'!'
+        <<FCN_ERR(procedure.noexcept_write(),arguments));
     // output debugger call trace as needed
     if(G::TRACING_ALL_FUNCTION_CALLS)
       output_debug_call_trace(procedure.fcn,arguments,tail_call,callceing);
@@ -4219,12 +4359,10 @@ namespace heist {
     if(procedure.fcn.is_primitive())
       return apply_primitive_procedure(procedure,arguments,env,tail_call);
     // compound proc -- create the procedure body's extended environment frame
-    auto extended_env = extend_environment(procedure.fcn.procedure_parameters(),
-                                           arguments,
-                                           procedure.fcn.env,
-                                           procedure.fcn.name);
+    exe_fcn_t fcn_body;
+    auto extended_env = procedure.fcn.get_extended_environment(arguments,fcn_body);
     // determine whether to inline call
-    const bool inline_call = !G::USING_INLINE_INVOCATIONS && procedure.fcn.is_inline_invocation;
+    const bool inline_call = !G::USING_INLINE_INVOCATIONS && procedure.fcn.is_inline_invocation();
     if(inline_call) G::USING_INLINE_INVOCATIONS = true;
     // splice in current env for dynamic scope as needed
     if(callceing || G::USING_INLINE_INVOCATIONS)
@@ -4250,13 +4388,11 @@ namespace heist {
       if(inline_call) G::USING_INLINE_INVOCATIONS = false;
       scm_list tail_call_signature(2); // {tail-call-tag, proc-body, extended-env}
       tail_call_signature[0] = symconst::tail_call;
-      tail_call_signature[1] = scm_fcn();
-      tail_call_signature[1].fcn.env = extended_env;
-      tail_call_signature[1].fcn.body = procedure.fcn.body;
+      tail_call_signature[1] = scm_fcn(extended_env,fcn_body);
       return tail_call_signature;
     }
     ++recursive_depth;
-    auto result = apply_compound_procedure(procedure.fcn.body,extended_env);
+    auto result = apply_compound_procedure(fcn_body,extended_env);
     --recursive_depth;
     // output result's trace as needed
     if(tracing_proc) output_call_trace_result(procedure.fcn,data_cast(result));
@@ -4282,7 +4418,8 @@ namespace heist {
     return p.is_type(types::fcn) && 
             (p.fcn.is_primitive() || 
               (p.fcn.is_compound() && 
-                (p.fcn.params.empty() || !data_is_continuation_parameter(*p.fcn.params.rbegin()))));
+                (p.fcn.param_instances[0].empty() || 
+                  !data_is_continuation_parameter(*p.fcn.param_instances[0].rbegin()))));
   }
 
   bool procedure_requires_continuation(const scm_fcn& p)noexcept{
@@ -4472,6 +4609,7 @@ namespace heist {
     else if(is_delay(exp))           return analyze_delay(exp,cps_block);
     else if(is_do(exp))              return scm_analyze(convert_do_letrec(exp),tail_call,cps_block);
     else if(is_defclass(exp))        return analyze_defclass(exp);
+    else if(is_fn(exp))              return analyze_fn(exp,cps_block);
     else if(is_scm_cps(exp))         return analyze_scm_cps(exp);
     else if(is_cps_quote(exp))       return analyze_cps_quote(exp,cps_block);
     else if(is_using_cpsp(exp))      return analyze_using_cpsp(exp,cps_block);
