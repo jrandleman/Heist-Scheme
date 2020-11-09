@@ -457,7 +457,7 @@ Other primitives of this nature include:<br>
 
 #### Form: `(fn ((<arg> ...) <body> ...) ...)`
 * _Note: Pass a variadic number of args (0+) by using `.` (like [`lambda`](#Lambda)!)_
-* _Note: Pattern-match against lists by using literal syntax!_
+* _Note: Pattern-match against containers by using literal syntax!_
   * _Like [`syntax-rules`](#syntax-rules), write more restrictive patterns first!_
   * _Match against symbol literals by using [`quote`](#quote)!_
 
