@@ -7,11 +7,10 @@
 ; prn, pr          ; write arbitrary # of args
 ; println, print   ; display arbitrary # of args
 ; pprintln, pprint ; pretty-print arbitrary # of args
-; define-overload  ; overload an existing procedure
 ; function         ; proecdure definition that can use <return>!
 ; time-operation   ; time an operation!
 ; lambda*          ; multiple-arity lambda!
-; fn               ; lambda shorthand for automated arg placement!
+; fcn              ; lambda shorthand for automated arg placement!
 ; tlambda          ; use predicates (including Type checks) on lambda args!
 ; defstruct        ; simple basic vector-based OOP
 
@@ -25,47 +24,6 @@
 (define (print . d) (for-each display d))
 (define (pprintln . d) (for-each pretty-print d) (newline))
 (define (pprint . d) (for-each pretty-print d))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; OVERLOAD EXISTING PROCEDURES
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Use "overload:original" to refer to <overloaded>
-;; Use <else> to catch all other args that don't satisfy any <pred?>
-(core-syntax define-overload
-  (syntax-rules (else)
-    ((_ overloaded (pred? function) ... (else else-function))
-      (define overloaded
-        (let ((overload:original overloaded))
-          (lambda (`@x . `@xs)
-            (cond ((pred? x) (apply function (cons x xs))) ...
-                  (else (apply else-function (cons x xs))))))))
-    ((_ overloaded (pred? function) ...)
-      (define overloaded
-        (let ((overload:original overloaded))
-          (lambda (`@x . `@xs)
-            (cond ((pred? x) (apply function (cons x xs))) ...
-                  (else 'overloaded "Unsupported Arg Type" x))))))))
-
-;; Demo overloading of existing procedures based on predicates
-;(define-overload < 
-;  (string? string<?) 
-;  (char?   char<?)
-;  (else overload:original)) ; demoing <else> use
-
-;(define-overload > 
-;  (number? overload:original) 
-;  (string? string>?) 
-;  (char?   char>?))
-
-;(define-overload =
-;  (number? overload:original)
-;  (else equal?))
-
-;(define-overload +
-;  (number? overload:original)
-;  (char? string)
-;  (seq? append))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; PROCEDURES THAT CAN USE IMMEDIATE RETURNS (SIMILAR TO C++ FUNCTIONS)
@@ -126,17 +84,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Lambda Shorthand Macro Longhand
-(core-syntax fn 
+(core-syntax fcn 
   (syntax-rules ()
     ((_ proc-exp) 
-      (eval (heist:fn:ctor 'proc-exp)))))
+      (eval (heist:fcn:ctor 'proc-exp)))))
 
 ;; Lambda Reader Macro Expansion
-(define (heist:fn:ctor proc-exp)
+(define (heist:fcn:ctor proc-exp)
   ;; Convert a tagged arg to a symbol arg
   (define total-args 0)
   (define (get-hashed-arg-from-number n)
-    (string->symbol (append "heist:fn:arg" (number->string n))))
+    (string->symbol (append "heist:fcn:arg" (number->string n))))
   (define (get-hashed-arg-symbol arg-sym) ;; extract <#> in the <%#> symbol
     (define n (string->number (slice (symbol->string arg-sym) 1)))
     (if (> n total-args) (set! total-args n))
@@ -165,8 +123,8 @@
 
 
 ;; Demo reader lambda shorthand
-;; (fn (and (even? %1) (even? %2))) === (lambda (a b) (and (even? a) (even? b)))
-;(prn (map (fn (and (even? %1) (even? %2))) '(1 2 3 4 5) '(2 2 2 2 2)))
+;; (fcn (and (even? %1) (even? %2))) === (lambda (a b) (and (even? a) (even? b)))
+;(prn (map (fcn (and (even? %1) (even? %2))) '(1 2 3 4 5) '(2 2 2 2 2)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; TLAMBDA MACRO FOR AUTOMATED PREDICATED LAMBDA ARGUMENTS
