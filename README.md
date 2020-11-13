@@ -352,7 +352,7 @@ Other primitives of this nature include:<br>
 1. [`eval`](#evalapply--symbol-append) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-eval`](#evalapply--symbol-append)
 2. [`compile`](#system-interface-procedures) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-compile`](#system-interface-procedures)
 3. Bind [`id`](#compose-bind--id) as the continuation of a procedure: [`cps->scm`](#scm-cps-procedures)
-   * for passing a procedure defined in a [`scm->cps`](#scm-cps) block as an argument to a procedure<br>
+   * For passing a procedure defined in a [`scm->cps`](#scm-cps) block as an argument to a procedure<br>
      __not__ defined in a [`scm->cps`](#scm-cps) block (determine definition context via [`cps-procedure?`](#Type-Predicates-Undefined--Void))
    * Example:
      ```scheme
