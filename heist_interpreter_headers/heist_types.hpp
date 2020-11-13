@@ -387,18 +387,19 @@ namespace heist {
   struct scm_fcn {
     using depth_t = tgc_ptr<size_type>;
     scm_string name; // name == "" denotes an anonymous procedure
+    std::vector<exp_type> param_instances;
     // PRIMITIVE
     prm_ptr_t prm = nullptr;
     // COMPOUND
-    std::vector<exp_type>  param_instances;
     std::vector<exe_fcn_t> bodies;
     env_type env        = nullptr ;
     obj_type self       = nullptr;
     depth_t rec_depth   = nullptr;
     unsigned char flags = 2; // is_inline_invocation | is_lambda (as opposed to 'fn) [is lambda by default]
     scm_fcn() = default;
-    // primitive ctor
-    scm_fcn(const scm_string& n, prm_ptr_t p)noexcept:name(n),prm(p) {}
+    // primitive ctors
+    scm_fcn(const exp_type& a, const prm_ptr_t& p)noexcept:prm(p) {param_instances.push_back(a);} // partial primitive
+    scm_fcn(const scm_string& n, const prm_ptr_t& p)noexcept:name(n),prm(p) {}                    // primitive
     // tail call wrapper ctor (gets returned up)
     scm_fcn(env_type& e,const exe_fcn_t& b)noexcept:env(e){bodies.push_back(b);}
     // lambda ctor
@@ -591,7 +592,7 @@ namespace heist {
             case '\0':   return "#\\nul";
             case '\x1b': return "#\\esc";
             case '\x7f': return "#\\delete";
-            case EOF:    return "#!eof";
+            case EOF:    return "#\\eof";
             default: 
               if(isprint(chr)) return scm_string("#\\") + char(chr);
               else {
@@ -884,7 +885,8 @@ namespace heist {
 
   // compound procedure equality
   bool scm_fcn::operator==(const scm_fcn& f)const noexcept{
-    if(prm || f.prm) return prm == f.prm;
+    if(is_primitive() || f.is_primitive())
+      return prm == f.prm && param_instances.empty() && f.param_instances.empty();
     if(env != f.env || self != f.self || rec_depth != f.rec_depth || name != f.name || 
        flags != f.flags || param_instances.size() != f.param_instances.size())
        return false;
@@ -908,22 +910,22 @@ namespace heist {
   // procedure assignment
   void scm_fcn::operator=(const scm_fcn& f)noexcept{
     if(this == &f) return;
-    name = f.name;
-    if(f.prm) {
+    name = f.name, param_instances = f.param_instances;
+    if(f.is_primitive()) {
       prm = f.prm;
     } else {
-      param_instances = f.param_instances, bodies = f.bodies, self = f.self, prm = nullptr;
+      bodies = f.bodies, self = f.self, prm = nullptr;
       env = f.env, rec_depth = f.rec_depth, flags = f.flags;
     }
   }
 
   void scm_fcn::operator=(scm_fcn&& f)noexcept{
     if(this == &f) return;
-    name = std::move(f.name);
-    if(f.prm) {
+    name = std::move(f.name), param_instances = std::move(f.param_instances);
+    if(f.is_primitive()) {
       prm = std::move(f.prm);
     } else {
-      param_instances = std::move(f.param_instances), bodies = std::move(f.bodies), self = std::move(f.self), prm = nullptr;
+      bodies = std::move(f.bodies), self = std::move(f.self), prm = nullptr;
       env = std::move(f.env), rec_depth = std::move(f.rec_depth), flags = std::move(f.flags);
     }
   }
@@ -1208,7 +1210,7 @@ namespace heist {
         }
         unpacked_params.clear(), values.clear();
       }
-      THROW_ERR("'fn arguments "<<data(arguments)<<" don't match any signatures!\n     => Possible Signatures:" 
+      THROW_ERR("'fn arguments "<<data(arguments)<<" don't match any signatures!\n     -> Possible Signatures:" 
         << get_possible_signatures(param_instances,name) << FCN_ERR(name,arguments));
     }
   }; // End of namespace fn_param_matching

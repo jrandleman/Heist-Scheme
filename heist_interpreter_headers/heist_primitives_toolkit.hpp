@@ -81,6 +81,15 @@ namespace heist {
   }
 
   /******************************************************************************
+  * GENERATE A PARTIALLY APPLIED PRIMITIVE PROCEDURE
+  ******************************************************************************/
+
+  // currently not using <const char*> name, but may desire to in the future
+  data GENERATE_PRIMITIVE_PARTIAL(const char*, prm_ptr_t prm, scm_list& args)noexcept{
+    return scm_fcn(args,prm);
+  }
+
+  /******************************************************************************
   * GENERAL PROCEDURE / FUNCTOR / CALLABLE HANDLING PRIMITIVES
   ******************************************************************************/
 
@@ -1125,6 +1134,15 @@ namespace heist {
   }
 
 
+  void primitive_UNFOLD_template_recur(data& break_condition, data& mapper, 
+                                       data& successor, const data& seed, scm_list& unfolded){
+    if(scm_list truth_arg(1,seed); is_true_scm_condition(break_condition,truth_arg)) return;
+    scm_list map_arg(1,seed), suc_arg(1,seed);
+    unfolded.push_back(data_cast(execute_application(mapper,map_arg)));
+    primitive_UNFOLD_template_recur(break_condition,mapper,successor,data_cast(execute_application(successor,suc_arg)),unfolded);
+  }
+
+
   // "unfold" & "vector-unfold" & "string-unfold" procedure helper template:
   void primitive_UNFOLD_template(scm_list& args,scm_list& unfolded,
                                  const char* name,const char* format){
@@ -1134,12 +1152,7 @@ namespace heist {
     auto break_condition = validate_and_extract_callable(args[0], name, format, args);
     auto mapper          = validate_and_extract_callable(args[1], name, format, args);
     auto successor       = validate_and_extract_callable(args[2], name, format, args);
-    // unfold the seed into a list
-    scm_list seed(1,args[3]);
-    while(is_false_scm_condition(break_condition,seed)) {
-      unfolded.push_back(data_cast(execute_application(mapper,seed)));
-      seed[0] = data_cast(execute_application(successor,seed));
-    }
+    primitive_UNFOLD_template_recur(break_condition,mapper,successor,args[3],unfolded);
   }
 
   /******************************************************************************
@@ -2161,10 +2174,10 @@ namespace heist {
       seq_ptr, "any",format, seq_name);
     if(!min_length) return G::FALSE_DATA_BOOLEAN;
     const size_type total_sequences = args.size();
-    scm_list any_args(total_sequences-1);
     // For each element
     for(size_type i = 0; i < min_length; ++i){
       // In each sequence
+      scm_list any_args(total_sequences-1);
       for(size_type j = 1; j < total_sequences; ++j) {
         if constexpr (SEQUENCE_TYPE == types::vec || SEQUENCE_TYPE == types::str) {
           any_args[j-1] = (args[j].*seq_ptr)->operator[](i);
@@ -2195,19 +2208,19 @@ namespace heist {
       seq_ptr, "every",format, seq_name);
     if(!min_length) return G::FALSE_DATA_BOOLEAN;
     const size_type total_sequences = args.size();
-    scm_list any_args(total_sequences-1);
     // For each element
     for(size_type i = 0; i < min_length; ++i){
       // In each sequence
+      scm_list every_args(total_sequences-1);
       for(size_type j = 1; j < total_sequences; ++j) {
         if constexpr (SEQUENCE_TYPE == types::vec || SEQUENCE_TYPE == types::str) {
-          any_args[j-1] = (args[j].*seq_ptr)->operator[](i);
+          every_args[j-1] = (args[j].*seq_ptr)->operator[](i);
         } else { // lists aren't passed via a smart pointer member
-          any_args[j-1] = args[j].exp[i];
+          every_args[j-1] = args[j].exp[i];
         }
       }
       // If set of elements is false
-      auto result = execute_application(procedure,any_args);
+      auto result = execute_application(procedure,every_args);
       if(!is_true(result))  return G::FALSE_DATA_BOOLEAN; // return false
       if(i+1 == min_length) return data_cast(result); // else return last <predicate> result
     }

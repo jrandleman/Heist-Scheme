@@ -352,8 +352,8 @@ Other primitives of this nature include:<br>
 1. [`eval`](#evalapply--symbol-append) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-eval`](#evalapply--symbol-append)
 2. [`compile`](#system-interface-procedures) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-compile`](#system-interface-procedures)
 3. Bind [`id`](#compose-bind--id) as the continuation of a procedure: [`cps->scm`](#scm-cps-procedures)
-   * for passing a procedure defined in a [`scm->cps`](#scm-cps) block as an argument<br>
-     to a procedure __not__ defined in a [`scm->cps`](#scm-cps) block
+   * for passing a procedure defined in a [`scm->cps`](#scm-cps) block as an argument to a procedure<br>
+     __not__ defined in a [`scm->cps`](#scm-cps) block (determine definition context via [`cps-procedure?`](#Type-Predicates-Undefined--Void))
    * Example:
      ```scheme
      ;; <sort> primitive is NOT defined in a <scm->cps> block, so <cps-lt>
@@ -1489,7 +1489,9 @@ Other primitives of this nature include:<br>
 
 ------------------------
 # Heist Primitive Procedures
-### _As if `define`d via `lambda`_
+## Prolific Partials:
+#### All of the Below Support Partial Application!
+* IE `(map even?)` is equivalent to `(lambda (x . xs) (apply map (cons even? (cons x xs))))`
 
 
 ## OOP Reflection Primitives:
@@ -2254,7 +2256,7 @@ Other primitives of this nature include:<br>
 
 18. __Functor Predicate__: `(functor? <obj>)`
     * _Functor = [object](#Defclass) with a `self->procedure` method defined!_
-    * _May be called as if a function!_
+    * _Functors may be called as if a function!_
 
 17. __Callable Predicate__: `(callable? <obj>)`
     * _Equivalent to: `(or (procedure? <obj>) (functor? <obj>))`_

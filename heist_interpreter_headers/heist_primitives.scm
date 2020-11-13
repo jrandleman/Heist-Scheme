@@ -153,83 +153,101 @@
   (syntax-error name (append message "\n               " format "\n               ") variable))
 
 
-(define (stream-map callable s . streams)
-  (if (not (callable? callable))
-      (heist:stream:error 'stream-map "1st arg isn't a callable!" 
-        "(stream-map <callable> <stream1> <stream2> ...)" callable))
-  (for-each (lambda (s) 
-              (if (not (stream? s)) 
-                  (heist:stream:error 'stream-map "received a non stream!" 
-                    "(stream-map <callable> <stream1> <stream2> ...)" s)))
-            (cons s streams))
-  (define (stream-map streams)
-    (if (stream-null? (car streams))
-        stream-null
-        (scons
-          (apply callable (map scar streams))
-          (stream-map (map scdr streams)))))
-  (stream-map (cons s streams)))
+(defn stream-map
+  ((callable) 
+    (lambda (s . streams) 
+      (apply stream-map (cons callable (cons s streams)))))
+  ((callable s . streams)
+    (if (not (callable? callable))
+        (heist:stream:error 'stream-map "1st arg isn't a callable!" 
+          "(stream-map <callable> <stream1> <stream2> ...)" callable))
+    (for-each (lambda (s) 
+                (if (not (stream? s)) 
+                    (heist:stream:error 'stream-map "received a non stream!" 
+                      "(stream-map <callable> <stream1> <stream2> ...)" s)))
+              (cons s streams))
+    (define (stream-map streams)
+      (if (stream-null? (car streams))
+          stream-null
+          (scons
+            (apply callable (map scar streams))
+            (stream-map (map scdr streams)))))
+    (stream-map (cons s streams))))
 
 
-(define (stream-filter pred? s)
-  (if (not (callable? pred?))
-      (heist:stream:error 'stream-filter "1st arg isn't a callable!" 
-        "(stream-filter <predicate> <stream>)" pred?))
-  (if (not (stream? s)) 
-      (heist:stream:error 'stream-filter "2nd arg isn't a stream!" 
-        "(stream-filter <predicate> <stream>)" s))
-  (define (stream-filter s)
-    (if (stream-null? s) 
-        stream-null
-        (if (pred? (scar s))
-            (scons (scar s) (stream-filter (scdr s)))
-            (stream-filter (scdr s)))))
-  (stream-filter s))
+(defn stream-filter
+  ((pred?)
+    (lambda (s) (stream-filter pred? s)))
+  ((pred? s)
+    (if (not (callable? pred?))
+        (heist:stream:error 'stream-filter "1st arg isn't a callable!" 
+          "(stream-filter <predicate> <stream>)" pred?))
+    (if (not (stream? s)) 
+        (heist:stream:error 'stream-filter "2nd arg isn't a stream!" 
+          "(stream-filter <predicate> <stream>)" s))
+    (define (stream-filter s)
+      (if (stream-null? s) 
+          stream-null
+          (if (pred? (scar s))
+              (scons (scar s) (stream-filter (scdr s)))
+              (stream-filter (scdr s)))))
+    (stream-filter s)))
 
 
-(define (stream-from first . optional-step)
-  (define (stream-from-iter n suc-proc)
-    (scons n (stream-from-iter (suc-proc n) suc-proc)))
-  (define step 
-    (if (null? optional-step)
-        1
-        (if (null? (cdr optional-step))
-            (if (number? (car optional-step))
-                (car optional-step)
-                (heist:stream:error 'stream-from "2nd arg isn't a number!" 
-                  "(stream-from <seed-number> <optional-step>)" (car optional-step)))
-            (heist:stream:error 'stream-from "received more than 1 step!" 
-              "(stream-from <seed-number> <optional-step>)" step))))
-  (if (number? first)
-      (stream-from-iter first (lambda (num) (+ num step)))
-      (heist:stream:error 'stream-from "1st arg isn't a number!" 
-        "(stream-from <seed-number> <optional-step>)" first)))
+(defn stream-from
+  ((first)
+    (stream-from first 1))
+  ((first step)
+    (define (stream-from-iter n suc-proc)
+      (scons n (stream-from-iter (suc-proc n) suc-proc)))
+    (if (number? first)
+        (if (number? step)
+            (stream-from-iter first (+ step))
+            (heist:stream:error 'stream-from "2nd arg isn't a number!" 
+              "(stream-from <seed-number> <optional-step>)" step))
+        (heist:stream:error 'stream-from "1st arg isn't a number!" 
+          "(stream-from <seed-number> <optional-step>)" first))))
 
 
-(define (stream-unfold break-cond map-callable suc-callable seed)
-  (if (not (callable? break-cond))
-      (heist:stream:error 'stream-unfold "1st arg isn't a callable!" 
-        "(stream-unfold <break-condition> <map-callable> <successor-callable> <seed>)" break-cond))
-  (if (not (callable? map-callable))
-      (heist:stream:error 'stream-unfold "2nd arg isn't a callable!" 
-        "(stream-unfold <break-condition> <map-callable> <successor-callable> <seed>)" map-callable))
-  (if (not (callable? suc-callable))
-      (heist:stream:error 'stream-unfold "3rd arg isn't a callable!" 
-        "(stream-unfold <break-condition> <map-callable> <successor-callable> <seed>)" suc-callable))
-  (define (stream-unfold seed)
-    (if (break-cond seed)
-        stream-null
-        (scons (map-callable seed) (stream-unfold (suc-callable seed)))))
-  (stream-unfold seed))
+(defn stream-unfold
+  ((break-cond)
+    (fn 
+      ((map-callable) (stream-unfold break-cond map-callable))
+      ((map-callable suc-callable) (lambda (seed) (stream-unfold break-cond map-callable suc-callable seed)))
+      ((map-callable suc-callable seed) (stream-unfold break-cond map-callable suc-callable seed))))
+  ((break-cond map-callable)
+    (fn
+      ((suc-callable) (lambda (seed) (stream-unfold break-cond map-callable suc-callable seed)))
+      ((suc-callable seed) (stream-unfold break-cond map-callable suc-callable seed))))
+  ((break-cond map-callable suc-callable)
+    (lambda (seed) (stream-unfold break-cond map-callable suc-callable seed)))
+  ((break-cond map-callable suc-callable seed)
+    (if (not (callable? break-cond))
+        (heist:stream:error 'stream-unfold "1st arg isn't a callable!" 
+          "(stream-unfold <break-condition> <map-callable> <successor-callable> <seed>)" break-cond))
+    (if (not (callable? map-callable))
+        (heist:stream:error 'stream-unfold "2nd arg isn't a callable!" 
+          "(stream-unfold <break-condition> <map-callable> <successor-callable> <seed>)" map-callable))
+    (if (not (callable? suc-callable))
+        (heist:stream:error 'stream-unfold "3rd arg isn't a callable!" 
+          "(stream-unfold <break-condition> <map-callable> <successor-callable> <seed>)" suc-callable))
+    (define (stream-unfold seed)
+      (if (break-cond seed)
+          stream-null
+          (scons (map-callable seed) (stream-unfold (suc-callable seed)))))
+    (stream-unfold seed)))
 
 
-(define (stream-iterate suc-callable seed)
-  (if (not (callable? suc-callable))
-      (heist:stream:error 'stream-iterate "1st arg isn't a callable!" 
-        "(stream-iterate <successor-callable> <seed>)" suc-callable))
-  (define (stream-iterate seed)
-    (scons seed (stream-iterate (suc-callable seed))))
-  (stream-iterate seed))
+(defn stream-iterate
+  ((suc-callable)
+    (lambda (seed) (stream-iterate suc-callable seed)))
+  ((suc-callable seed)
+    (if (not (callable? suc-callable))
+        (heist:stream:error 'stream-iterate "1st arg isn't a callable!" 
+          "(stream-iterate <successor-callable> <seed>)" suc-callable))
+    (define (stream-iterate seed)
+      (scons seed (stream-iterate (suc-callable seed))))
+    (stream-iterate seed)))
 
 
 (define (stream-zip s . streams)
@@ -266,18 +284,20 @@
   (if (null? streams) s (stream-append s streams)))
 
 
-(define (stream-interleave stream1 stream2)
-  (if (not (stream? stream1))
-      (heist:stream:error 'stream-interleave "1st arg isn't a stream!" 
-        "(stream-interleave <stream1> <stream2>)" stream1))
-  (if (not (stream? stream2))
-      (heist:stream:error 'stream-interleave "2nd arg isn't a stream!" 
-        "(stream-interleave <stream2> <stream2>)" stream2))
-  (define (stream-interleave stream1 stream2)
-    (if (stream-null? stream1)
-        stream2
-        (scons (scar stream1) (stream-interleave stream2 (scdr stream1)))))
-  (stream-interleave stream1 stream2))
+(defn stream-interleave
+  ((stream1) (lambda (stream2) (stream-interleave stream1 stream2)))
+  ((stream1 stream2)
+    (if (not (stream? stream1))
+        (heist:stream:error 'stream-interleave "1st arg isn't a stream!" 
+          "(stream-interleave <stream1> <stream2>)" stream1))
+    (if (not (stream? stream2))
+        (heist:stream:error 'stream-interleave "2nd arg isn't a stream!" 
+          "(stream-interleave <stream2> <stream2>)" stream2))
+    (define (stream-interleave stream1 stream2)
+      (if (stream-null? stream1)
+          stream2
+          (scons (scar stream1) (stream-interleave stream2 (scdr stream1)))))
+    (stream-interleave stream1 stream2)))
 
 ;; ===================================================
 ;; =========== MATHEMATIC FLONUM CONSTANTS ===========

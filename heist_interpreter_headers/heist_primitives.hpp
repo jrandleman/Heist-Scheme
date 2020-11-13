@@ -18,6 +18,7 @@ namespace heist {
   // primitive "+" procedure
   data primitive_ADD(scm_list& args) {
     confirm_no_numeric_primitive_errors(args, "+", "(+ <num1> <num2> ...)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("+",primitive_ADD,args);
     num_type sum;
     for(size_type i = 0, n = args.size(); i < n; ++i)
       sum += args[i].num;
@@ -37,6 +38,7 @@ namespace heist {
   // primitive "*" procedure:
   data primitive_MUL(scm_list& args) {
     confirm_no_numeric_primitive_errors(args, "*", "(* <num1> <num2> ...)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("*",primitive_MUL,args);
     num_type product("1");
     for(size_type i = 0, n = args.size(); i < n; ++i)
       product *= args[i].num;
@@ -66,6 +68,7 @@ namespace heist {
   // primitive "expt" procedure
   data primitive_EXPT(scm_list& args) {
     confirm_no_numeric_primitive_errors(args, "expt", "(expt <num1> <num2> ...)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("expt",primitive_EXPT,args);
     if(args.size() < 2)
       THROW_ERR("'expt less than 2 args given!\n     (expt <num1> <num2> ...)" 
         << FCN_ERR("expt",args));
@@ -79,12 +82,13 @@ namespace heist {
   data primitive_EXPT_MOD(scm_list& args) {
     // Confirm valid arguments
     static constexpr const char * const format = "\n     (expt-mod <real1> <real2> <real3>)";
-    if(args.size() != 3)
+    if(args.empty() || args.size() > 3)
       THROW_ERR("'expt-mod invalid # of args given!" << format << FCN_ERR("expt-mod",args));
-    for(size_type i = 0; i < 3; ++i)
+    for(size_type i = 0, n = args.size(); i < n; ++i)
       if(!args[i].is_type(types::num) || !args[i].num.is_integer() || args[i].num.is_neg())
         THROW_ERR("'expt-mod arg #" << i+1 << ' ' << PROFILE(args[i]) << " isn't a non-negative integer!" 
           << format << FCN_ERR("expt-mod",args));
+    if(args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("expt-mod",primitive_EXPT_MOD,args);
     // Perform Repeated Squares
     auto &x = args[0].num, &z = args[2].num;
     auto y_bitstr = args[1].num.to_exact().str(2);
@@ -100,6 +104,7 @@ namespace heist {
   // primitive "max" procedure
   data primitive_MAX(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, "max", "(max <real1> <real2> ...)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("max",primitive_MAX,args);
     num_type max = args[0].num;
     for(size_type i = 1, n = args.size(); i < n; ++i)
       if(args[i].num > max)
@@ -110,6 +115,7 @@ namespace heist {
   // primitive "min" procedure
   data primitive_MIN(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, "min", "(min <real1> <real2> ...)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("min",primitive_MIN,args);
     num_type min = args[0].num;
     for(size_type i = 1, n = args.size(); i < n; ++i)
       if(args[i].num < min)
@@ -120,6 +126,7 @@ namespace heist {
   // primitive "quotient" procedure
   data primitive_QUOTIENT(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, "quotient", "(quotient <real1> <real2>)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("quotient",primitive_QUOTIENT,args);
     confirm_2_args(args, "quotient", "(quotient <real1> <real2>)");
     return data(args[0].num.quotient(args[1].num));
   }
@@ -127,6 +134,7 @@ namespace heist {
   // primitive "remainder" procedure
   data primitive_REMAINDER(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, "remainder", "(remainder <real1> <real2>)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("remainder",primitive_REMAINDER,args);
     confirm_2_args(args, "remainder", "(remainder <real1> <real2>)");
     return data((args[0].num % args[1].num));
   }
@@ -134,6 +142,7 @@ namespace heist {
   // primitive "divmod" procedure
   data primitive_DIVMOD(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, "divmod", "(divmod <real1> <real2>)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("divmod",primitive_DIVMOD,args);
     confirm_2_args(args, "divmod", "(divmod <real1> <real2>)");
     auto result = args[0].num.divmod(args[1].num);
     data divmod_pair = data(make_par());
@@ -145,6 +154,7 @@ namespace heist {
   // primitive "modulo" procedure
   data primitive_MODULO(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, "modulo", "(modulo <real1> <real2>)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("modulo",primitive_MODULO,args);
     confirm_2_args(args, "modulo", "(modulo <real1> <real2>)");
     return data(args[0].num.modulo(args[1].num));
   }
@@ -222,6 +232,7 @@ namespace heist {
   //  primitive "npr": P(n,r) = n! / (n - r)!
   data primitive_NPR(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, "npr", "(npr <real1> <real2>)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("npr",primitive_NPR,args);
     confirm_2_args(args, "npr", "(npr <real1> <real2>)");
     auto n = args[0].num;
     return prm_factorial(std::move(args[0].num),num_type("1")) / 
@@ -231,6 +242,7 @@ namespace heist {
   //  primitive "ncr": C(n,r) = n! / (r! * (n - r)!)
   data primitive_NCR(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, "ncr", "(ncr <real1> <real2>)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("ncr",primitive_NCR,args);
     confirm_2_args(args, "ncr", "(ncr <real1> <real2>)");
     auto n_r_difference = args[0].num - args[1].num;
     return prm_factorial(std::move(args[0].num),num_type("1")) / 
@@ -244,6 +256,7 @@ namespace heist {
   // primitive "make-polar" procedure
   data primitive_MAKE_POLAR(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, "make-polar", "(make-polar <real-mag> <real-ang>)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("make-polar",primitive_MAKE_POLAR,args);
     confirm_2_args(args, "make-polar", "(make-polar <real-mag> <real-ang>)");
     return num_type::make_polar(args[0].num,args[1].num);
   }
@@ -251,6 +264,7 @@ namespace heist {
   // primitive "make-rectangular" procedure
   data primitive_MAKE_RECTANGULAR(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, "make-rectangular", "(make-polar <real-real> <real-imag>)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("make-rectangular",primitive_MAKE_RECTANGULAR,args);
     confirm_2_args(args, "make-rectangular", "(make-rectangular <real-real> <real-imag>)");
     return num_type::make_rectangular(args[0].num,args[1].num);
   }
@@ -524,6 +538,7 @@ namespace heist {
   // primitive "logand" procedure
   data primitive_LOGAND(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, "logand", "(logand <real1> <real2>)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("logand",primitive_LOGAND,args);
     confirm_2_args(args, "logand", "(logand <real1> <real2>)");
     return data(args[0].num & args[1].num);
   }
@@ -531,6 +546,7 @@ namespace heist {
   // primitive "logor" procedure
   data primitive_LOGOR(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, "logor", "(logor <real1> <real2>)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("logor",primitive_LOGOR,args);
     confirm_2_args(args, "logor", "(logor <real1> <real2>)");
     return data(args[0].num | args[1].num);
   }
@@ -538,6 +554,7 @@ namespace heist {
   // primitive "logxor" procedure
   data primitive_LOGXOR(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, "logxor", "(logxor <real1> <real2>)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("logxor",primitive_LOGXOR,args);
     confirm_2_args(args, "logxor", "(logxor <real1> <real2>)");
     return data(args[0].num ^ args[1].num);
   }
@@ -551,6 +568,7 @@ namespace heist {
   // primitive "loglsl" procedure
   data primitive_LOGLSL(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, "loglsl", "(loglsl <real> <shift-amount>)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("loglsl",primitive_LOGLSL,args);
     confirm_2_args(args, "loglsl", "(loglsl <real> <shift-amount>)");
     return data(args[0].num << args[1].num);
   }
@@ -558,6 +576,7 @@ namespace heist {
   // primitive "loglsr" procedure
   data primitive_LOGLSR(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, "loglsr", "(loglsr <real> <shift-amount>)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("loglsr",primitive_LOGLSR,args);
     confirm_2_args(args, "loglsr", "(loglsr <real> <shift-amount>)");
     return data(args[0].num >> args[1].num);
   }
@@ -565,6 +584,7 @@ namespace heist {
   // primitive "logasr" procedure
   data primitive_LOGASR(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, "logasr", "(logasr <real> <shift-amount>)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("logasr",primitive_LOGASR,args);
     confirm_2_args(args, "logasr", "(logasr <real> <shift-amount>)");
     return data(args[0].num.asr(args[1].num));
   }
@@ -572,6 +592,7 @@ namespace heist {
   // primitive "logbit?" procedure
   data primitive_LOGBITP(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, "logbit?", "(logbit? <real> <bit-No>)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("logbit?",primitive_LOGBITP,args);
     confirm_2_args(args, "logbit?", "(logbit? <real> <bit-No>)");
     return data((args[0].num >> args[1].num) & 1);
   }
@@ -579,6 +600,7 @@ namespace heist {
   // primitive "logbit1" procedure
   data primitive_LOGBIT1(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, "logbit1", "(logbit1 <real> <bit-No>)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("logbit1",primitive_LOGBIT1,args);
     confirm_2_args(args, "logbit1", "(logbit1 <real> <bit-No>)");
     return data(args[0].num | (1 << args[1].num));
   }
@@ -586,6 +608,7 @@ namespace heist {
   // primitive "logbit0" procedure
   data primitive_LOGBIT0(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, "logbit0", "(logbit0 <real> <bit-No>)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("logbit0",primitive_LOGBIT0,args);
     confirm_2_args(args, "logbit0", "(logbit0 <real> <bit-No>)");
     return data(args[0].num & ~(1 << args[1].num));
   }
@@ -593,6 +616,7 @@ namespace heist {
   // primitive "logbit~" procedure
   data primitive_LOGBIT_CMPL(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, "logbit~", "(logbit~ <real> <bit-No>)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("logbit~",primitive_LOGBIT_CMPL,args);
     confirm_2_args(args, "logbit~", "(logbit~ <real> <bit-No>)");
     return data(args[0].num ^ (1 << args[1].num));
   }
@@ -621,6 +645,7 @@ namespace heist {
   // primitive "=" procedure:
   data primitive_EQ(scm_list& args) {
     confirm_no_numeric_primitive_errors(args, "=", "(= <num1> <num2> ...)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("=",primitive_EQ,args);
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
       if(args[i].num != args[i+1].num) 
         return G::FALSE_DATA_BOOLEAN;
@@ -630,6 +655,7 @@ namespace heist {
   // primitive ">" procedure:
   data primitive_GT(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, ">", "(> <real1> <real2> ...)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL(">",primitive_GT,args);
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
       if(args[i].num <= args[i+1].num) 
         return G::FALSE_DATA_BOOLEAN;
@@ -639,6 +665,7 @@ namespace heist {
   // primitive "<" procedure:
   data primitive_LT(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, "<", "(< <real1> <real2> ...)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("<",primitive_LT,args);
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
       if(args[i].num >= args[i+1].num) 
         return G::FALSE_DATA_BOOLEAN;
@@ -648,6 +675,7 @@ namespace heist {
   // primitive ">=" procedure:
   data primitive_GTE(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, ">=", "(>= <real1> <real2> ...)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL(">=",primitive_GTE,args);
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
       if(args[i].num < args[i+1].num) 
         return G::FALSE_DATA_BOOLEAN;
@@ -657,6 +685,7 @@ namespace heist {
   // primitive "<=" procedure:
   data primitive_LTE(scm_list& args) {
     confirm_no_real_numeric_primitive_errors(args, "<=", "(<= <real1> <real2> ...)");
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("<=",primitive_LTE,args);
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
       if(args[i].num > args[i+1].num) 
         return G::FALSE_DATA_BOOLEAN;
@@ -670,6 +699,7 @@ namespace heist {
   // primitive "eq?" procedure:
   data primitive_EQP(scm_list& args) {
     if(args.empty()) THROW_ERR("'eq? received no arguments: (eq? <obj1> <obj2> ...)" << FCN_ERR("eq?", args));
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("eq?",primitive_EQP,args);
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
       if(!args[i].eq(args[i+1])) 
         return G::FALSE_DATA_BOOLEAN;
@@ -679,6 +709,7 @@ namespace heist {
   // primitive "eqv?" procedure:
   data primitive_EQVP(scm_list& args) {
     if(args.empty()) THROW_ERR("'eqv? received no arguments: (eqv? <obj1> <obj2> ...)" << FCN_ERR("eqv?", args));
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("eqv?",primitive_EQVP,args);
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
       if(!args[i].eqv(args[i+1])) 
         return G::FALSE_DATA_BOOLEAN;
@@ -688,6 +719,7 @@ namespace heist {
   // primitive "equal?" procedure:
   data primitive_EQUALP(scm_list& args) {
     if(args.empty()) THROW_ERR("'equal? received no arguments: (equal? <obj1> <obj2> ...)" << FCN_ERR("equal?", args));
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("equal?",primitive_EQUALP,args);
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
       if(!args[i].equal(args[i+1])) 
         return G::FALSE_DATA_BOOLEAN;
@@ -711,6 +743,7 @@ namespace heist {
   // primitive "char=?" procedure:
   data primitive_CHAR_EQ(scm_list& args) {
     confirm_given_char_string_args(args, "char=?", types::chr);
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char=?",primitive_CHAR_EQ,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(args[i].chr != args[i+1].chr)
         return G::FALSE_DATA_BOOLEAN;
@@ -720,6 +753,7 @@ namespace heist {
   // primitive "char<?" procedure:
   data primitive_CHAR_LT(scm_list& args) {
     confirm_given_char_string_args(args, "char<?", types::chr);
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char<?",primitive_CHAR_LT,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(args[i].chr >= args[i+1].chr)
         return G::FALSE_DATA_BOOLEAN;
@@ -729,6 +763,7 @@ namespace heist {
   // primitive "char>?" procedure:
   data primitive_CHAR_GT(scm_list& args) {
     confirm_given_char_string_args(args, "char>?", types::chr);
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char>?",primitive_CHAR_GT,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(args[i].chr <= args[i+1].chr)
         return G::FALSE_DATA_BOOLEAN;
@@ -738,6 +773,7 @@ namespace heist {
   // primitive "char<=?" procedure:
   data primitive_CHAR_LTE(scm_list& args) {
     confirm_given_char_string_args(args, "char<=?", types::chr);
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char<=?",primitive_CHAR_LTE,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(args[i].chr > args[i+1].chr)
         return G::FALSE_DATA_BOOLEAN;
@@ -747,6 +783,7 @@ namespace heist {
   // primitive "char>=?" procedure:
   data primitive_CHAR_GTE(scm_list& args) {
     confirm_given_char_string_args(args, "char>=?", types::chr);
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char>=?",primitive_CHAR_GTE,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(args[i].chr < args[i+1].chr)
         return G::FALSE_DATA_BOOLEAN;
@@ -756,6 +793,7 @@ namespace heist {
   // primitive "char-ci=?" procedure:
   data primitive_CHAR_CI_EQ(scm_list& args) {
     confirm_given_char_string_args(args, "char-ci=?", types::chr);
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char-ci=?",primitive_CHAR_CI_EQ,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(scm_numeric::mklower(args[i].chr) != scm_numeric::mklower(args[i+1].chr))
         return G::FALSE_DATA_BOOLEAN;
@@ -765,6 +803,7 @@ namespace heist {
   // primitive "char-ci<?" procedure:
   data primitive_CHAR_CI_LT(scm_list& args) {
     confirm_given_char_string_args(args, "char-ci<?", types::chr);
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char-ci<?",primitive_CHAR_CI_LT,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(scm_numeric::mklower(args[i].chr) >= scm_numeric::mklower(args[i+1].chr))
         return G::FALSE_DATA_BOOLEAN;
@@ -774,6 +813,7 @@ namespace heist {
   // primitive "char-ci>?" procedure:
   data primitive_CHAR_CI_GT(scm_list& args) {
     confirm_given_char_string_args(args, "char-ci>?", types::chr);
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char-ci>?",primitive_CHAR_CI_GT,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(scm_numeric::mklower(args[i].chr) <= scm_numeric::mklower(args[i+1].chr))
         return G::FALSE_DATA_BOOLEAN;
@@ -783,6 +823,7 @@ namespace heist {
   // primitive "char-ci<=?" procedure:
   data primitive_CHAR_CI_LTE(scm_list& args) {
     confirm_given_char_string_args(args, "char-ci<=?", types::chr);
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char-ci<=?",primitive_CHAR_CI_LTE,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(scm_numeric::mklower(args[i].chr) > scm_numeric::mklower(args[i+1].chr))
         return G::FALSE_DATA_BOOLEAN;
@@ -792,6 +833,7 @@ namespace heist {
   // primitive "char-ci>=?" procedure:
   data primitive_CHAR_CI_GTE(scm_list& args) {
     confirm_given_char_string_args(args, "char-ci>=?", types::chr);
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char-ci>=?",primitive_CHAR_CI_GTE,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(scm_numeric::mklower(args[i].chr) < scm_numeric::mklower(args[i+1].chr))
         return G::FALSE_DATA_BOOLEAN;
@@ -920,18 +962,21 @@ namespace heist {
 
   // primitive "string-unfold" procedure:
   data primitive_STRING_UNFOLD(scm_list& args) {
+    if(!args.empty() && args.size() < 4) return GENERATE_PRIMITIVE_PARTIAL("string-unfold",primitive_STRING_UNFOLD,args);
     return primitive_STRING_UNFOLD_template(args,false,"string-unfold",
       "\n     (string-unfold <break-condition> <map-callable> <successor-callable> <seed>)");
   }
 
   // primitive "string-unfold-right" procedure:
   data primitive_STRING_UNFOLD_RIGHT(scm_list& args) {
+    if(!args.empty() && args.size() < 4) return GENERATE_PRIMITIVE_PARTIAL("string-unfold-right",primitive_STRING_UNFOLD_RIGHT,args);
     return primitive_STRING_UNFOLD_template(args,true,"string-unfold-right",
       "\n     (string-unfold-right <break-condition> <map-callable> <successor-callable> <seed>)");
   }
 
   // primitive "string-pad" procedure:
   data primitive_STRING_PAD(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-pad",primitive_STRING_PAD,args);
     char padding_character = confirm_valid_string_pad_args(args, "string-pad",
       "\n     (string-pad <string> <length> <optional-character>)");
     const size_type length = (size_type)args[1].num.extract_inexact();
@@ -943,6 +988,7 @@ namespace heist {
 
   // primitive "string-pad-right" procedure:
   data primitive_STRING_PAD_RIGHT(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-pad-right",primitive_STRING_PAD_RIGHT,args);
     char padding_character = confirm_valid_string_pad_args(args, "string-pad-right",
       "\n     (string-pad-right <string> <length> <optional-character>)");
     const size_type length = (size_type)args[1].num.extract_inexact();
@@ -981,6 +1027,7 @@ namespace heist {
   data primitive_STRING_REPLACE(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (string-replace <string1> <string2> <start1> <end1>)";
+      if(!args.empty() && args.size() < 4) return GENERATE_PRIMITIVE_PARTIAL("string-replace",primitive_STRING_REPLACE,args);
     if(args.size() != 4)
       THROW_ERR("'string-replace recieved incorrect # of args (given " 
         << args.size() << "):" << format 
@@ -1006,12 +1053,14 @@ namespace heist {
 
   // primitive "string-contains" procedure:
   data primitive_STRING_CONTAINS(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-contains",primitive_STRING_CONTAINS,args);
     return prm_string_contains_template(args, "string-contains", 
       "\n     (string-contains <string> <sub-string>)", true);
   }
 
   // primitive "string-contains-right" procedure:
   data primitive_STRING_CONTAINS_RIGHT(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-contains-right",primitive_STRING_CONTAINS_RIGHT,args);
     return prm_string_contains_template(args, "string-contains-right", 
       "\n     (string-contains-right <string> <sub-string>)", false);
   }
@@ -1072,6 +1121,7 @@ namespace heist {
   data primitive_STRING_SWAP_BANG(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (string-swap! <string> <string>)";
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-swap!",primitive_STRING_SWAP_BANG,args);
     if(args.size() != 2)
       THROW_ERR("'string-swap! recieved incorrect # of args (given " 
         << args.size() << "):" << format 
@@ -1092,6 +1142,7 @@ namespace heist {
   data primitive_STRING_PUSH_BANG(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (string-push! <string> <char>)";
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-push!",primitive_STRING_PUSH_BANG,args);
     if(args.size() != 2)
       THROW_ERR("'string-push! recieved incorrect # of args (given " 
         << args.size() << "):" << format 
@@ -1114,6 +1165,7 @@ namespace heist {
 
   // primitive "string-copy!" procedure:
   data primitive_STRING_COPY_BANG(scm_list& args) {
+    if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("string-copy!",primitive_STRING_COPY_BANG,args);
     return primitive_STATIC_SEQUENCE_COPY_BANG_template(args, "string-copy!", 
       "\n     (string-copy! <target-string> <target-start-idx> <source-string>)",
       types::str, "string", &data::str);
@@ -1126,6 +1178,7 @@ namespace heist {
   // primitive "string=?" procedure:
   data primitive_STRING_EQP(scm_list& args) {
     confirm_given_char_string_args(args, "string=?", types::str);
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string=?",primitive_STRING_EQP,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(*args[i].str != *args[i+1].str)
         return G::FALSE_DATA_BOOLEAN;
@@ -1135,6 +1188,7 @@ namespace heist {
   // primitive "string<?" procedure:
   data primitive_STRING_LT(scm_list& args) {
     confirm_given_char_string_args(args, "string<?", types::str);
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string<?",primitive_STRING_LT,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(*args[i].str >= *args[i+1].str)
         return G::FALSE_DATA_BOOLEAN;
@@ -1144,6 +1198,7 @@ namespace heist {
   // primitive "string>?" procedure:
   data primitive_STRING_GT(scm_list& args) {
     confirm_given_char_string_args(args, "string>?", types::str);
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string>?",primitive_STRING_GT,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(*args[i].str <= *args[i+1].str)
         return G::FALSE_DATA_BOOLEAN;
@@ -1153,6 +1208,7 @@ namespace heist {
   // primitive "string<=?" procedure:
   data primitive_STRING_LTE(scm_list& args) {
     confirm_given_char_string_args(args, "string<=?", types::str);
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string<=?",primitive_STRING_LTE,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(*args[i].str > *args[i+1].str)
         return G::FALSE_DATA_BOOLEAN;
@@ -1162,6 +1218,7 @@ namespace heist {
   // primitive "string>=?" procedure:
   data primitive_STRING_GTE(scm_list& args) {
     confirm_given_char_string_args(args, "string>=?", types::str);
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string>=?",primitive_STRING_GTE,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(*args[i].str < *args[i+1].str)
         return G::FALSE_DATA_BOOLEAN;
@@ -1171,6 +1228,7 @@ namespace heist {
   // primitive "string-ci=?" procedure:
   data primitive_STRING_CI_EQ(scm_list& args) {
     confirm_given_char_string_args(args, "string-ci=?", types::str);
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-ci=?",primitive_STRING_CI_EQ,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(lowercase_str(*args[i].str) != lowercase_str(*args[i+1].str))
         return G::FALSE_DATA_BOOLEAN;
@@ -1180,6 +1238,7 @@ namespace heist {
   // primitive "string-ci<?" procedure:
   data primitive_STRING_CI_LT(scm_list& args) {
     confirm_given_char_string_args(args, "string-ci<?", types::str);
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-ci<?",primitive_STRING_CI_LT,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(lowercase_str(*args[i].str) >= lowercase_str(*args[i+1].str))
         return G::FALSE_DATA_BOOLEAN;
@@ -1189,6 +1248,7 @@ namespace heist {
   // primitive "string-ci>?" procedure:
   data primitive_STRING_CI_GT(scm_list& args) {
     confirm_given_char_string_args(args, "string-ci>?", types::str);
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-ci>?",primitive_STRING_CI_GT,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(lowercase_str(*args[i].str) <= lowercase_str(*args[i+1].str))
         return G::FALSE_DATA_BOOLEAN;
@@ -1198,6 +1258,7 @@ namespace heist {
   // primitive "string-ci<=?" procedure:
   data primitive_STRING_CI_LTE(scm_list& args) {
     confirm_given_char_string_args(args, "string-ci<=?", types::str);
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-ci<=?",primitive_STRING_CI_LTE,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(lowercase_str(*args[i].str) > lowercase_str(*args[i+1].str))
         return G::FALSE_DATA_BOOLEAN;
@@ -1207,6 +1268,7 @@ namespace heist {
   // primitive "string-ci>=?" procedure:
   data primitive_STRING_CI_GTE(scm_list& args) {
     confirm_given_char_string_args(args, "string-ci>=?", types::str);
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-ci>=?",primitive_STRING_CI_GTE,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(lowercase_str(*args[i].str) < lowercase_str(*args[i+1].str))
         return G::FALSE_DATA_BOOLEAN;
@@ -1295,6 +1357,7 @@ namespace heist {
 
   // primitive "hmap-key?":
   data primitive_HMAP_KEYP(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("hmap-key?",primitive_HMAP_KEYP,args);
     hmap_confirm_binary_map_key("hmap-key?","\n     (hmap-key? <hash-map> <key>)",args);
     return boolean(args[0].map->val.count(scm_map::hash_key(args[1])));
   }
@@ -1309,6 +1372,7 @@ namespace heist {
 
   // primitive "hmap-ref":
   data primitive_HMAP_REF(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("hmap-ref",primitive_HMAP_REF,args);
     hmap_confirm_binary_map_key("hmap-ref","\n     (hmap-ref <hash-map> <key>)",args);
     auto hashed_key = scm_map::hash_key(args[1]);
     if(!args[0].map->val.count(hashed_key))
@@ -1319,6 +1383,7 @@ namespace heist {
 
   // primitive "hmap-set!":
   data primitive_HMAP_SET_BANG(scm_list& args) {
+    if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("hmap-set!",primitive_HMAP_SET_BANG,args);
     hmap_confirm_ternary_map_key_val("hmap-set!","\n     (hmap-set! <hash-map> <key> <value>)",args);
     (*args[0].map)[args[1]] = args[2];
     return G::VOID_DATA_OBJECT;
@@ -1326,6 +1391,7 @@ namespace heist {
 
   // primitive "hmap-delete!":
   data primitive_HMAP_DELETE_BANG(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("hmap-delete!",primitive_HMAP_DELETE_BANG,args);
     hmap_confirm_binary_map_key("hmap-delete!","\n     (hmap-delete! <hash-map> <key>)",args);
     return boolean(args[0].map->val.erase(scm_map::hash_key(args[1])));
   }
@@ -1350,6 +1416,7 @@ namespace heist {
 
   // primitive "hmap-merge":
   data primitive_HMAP_MERGE(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("hmap-merge",primitive_HMAP_MERGE,args);
     hmap_confirm_given_2_maps("hmap-merge","\n     (hmap-merge <hash-map-1> <hash-map-2>)",args);
     scm_map map;
     for(const auto& keyval : args[1].map->val)
@@ -1361,6 +1428,7 @@ namespace heist {
 
   // primitive "hmap-merge!":
   data primitive_HMAP_MERGE_BANG(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("hmap-merge!",primitive_HMAP_MERGE_BANG,args);
     hmap_confirm_given_2_maps("hmap-merge!","\n     (hmap-merge! <hash-map-1> <hash-map-2>)",args);
     for(const auto& keyval : args[1].map->val)
       if(!args[0].map->val.count(keyval.first))
@@ -1373,6 +1441,7 @@ namespace heist {
   //       HMAP ITERATORS IN THE LOOP FROM POTENTIALLY DELETING THE KEY IN THE USER'S FCN
   #define GENERATE_HMAP_ITERATION_FCN(FCN_NAME,NAME,...)\
     data FCN_NAME(scm_list& args) {\
+      if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL(NAME,FCN_NAME,args);\
       hmap_confirm_binary_procedure_map(NAME,"\n     (" NAME " <callable> <hash-map>)",args);\
       auto procedure(primitive_extract_callable_procedure(args[0]));\
       size_type n = args[1].map->val.size(), i = 0;\
@@ -1406,6 +1475,7 @@ namespace heist {
 
   // primitive "hmap-map"
   data primitive_HMAP_MAP(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("hmap-map",primitive_HMAP_MAP,args);
     hmap_confirm_binary_procedure_map("hmap-map","\n     (hmap-map <callable> <hash-map>)",args);
     auto procedure(primitive_extract_callable_procedure(args[0]));
     size_type n = args[1].map->val.size(), i = 0;
@@ -1478,6 +1548,7 @@ namespace heist {
 
   // primitive "cons" procedure:
   data primitive_CONS(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("cons",primitive_CONS,args);
     if(args.size() != 2)
       THROW_ERR("'cons didn't received 2 arguments: (cons <car-obj> <cdr-obj>)"
         << FCN_ERR("cons", args));
@@ -1507,6 +1578,7 @@ namespace heist {
 
   // primitive "set-car!" procedure:
   data primitive_SETCAR(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("set-car!",primitive_SETCAR,args);
     if(args.size() != 2)
       THROW_ERR("'set-car! received incorrect # of arguments:"
         "\n     (set-car! <pair> <obj>)" << FCN_ERR("set-car!", args));
@@ -1519,6 +1591,7 @@ namespace heist {
 
   // primitive "set-cdr!" procedure:
   data primitive_SETCDR(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("set-cdr!",primitive_SETCDR,args);
     if(args.size() != 2)
       THROW_ERR("'set-cdr! received incorrect # of arguments:"
         "\n     (set-cdr! <pair> <obj>)" << FCN_ERR("set-cdr!", args));
@@ -1531,6 +1604,7 @@ namespace heist {
 
   // primitive "pair-swap!" procedure:
   data primitive_PAIR_SWAP_BANG(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("pair-swap!",primitive_PAIR_SWAP_BANG,args);
     if(args.size() != 2)
       THROW_ERR("'pair-swap! received incorrect # of args (only "
         << args.size() << "):\n     (pair-swap! <pair1> <pair2>)" 
@@ -1810,6 +1884,7 @@ namespace heist {
 
   // primitive "make-list" procedure:
   data primitive_MAKE_LIST(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("make-list",primitive_MAKE_LIST,args);
     if(args.size() != 2)
       THROW_ERR("'make-list received incorrect # of args (only "
         << args.size() << "):\n     (make-list <size> <fill-value>)"
@@ -1893,6 +1968,7 @@ namespace heist {
 
   // primitive "unfold" procedure:
   data primitive_UNFOLD(scm_list& args) {
+    if(!args.empty() && args.size() < 4) return GENERATE_PRIMITIVE_PARTIAL("unfold",primitive_UNFOLD,args);
     scm_list unfolded;
     primitive_UNFOLD_template(args,unfolded,"unfold",
       "\n     (unfold <break-condition> <map-callable> <successor-callable> <seed>)");
@@ -1901,6 +1977,7 @@ namespace heist {
 
   // primitive "unfold-right" procedure:
   data primitive_UNFOLD_RIGHT(scm_list& args) {
+    if(!args.empty() && args.size() < 4) return GENERATE_PRIMITIVE_PARTIAL("unfold-right",primitive_UNFOLD_RIGHT,args);
     scm_list unfolded;
     primitive_UNFOLD_template(args,unfolded,"unfold-right",
       "\n     (unfold-right <break-condition> <map-callable> <successor-callable> <seed>)");
@@ -1930,31 +2007,37 @@ namespace heist {
 
   // primitive "memq" procedure:
   data primitive_MEMQ(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("memq",primitive_MEMQ,args);
     return primitive_MEM_template(args, "memq", primitive_EQP);
   }
 
   // primitive "memv" procedure:
   data primitive_MEMV(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("memv",primitive_MEMV,args);
     return primitive_MEM_template(args, "memv", primitive_EQVP);
   }
 
   // primitive "member" procedure:
   data primitive_MEMBER(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("member",primitive_MEMBER,args);
     return primitive_MEM_template(args, "member", primitive_EQUALP);
   }
 
   // primitive "assq" procedure:
   data primitive_ASSQ(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("assq",primitive_ASSQ,args);
     return primitive_ASSOCIATION_template(args, "assq", primitive_EQP);
   }
 
   // primitive "assv" procedure:
   data primitive_ASSV(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("assv",primitive_ASSV,args);
     return primitive_ASSOCIATION_template(args, "assv", primitive_EQVP);
   }
 
   // primitive "assoc" procedure:
   data primitive_ASSOC(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("assoc",primitive_ASSOC,args);
     return primitive_ASSOCIATION_template(args, "assoc", primitive_EQUALP);
   }
 
@@ -1987,6 +2070,7 @@ namespace heist {
 
   // primitive "vector-push!" procedure:
   data primitive_VECTOR_PUSH_BANG(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("vector-push!",primitive_VECTOR_PUSH_BANG,args);
     primitive_confirm_valid_vector_arg(args, 2, "vector-push!", "\n     (vector-push! <vector> <obj>)");
     args[0].vec->push_back(args[1]);
     return G::VOID_DATA_OBJECT;
@@ -2007,6 +2091,7 @@ namespace heist {
 
   // primitive "vector-grow" procedure:
   data primitive_VECTOR_GROW(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("vector-grow",primitive_VECTOR_GROW,args);
     primitive_confirm_valid_vector_arg(args, 2, "vector-grow", "\n     (vector-grow <vector> <size>)");
     if(!primitive_is_valid_size(args[1]))
       THROW_ERR("'vector-grow didn't receive a proper positive integer size!"
@@ -2026,6 +2111,7 @@ namespace heist {
 
   // primitive "vector-unfold" procedure:
   data primitive_VECTOR_UNFOLD(scm_list& args) {
+    if(!args.empty() && args.size() < 4) return GENERATE_PRIMITIVE_PARTIAL("vector-unfold",primitive_VECTOR_UNFOLD,args);
     scm_list unfolded;
     primitive_UNFOLD_template(args,unfolded,"vector-unfold",
       "\n     (vector-unfold <break-condition> <map-callable> <successor-callable> <seed>)");
@@ -2034,6 +2120,7 @@ namespace heist {
 
   // primitive "vector-unfold-right" procedure:
   data primitive_VECTOR_UNFOLD_RIGHT(scm_list& args) {
+    if(!args.empty() && args.size() < 4) return GENERATE_PRIMITIVE_PARTIAL("vector-unfold-right",primitive_VECTOR_UNFOLD_RIGHT,args);
     scm_list unfolded;
     primitive_UNFOLD_template(args,unfolded,"vector-unfold-right",
       "\n     (vector-unfold-right <break-condition> <map-callable> <successor-callable> <seed>)");
@@ -2042,6 +2129,7 @@ namespace heist {
 
   // primitive "vector-copy!" procedure:
   data primitive_VECTOR_COPY_BANG(scm_list& args) {
+    if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("vector-copy!",primitive_VECTOR_COPY_BANG,args);
     return primitive_STATIC_SEQUENCE_COPY_BANG_template(args, "vector-copy!", 
       "\n     (vector-copy! <target-vector> <target-start-idx> <source-vector>)",
       types::vec, "vector", &data::vec);
@@ -2049,6 +2137,7 @@ namespace heist {
 
   // primitive "vector-swap!" procedure:
   data primitive_VECTOR_SWAP_BANG(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("vector-swap!",primitive_VECTOR_SWAP_BANG,args);
     if(args.size() != 2)
       THROW_ERR("'vector-swap! received incorrect # of args (only "
         << args.size() << "):\n     (vector-swap! <vector1> <vector2>)" 
@@ -2073,6 +2162,7 @@ namespace heist {
       "\n     ; a < b -> (<3-way-comparison> a b) < 0"
       "\n     ; a = b -> (<3-way-comparison> a b) = 0"
       "\n     ; a > b -> (<3-way-comparison> a b) > 0";
+    if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("vector-binary-search",primitive_VECTOR_BINARY_SEARCH,args);
     // Confirm proper args
     if(args.size() != 3)
       THROW_ERR("'vector-binary-search received incorrect # of args (given "
@@ -2198,6 +2288,7 @@ namespace heist {
   data primitive_FOLD(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (fold <callable> <init> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+    if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("fold",primitive_FOLD,args);
     if(args.size() < 3) 
       THROW_ERR("'fold received insufficient args (only " 
         << args.size() << "):" << format << FCN_ERR("fold",args));
@@ -2220,6 +2311,7 @@ namespace heist {
   data primitive_FOLD_RIGHT(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (fold-right <callable> <init> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+    if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("fold-right",primitive_FOLD_RIGHT,args);
     if(args.size() < 3) 
       THROW_ERR("'fold-right received insufficient args (only " 
         << args.size() << "):" << format << FCN_ERR("fold-right",args));
@@ -2242,6 +2334,7 @@ namespace heist {
   data primitive_FILTER(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (filter <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("filter",primitive_FILTER,args);
     if(args.size() != 2) 
       THROW_ERR("'filter received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("filter",args));
@@ -2262,6 +2355,7 @@ namespace heist {
   data primitive_MAP(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (map <callable> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("map",primitive_MAP,args);
     if(args.size() < 2) 
       THROW_ERR("'map received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("map",args));
@@ -2282,6 +2376,7 @@ namespace heist {
   data primitive_MAP_BANG(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (map! <callable> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("map!",primitive_MAP_BANG,args);
     if(args.size() < 2) 
       THROW_ERR("'map! received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("map!",args));
@@ -2307,6 +2402,7 @@ namespace heist {
   data primitive_FOR_EACH(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (for-each <callable> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("for-each",primitive_FOR_EACH,args);
     if(args.size() < 2) 
       THROW_ERR("'for-each received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("for-each",args));
@@ -2341,6 +2437,7 @@ namespace heist {
   data primitive_SEQ_COPY_BANG(scm_list& args) { // 
     static constexpr const char * const format = 
       "\n     (seq-copy! <dest-sequence> <source-sequence>)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("seq-copy!",primitive_SEQ_COPY_BANG,args);
     if(args.size() != 2)
       THROW_ERR("'seq-copy! received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("seq-copy!",args));
@@ -2359,6 +2456,7 @@ namespace heist {
   data primitive_COUNT(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (count <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("count",primitive_COUNT,args);
     if(args.size() != 2) 
       THROW_ERR("'count received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("count",args));
@@ -2379,6 +2477,7 @@ namespace heist {
   data primitive_REF(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (ref <sequence> <index>)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("ref",primitive_REF,args);
     if(args.size() != 2) 
       THROW_ERR("'ref received incorrect # of args (given " 
         << args.size() << "):" << format 
@@ -2403,6 +2502,7 @@ namespace heist {
   data primitive_SLICE(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (slice <sequence> <start-index> <optional-length>)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("slice",primitive_SLICE,args);
     if(args.size() < 2 || args.size() > 3)
       THROW_ERR("'slice received incorrect # of args (given " 
         << args.size() << "):"<<format<<VALID_SEQUENCE_INDEX_RANGE<<FCN_ERR("slice",args));
@@ -2417,6 +2517,7 @@ namespace heist {
   data primitive_SET_INDEX_BANG(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (set-index! <sequence> <index> <obj>)" SEQUENCE_DESCRIPTION;
+    if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("set-index!",primitive_SET_INDEX_BANG,args);
     if(args.size() != 3) 
       THROW_ERR("'set-index! received incorrect # of args (given " 
         << args.size() << "):" << format 
@@ -2447,6 +2548,7 @@ namespace heist {
   data primitive_SWAP_INDICES_BANG(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (swap-indices! <sequence> <index> <index>)" SEQUENCE_DESCRIPTION;
+    if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("swap-indices!",primitive_SWAP_INDICES_BANG,args);
     if(args.size() != 3) 
       THROW_ERR("'swap-indices! received incorrect # of args (given " 
         << args.size() << "):" << format 
@@ -2473,6 +2575,7 @@ namespace heist {
   data primitive_FILL_BANG(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (fill! <sequence> <fill-value>)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("fill!",primitive_FILL_BANG,args);
     if(args.size() != 2) 
       THROW_ERR("'fill! received incorrect # of args (given " 
         << args.size() << "):" << format 
@@ -2505,6 +2608,7 @@ namespace heist {
   data primitive_REMOVE(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (remove <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("remove",primitive_REMOVE,args);
     if(args.size() != 2) 
       THROW_ERR("'remove received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("remove",args));
@@ -2525,6 +2629,7 @@ namespace heist {
   data primitive_REMOVE_FIRST(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (remove-first <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("remove-first",primitive_REMOVE_FIRST,args);
     if(args.size() != 2) 
       THROW_ERR("'remove-first received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("remove-first",args));
@@ -2548,6 +2653,7 @@ namespace heist {
   data primitive_REMOVE_LAST(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (remove-last <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("remove-last",primitive_REMOVE_LAST,args);
     if(args.size() != 2) 
       THROW_ERR("'remove-last received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("remove-last",args));
@@ -2571,6 +2677,7 @@ namespace heist {
   data primitive_DELETE(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (delete <sequence> <index>)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("delete",primitive_DELETE,args);
     if(args.size() != 2) 
       THROW_ERR("'delete received incorrect # of args (given " 
         << args.size() << "):" << format 
@@ -2659,11 +2766,9 @@ namespace heist {
   // primitive "seq=" procedure:
   data primitive_SEQ_EQ(scm_list& args) {
     static constexpr const char * const format = 
-      "\n     (seq= <elt=?> <sequence1> <sequence2> ...)"
-      SEQUENCE_DESCRIPTION;
-    if(args.empty())
-      THROW_ERR("'seq= didn't recieve any args:" 
-        << format << FCN_ERR("seq=", args));
+      "\n     (seq= <elt=?> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+    if(args.empty()) THROW_ERR("'seq= didn't recieve any args:" << format << FCN_ERR("seq=", args));
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("seq=",primitive_SEQ_EQ,args);
     auto procedure = validate_and_extract_callable(args[0], "seq=", format, args);
     switch(is_proper_sequence(args[1],args,"seq=",format)) {
       case heist_sequence::vec:
@@ -2679,6 +2784,7 @@ namespace heist {
   data primitive_SKIP(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (skip <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("skip",primitive_SKIP,args);
     if(args.size() != 2) 
       THROW_ERR("'skip received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("skip",args));
@@ -2699,6 +2805,7 @@ namespace heist {
   data primitive_SKIP_RIGHT(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (skip-right <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("skip-right",primitive_SKIP_RIGHT,args);
     if(args.size() != 2) 
       THROW_ERR("'skip-right received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("skip-right",args));
@@ -2719,6 +2826,7 @@ namespace heist {
   data primitive_INDEX(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (index <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("index",primitive_INDEX,args);
     if(args.size() != 2) 
       THROW_ERR("'index received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("index",args));
@@ -2739,6 +2847,7 @@ namespace heist {
   data primitive_INDEX_RIGHT(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (index-right <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("index-right",primitive_INDEX_RIGHT,args);
     if(args.size() != 2) 
       THROW_ERR("'index-right received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("index-right",args));
@@ -2757,6 +2866,7 @@ namespace heist {
 
   // primitive "drop" procedure:
   data primitive_DROP(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("drop",primitive_DROP,args);
     return primitive_take_drop_template 
       <primitive_drop_GENERIC_logic<false>, 
        primitive_drop_GENERIC_logic<false>, 
@@ -2766,6 +2876,7 @@ namespace heist {
 
   // primitive "drop-right" procedure:
   data primitive_DROP_RIGHT(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("drop-right",primitive_DROP_RIGHT,args);
     return primitive_take_drop_template 
       <primitive_drop_right_GENERIC_logic<false>, 
        primitive_drop_right_GENERIC_logic<false>, 
@@ -2775,6 +2886,7 @@ namespace heist {
 
   // primitive "take" procedure:
   data primitive_TAKE(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("take",primitive_TAKE,args);
     return primitive_take_drop_template 
       <primitive_take_GENERIC_logic<false>, 
        primitive_take_GENERIC_logic<false>, 
@@ -2784,6 +2896,7 @@ namespace heist {
 
   // primitive "take-right" procedure:
   data primitive_TAKE_RIGHT(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("take-right",primitive_TAKE_RIGHT,args);
     return primitive_take_drop_template 
       <primitive_take_right_GENERIC_logic<false>, 
        primitive_take_right_GENERIC_logic<false>, 
@@ -2793,6 +2906,7 @@ namespace heist {
 
   // primitive "drop-while" procedure:
   data primitive_DROP_WHILE(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("drop-while",primitive_DROP_WHILE,args);
     return primitive_take_drop_while_template
       <primitive_drop_while_GENERIC_logic<false>, 
        primitive_drop_while_GENERIC_logic<false>, 
@@ -2802,6 +2916,7 @@ namespace heist {
 
   // primitive "drop-right-while" procedure:
   data primitive_DROP_RIGHT_WHILE(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("drop-right-while",primitive_DROP_RIGHT_WHILE,args);
     return primitive_take_drop_while_template 
       <primitive_drop_right_while_GENERIC_logic<false>, 
        primitive_drop_right_while_GENERIC_logic<false>, 
@@ -2811,6 +2926,7 @@ namespace heist {
 
   // primitive "take-while" procedure:
   data primitive_TAKE_WHILE(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("take-while",primitive_TAKE_WHILE,args);
     return primitive_take_drop_while_template 
       <primitive_take_while_GENERIC_logic<false>, 
        primitive_take_while_GENERIC_logic<false>, 
@@ -2820,6 +2936,7 @@ namespace heist {
 
   // primitive "take-right-while" procedure:
   data primitive_TAKE_RIGHT_WHILE(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("take-right-while",primitive_TAKE_RIGHT_WHILE,args);
     return primitive_take_drop_while_template 
       <primitive_take_right_while_GENERIC_logic<false>, 
        primitive_take_right_while_GENERIC_logic<false>, 
@@ -2830,8 +2947,8 @@ namespace heist {
   // primitive "any" procedure:
   data primitive_ANY(scm_list& args) {
     static constexpr const char * const format = 
-      "\n     (any <predicate> <sequence1> <sequence2> ...)" 
-      SEQUENCE_DESCRIPTION;
+      "\n     (any <predicate> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("any",primitive_ANY,args);
     if(args.size() < 2) 
       THROW_ERR("'any received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("any",args));
@@ -2851,8 +2968,8 @@ namespace heist {
   // primitive "every" procedure:
   data primitive_EVERY(scm_list& args) {
     static constexpr const char * const format = 
-      "\n     (every <predicate> <sequence1> <sequence2> ...)" 
-      SEQUENCE_DESCRIPTION;
+      "\n     (every <predicate> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("every",primitive_EVERY,args);
     if(args.size() < 2) 
       THROW_ERR("'every received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("every",args));
@@ -2873,6 +2990,7 @@ namespace heist {
   data primitive_CONJ(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (conj <obj> <sequence>)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("conj",primitive_CONJ,args);
     if(args.size() != 2)
       THROW_ERR("'conj received incorrect # of arguments:" 
         << format << FCN_ERR("conj",args));
@@ -2903,6 +3021,7 @@ namespace heist {
   data primitive_SORT(scm_list& args) {
     constexpr const char * const format = 
       "\n     (sort <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("sort",primitive_SORT,args);
     // confirm has a valid argument signature
     primitive_confirm_sortable_sequence(args, "sort", format);
     // return if sorting the empty list
@@ -2915,6 +3034,7 @@ namespace heist {
   data primitive_SORT_BANG(scm_list& args) {
     constexpr const char * const format = 
       "\n     (sort! <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("sort!",primitive_SORT_BANG,args);
     // confirm has a valid argument signature
     primitive_confirm_sortable_sequence(args, "sort!", format);
     // return if sorting the empty list (already sorted)
@@ -2926,6 +3046,7 @@ namespace heist {
 
   // primitive "sorted?" procedure:
   data primitive_SORTEDP(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("sorted?",primitive_SORTEDP,args);
     // confirm has a valid argument signature
     primitive_confirm_sortable_sequence(args, "sorted?", 
       "\n     (sorted? <predicate> <sequence>)" SEQUENCE_DESCRIPTION);
@@ -2950,8 +3071,8 @@ namespace heist {
   // primitive "merge" procedure:
   data primitive_MERGE(scm_list& args) { 
     constexpr const char * const format = 
-      "\n     (merge <predicate> <sequence1> <sequence2>)"
-      SEQUENCE_DESCRIPTION;
+      "\n     (merge <predicate> <sequence1> <sequence2>)" SEQUENCE_DESCRIPTION;
+    if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("merge",primitive_MERGE,args);
     // Confirm given correct # of args needed
     if(args.size() != 3) 
       THROW_ERR("'merge received incorrect # of args (given " 
@@ -2982,6 +3103,7 @@ namespace heist {
 
   // primitive "delete-neighbor-dups" procedure:
   data primitive_DELETE_NEIGHBOR_DUPS(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("delete-neighbor-dups",primitive_DELETE_NEIGHBOR_DUPS,args);
     return primitive_DELETE_NEIGHBOR_DUPS_template(args,"delete-neighbor-dups",
       "\n     (delete-neighbor-dups <equality-predicate> <sequence>)"
       SEQUENCE_DESCRIPTION,false);
@@ -2989,6 +3111,7 @@ namespace heist {
 
   // primitive "delete-neighbor-dups!" procedure:
   data primitive_DELETE_NEIGHBOR_DUPS_BANG(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("delete-neighbor-dups!",primitive_DELETE_NEIGHBOR_DUPS_BANG,args);
     return primitive_DELETE_NEIGHBOR_DUPS_template(args,"delete-neighbor-dups!",
       "\n     (delete-neighbor-dups! <equality-predicate> <sequence>)"
       SEQUENCE_DESCRIPTION,true);
@@ -3686,6 +3809,7 @@ namespace heist {
     // Confirm given minimum # of args needed
     static constexpr const char * const format = 
       "\n     (stream-for-each <callable> <stream1> <stream2> ...)";
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("stream-for-each",primitive_STREAM_FOR_EACH,args);
     if(args.size() < 2) 
       THROW_ERR("'stream-for-each received insufficient args (only "
         << args.size() << "):" << format << FCN_ERR("stream-for-each", args));
@@ -3703,6 +3827,7 @@ namespace heist {
     // Confirm appropriate # of args given
     static constexpr const char * const format = 
       "\n     (stream-ref <stream-pair> <index>)";
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("stream-ref",primitive_STREAM_REF,args);
     if(args.size() != 2) 
       THROW_ERR("'stream-ref received incorrect # of args (given "
         << args.size() << "):" << format << FCN_ERR("stream-ref", args));
@@ -3729,6 +3854,7 @@ namespace heist {
   data primitive_STREAM_DROP(scm_list& args) {
     // Confirm appropriate # of args given
     static constexpr const char * const format = "\n     (stream-drop <stream> <n>)";
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("stream-drop",primitive_STREAM_DROP,args);
     primitive_TEMPLATE_TAKE_DROP_VALIDATION(args, "stream-drop", format);
     // Get the a substream after dropping 'size' items from given stream
     if(data_is_the_empty_expression(args[0])) return args[0];
@@ -3742,6 +3868,7 @@ namespace heist {
   // primitive "stream-drop-while" procedure:
   data primitive_STREAM_DROP_WHILE(scm_list& args) {
     // Confirm appropriate # of args given
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("stream-drop-while",primitive_STREAM_DROP_WHILE,args);
     primitive_TEMPLATE_TAKE_DROP_WHILE_VALIDATION(args, "stream-drop-while", 
       "\n     (stream-drop-while <predicate> <stream>)");
     // Get keep dropping items while 'predicate' is true, then return result
@@ -3753,6 +3880,7 @@ namespace heist {
   // primitive "stream-take" procedure:
   data primitive_STREAM_TAKE(scm_list& args){
     // Confirm appropriate # of args given
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("stream-take",primitive_STREAM_TAKE,args);
     primitive_TEMPLATE_TAKE_DROP_VALIDATION(args, "stream-take", 
       "\n     (stream-take <stream> <n>)");
     // Get the a substream after dropping 'size' items from given stream
@@ -3767,6 +3895,7 @@ namespace heist {
   // primitive "stream-take-while" procedure:
   data primitive_STREAM_TAKE_WHILE(scm_list& args) {
     // Confirm appropriate # of args given
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("stream-take-while",primitive_STREAM_TAKE_WHILE,args);
     primitive_TEMPLATE_TAKE_DROP_WHILE_VALIDATION(args, "stream-take-while", 
       "\n     (stream-take-while <predicate> <stream>)");
     // Get keep dropping items while 'predicate' is true, then return result
@@ -3795,12 +3924,14 @@ namespace heist {
 
   // primitive "stream-fold" procedure:
   data primitive_STREAM_FOLD(scm_list& args) {
+    if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("stream-fold",primitive_STREAM_FOLD,args);
     return primitive_STREAM_FOLD_template(args, "stream-fold", 
             "\n     (stream-fold <callable> <seed> <stream>)", true);
   }
 
   // primitive "stream-fold-right" procedure:
   data primitive_STREAM_FOLD_RIGHT(scm_list& args) {
+    if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("stream-fold-right",primitive_STREAM_FOLD_RIGHT,args);
     return primitive_STREAM_FOLD_template(args, "stream-fold-right", 
             "\n     (stream-fold-right <callable> <seed> <stream>)", false);
   }
@@ -3808,6 +3939,7 @@ namespace heist {
   // primitive "stream->list" procedure:
   data primitive_CONVERT_STREAM_LIST(scm_list& args) {
     // Confirm given proper args (same signature as stream-drop & stream-take)
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("stream->list",primitive_CONVERT_STREAM_LIST,args);
     primitive_TEMPLATE_TAKE_DROP_VALIDATION(args, "stream->list", 
                                             "\n     (stream->list <stream> <size>)");
     // Invoke stream-take, convert substream -> exp -> list
@@ -4372,6 +4504,7 @@ namespace heist {
   data primitive_RENAME_FILE_BANG(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (rename-file! <old-name-string> <new-name-string>)";
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("rename-file!",primitive_RENAME_FILE_BANG,args);
     if(args.size() != 2) 
       THROW_ERR("'rename-file! didn't receive any args:"<<format 
         << FCN_ERR("rename-file!",args));
@@ -4420,6 +4553,7 @@ namespace heist {
 
   // call an unary procedure with a file's port as its argument
   data primitive_CALL_WITH_INPUT_FILE(scm_list& args){
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("call-with-input-file",primitive_CALL_WITH_INPUT_FILE,args);
     return primitive_CALL_WITH_FILE<iport>(
               args,
               "call-with-input-file",
@@ -4428,6 +4562,7 @@ namespace heist {
               confirm_valid_input_file);
   }
   data primitive_CALL_WITH_OUTPUT_FILE(scm_list& args){
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("call-with-output-file",primitive_CALL_WITH_OUTPUT_FILE,args);
     return primitive_CALL_WITH_FILE<oport>(
               args,
               "call-with-output-file",
@@ -4438,6 +4573,7 @@ namespace heist {
 
   // call an argless procedure with a file's port as the default port
   data primitive_WITH_INPUT_FROM_FILE(scm_list& args){
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("with-input-from-file",primitive_WITH_INPUT_FROM_FILE,args);
     return primitive_WITH_FILE(
               args,
               "with-input-from-file",
@@ -4446,6 +4582,7 @@ namespace heist {
               confirm_valid_input_file);
   }
   data primitive_WITH_OUTPUT_TO_FILE(scm_list& args){
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("with-output-to-file",primitive_WITH_OUTPUT_TO_FILE,args);
     return primitive_WITH_FILE(
               args,
               "with-output-to-file",
@@ -5006,6 +5143,7 @@ namespace heist {
   ******************************************************************************/
 
   data primitive_DEFINE_READER_SYNTAX(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("define-reader-syntax",primitive_DEFINE_READER_SYNTAX,args);
     if(args.empty() || args.size() > 2 || !args[0].is_type(types::str) || 
       (args.size() == 2 && !args[1].is_type(types::str)))
       THROW_ERR("'define-reader-syntax improper arg signature!"
@@ -5094,6 +5232,7 @@ namespace heist {
       "\n     (regex-replace <target-string> <regex-string> <replacement-string>)"
       "\n     (regex-replace <target-string> <regex-string> <callable>)"
       "\n     -> <callable> ::= (lambda (<prefix>, <suffix>, <match1>, ...) <body>)";
+    if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("regex-replace",primitive_REGEX_REPLACE,args);
     confirm_n_args_and_first_2_args_are_strings(args,3,format,"regex-replace");
     return regex_primitive_replace_application(args,format,"regex-replace",regex_replace,regex_replace_fcn);
   }
@@ -5105,6 +5244,7 @@ namespace heist {
       "\n     (regex-replace-all <target-string> <regex-string> <replacement-string>)"
       "\n     (regex-replace-all <target-string> <regex-string> <callable>)"
       "\n     -> <callable> ::= (lambda (<prefix>, <suffix>, <match1>, ...) <body>)";
+    if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("regex-replace-all",primitive_REGEX_REPLACE_ALL,args);
     confirm_n_args_and_first_2_args_are_strings(args,3,format,"regex-replace-all");
     return regex_primitive_replace_application(args,format,"regex-replace-all",regex_replace_all,regex_replace_all_fcn);
   }
@@ -5116,6 +5256,7 @@ namespace heist {
   data primitive_REGEX_MATCH(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (regex-match <target-string> <regex-string>)";
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("regex-match",primitive_REGEX_MATCH,args);
     confirm_n_args_and_first_2_args_are_strings(args,2,format,"regex-match");
     try {
       return get_regex_matches(*args[0].str,*args[1].str);
@@ -5283,6 +5424,7 @@ namespace heist {
   // primitive ".." procedure:
   data primitive_HEIST_CORE_OO_MEMBER_ACCESS(scm_list& args) {
     static constexpr const char * const format = "\n     (.. <object> <property-1> ...)";
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("..",primitive_HEIST_CORE_OO_MEMBER_ACCESS,args);
     if(args.size() < 2)
       THROW_ERR("'.. not enough args recieved!" << format << FCN_ERR("..",args));
     data value = args[0];
@@ -5372,6 +5514,7 @@ namespace heist {
   data primitive_PROTO_ADD_MEMBER_BANG(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (proto-add-member! <class-prototype> <member-name-symbol> <default-value>)";
+    if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("proto-add-member!",primitive_PROTO_ADD_MEMBER_BANG,args);
     confirm_proper_new_property_args(args,"proto-add-member!",format);
     // Verify new member name isn't already the name of a member or method
     confirm_new_property_name_doesnt_already_exist(args,"proto-add-member!",format);
@@ -5385,6 +5528,7 @@ namespace heist {
   data primitive_PROTO_ADD_METHOD_BANG(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (proto-add-method! <class-prototype> <method-name-symbol> <procedure-value>)";
+    if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("proto-add-method!",primitive_PROTO_ADD_METHOD_BANG,args);
     confirm_proper_new_property_args(args,"proto-add-method!",format);
     auto procedure = validate_and_extract_callable(args[2], "proto-add-method!", format, args);
     // Verify new method name isn't already the name of a member or method

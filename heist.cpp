@@ -4321,6 +4321,13 @@ namespace heist {
     // Provide the environment to primitives applying user-defined procedures
     if(primitive_requires_environment(proc.fcn.prm)) args.push_back(env);
     if(proc.fcn.prm == primitive_APPLY) args.push_back(boolean(tail_call));
+    // Extend partially applied args as needed
+    if(!proc.fcn.param_instances.empty()) {
+      if(args.empty())
+        THROW_ERR('\''<<proc.fcn.printable_procedure_name()<<" partial procedure didn't recieve any arguments!"
+          << "\n     Partial Bindings: " << procedure_call_signature(proc.fcn.printable_procedure_name(),proc.fcn.param_instances[0]));
+      args.insert(args.begin(),proc.fcn.param_instances[0].begin(),proc.fcn.param_instances[0].end());
+    }
     if(!tracing_proc) return scm_list_cast(proc.fcn.prm(args));
     // Output result's trace as needed
     auto result = scm_list_cast(proc.fcn.prm(args));
