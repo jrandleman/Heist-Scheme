@@ -307,7 +307,7 @@ namespace heist {
   }
 
   /******************************************************************************
-  * READER VECTOR LITERAL EXPANSION
+  * READER VECTOR & HMAP LITERAL EXPANSION
   ******************************************************************************/
 
   template<char literal_prefix>
@@ -343,6 +343,60 @@ namespace heist {
   // $(<...>) => (hmap-literal <...>)
   void expand_hmap_literals(scm_string& input) noexcept {
     return expand_vector_or_hmap_literals<'$',sizeof("hmap-literal ")-1>(input,"hmap-literal ");
+  }
+
+  /******************************************************************************
+  * READER LAMBDA SHORTHAND EXPANSION
+  ******************************************************************************/
+
+  bool datum_is_reader_lambda_arg(const data& d)noexcept{
+    if(!d.is_type(types::sym) || d.sym.size() < 2 || d.sym[0] != '%') return false;
+    if(d.sym.size() == 2 && d.sym[1] == '%') return true;
+    for(size_type i = 1, n = d.sym.size(); i < n; ++i)
+      if(!isdigit(d.sym[i])) return false;
+    return true;
+  }
+
+  void parse_reader_lambda_shorthand_args(exp_type& exp, size_type& total_args, bool& has_variadic)noexcept{
+    for(auto& datum : exp) {
+      if(datum_is_reader_lambda_arg(datum)) {
+        if(datum.sym[1] == '%')
+          has_variadic = true;
+        else if(size_type arg_No = size_type(std::stold(datum.sym.substr(1))); total_args < arg_No)
+          total_args = arg_No;
+      } else if(datum.is_type(types::exp)) {
+        parse_reader_lambda_shorthand_args(datum.exp,total_args,has_variadic);
+      }
+    }
+  }
+
+  void expand_reader_lambda_shorthand(exp_type& ast)noexcept{
+    bool has_variadic = false;
+    size_type total_args = 0;
+    parse_reader_lambda_shorthand_args(ast,total_args,has_variadic);
+    ast[0] = symconst::lambda;
+    ast.insert(ast.begin()+1,exp_type());
+    for(size_type i = 0; i < total_args; ++i) // populate args
+      ast[1].exp.push_back('%' + std::to_string(i+1));
+    if(has_variadic) { // add variadic arg (if present)
+      ast[1].exp.push_back(".");
+      ast[1].exp.push_back("%%");
+    }
+  }
+
+  bool is_reader_lambda_shorthand(const exp_type& ast)noexcept{
+    return !ast.empty() && ast[0].is_type(types::sym) && ast[0].sym == symconst::reader_lambda;
+  }
+
+  // #! -> lambda
+  void expand_reader_lambda_shorthands(exp_type& ast)noexcept{
+    if(is_reader_lambda_shorthand(ast)) {
+      expand_reader_lambda_shorthand(ast);
+    } else {
+      for(auto& datum : ast)
+        if(datum.is_type(types::exp))
+          expand_reader_lambda_shorthands(datum.exp);
+    }
   }
 
   /******************************************************************************
@@ -512,6 +566,7 @@ namespace heist {
     if(!prepare_string_for_AST_generation(input)) return;
     size_type start_index = 0;
     construct_abstract_syntax_tree(start_index,input,abstract_syntax_tree);
+    expand_reader_lambda_shorthands(abstract_syntax_tree);
   }
 } // End of namespace heist
 #endif

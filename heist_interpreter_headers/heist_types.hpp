@@ -21,11 +21,79 @@ namespace heist {
   * ABSTRACT SYNTAX TREE & INTERNAL TYPE ALIASES
   ******************************************************************************/
 
-  using scm_list   = std::vector<struct data>;          // scheme expression list
-  using scm_node   = scm_list::iterator;                // scheme expression node
-  using scm_pair   = std::pair<struct data,struct data>;// scheme pair
-  using scm_string = std::string;                       // string type
-  using size_type  = std::size_t;                       // numeric type, idxs etc
+  using scm_list   = std::vector<struct data>; // scheme expression list
+  using scm_node   = scm_list::iterator;
+  using scm_pair   = std::pair<struct data,struct data>;
+  using scm_string = std::string;
+  using size_type  = std::size_t;
+
+  /******************************************************************************
+  * PREMADE SYMBOLIC CONSTANTS
+  ******************************************************************************/
+
+  // NOTE: ***ALL SYMBOL NAMES BEGINNING WITH "heist:core:" ARE RESERVED!!!***
+
+  namespace symconst {
+    constexpr const char * const emptylist         = "";
+    constexpr const char * const sentinel_arg      = "heist:core:nil-arg";
+    constexpr const char * const do_label          = "heist:core:do-letrec";
+    constexpr const char * const tail_call         = "heist:core:tail-call";
+    constexpr const char * const continuation      = "heist:core:cps-";              // hashed continuation arg name prefix
+    constexpr const char * const pass_continuation = "heist:core:pass-continuation"; // denotes to treat proc as if defn'd in a scm->cps block
+    constexpr const char * const cps_app_tag       = "heist:core:app-cps";
+    constexpr const char * const gensym_prefix     = "heist:core:gensym-";
+    constexpr const char * const reader_lambda     = "heist:core:reader-lambda";
+    constexpr const char * const scm_cps           = "scm->cps";
+    constexpr const char * const cps_quote         = "cps-quote";
+    constexpr const char * const using_cpsp        = "using-cps?";
+    constexpr const char * const argc              = "argc";
+    constexpr const char * const argv              = "argv";
+    constexpr const char * const defclass          = "defclass";
+    constexpr const char * const null_env          = "null-environment";
+    constexpr const char * const local_env         = "local-environment";
+    constexpr const char * const global_env        = "global-environment";
+    constexpr const char * const lambda            = "lambda";
+    constexpr const char * const fn                = "fn";
+    constexpr const char * const vec_literal       = "vector-literal";
+    constexpr const char * const map_literal       = "hmap-literal";
+    constexpr const char * const delay             = "delay";
+    constexpr const char * const quote             = "quote";
+    constexpr const char * const quasiquote        = "quasiquote";
+    constexpr const char * const unquote           = "unquote";
+    constexpr const char * const unquo_splice      = "unquote-splicing";
+    constexpr const char * const letrec            = "letrec"; // used by <do>
+    constexpr const char * const set               = "set!";
+    constexpr const char * const core_syn          = "core-syntax";
+    constexpr const char * const defn_syn          = "define-syntax";
+    constexpr const char * const syn_rules         = "syntax-rules";
+    constexpr const char * const syn_hash          = "syntax-hash";
+    constexpr const char * const define            = "define";
+    constexpr const char * const begin             = "begin";
+    constexpr const char * const if_t              = "if";
+    constexpr const char * const cond_result       = "heist:core:cond-result";
+    constexpr const char * const do_t              = "do";
+    constexpr const char * const and_t             = "and";
+    constexpr const char * const or_t              = "or";
+    constexpr const char * const ellipsis          = "...";
+    constexpr const char * const period            = ".";
+    constexpr const char * const true_t            = "#t";
+    constexpr const char * const false_t           = "#f";
+    constexpr const char * const memv              = "memv";
+    constexpr const char * const equalp            = "equal?";
+    constexpr const char * const append            = "append";
+    constexpr const char * const cons              = "cons";
+    constexpr const char * const list              = "list";
+    constexpr const char * const list_star         = "list*";
+    constexpr const char * const vector            = "vector";
+    constexpr const char * const hmap              = "hmap";
+    constexpr const char * const definedp          = "defined?";
+    constexpr const char * const infix_math_quote  = "infix-math-quote";
+    constexpr const char * const defmethod         = "defmethod";
+  } // End namespace symconst
+
+  /******************************************************************************
+  * GLOBAL VARIABLES (ALWAYS IN samespace G)
+  ******************************************************************************/
 
   namespace G {
 
@@ -132,8 +200,8 @@ namespace heist {
     * THE GLOBAL REGISTRY OF READER MACROS
     ******************************************************************************/
 
-    std::vector<scm_string> SHORTHAND_READER_MACRO_REGISTRY({"`@",",@","`",",","'"});
-    std::vector<scm_string> LONGHAND_READER_MACRO_REGISTRY({"syntax-hash","unquote-splicing","quasiquote","unquote","quote"});
+    std::vector<scm_string> SHORTHAND_READER_MACRO_REGISTRY({"`@",",@","#!","`",",","'"});
+    std::vector<scm_string> LONGHAND_READER_MACRO_REGISTRY({"syntax-hash","unquote-splicing",symconst::reader_lambda,"quasiquote","unquote","quote"});
 
     /******************************************************************************
     * MAX VALUE FOR SIZE_TYPE
@@ -142,69 +210,6 @@ namespace heist {
     constexpr const auto MAX_SIZE_TYPE = std::numeric_limits<size_type>::max();
 
   } // End of namespace G
-
-  /******************************************************************************
-  * PREMADE SYMBOLIC CONSTANTS
-  ******************************************************************************/
-
-  // NOTE: ***ALL SYMBOL NAMES BEGINNING WITH "heist:core:" ARE RESERVED!!!***
-
-  namespace symconst {
-    constexpr const char * const emptylist         = "";
-    constexpr const char * const sentinel_arg      = "heist:core:nil-arg";
-    constexpr const char * const do_label          = "heist:core:do-letrec";
-    constexpr const char * const tail_call         = "heist:core:tail-call";
-    constexpr const char * const continuation      = "heist:core:cps-";              // hashed continuation arg name prefix
-    constexpr const char * const pass_continuation = "heist:core:pass-continuation"; // denotes to treat proc as if defn'd in a scm->cps block
-    constexpr const char * const cps_app_tag       = "heist:core:app-cps";
-    constexpr const char * const gensym_prefix     = "heist:core:gensym-";
-    constexpr const char * const scm_cps           = "scm->cps";
-    constexpr const char * const cps_quote         = "cps-quote";
-    constexpr const char * const using_cpsp        = "using-cps?";
-    constexpr const char * const argc              = "argc";
-    constexpr const char * const argv              = "argv";
-    constexpr const char * const defclass          = "defclass";
-    constexpr const char * const null_env          = "null-environment";
-    constexpr const char * const local_env         = "local-environment";
-    constexpr const char * const global_env        = "global-environment";
-    constexpr const char * const lambda            = "lambda";
-    constexpr const char * const fn                = "fn";
-    constexpr const char * const vec_literal       = "vector-literal";
-    constexpr const char * const map_literal       = "hmap-literal";
-    constexpr const char * const delay             = "delay";
-    constexpr const char * const quote             = "quote";
-    constexpr const char * const quasiquote        = "quasiquote";
-    constexpr const char * const unquote           = "unquote";
-    constexpr const char * const unquo_splice      = "unquote-splicing";
-    constexpr const char * const letrec            = "letrec"; // used by <do>
-    constexpr const char * const set               = "set!";
-    constexpr const char * const core_syn          = "core-syntax";
-    constexpr const char * const defn_syn          = "define-syntax";
-    constexpr const char * const syn_rules         = "syntax-rules";
-    constexpr const char * const syn_hash          = "syntax-hash";
-    constexpr const char * const define            = "define";
-    constexpr const char * const begin             = "begin";
-    constexpr const char * const if_t              = "if";
-    constexpr const char * const cond_result       = "heist:core:cond-result";
-    constexpr const char * const do_t              = "do";
-    constexpr const char * const and_t             = "and";
-    constexpr const char * const or_t              = "or";
-    constexpr const char * const ellipsis          = "...";
-    constexpr const char * const period            = ".";
-    constexpr const char * const true_t            = "#t";
-    constexpr const char * const false_t           = "#f";
-    constexpr const char * const memv              = "memv";
-    constexpr const char * const equalp            = "equal?";
-    constexpr const char * const append            = "append";
-    constexpr const char * const cons              = "cons";
-    constexpr const char * const list              = "list";
-    constexpr const char * const list_star         = "list*";
-    constexpr const char * const vector            = "vector";
-    constexpr const char * const hmap              = "hmap";
-    constexpr const char * const definedp          = "defined?";
-    constexpr const char * const infix_math_quote  = "infix-math-quote";
-    constexpr const char * const defmethod         = "defmethod";
-  } // End namespace symconst
 
   /******************************************************************************
   * ENVIRONMENT DATA STRUCTURE TYPE ALIASES

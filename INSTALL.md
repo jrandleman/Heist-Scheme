@@ -30,7 +30,7 @@
       - `-Os`: [RECOMMENDED FOR MOST BUILDS] optimizes for binary's size
         * faster compile-time than `-O3`, smaller binary, & close runtime
    1. ON COMPILE TIME:
-      - Full `-O3` compilation takes about 50s. Be patient.
+      - Full `-O3` compilation takes about 60s. Be patient.
         * Compilation time has been traded for FAST runtime.
       - `-Os` compilation takes about 35s. Generated binary is smaller than<br>
         `-O3`'s (as expected) & its runtime is nearly as fast

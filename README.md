@@ -452,6 +452,10 @@ Other primitives of this nature include:<br>
     (lambda (a b . va-args-list c) <body> ...) ; ERROR: Variadic Arg Name Isn't Last!
     ```
 
+#### Reader Shorthand: `#!<expr>`
+* Use `%n` to refer to the `n`th argument (1-indexed so `%1` is the 1st arg)
+* Use `%%` to refer to a variadic arg (hence [`list`](#List-Constructors) is equivalent to `#!%%`)
+
 
 ------------------------
 ## Fn:

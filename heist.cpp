@@ -16,7 +16,7 @@
  *             -> faster compile-time than -O3, smaller binary, & close runtime
  *
  * ON COMPILE TIME:
- *   0. Full -O3 compilation takes about 50s. Be patient. Compilation
+ *   0. Full -O3 compilation takes about 60s. Be patient. Compilation
  *      time has been traded for FAST runtime.
  *   1. -Os compilation takes about 35s. Generated binary is smaller than
  *      -O3's (as expected) & its runtime is nearly as fast
