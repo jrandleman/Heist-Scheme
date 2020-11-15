@@ -14,6 +14,7 @@ namespace heist {
   enum class list_status {ok, cyclic, no_null};
 
   list_status primitive_list_is_acyclic_and_null_terminated(const data& curr_pair)noexcept;
+  scm_string  stack_trace_str         ()noexcept;
   sym_type    procedure_call_signature(const sym_type& name,const frame_vals& vals)noexcept;
   bool        is_delay                (const scm_list& exp)noexcept;
   bool        data_is_stream_pair     (const data& d)noexcept;
@@ -81,7 +82,7 @@ namespace heist {
 
   #define PROFILE(dataObj) dataObj<<" of type \""<<dataObj.type_name()<<'"'
 
-  #define PRINT_ERR(...) std::cerr<<ERR_HEADER<<__VA_ARGS__<<'\n'<<afmt(heist::AFMT_0)
+  #define PRINT_ERR(...) std::cerr<<ERR_HEADER<<__VA_ARGS__<<'\n'<<heist::stack_trace_str()<<afmt(heist::AFMT_0)
   #define THROW_ERR(...) ({PRINT_ERR(__VA_ARGS__); throw heist::SCM_EXCEPT::EVAL;})
 
   /******************************************************************************
@@ -95,7 +96,9 @@ namespace heist {
     "\n> With CPS Evaluation: -cps"\
     "\n> Disable ANSI Colors: -nansi"\
     "\n> Case Insensitivity:  -ci"\
-    "\n> Trace All Fcn Calls: -trace-calls"\
+    "\n> Dynamic Call Trace:  -dynamic-call-trace"\
+    "\n> Trace Call Args:     -trace-args"\
+    "\n> Stack Trace Size:    -trace-limit <non-negative-integer>"\
     "\n> Interpreter Version: --version"\
     "\n> Show This Message:   --help"
 
@@ -135,6 +138,21 @@ namespace heist {
     #define HEIST_PLATFORM       "unknown"
     #define HEIST_EXACT_PLATFORM "unknown"
   #endif
+
+  /******************************************************************************
+  * STACK TRACE STRINGIFICATION HELPER FUNCTIONS
+  ******************************************************************************/
+
+  scm_string stack_trace_str() noexcept {
+    if(G::STACK_TRACE.empty() || !G::TRACE_LIMIT) return "";
+    scm_string trace((((scm_string(afmt(heist::AFMT_01))+afmt(heist::AFMT_35))+"  >> Stack Trace:")+afmt(heist::AFMT_01))+' ');
+    for(size_type i = G::STACK_TRACE.size()<G::TRACE_LIMIT?G::STACK_TRACE.size():G::TRACE_LIMIT; i-- > 0;){
+      trace += G::STACK_TRACE[i];
+      if(i) trace += "\n                  ";
+    }
+    G::STACK_TRACE.clear();
+    return trace + '\n';
+  }
 
   /******************************************************************************
   * LIST PRINTING HELPER FUNCTIONS

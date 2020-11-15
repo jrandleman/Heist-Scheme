@@ -4882,14 +4882,15 @@ namespace heist {
     return G::VOID_DATA_OBJECT;
   }
 
-  // Toggles Procedure Call Tracing (returns the previous state prior toggle)
-  data primitive_SET_TRACE_CALLS_BANG(scm_list& args) {
-    if(args.size() != 1)
-      THROW_ERR("'set-trace-calls! expects 1 arg: (set-trace-calls! <bool>)"
-        "\n     (set-trace-calls! <bool>)" << FCN_ERR("set-trace-calls!",args));
-    bool prior_state = G::TRACING_ALL_FUNCTION_CALLS;
-    G::TRACING_ALL_FUNCTION_CALLS = (!args[0].is_type(types::bol) || args[0].bol.val);
-    return boolean(prior_state);
+  // Toggles Dynamic Procedure Call Tracing (returns the previous state prior toggle)
+  data primitive_SET_DYNAMIC_CALL_TRACE_BANG(scm_list& args) {
+    return primitive_TOGGLE_BOOLEAN_SETTING(args,"set-dynamic-call-trace!",
+                                            G::TRACING_ALL_FUNCTION_CALLS);
+  }
+
+  // Toggles Procedure Argument Call Tracing (returns the previous state prior toggle)
+  data primitive_SET_TRACE_ARGS(scm_list& args) {
+    return primitive_TOGGLE_BOOLEAN_SETTING(args,"set-trace-args!",G::TRACE_ARGS);
   }
 
   /******************************************************************************
@@ -6065,7 +6066,8 @@ namespace heist {
     std::make_pair(primitive_SET_PPRINT_COLUMN_WIDTH_BANG, "set-pprint-column-width!"),
     std::make_pair(primitive_SET_MAX_RECURSION_DEPTH,      "set-max-recursion-depth!"),
     std::make_pair(primitive_SET_REPL_PROMPT,              "set-repl-prompt!"),
-    std::make_pair(primitive_SET_TRACE_CALLS_BANG,         "set-trace-calls!"),
+    std::make_pair(primitive_SET_DYNAMIC_CALL_TRACE_BANG,  "set-dynamic-call-trace!"),
+    std::make_pair(primitive_SET_TRACE_ARGS,               "set-trace-args!"),
 
     std::make_pair(primitive_EXIT,            "exit"),
     std::make_pair(primitive_ERROR,           "error"),

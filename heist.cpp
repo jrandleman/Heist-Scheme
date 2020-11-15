@@ -4118,7 +4118,7 @@ namespace heist {
   * TRACING PROCEDURE CALLS
   ******************************************************************************/
 
-  // Prints Debugging Call Trace (see <set-trace-calls!> primitive)
+  // Prints Debugging Call Trace (see <set-dynamic-call-trace!> primitive)
   void output_debug_call_trace(const scm_fcn& procedure,const scm_list& arguments,
                                const bool tail_call,    const bool callceing)noexcept{
     // Generate the call signature & Application-Affecting Call States
@@ -4302,6 +4302,17 @@ namespace heist {
   * APPLICATION
   ******************************************************************************/
 
+  // -- STACK TRACE REGISTRATION
+  void register_call_in_stack_trace(scm_fcn& procedure,scm_list& arguments)noexcept{
+    if(!G::TRACE_LIMIT) return;
+    if(G::STACK_TRACE.size() >= G::TRACE_LIMIT) 
+      G::STACK_TRACE.erase(G::STACK_TRACE.begin());
+    if(G::TRACE_ARGS) 
+      G::STACK_TRACE.push_back(procedure_call_signature(procedure.printable_procedure_name(),arguments));
+    else
+      G::STACK_TRACE.push_back(procedure.printable_procedure_name());
+  }
+
   // -- OPERATOR EVALUATION
   // generates <data proc.is_type(types::fcn)>: macro avoids extra copies
   #define evaluate_operator(OPERATOR_PROC,OPERATOR_ENV)\
@@ -4328,9 +4339,11 @@ namespace heist {
           << "\n     Partial Bindings: " << procedure_call_signature(proc.fcn.printable_procedure_name(),proc.fcn.param_instances[0]));
       args.insert(args.begin(),proc.fcn.param_instances[0].begin(),proc.fcn.param_instances[0].end());
     }
-    if(!tracing_proc) return scm_list_cast(proc.fcn.prm(args));
-    // Output result's trace as needed
     auto result = scm_list_cast(proc.fcn.prm(args));
+    // clear call from stack
+    G::STACK_TRACE.pop_back();
+    if(!tracing_proc) return result;
+    // Output result's trace as needed
     output_call_trace_result(proc.fcn,data_cast(result));
     return result;
   }
@@ -4356,6 +4369,8 @@ namespace heist {
     if(!procedure.is_type(types::fcn))
       THROW_ERR("Invalid application of non-procedure "<<PROFILE(procedure)<<'!'
         <<FCN_ERR(procedure.noexcept_write(),arguments));
+    // save call to stack trace output
+    register_call_in_stack_trace(procedure.fcn,arguments);
     // output debugger call trace as needed
     if(G::TRACING_ALL_FUNCTION_CALLS)
       output_debug_call_trace(procedure.fcn,arguments,tail_call,callceing);
@@ -4398,6 +4413,8 @@ namespace heist {
     ++recursive_depth;
     auto result = apply_compound_procedure(fcn_body,extended_env);
     --recursive_depth;
+    // clear call from stack
+    G::STACK_TRACE.pop_back();
     // output result's trace as needed
     if(tracing_proc) output_call_trace_result(procedure.fcn,data_cast(result));
     if(inline_call) G::USING_INLINE_INVOCATIONS = false;
@@ -4836,7 +4853,7 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
 
   // Validate argument layout
   if(argc > 7) {
-    fprintf(stderr, "\n> Invalid # of command-line args (given %d)!\n" HEIST_COMMAND_LINE_ARGS "\n\n", argc-1);
+    fprintf(stderr, "\n> Invalid # of command-line args (given %d)!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n", argc-1);
     return false;
   }
 
@@ -4852,34 +4869,52 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
       immediate_exit = true;
       puts(HEIST_COMMAND_LINE_ARGS);
       return true;
-    } else if(cmd_flag == "-trace-calls") {
+    } else if(cmd_flag == "-dynamic-call-trace") {
       trace_calls = true;
+    } else if(cmd_flag == "-trace-args") {
+      heist::G::TRACE_ARGS = true;
     } else if(cmd_flag == "-nansi") {
       heist::G::USING_ANSI_ESCAPE_SEQUENCES = false;
     } else if(cmd_flag == "-cps") {
       heist::G::USING_CPS_CMD_LINE_FLAG = true;
+    } else if(cmd_flag == "-trace-limit") {
+      if(i == argc-1) {
+        fprintf(stderr,"\n> \"-trace-limit\" wasn't followed by a non-negative integer!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n");
+        return false;
+      }
+      auto num = heist::num_type(argv[++i]);
+      if(!num.is_integer() || num.is_neg()) {
+        fprintf(stderr,"\n> \"-trace-limit\" wasn't followed by a non-negative integer!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n");
+        return false;
+      }
+      auto float_num = num.to_inexact();
+      if(float_num < 0 || float_num > heist::G::MAX_SIZE_TYPE) {
+        fprintf(stderr,"\n> \"-trace-limit\" integer was out of range: [0, %zu]!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n",heist::G::MAX_SIZE_TYPE);
+        return false;
+      }
+      heist::G::TRACE_LIMIT = heist::size_type(float_num.extract_inexact());
     } else if(cmd_flag == "-l") {
       if(i == argc-1) {
-        fprintf(stderr,"\n> \"-l\" wasn't followed by a file!\n" HEIST_COMMAND_LINE_ARGS "\n\n");
+        fprintf(stderr,"\n> \"-l\" wasn't followed by a file!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n");
         return false;
       } else if(compile_pos != -1) {
-        fprintf(stderr,"\n> Can't load & compile files simultaneously!\n" HEIST_COMMAND_LINE_ARGS "\n\n");
+        fprintf(stderr,"\n> Can't load & compile files simultaneously!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n");
         return false;
       }
       LOADED_FILES.push_back(argv[++i]);
     } else if(cmd_flag == "-script") {
       if(i == argc-1) {
-        fprintf(stderr,"\n> \"-script\" wasn't followed by a file!\n" HEIST_COMMAND_LINE_ARGS "\n\n");
+        fprintf(stderr,"\n> \"-script\" wasn't followed by a file!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n");
         return false;
       }
       script_pos = ++i;
       POPULATE_ARGV_REGISTRY(argc,i,argv);
     } else if(cmd_flag == "-compile") {
       if(i == argc-1) {
-        fprintf(stderr,"\n> \"-compile\" wasn't followed by a file!\n" HEIST_COMMAND_LINE_ARGS "\n\n");
+        fprintf(stderr,"\n> \"-compile\" wasn't followed by a file!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n");
         return false;
       } else if(!LOADED_FILES.empty()) {
-        fprintf(stderr,"\n> Can't load & compile files simultaneously!\n" HEIST_COMMAND_LINE_ARGS "\n\n");
+        fprintf(stderr,"\n> Can't load & compile files simultaneously!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n");
         return false;
       }
       compile_pos = ++i;
@@ -4887,7 +4922,7 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
          next_cmd != "-script" && next_cmd != "-compile" && next_cmd != "-ci")
         compile_as = argv[++i];
     } else {
-      fprintf(stderr,"\n> Invalid command-line flag \"%s\"!\n" HEIST_COMMAND_LINE_ARGS "\n\n",argv[i]);
+      fprintf(stderr,"\n> Invalid command-line flag \"%s\"!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n",argv[i]);
       return false;
     }
   }
@@ -4998,6 +5033,8 @@ int main(int argc, char* argv[]) {
   if(immediate_exit) return 0;
   // Set up the environment (allocates & fills G::GLOBAL_ENVIRONMENT_POINTER)
   heist::set_default_global_environment();
+  // Reset Stack Trace to ONLY Show User Invocations
+  heist::G::STACK_TRACE.clear();
   // Trace All Subsequent Calls (as needed)
   if(trace_calls) heist::G::TRACING_ALL_FUNCTION_CALLS = true;
   // Load Files (as needed)
@@ -5025,6 +5062,7 @@ int main(int argc, char* argv[]) {
 #else // @ONLY-COMPILER
 void interpret_premade_AST_code(){
   heist::set_default_global_environment();
+  heist::G::STACK_TRACE.clear();
   POPULATE_HEIST_PRECOMPILED_READ_AST_EXPS();
   for(const auto& input : HEIST_PRECOMPILED_READ_AST_EXPS) {
     try {

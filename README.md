@@ -179,10 +179,12 @@
 2. Load Script: `-l <script-filename>`
 3. With CPS Evaluation: `-cps`
 4. Disable ANSI Colors: `-nansi`
-5. Case Insensitivity:  `-ci`
-6. Trace All Fcn Calls: `-trace-calls`
-7. Interpreter Version: `--version`
-8. Show These Options:  `--help`
+5. Case Insensitivity: `-ci`
+6. Dynamic Call Trace: `-dynamic-call-trace`
+7. Trace Call Args: `-trace-args`
+8. Stack Trace Size: `-trace-limit <non-negative-integer>`
+9. Interpreter Version: `--version`
+10. Show These Options: `--help`
 
 
 
@@ -2562,7 +2564,9 @@ Other primitives of this nature include:<br>
 
 4. __Set REPL Prompt__: `(set-repl-prompt! <string>)`
 
-5. __Trace All Calls (Debugging Help)__: `(set-trace-calls! <boolean>)`
+5. __Dynamic Procedure Trace (Last Resort Debugging)__: `(set-dynamic-call-trace! <boolean>)`
+
+6. __Trace Procedure Call Arguments Too__: `(set-trace-args! <boolean>)`
 
 
 

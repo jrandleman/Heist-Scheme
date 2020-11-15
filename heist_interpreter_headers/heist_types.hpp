@@ -137,7 +137,7 @@ namespace heist {
     * WHETHER TRACING ALL FUNCTION CALLS (DEBUGGING HELPER)
     ******************************************************************************/
 
-    bool TRACING_ALL_FUNCTION_CALLS = false; // see set-trace-calls! primitive
+    bool TRACING_ALL_FUNCTION_CALLS = false; // see set-dynamic-call-trace!
 
     /******************************************************************************
     * NAME OF CURRENT TRACED FUNCTION (EMPTY = NO TRACE)
@@ -202,6 +202,16 @@ namespace heist {
 
     std::vector<scm_string> SHORTHAND_READER_MACRO_REGISTRY({"`@",",@","#!","`",",","'"});
     std::vector<scm_string> LONGHAND_READER_MACRO_REGISTRY({"syntax-hash","unquote-splicing",symconst::reader_lambda,"quasiquote","unquote","quote"});
+
+    /******************************************************************************
+    * STACK TRACE
+    ******************************************************************************/
+
+    std::vector<scm_string> STACK_TRACE;
+
+    bool TRACE_ARGS = false;
+
+    size_type TRACE_LIMIT = 16;
 
     /******************************************************************************
     * MAX VALUE FOR SIZE_TYPE

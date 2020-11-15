@@ -4320,6 +4320,16 @@ namespace heist {
     return boolean(original_setting_status);
   }
 
+  data primitive_TOGGLE_BOOLEAN_SETTING(scm_list& args, const char* name, bool& setting){
+    if(args.size() > 1)
+      THROW_ERR('\'' << name << " received incorrect # of args:\n     ("
+        << name << " <optional-bool>)" << FCN_ERR(name,args));
+    bool original_setting_status = setting;
+    setting = true;
+    if(!args.empty()) setting = is_true(args);
+    return boolean(original_setting_status);
+  }
+
   data primitive_TOGGLE_NUMERIC_SETTING(scm_list& args, const char* name, size_type& SETTING){
     if(args.size() != 1 || !args[0].is_type(types::num) || 
        !args[0].num.is_integer() || !args[0].num.is_pos())
