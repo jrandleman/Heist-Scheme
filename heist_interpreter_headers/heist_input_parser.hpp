@@ -152,11 +152,17 @@ namespace heist {
       // account for whether at a paren, string literal, or comment
       if(is_non_char_open_paren(i,input))       ++paren_count;
       else if(is_non_char_close_paren(i,input)) --paren_count;
-      else if(is_non_escaped_double_quote(i,input)) skip_string_literal(i,input);
-      else if(is_single_line_comment(i,input)) skip_single_line_comment(i,input);
-      else if(is_multi_line_comment (i,input)) skip_multi_line_comment (i,input);
+      else if(is_non_escaped_double_quote(i,input)) {
+        skip_string_literal(i,input);
+        if(i == n) throw READER_ERROR::incomplete_string;
+      } else if(is_single_line_comment(i,input)) {
+        skip_single_line_comment(i,input);
+      } else if(is_multi_line_comment (i,input)) {
+        skip_multi_line_comment (i,input);
+        if(i == n) throw READER_ERROR::incomplete_comment;
+      }
       // check whether detected an invalid expression
-      if(paren_count<0 || (i==n && input[i-1] != '"')) { 
+      if(paren_count<0 || (i>=n && input[n-1] != '"')) { 
         if(paren_count < 0) throw READER_ERROR::early_end_paren;   // ')' Found Prior '('
         else                throw READER_ERROR::incomplete_string; // Improper String
       }

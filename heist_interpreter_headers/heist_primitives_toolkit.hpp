@@ -2958,7 +2958,7 @@ namespace heist {
       if(G::USING_ANSI_ESCAPE_SEQUENCES) {
         fputs("\n\x1b[1m\x1b[31m-----------\x1b[0m\x1b[1m------------------------------------------------------------------\x1b[0m\n", outs);
         fputs("\x1b[1m\x1b[31mREAD ERROR:\x1b[0m\x1b[1m Reader Macro Around a Non-Expression (Unexpected Closing Paren)!\x1b[0m\n", outs);
-        fputs("\x1b[1m\x1b[31m-----------\x1b[0m\x1b[1m------------------------------------------------------------------\x1b[0m\n", outs);
+        fputs("\x1b[1m\x1b[31m-----------\x1b[0m\x1b[1m-----------------------------------------------------------------\x1b[0m\n", outs);
         fprintf(outs, "\x1b[1m\x1b[31mEXPRESSION:\x1b[0m\x1b[1m\n%s\x1b[0m\n", input.c_str());
         fputs("\x1b[1m------------------------------------------------------------------------------\x1b[0m\n", outs);
       } else {
@@ -2966,7 +2966,7 @@ namespace heist {
         fputs("READ ERROR: Reader Macro Around a Non-Expression (Unexpected Closing Paren)!\n", outs);
         fputs("-----------------------------------------------------------------------------\n", outs);
         fprintf(outs, "EXPRESSION:\n%s\n", input.c_str());
-        fputs("------------------------------------------------------------------------------\n", outs);
+        fputs("-----------------------------------------------------------------------------\n", outs);
       }
     } else if(read_error == READER_ERROR::quoted_space) {
       if(G::USING_ANSI_ESCAPE_SEQUENCES) {
