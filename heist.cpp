@@ -4358,8 +4358,11 @@ namespace heist {
       ++count;
       goto tail_call_recur;
     }
-    for(size_type i = 0; i < count && !G::STACK_TRACE.empty(); ++i)
-      G::STACK_TRACE.pop_back(); // clear call from stack
+    // clear calls from stack trace
+    if(count >= G::STACK_TRACE.size())
+      G::STACK_TRACE.clear();
+    else
+      G::STACK_TRACE.erase(G::STACK_TRACE.end()-count,G::STACK_TRACE.end());
     return result;
   }
 
