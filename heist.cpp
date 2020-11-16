@@ -4305,8 +4305,6 @@ namespace heist {
   // -- STACK TRACE REGISTRATION
   void register_call_in_stack_trace(scm_fcn& procedure,scm_list& arguments)noexcept{
     if(!G::TRACE_LIMIT) return;
-    if(G::STACK_TRACE.size() >= G::TRACE_LIMIT) 
-      G::STACK_TRACE.erase(G::STACK_TRACE.begin());
     if(G::TRACE_ARGS) 
       G::STACK_TRACE.push_back(procedure_call_signature(procedure.printable_procedure_name(),arguments));
     else
@@ -4341,7 +4339,7 @@ namespace heist {
     }
     auto result = scm_list_cast(proc.fcn.prm(args));
     // clear call from stack
-    G::STACK_TRACE.pop_back();
+    if(!G::STACK_TRACE.empty()) G::STACK_TRACE.pop_back();
     if(!tracing_proc) return result;
     // Output result's trace as needed
     output_call_trace_result(proc.fcn,data_cast(result));
@@ -4353,11 +4351,15 @@ namespace heist {
   // Applies the given procedure, & then reapplies iteratively if at a tail call
   scm_list apply_compound_procedure(exe_fcn_t& proc, env_type& extended_env) {
     auto result = proc(extended_env);
+    size_type count = 1;
   tail_call_recur:
     if(is_tagged_list(result,symconst::tail_call)) { // if tail call
       result = result[1].fcn.bodies[0](result[1].fcn.env);
+      ++count;
       goto tail_call_recur;
     }
+    for(size_type i = 0; i < count && !G::STACK_TRACE.empty(); ++i)
+      G::STACK_TRACE.pop_back(); // clear call from stack
     return result;
   }
 
@@ -4413,8 +4415,6 @@ namespace heist {
     ++recursive_depth;
     auto result = apply_compound_procedure(fcn_body,extended_env);
     --recursive_depth;
-    // clear call from stack
-    G::STACK_TRACE.pop_back();
     // output result's trace as needed
     if(tracing_proc) output_call_trace_result(procedure.fcn,data_cast(result));
     if(inline_call) G::USING_INLINE_INVOCATIONS = false;

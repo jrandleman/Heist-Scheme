@@ -149,10 +149,9 @@ namespace heist {
     trace += afmt(heist::AFMT_35);
     trace += "  >> Stack Trace:";
     trace += afmt(heist::AFMT_01);
-    for(size_type i = G::STACK_TRACE.size()<G::TRACE_LIMIT?G::STACK_TRACE.size():G::TRACE_LIMIT; i-- > 0;){
-      trace += "\n     ";
-      trace += std::move(G::STACK_TRACE[i]);
-    }
+    auto end = G::STACK_TRACE.size() < G::TRACE_LIMIT ? G::STACK_TRACE.rend() : G::STACK_TRACE.rbegin() + G::TRACE_LIMIT;
+    for(auto iter = G::STACK_TRACE.rbegin(); iter != end; ++iter)
+      trace += "\n     " + *iter;
     G::STACK_TRACE.clear();
     return (trace + afmt(heist::AFMT_0)) + '\n';
   }
