@@ -1,6 +1,6 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- heist_types_toolkit.hpp
 // => Defines string-serialization/equality/copying helper fcns for Scheme data
-// => Must link at BOTTOM of "heist_types.hpp" to inherit type definitions
+// => Must link BELOW "heist_types.hpp"'s type definitions
 
 #ifndef HEIST_TYPES_TOOLKIT_HPP_
 #define HEIST_TYPES_TOOLKIT_HPP_
@@ -756,8 +756,13 @@ namespace heist {
   * DATA DEEP-LIST-COPYING HELPERS
   ******************************************************************************/
 
-  void deep_copy_cycle_link(data& p, par_type& q, par_type& cycle_start) {
-    q->first = p.par->first.copy();
+  template<bool DEEP_COPY>
+  void copy_cycle_link(data& p, par_type& q, par_type& cycle_start) {
+    if constexpr (DEEP_COPY) {
+      q->first = p.par->first.copy();
+    } else {
+      q->first = p.par->first;
+    }
     p = p.par->second;
     if(p.par != cycle_start) {
       q->second = par_type(scm_pair());
@@ -766,13 +771,15 @@ namespace heist {
   }
 
 
-  void deep_copy_list_until_cycle_start(data& p, par_type& q, par_type& cycle_start) {
+  template<bool DEEP_COPY>
+  void copy_list_until_cycle_start(data& p, par_type& q, par_type& cycle_start) {
     while(p.par != cycle_start)
-      deep_copy_cycle_link(p,q,cycle_start);
+      copy_cycle_link<DEEP_COPY>(p,q,cycle_start);
   }
 
 
-  data deep_copy_circular_list(const data& d) {
+  template<bool DEEP_COPY>
+  data copy_circular_list(const data& d) {
     // find the start of the cycle
     data slow = d, fast = d;
     while(fast.is_type(types::par) && fast.par->second.is_type(types::par)) {
@@ -785,29 +792,38 @@ namespace heist {
     data root = par_type(scm_pair());
     auto q = root.par;
     auto p = d;
-    deep_copy_list_until_cycle_start(p,q,fast.par);
+    copy_list_until_cycle_start<DEEP_COPY>(p,q,fast.par);
     auto cycle_start = q;
-    deep_copy_cycle_link(p,q,fast.par); // deep-copy the cycle start
-    deep_copy_list_until_cycle_start(p,q,fast.par);
+    copy_cycle_link<DEEP_COPY>(p,q,fast.par); // copy the cycle start
+    copy_list_until_cycle_start<DEEP_COPY>(p,q,fast.par);
     q->second = cycle_start;
     return root;
   }
 
 
-  data deep_copy_non_circular_list(const data& d) {
+  template<bool DEEP_COPY>
+  data copy_non_circular_list(const data& d) {
     // note: guarenteed by data::deep_copy <d.type> ::= types::par
     auto p = d;
     data root = par_type(scm_pair());
     auto q = root.par;
     while(p.is_type(types::par)) {
-      q->first = p.par->first.copy();
+      if constexpr (DEEP_COPY) {
+        q->first = p.par->first.copy();
+      } else {
+        q->first = p.par->first;
+      }
       p = p.par->second;
       if(p.is_type(types::par)) {
         q->second = par_type(scm_pair());
         q = q->second.par;
       }
     }
-    q->second = p.copy();
+    if constexpr (DEEP_COPY) {
+      q->second = p.copy();
+    } else {
+      q->second = p;
+    }
     return root;
   }
 
@@ -816,8 +832,8 @@ namespace heist {
     switch(primitive_list_is_acyclic_and_null_terminated(d)) {
       case list_status::ok: 
       case list_status::no_null: 
-        return deep_copy_non_circular_list(d);
-      default: return deep_copy_circular_list(d);
+        return copy_non_circular_list<true>(d);
+      default: return copy_circular_list<true>(d);
     }
   }
 
@@ -861,6 +877,38 @@ namespace heist {
     for(const auto& method_val : d.obj->method_values)
       o.method_values.push_back(method_val.copy());
     return obj_type(std::move(o));
+  }
+
+  /******************************************************************************
+  * DATA SHALLOW-LIST-COPYING HELPERS
+  ******************************************************************************/
+
+  data shallow_copy_pair(const data& d) {
+    switch(primitive_list_is_acyclic_and_null_terminated(d)) {
+      case list_status::ok: 
+      case list_status::no_null: 
+        return copy_non_circular_list<false>(d);
+      default: return copy_circular_list<false>(d);
+    }
+  }
+
+  /******************************************************************************
+  * DATA SHALLOW-OBJECT-COPYING HELPER
+  ******************************************************************************/
+
+  data shallow_copy_obj(const data& d) {
+    // shallow copy inherited objects
+    object_type o;
+    o.proto = d.obj->proto; // shallow copy the prototype (these are never deep copied!)
+    if(o.inherited) o.inherited = shallow_copy_obj(make_obj(*o.inherited)).obj;
+    // apply the default object copying mechanism
+    o.member_names = d.obj->member_names;
+    o.method_names = d.obj->method_names;
+    for(const auto& member_val : d.obj->member_values)
+      o.member_values.push_back(member_val);
+    for(const auto& method_val : d.obj->method_values)
+      o.method_values.push_back(method_val);
+    return obj_type(o);
   }
 } // End of namespace heist
 #endif

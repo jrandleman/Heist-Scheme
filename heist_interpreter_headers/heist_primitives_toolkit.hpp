@@ -1396,16 +1396,6 @@ namespace heist {
   }
 
 
-  // ************************ "seq-copy" helper ************************
-  data primitive_list_copy_logic(const data& curr_pair)noexcept{
-    if(!curr_pair.is_type(types::par)) return symconst::emptylist;
-    data new_pair = data(make_par());
-    new_pair.par->first = curr_pair.par->first;
-    new_pair.par->second = primitive_list_copy_logic(curr_pair.par->second);
-    return new_pair;
-  }
-
-
   // ************************ "seq-copy!" helper ************************
   data primitive_generic_list_copy_bang_logic(data& dest_pair,data& source_pair)noexcept{
     if(!dest_pair.is_type(types::par) || !source_pair.is_type(types::par)) 
@@ -1757,6 +1747,14 @@ namespace heist {
     auto new_sequence(*(args[0].*seq_ptr));
     new_sequence.erase(new_sequence.begin()+get_idx_if_valid(args,"delete",format,1));
     return new_sequence;
+  }
+
+  data primitive_list_copy_logic(const data& curr_pair)noexcept{
+    if(!curr_pair.is_type(types::par)) return symconst::emptylist;
+    data new_pair = data(make_par());
+    new_pair.par->first = curr_pair.par->first;
+    new_pair.par->second = primitive_list_copy_logic(curr_pair.par->second);
+    return new_pair;
   }
 
   data primitive_list_delete_logic_recur(data& p, const size_type& pos, const size_type& idx, scm_list& args, const char* format) {

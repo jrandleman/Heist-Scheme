@@ -1295,7 +1295,7 @@ namespace heist {
   }
 
   /******************************************************************************
-  * TYPEOF & DEEP-COPYING PRIMITIVES
+  * TYPEOF, DEEP-COPYING, & SHALLOW-COPYING PRIMITIVES
   ******************************************************************************/
 
   data primitive_TYPEOF(scm_list& args) {
@@ -1313,6 +1313,14 @@ namespace heist {
         "\n     -> Deep-Copy: Vector | String | List/Dotted/Circular | Hmap | Object"
         << FCN_ERR("copy", args));
     return args[0].copy();
+  }
+
+  data primitive_SHALLOW_COPY(scm_list& args) {
+    if(args.size() != 1)
+      THROW_ERR("'shallow-copy recieved incorrect # of args!\n     (shallow-copy <obj>)" 
+        "\n     -> Shallow-Copy: Vector | String | List/Dotted/Circular | Hmap | Object"
+        << FCN_ERR("shallow-copy", args));
+    return args[0].shallow_copy();
   }
 
   /******************************************************************************
@@ -1406,12 +1414,6 @@ namespace heist {
   data primitive_HMAP_EMPTYP(scm_list& args) {
     hmap_confirm_unary_map("hmap-empty?","\n     (hmap-empty? <hash-map>)",args);
     return boolean(args[0].map->val.empty());
-  }
-
-  // primitive "hmap-copy":
-  data primitive_HMAP_COPY(scm_list& args) {
-    hmap_confirm_unary_map("hmap-copy","\n     (hmap-copy <hash-map>)",args);
-    return map_type(*args[0].map);
   }
 
   // primitive "hmap-merge":
@@ -2416,18 +2418,6 @@ namespace heist {
           format, types::str, "string", &data::str);
       default:
         return primitive_list_for_each_logic(procedure, args, format);
-    }
-  }
-
-  // primitive "seq-copy" procedure:
-  data primitive_SEQ_COPY(scm_list& args) {
-    confirm_given_one_sequence_arg(args,"seq-copy");
-    switch(is_proper_sequence(args[0],args,"seq-copy",
-      "\n     (seq-copy <sequence>)" SEQUENCE_DESCRIPTION)) {
-      case heist_sequence::vec: return make_vec(*args[0].vec);
-      case heist_sequence::str: return make_str(*args[0].str);
-      case heist_sequence::nul: return data(symconst::emptylist);
-      default:                  return primitive_list_copy_logic(args[0]);
     }
   }
 
@@ -5765,8 +5755,9 @@ namespace heist {
 
     std::make_pair(primitive_SYMBOL_APPEND, "symbol-append"),
 
-    std::make_pair(primitive_TYPEOF, "typeof"),
-    std::make_pair(primitive_COPY,   "copy"),
+    std::make_pair(primitive_TYPEOF,       "typeof"),
+    std::make_pair(primitive_COPY,         "copy"),
+    std::make_pair(primitive_SHALLOW_COPY, "shallow-copy"),
 
     std::make_pair(primitive_HMAP,             "hmap"),
     std::make_pair(primitive_HMAP_KEYS,        "hmap-keys"),
@@ -5778,7 +5769,6 @@ namespace heist {
     std::make_pair(primitive_HMAP_DELETE_BANG, "hmap-delete!"),
     std::make_pair(primitive_HMAP_LENGTH,      "hmap-length"),
     std::make_pair(primitive_HMAP_EMPTYP,      "hmap-empty?"),
-    std::make_pair(primitive_HMAP_COPY,        "hmap-copy"),
     std::make_pair(primitive_HMAP_MERGE,       "hmap-merge"),
     std::make_pair(primitive_HMAP_MERGE_BANG,  "hmap-merge!"),
     std::make_pair(primitive_HMAP_MAP_BANG,    "hmap-map!"),
@@ -5871,7 +5861,6 @@ namespace heist {
     std::make_pair(primitive_MAP,               "map"),
     std::make_pair(primitive_MAP_BANG,          "map!"),
     std::make_pair(primitive_FOR_EACH,          "for-each"),
-    std::make_pair(primitive_SEQ_COPY,          "seq-copy"),
     std::make_pair(primitive_SEQ_COPY_BANG,     "seq-copy!"),
     std::make_pair(primitive_COUNT,             "count"),
     std::make_pair(primitive_REF,               "ref"),

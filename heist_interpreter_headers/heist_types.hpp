@@ -488,6 +488,9 @@ namespace heist {
     // returns a deep copy of *this ::= vector | string | pair | hmap | object
     data copy() const;
 
+    // returns a shallow copy of *this ::= vector | string | pair | hmap | object
+    data shallow_copy() const;
+
     // assignment operator
     void operator=(const data& d) noexcept {
       if(this == &d) return;
@@ -875,7 +878,7 @@ namespace heist {
     scm_list member_values, method_values;
   };
 
-  // struct data METHOD
+  // struct data METHODS
   // returns a deep copy of *this ::= vector | string | pair | hmap | object
   data deep_copy_pair(const data& d);
   data deep_copy_obj(const data& d);
@@ -894,6 +897,22 @@ namespace heist {
         for(const auto& keyval : map->val)
           m.val[keyval.first] = keyval.second.copy();
         return map_type(std::move(m));
+      default: return *this;
+    }
+  }
+
+  // returns a shallow copy of *this ::= vector | string | pair | hmap | object
+  data shallow_copy_pair(const data& d);
+  data shallow_copy_obj(const data& d);
+  data data::shallow_copy() const {
+    scm_map m;
+    scm_list new_vec;
+    switch(type) {
+      case types::str: return str_type(*str);
+      case types::par: return shallow_copy_pair(*this);
+      case types::obj: return shallow_copy_obj(*this);
+      case types::vec: return vec_type(*vec);
+      case types::map: return map_type(*map);
       default: return *this;
     }
   }

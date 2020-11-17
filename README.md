@@ -103,7 +103,7 @@
      * [Sorting Procedures](#Sorting-Procedures)
    - [Type Predicates, Undefined, & Void](#Type-Predicates-Undefined--Void)
    - [Eval/Apply & Symbol-Append](#evalapply--symbol-append)
-   - [Typeof & Deep-Copying](#typeof--deep-copying)
+   - [Typeof & Copying](#typeof--copying)
    - [Compose, Bind, & Id](#compose-bind--id)
    - [Delay Predicate & Force](#Delay-Predicate--Force)
    - [Type Coercion](#Type-Coercion)
@@ -1194,7 +1194,7 @@ Other primitives of this nature include:<br>
    - Generated ctor is either nullary, or accepts a container to initialize member values:
      * container = name-value [`hash-map`](#Hash-Map-Procedures), or value [`list`](#ListPair-Procedures)/[`vector`](#Vector-Procedures)!
    - Default ctor is always available via `new-<class-name>`
-1. Default values from class-prototypes are [`deep-copied`](#typeof--deep-copying) to objects upon construction
+1. Default values from class-prototypes are [`deep-copied`](#typeof--copying) to objects upon construction
 2. [Dynamically add properties to prototypes](#Prototype-Primitives), which existing objects get access to!
 
 #### Generated Predicate, Setters, & Property Registration:
@@ -1237,7 +1237,7 @@ Other primitives of this nature include:<br>
 
 #### Value Semantics & Property Access:
 0. Passed by reference (as are [strings](#String-Procedures), [pairs](#ListPair-Procedures), [vectors](#Vector-Procedures), and [hash-maps](#Hash-Map-Procedures))
-   - May be deep-copied via the [`copy`](#typeof--deep-copying) primitive
+   - May be deep-copied via [`copy`](#typeof--copying) & shallow-copied via [`shallow-copy`](#typeof--copying)
 1. Traditional OOP Access, Member: `person.name`, Method: `(person.greet <friend's name>)`
    - Functional [`..`](#Object-Primitives) Access: `(.. person 'name)` & `((.. person 'greet) <friend's name>)`
    - [Reader](#Input-Procedures) evals property chains as 1 symbol, which are parsed by the core evaluator!
@@ -2086,23 +2086,21 @@ Other primitives of this nature include:<br>
 
 9. __Empty? Predicate__: `(hmap-empty? <hash-map>)`
 
-10. __Allocate a New Copy__: `(hmap-copy <hash-map>)`
-
-11. __Merge Hash-Maps into a New Copy__: `(hmap-merge <hash-map-1> <hash-map-2>)`
+10. __Merge Hash-Maps into a New Copy__: `(hmap-merge <hash-map-1> <hash-map-2>)`
     * _Note: if both maps share a key, `<hash-map-1>`'s value takes precedence_
 
-12. __Merge `<hash-map-2>` into `<hash-map-1>`__: `(hmap-merge! <hash-map-1> <hash-map-2>)`
+11. __Merge `<hash-map-2>` into `<hash-map-1>`__: `(hmap-merge! <hash-map-1> <hash-map-2>)`
     * _Note: if both maps share a key, `<hash-map-1>`'s value takes precedence_
 
-13. __Iterate Over Key-Value Pairs__: `(hmap-for-each <callable> <hash-map>)` 
+12. __Iterate Over Key-Value Pairs__: `(hmap-for-each <callable> <hash-map>)` 
 
-14. __Iterate Over Keys__: `(hmap-for-each-key <callable> <hash-map>)` 
+13. __Iterate Over Keys__: `(hmap-for-each-key <callable> <hash-map>)` 
 
-15. __Iterate Over Values__: `(hmap-for-each-val <callable> <hash-map>)` 
+14. __Iterate Over Values__: `(hmap-for-each-val <callable> <hash-map>)` 
 
-16. __Map Procedure Over Values Making a New Hash-Map__: `(hmap-map <callable> <hash-map>)`
+15. __Map Procedure Over Values Making a New Hash-Map__: `(hmap-map <callable> <hash-map>)`
 
-17. __Mutative Map Procedure Over Values__: `(hmap-map! <callable> <hash-map>)`
+16. __Mutative Map Procedure Over Values__: `(hmap-map! <callable> <hash-map>)`
 
 
 
@@ -2137,74 +2135,71 @@ Other primitives of this nature include:<br>
 10. __For Each__: Apply `<callable>` to each elt of each `<sequence>`
     * `(for-each <callable> <sequence1> <sequence2> ...)`
 
-11. __Copy__: Generate a freshly allocated copy of `<sequence>`
-    * `(seq-copy <sequence>)`
-
-12. __Mutating Copy__: Copy `<source-sequence>` to `<dest-sequence>`
+11. __Mutating Copy__: Copy `<source-sequence>` to `<dest-sequence>`
     * `(seq-copy! <dest-sequence> <source-sequence>)`
 
-13. __Count Elts With a Property__: `(count <predicate?> <sequence>)`
+12. __Count Elts With a Property__: `(count <predicate?> <sequence>)`
 
-14. __Get Elt at an Index__: `(ref <sequence> <index>)`
+13. __Get Elt at an Index__: `(ref <sequence> <index>)`
 
-15. __Get Subsequence__: `(slice <sequence> <start-index> <optional-length>)`
+14. __Get Subsequence__: `(slice <sequence> <start-index> <optional-length>)`
     * `<optional-length>` defaults to the end of `<sequence>` if not included!
 
-16. __Set Elt at an Index__: `(set-index! <sequence> <index> <obj>)`
+15. __Set Elt at an Index__: `(set-index! <sequence> <index> <obj>)`
 
-17. __Swap Elts at 2 Indices__: `(swap-indices! <sequence> <index> <index>)`
+16. __Swap Elts at 2 Indices__: `(swap-indices! <sequence> <index> <index>)`
 
-18. __Fill Sequence__: `(fill! <sequence> <fill-value>)`
+17. __Fill Sequence__: `(fill! <sequence> <fill-value>)`
 
-19. __Append__: `(append <sequence1> ... <sequenceN> <obj>)`
+18. __Append__: `(append <sequence1> ... <sequenceN> <obj>)`
 
-20. __Remove__: `(remove <predicate?> <sequence>)`
+19. __Remove__: `(remove <predicate?> <sequence>)`
 
-21. __Remove First__: `(remove-first <predicate?> <sequence>)`
+20. __Remove First__: `(remove-first <predicate?> <sequence>)`
 
-22. __Remove Last__: `(remove-last <predicate?> <sequence>)`
+21. __Remove Last__: `(remove-last <predicate?> <sequence>)`
 
-23. __Delete an Elt__: `(delete <sequence> <index>)`
+22. __Delete an Elt__: `(delete <sequence> <index>)`
 
-24. __Get Last Elt__: `(last <sequence> <index>)`
+23. __Get Last Elt__: `(last <sequence> <index>)`
 
-25. __Get All Except Head__: `(tail <sequence> <index>)`
+24. __Get All Except Head__: `(tail <sequence> <index>)`
 
-26. __Get First Elt__: `(head <sequence> <index>)`
+25. __Get First Elt__: `(head <sequence> <index>)`
 
-27. __Get All Except Last__: `(init <sequence> <index>)`
+26. __Get All Except Last__: `(init <sequence> <index>)`
 
-28. __Compare Elts of Sequences__: `(seq= <predicate?> <sequence1> <sequence2> ...)`
+27. __Compare Elts of Sequences__: `(seq= <predicate?> <sequence1> <sequence2> ...)`
 
-29. __Get 1st Elt After `<predicate?>` is True__: `(skip <predicate?> <sequence>)`
+28. __Get 1st Elt After `<predicate?>` is True__: `(skip <predicate?> <sequence>)`
 
-30. __Get Last Elt After `<predicate?>` is True__: `(skip-right <predicate?> <sequence>)`
+29. __Get Last Elt After `<predicate?>` is True__: `(skip-right <predicate?> <sequence>)`
 
-31. __Get Index of 1st Elt Satisfying `<predicate?>`__: `(index <predicate?> <sequence>)`
+30. __Get Index of 1st Elt Satisfying `<predicate?>`__: `(index <predicate?> <sequence>)`
 
-32. __Get Index of Last Elt Satisfying `<predicate?>`__: `(index-right <predicate?> <sequence>)`
+31. __Get Index of Last Elt Satisfying `<predicate?>`__: `(index-right <predicate?> <sequence>)`
 
-33. __Drop `<length>` Elts From Left__: `(drop <sequence> <length>)`
+32. __Drop `<length>` Elts From Left__: `(drop <sequence> <length>)`
 
-34. __Drop `<length>` Elts From Right__: `(drop-right <sequence> <length>)`
+33. __Drop `<length>` Elts From Right__: `(drop-right <sequence> <length>)`
 
-35. __Take `<length>` Elts From Left__: `(take <sequence> <length>)`
+34. __Take `<length>` Elts From Left__: `(take <sequence> <length>)`
 
-36. __Take `<length>` Elts From Right__: `(take-right <sequence> <length>)`
+35. __Take `<length>` Elts From Right__: `(take-right <sequence> <length>)`
 
-37. __Drop Elts While `<predicate?>` From Left__: `(drop-while <predicate?> <sequence>)`
+36. __Drop Elts While `<predicate?>` From Left__: `(drop-while <predicate?> <sequence>)`
 
-38. __Drop Elts While `<predicate?>` From Right__: `(drop-right-while <predicate?> <sequence>)`
+37. __Drop Elts While `<predicate?>` From Right__: `(drop-right-while <predicate?> <sequence>)`
 
-39. __Take Elts While `<predicate?>` From Left__: `(take-while <predicate?> <sequence>)`
+38. __Take Elts While `<predicate?>` From Left__: `(take-while <predicate?> <sequence>)`
 
-40. __Take Elts While `<predicate?>` From Right__: `(take-right-while <predicate?> <sequence>)`
+39. __Take Elts While `<predicate?>` From Right__: `(take-right-while <predicate?> <sequence>)`
 
-41. __Confirm Any Sequence Satisfies `<predicate?>`__: `(any <predicate?> <sequence1> <sequence2> ...)`
+40. __Confirm Any Sequence Satisfies `<predicate?>`__: `(any <predicate?> <sequence1> <sequence2> ...)`
 
-42. __Confirm All Sequences Satisfy `<predicate?>`__: `(every <predicate?> <sequence1> <sequence2> ...)`
+41. __Confirm All Sequences Satisfy `<predicate?>`__: `(every <predicate?> <sequence1> <sequence2> ...)`
 
-43. __Generic `cons`__: `cons` for lists, a copying `push-back` for strings & vectors
+42. __Generic `cons`__: `cons` for lists, a copying `push-back` for strings & vectors
     * `(conj <obj> <sequence>)`
 
 
@@ -2313,11 +2308,16 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
-## Typeof & Deep-Copying:
+## Typeof & Copying:
 0. __Get Typename Symbol__: `(typeof <obj>)`
 
 1. __Deep-Copy Datum__: `(copy <obj>)`
    * Deep-copy vectors, strings, proper/dotted/circular lists, hmaps, & objects!
+
+2. Shallow-Copy Datum__: `(shallow-copy <obj>)`
+   * Shallow-copy vectors, strings, proper/dotted/circular lists, hmaps, & objects!
+   * Note that this performs _structural_ allocation w/ shallow content copying
+     - Hence `copy` and `shallow-copy` are effectively identical for strings!
 
 
 
