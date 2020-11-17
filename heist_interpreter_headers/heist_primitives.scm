@@ -497,3 +497,26 @@
                 co-iter.value
                 co-iter))
           'coroutine-complete)))) ; finished iterating!
+
+;; =============================================
+;; =========== TAU BETA PI ASCII ART ===========
+;; =============================================
+
+(define tbp-string
+"        // \\\\
+    2 0 \\\\ // 2 2
+   ,_____| |_____,
+   |__   ___   __| 
+     /  /   \\  \\ 
+    /  / CAZ \\  \\ 
+,__/  /_______\\  \\__,
+|___T____ B ____P___|
+         | |
+  C   S  | |  E   N
+         |_|")
+
+
+;; display <tbp-string>
+(defn tbp 
+  (() (display tbp-string))
+  ((out-port-or-string) (display tbp-string out-port-or-string)))
