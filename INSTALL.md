@@ -32,7 +32,7 @@
    1. ON COMPILE TIME:
       - Full `-O3` compilation takes about 60s. Be patient.
         * Compilation time has been traded for FAST runtime.
-      - `-Os` compilation takes about 35s. Generated binary is smaller than<br>
+      - `-Os` compilation takes about 40s. Generated binary is smaller than<br>
         `-O3`'s (as expected) & its runtime is nearly as fast
 
 
