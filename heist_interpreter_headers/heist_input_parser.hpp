@@ -394,7 +394,7 @@ namespace heist {
     return !ast.empty() && ast[0].is_type(types::sym) && ast[0].sym == symconst::reader_lambda;
   }
 
-  // #! -> lambda
+  // \ -> lambda
   void expand_reader_lambda_shorthands(exp_type& ast)noexcept{
     if(is_reader_lambda_shorthand(ast)) {
       expand_reader_lambda_shorthand(ast);

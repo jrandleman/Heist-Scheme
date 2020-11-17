@@ -200,8 +200,8 @@ namespace heist {
     * THE GLOBAL REGISTRY OF READER MACROS
     ******************************************************************************/
 
-    std::vector<scm_string> SHORTHAND_READER_MACRO_REGISTRY({"`@",",@","#!","`",",","'"});
-    std::vector<scm_string> LONGHAND_READER_MACRO_REGISTRY({"syntax-hash","unquote-splicing",symconst::reader_lambda,"quasiquote","unquote","quote"});
+    std::vector<scm_string> SHORTHAND_READER_MACRO_REGISTRY({"`@",",@","`","\\",",","'"});
+    std::vector<scm_string> LONGHAND_READER_MACRO_REGISTRY({"syntax-hash","unquote-splicing","quasiquote",symconst::reader_lambda,"unquote","quote"});
 
     /******************************************************************************
     * STACK TRACE
