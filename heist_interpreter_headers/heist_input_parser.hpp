@@ -396,13 +396,11 @@ namespace heist {
 
   // \ -> lambda
   void expand_reader_lambda_shorthands(exp_type& ast)noexcept{
-    if(is_reader_lambda_shorthand(ast)) {
+    if(is_reader_lambda_shorthand(ast))
       expand_reader_lambda_shorthand(ast);
-    } else {
-      for(auto& datum : ast)
-        if(datum.is_type(types::exp))
-          expand_reader_lambda_shorthands(datum.exp);
-    }
+    for(auto& datum : ast)
+      if(datum.is_type(types::exp))
+        expand_reader_lambda_shorthands(datum.exp);
   }
 
   /******************************************************************************

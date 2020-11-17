@@ -1111,6 +1111,7 @@ namespace heist {
     "\n                             | ((<method-name> <arg1> <arg2> ...) <body> ...)"\
     "\n                             | (defmethod <method-name> <procedure-value>)"\
     "\n                             | ((make-<class-name> <arg> ...) <body> ...) ; constructor"\
+    "\n                             | (make-<class-name> ((<arg> ...) <body> ...) ...) ; constructor"\
     "\n                             | ((eq? <obj>) <body> ...)    ; overload eq?"\
     "\n                             | ((eqv? <obj>) <body> ...)   ; overload eqv?"\
     "\n                             | ((equal? <obj>) <body> ...) ; overload equal?"\
@@ -1134,6 +1135,7 @@ namespace heist {
       THROW_ERR("'defclass 2nd arg "<<PROFILE(exp[2])<<" has more than 1 inherited prototype (no multi inheritance)!" DEFCLASS_LAYOUT << EXP_ERR(exp));
     if(exp[2].exp.size() == 1 && !exp[2].exp[0].is_type(types::sym))
       THROW_ERR("'defclass 2nd arg (inherited entity) "<<PROFILE(exp[2])<<" isn't a symbolic class prototype name!" DEFCLASS_LAYOUT << EXP_ERR(exp));
+    sym_type ctor_name = "make-"+exp[1].sym;
     for(size_type i = 3, n = exp.size(); i < n; ++i) {
       if(!exp[i].is_type(types::exp) || exp[i].exp.size() < 2)
         THROW_ERR("'defclass invalid <member-or-method-instance> => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
@@ -1141,6 +1143,14 @@ namespace heist {
         if(exp[i].exp[0].sym == symconst::defmethod) {
           if(exp[i].exp.size() != 3 || !exp[i].exp[1].is_type(types::sym))
             THROW_ERR("'defclass invalid method definition => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
+          continue;
+        }
+        if(exp[i].exp[0].sym == ctor_name) {
+          if(exp[i].exp.size() == 1)
+            THROW_ERR("'defclass <constructor> missing fn arg-body instances => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
+          for(size_type j = 1, n = exp[i].exp.size(); j < n; ++j)
+            if(!exp[i].exp[j].is_type(types::exp) || exp[i].exp[j].exp.size() < 2 || !exp[i].exp[j].exp[0].is_type(types::exp))
+              THROW_ERR("'defclass <constructor> invalid fn arg-body instances => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
           continue;
         }
         if(exp[i].exp.size() != 2)
@@ -1307,6 +1317,32 @@ namespace heist {
     scm_eval(std::move(custom_ctor),env);
   }
 
+  // (define make-<class-name>
+  //   (fn ((<... CUSTOM CTOR ARGS HERE ...>) 
+  //        (define self (heist:core:oo:make-object <class-name>))
+  //        <... CUSTOM CTOR BODY HERE ...>
+  //        self) ...))
+  void define_custom_prototype_fn_constructor(const scm_string& class_name, env_type& env, scm_list& ctor_proc) {
+    scm_list custom_ctor(3);
+    custom_ctor[0] = symconst::define;
+    custom_ctor[1] = ctor_proc[0];
+    custom_ctor[2] = scm_list(ctor_proc.size());
+    custom_ctor[2].exp[0] = symconst::fn;
+    for(size_type i = 1, n = ctor_proc.size(); i < n; ++i) {
+      custom_ctor[2].exp[i] = scm_list(ctor_proc[i].exp.size()+2);
+      custom_ctor[2].exp[i].exp[0] = ctor_proc[i].exp[0];
+      custom_ctor[2].exp[i].exp[1] = scm_list(3);
+      custom_ctor[2].exp[i].exp[1].exp[0] = symconst::define;
+      custom_ctor[2].exp[i].exp[1].exp[1] = "self";
+      custom_ctor[2].exp[i].exp[1].exp[2] = scm_list(2);
+      custom_ctor[2].exp[i].exp[1].exp[2].exp[0] = "heist:core:oo:make-object";
+      custom_ctor[2].exp[i].exp[1].exp[2].exp[1] = class_name;
+      std::copy(ctor_proc[i].exp.begin()+1,ctor_proc[i].exp.end(),custom_ctor[2].exp[i].exp.begin()+2);
+      custom_ctor[2].exp[i].exp[ctor_proc[i].exp.size()+1] = "self";
+    }
+    scm_eval(std::move(custom_ctor),env);
+  }
+
   void parse_defclass_expression(scm_list& exp, class_prototype& proto, std::vector<exe_fcn_t>& member_exec_procs, 
                                                                         std::vector<exe_fcn_t>& method_exec_procs, 
                                                                         scm_list& ctor_proc) {
@@ -1314,10 +1350,15 @@ namespace heist {
     for(size_type i = 3, n = exp.size(); i < n; ++i) {
       // parse member
       if(exp[i].exp[0].is_type(types::sym) && exp[i].exp[0].sym != symconst::defmethod) {
-        validate_unique_member_or_method_name(exp,exp[i].exp[0].sym,proto.method_names,"member already defined as a method");
-        validate_unique_member_or_method_name(exp,exp[i].exp[0].sym,proto.member_names,"member is already defined");
-        proto.member_names.push_back(exp[i].exp[0].sym);
-        member_exec_procs.push_back(scm_analyze(scm_list_cast(exp[i].exp[1])));
+        // parse ctor inline fn (if relevant)
+        if(exp[i].exp[0].sym == ctor_name) {
+          ctor_proc = exp[i].exp;
+        } else {
+          validate_unique_member_or_method_name(exp,exp[i].exp[0].sym,proto.method_names,"member already defined as a method");
+          validate_unique_member_or_method_name(exp,exp[i].exp[0].sym,proto.member_names,"member is already defined");
+          proto.member_names.push_back(exp[i].exp[0].sym);
+          member_exec_procs.push_back(scm_analyze(scm_list_cast(exp[i].exp[1])));
+        }
       // parse method
       } else { 
         // extract defmethod
@@ -1370,7 +1411,8 @@ namespace heist {
       // generate the ctor
       define_default_prototype_constructor(exp[1].sym,env,"new-"); // default ctor always available
       if(ctor_proc.empty()) define_default_prototype_constructor(exp[1].sym,env,"make-");
-      else                  define_custom_prototype_constructor(exp[1].sym,env,ctor_proc);
+      else if(ctor_proc[0].is_type(types::exp)) define_custom_prototype_constructor(exp[1].sym,env,ctor_proc);
+      else define_custom_prototype_fn_constructor(exp[1].sym,env,ctor_proc);
       // define the class predicate
       define_class_prototype_predicate(exp[1].sym,env); // exp[1].sym == class_name
       return G::VOID_DATA_EXPRESSION;

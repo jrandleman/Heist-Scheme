@@ -1176,6 +1176,7 @@ Other primitives of this nature include:<br>
                                  | ((<method-name> <arg1> <arg2> ...) <body> ...)
                                  | (defmethod <method-name> <procedure-value>)
                                  | ((make-<class-name> <arg> ...) <body> ...) ; constructor
+                                 | (make-<class-name> ((<arg> ...) <body> ...) ...) ; constructor
                                  | ((eq? <obj>) <body> ...)    ; overload eq?
                                  | ((eqv? <obj>) <body> ...)   ; overload eqv?
                                  | ((equal? <obj>) <body> ...) ; overload equal?
