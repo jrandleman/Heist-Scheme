@@ -5050,6 +5050,9 @@ namespace heist {
           THROW_ERR('\''<<name<<" 3rd arg "<<PROFILE(args[2])<<" isn't a valid index:" 
             << format << FCN_ERR(name, args));
         start_index = (size_type)args[2].num.extract_inexact();
+        if(start_index >= args[0].str->size())
+          THROW_ERR('\''<<name<<" index "<<args[2].num.str()<<" exceeds capacity of string \""
+            << *args[1].str << "\":" << format << FCN_ERR(name, args));
       }
     }
   }
