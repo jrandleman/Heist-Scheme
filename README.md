@@ -1852,18 +1852,18 @@ Other primitives of this nature include:<br>
 ## String Procedures:
 ### General:
 0. __Construction__: Creates a string of length `<size>`
-   * defaults to a `<fill-char>` of `?`
    * `(make-string <size> <optional-fill-char>)`
+   * defaults to a `<fill-char>` of `?`
 
 1. __Construction Given Characters__: `(string <char1> <char2> ...)`
 
 2. __Unfold__: Form a string by mapping & incrementing seed, until `<break-condition>` is true
-   * _Note: **map** via `<map-callable>`, **increment** via `<successor-callable>`_
    * `(string-unfold <break-condition> <map-callable> <successor-callable> <seed>)`
+   * _Note: **map** via `<map-callable>`, **increment** via `<successor-callable>`_
 
 3. __Unfold Right__: Form a string by mapping right & incrementing seed, until `<break-condition>` is true
-   * _Note: **map** via `<map-callable>`, **increment** via `<successor-callable>`_
    * `(string-unfold-right <break-condition> <map-callable> <successor-callable> <seed>)`
+   * _Note: **map** via `<map-callable>`, **increment** via `<successor-callable>`_
 
 4. __Character Padding Left of String__: pads `<length>` characters, `<character>` defaults to `<space>`
    * `(string-pad <string> <length> <optional-character>)`
@@ -1872,16 +1872,16 @@ Other primitives of this nature include:<br>
    * `(string-pad-right <string> <length> <optional-character>)`
 
 6. __Character Trimming Left of String__: trims characters while `<predicate?>` is true
-   * _Note: `<predicate?>` defaults to `char-whitespace?`_
    * `(string-trim <string> <optional-predicate?>)`
+   * _Note: `<predicate?>` defaults to `char-whitespace?`_
 
 7. __Character Trimming Right of String__: trims characters while `<predicate?>` is true
-   * _Note: `<predicate?>` defaults to `char-whitespace?`_
    * `(string-trim-right <string> <optional-predicate?>)`
+   * _Note: `<predicate?>` defaults to `char-whitespace?`_
 
 8. __Character Trimming Left & Right of String__: trims characters while `<predicate?>` is true
-   * _Note: `<predicate?>` defaults to `char-whitespace?`_
    * `(string-trim-both <string> <optional-predicate?>)`
+   * _Note: `<predicate?>` defaults to `char-whitespace?`_
 
 9. __Replacement__: Replace `<string1>` between indices `<start1>` & `<end1>` with `<string2>`
    * `(string-replace <string1> <string2> <start1> <end1>)`
@@ -1900,8 +1900,8 @@ Other primitives of this nature include:<br>
     * `<optional-grammar> = 'infix | 'suffix | 'prefix`
 
 13. __Split String Into a List of Substrings__:
-    * `<string-delimiter>` defaults to `""`
     * `(string-split <target-string> <optional-string-delimiter> <optional-start-index>)`
+    * `<string-delimiter>` defaults to `""`
     * Enables splitting with delimiters using regex-significant chars more easily!
       - _See [`regex-split`](#regex-uses-ecmascript-syntax) for a regex-based alternative!_
 
@@ -1949,8 +1949,8 @@ Other primitives of this nature include:<br>
    * If `<regex-string>` has multiple substrings per match, becomes a 2nd order alist!
 
 3. __Regex Split String Into a List of Substrings__:
-   * `<regex-string>` defaults to `""` to split into char-strings
    * `(regex-split <target-string> <optional-regex-string>  <optional-start-index>)`
+   * `<regex-string>` defaults to `""` to split into char-strings
 
 
 
