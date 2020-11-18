@@ -1090,12 +1090,13 @@ namespace heist {
   // primitive "string-split" procedure:
   data primitive_STRING_SPLIT(scm_list& args) {
     static constexpr const char * const format = 
-      "\n     (string-split <target-string> <optional-string-delimiter>)";
+      "\n     (string-split <target-string> <optional-string-delimiter> <optional-start-index>)";
     scm_string delimiter("");
     scm_list strings_list;
-    confirm_proper_string_split_args(args,"string-split",format,delimiter);
+    size_type start_index = 0;
+    confirm_proper_string_split_args(args,"string-split",format,delimiter,start_index);
     // split the string into a list of strings
-    const scm_string str(*args[0].str);
+    const scm_string str(args[0].str->substr(start_index));
     const size_type delim_size = delimiter.size();
     if(!delim_size) {
       for(const auto& letter : str)
@@ -5260,12 +5261,13 @@ namespace heist {
   // primitive "regex-split" procedure:
   data primitive_REGEX_SPLIT(scm_list& args) {
     static constexpr const char * const format = 
-      "\n     (regex-split <target-string> <optional-regex-string>)";
+      "\n     (regex-split <target-string> <optional-regex-string> <optional-start-index>)";
     scm_string delimiter("");
-    confirm_proper_string_split_args(args,"regex-split",format,delimiter);
+    size_type start_index = 0;
+    confirm_proper_string_split_args(args,"regex-split",format,delimiter,start_index);
     // split the string into a list of strings
     try {
-      return regex_split(*args[0].str,delimiter);
+      return regex_split(args[0].str->substr(start_index),delimiter);
     } catch(...) {
       return throw_malformed_regex(args,format,"regex-split");
     }

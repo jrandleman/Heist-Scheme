@@ -5031,9 +5031,10 @@ namespace heist {
   }
 
 
-  void confirm_proper_string_split_args(scm_list& args,const char* name,const char* format,scm_string& delimiter){
+  void confirm_proper_string_split_args(scm_list& args,const char* name,const char* format,
+                                        scm_string& delimiter,size_type& start_index){
     // confirm proper arg signature
-    if(args.empty() || args.size() > 2) 
+    if(args.empty() || args.size() > 3) 
       THROW_ERR('\''<<name<<" recieved incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR(name, args));
     if(!args[0].is_type(types::str))
@@ -5044,6 +5045,12 @@ namespace heist {
         THROW_ERR('\''<<name<<" 2nd arg "<<PROFILE(args[1])<<" isn't a string:" 
           << format << FCN_ERR(name, args));
       delimiter = *args[1].str;
+      if(args.size() > 2) {
+        if(!primitive_is_valid_index(args[2]))
+          THROW_ERR('\''<<name<<" 3rd arg "<<PROFILE(args[2])<<" isn't a valid index:" 
+            << format << FCN_ERR(name, args));
+        start_index = (size_type)args[2].num.extract_inexact();
+      }
     }
   }
 

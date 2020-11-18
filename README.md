@@ -1901,7 +1901,7 @@ Other primitives of this nature include:<br>
 
 13. __Split String Into a List of Substrings__:
     * `<string-delimiter>` defaults to `""`
-    * `(string-split <target-string> <optional-string-delimiter>)`
+    * `(string-split <target-string> <optional-string-delimiter> <optional-start-index>)`
     * Enables splitting with delimiters using regex-significant chars more easily!
       - _See [`regex-split`](#regex-uses-ecmascript-syntax) for a regex-based alternative!_
 
@@ -1950,7 +1950,7 @@ Other primitives of this nature include:<br>
 
 3. __Regex Split String Into a List of Substrings__:
    * `<regex-string>` defaults to `""` to split into char-strings
-   * `(regex-split <target-string> <optional-regex-string>)`
+   * `(regex-split <target-string> <optional-regex-string>  <optional-start-index>)`
 
 
 
