@@ -4389,7 +4389,7 @@ namespace heist {
                                                  irritant_list.end()
                                                 ).noexcept_write().c_str());
     }
-    fprintf(G::CURRENT_OUTPUT_PORT, "%s\n", afmt(AFMT_0));
+    fprintf(G::CURRENT_OUTPUT_PORT, "%s\n%s", afmt(AFMT_0), stack_trace_str("").c_str());
     fflush(G::CURRENT_OUTPUT_PORT);
     throw SCM_EXCEPT::EVAL;
   }

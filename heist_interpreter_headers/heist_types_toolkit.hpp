@@ -14,7 +14,7 @@ namespace heist {
   enum class list_status {ok, cyclic, no_null};
 
   list_status primitive_list_is_acyclic_and_null_terminated(const data& curr_pair)noexcept;
-  scm_string  stack_trace_str         ()noexcept;
+  scm_string  stack_trace_str         (const scm_string& tab = "  ")noexcept;
   sym_type    procedure_call_signature(const sym_type& name,const frame_vals& vals)noexcept;
   bool        is_delay                (const scm_list& exp)noexcept;
   bool        data_is_stream_pair     (const data& d)noexcept;
@@ -143,15 +143,15 @@ namespace heist {
   * STACK TRACE STRINGIFICATION HELPER FUNCTIONS
   ******************************************************************************/
 
-  scm_string stack_trace_str() noexcept {
+  scm_string stack_trace_str(const scm_string& tab) noexcept {
     if(G::STACK_TRACE.empty() || !G::TRACE_LIMIT) return "";
     scm_string trace(afmt(heist::AFMT_01));
     trace += afmt(heist::AFMT_35);
-    trace += "  >> Stack Trace:";
+    trace += tab + ">> Stack Trace:";
     trace += afmt(heist::AFMT_01);
     auto end = G::STACK_TRACE.size() < G::TRACE_LIMIT ? G::STACK_TRACE.rend() : G::STACK_TRACE.rbegin() + G::TRACE_LIMIT;
     for(auto iter = G::STACK_TRACE.rbegin(); iter != end; ++iter)
-      trace += "\n     " + *iter;
+      trace += "\n   " + tab + *iter;
     G::STACK_TRACE.clear();
     return (trace + afmt(heist::AFMT_0)) + '\n';
   }
