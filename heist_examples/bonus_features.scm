@@ -9,8 +9,7 @@
 ; pprintln, pprint ; pretty-print arbitrary # of args
 ; function         ; proecdure definition that can use <return>!
 ; time-operation   ; time an operation!
-; lambda*          ; multiple-arity lambda!
-; fcn              ; lambda shorthand for automated arg placement!
+; swap!            ; swap 2 variables
 ; tlambda          ; use predicates (including Type checks) on lambda args!
 ; defstruct        ; simple basic vector-based OOP
 
@@ -61,70 +60,12 @@
         (display "s!\n===================================\n")))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; MULTIPLE-ARITY LAMBDAS (SIMILAR TO CLOJURE'S <fn>)
+;; SWAP 2 VARIABLES
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(core-syntax lambda* 
+(core-syntax swap!
   (syntax-rules ()
-    ((_ (arg-arity-list b ...) ...)
-      (lambda (. args) 
-        (define lambda*-args-length (length args))
-        (cond ((= lambda*-args-length (length 'arg-arity-list))
-                (apply (lambda arg-arity-list b ...) args)) ...
-              (else (error 'LAMBDA* "Argument number didn't match any defined arity!" args)))))))
-
-
-;;; Multi-arity Factorial Example!
-;(define ! (lambda* ((n p) (if (< n 2) p (! (- n 1) (* n p))))
-;                   ((n) (! n 1))))
-;(prn (! 1000))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; NON-NESTABLE SHORTHAND FOR LAMBDAS (SIMILAR TO CLOJURE'S <#>)
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Lambda Shorthand Macro Longhand
-(core-syntax fcn 
-  (syntax-rules ()
-    ((_ proc-exp) 
-      (eval (heist:fcn:ctor 'proc-exp)))))
-
-;; Lambda Reader Macro Expansion
-(define (heist:fcn:ctor proc-exp)
-  ;; Convert a tagged arg to a symbol arg
-  (define total-args 0)
-  (define (get-hashed-arg-from-number n)
-    (string->symbol (append "heist:fcn:arg" (number->string n))))
-  (define (get-hashed-arg-symbol arg-sym) ;; extract <#> in the <%#> symbol
-    (define n (string->number (slice (symbol->string arg-sym) 1)))
-    (if (> n total-args) (set! total-args n))
-    (get-hashed-arg-from-number n))
-  ;; Check for a tagged arg
-  (define (tagged-arg? obj)
-    (and (symbol? obj) (eq? (ref (symbol->string obj) 0) #\%)))
-  ;; Replace all tagged args w/ symbol args
-  (define (replace-arg-tags-with-arg-symbols exp)
-    (if (not (null? exp))
-        (begin
-          (if (tagged-arg? (car exp)) ;; replace arg instance w/ symbol
-              (set-car! exp (get-hashed-arg-symbol (car exp)))
-              (if (pair? (car exp)) ;; recursively parse sub exp
-                  (replace-arg-tags-with-arg-symbols (car exp))))
-          (replace-arg-tags-with-arg-symbols (cdr exp))))) ;; parse rest of exp
-  ;; Generate symbol args list
-  (define (generate-args-list) 
-    (map get-hashed-arg-from-number (iota total-args 1)))
-  ;; Generate a lambda exp
-  (if (pair? proc-exp)
-      (begin 
-        (replace-arg-tags-with-arg-symbols proc-exp)
-        (list 'lambda (generate-args-list) proc-exp))
-      (list 'lambda '() proc-exp)))
-
-
-;; Demo reader lambda shorthand
-;; (fcn (and (even? %1) (even? %2))) === (lambda (a b) (and (even? a) (even? b)))
-;(prn (map (fcn (and (even? %1) (even? %2))) '(1 2 3 4 5) '(2 2 2 2 2)))
+    ((_ a b) (let ((`@tmp a)) (set! a b) (set! b tmp)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; TLAMBDA MACRO FOR AUTOMATED PREDICATED LAMBDA ARGUMENTS
