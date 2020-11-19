@@ -1883,8 +1883,8 @@ Other primitives of this nature include:<br>
    * `(string-trim-both <string> <optional-predicate?>)`
    * _Note: `<predicate?>` defaults to `char-whitespace?`_
 
-9. __Replacement__: Replace `<string1>` between indices `<start1>` & `<end1>` with `<string2>`
-   * `(string-replace <string1> <string2> <start1> <end1>)`
+9. __Replacement__: Replace `<string1>` between indices `<start>` & `<end>` with `<string2>`
+   * `(string-replace <string1> <string2> <start> <end>)`
    * _See [`regex-replace`](#regex-uses-ecmascript-syntax) & [`regex-replace-all`](#regex-uses-ecmascript-syntax) for a regex-based alternative!_
 
 10. __String Contains Substring (From Left)__: Get index of 1st instance
