@@ -1859,8 +1859,8 @@ namespace heist {
       data unquoted_data = process_unquoted(quoted_data.exp);
       // If an expression, return the exec proc of the analyzed expression
       if(unquoted_data.is_type(types::exp)) {
-        if(cps_block) scm_analyze(generate_fundamental_form_cps(unquoted_data),false,cps_block);
-        return scm_analyze(std::move(unquoted_data.exp));
+        if(cps_block) scm_analyze(generate_fundamental_form_cps(scm_list_cast(unquoted_data)),false,cps_block);
+        return scm_analyze(scm_list_cast(unquoted_data));
       }
       // If an atomic, return the exec proc of its evaluation (in case a variable or some such)
       if(cps_block) scm_analyze(generate_fundamental_form_cps(unquoted_data),false,cps_block);
