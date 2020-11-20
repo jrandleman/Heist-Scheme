@@ -333,6 +333,18 @@ namespace heist {
     return data(boolean(args[0].num.is_zero()));
   }
 
+  // primitive "not-positive?" procedure
+  data primitive_NOT_POSITIVEP(scm_list& args) {
+    confirm_unary_real_numeric(args, "not-positive?", "(not-positive? <real>)");
+    return data(boolean(!args[0].num.is_pos()));
+  }
+
+  // primitive "not-negative?" procedure
+  data primitive_NOT_NEGATIVEP(scm_list& args) {
+    confirm_unary_real_numeric(args, "not-negative?", "(not-negative? <real>)");
+    return data(boolean(!args[0].num.is_neg()));
+  }
+
   // primitive "not-zero?" procedure
   data primitive_NOT_ZEROP(scm_list& args) {
     confirm_unary_numeric(args, "not-zero?", "(not-zero? <num>)");
@@ -5645,15 +5657,17 @@ namespace heist {
     std::make_pair(primitive_ANGLE,            "angle"),
     std::make_pair(primitive_CONJUGATE,        "conjugate"),
 
-    std::make_pair(primitive_ODDP,      "odd?"),
-    std::make_pair(primitive_EVENP,     "even?"),
-    std::make_pair(primitive_POSITIVEP, "positive?"),
-    std::make_pair(primitive_NEGATIVEP, "negative?"),
-    std::make_pair(primitive_ZEROP,     "zero?"),
-    std::make_pair(primitive_NOT_ZEROP, "not-zero?"),
-    std::make_pair(primitive_INFINITEP, "infinite?"),
-    std::make_pair(primitive_FINITEP,   "finite?"),
-    std::make_pair(primitive_NANP,      "nan?"),
+    std::make_pair(primitive_ODDP,          "odd?"),
+    std::make_pair(primitive_EVENP,         "even?"),
+    std::make_pair(primitive_POSITIVEP,     "positive?"),
+    std::make_pair(primitive_NEGATIVEP,     "negative?"),
+    std::make_pair(primitive_ZEROP,         "zero?"),
+    std::make_pair(primitive_NOT_POSITIVEP, "not-positive?"),
+    std::make_pair(primitive_NOT_NEGATIVEP, "not-negative?"),
+    std::make_pair(primitive_NOT_ZEROP,     "not-zero?"),
+    std::make_pair(primitive_INFINITEP,     "infinite?"),
+    std::make_pair(primitive_FINITEP,       "finite?"),
+    std::make_pair(primitive_NANP,          "nan?"),
 
     std::make_pair(primitive_CEILING,  "ceiling"),
     std::make_pair(primitive_FLOOR,    "floor"),
