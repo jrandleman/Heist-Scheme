@@ -1712,27 +1712,25 @@ Other primitives of this nature include:<br>
 
 1. __Even Predicate__: `(even? <real>)`
 
-2. __Positive Predicate__: `(positive? <real>)`
+2. __Positive Predicate__: `(positive? <real>)`, `(not-positive? <real>)`
 
-3. __Negative Predicate__: `(negative? <real>)`
+3. __Negative Predicate__: `(negative? <real>)`, `(not-negative? <real>)`
 
-4. __Zero Predicate__: `(zero? <number>)`
+4. __Zero Predicate__: `(zero? <number>)`, `(not-zero? <number>)`
 
-5. __Not Zero Predicate__: `(not-zero? <number>)`
+5. __Infinite Predicate__: `(infinite? <real>)`
 
-6. __Infinite Predicate__: `(infinite? <real>)`
+6. __Finite Predicate__: `(finite? <real>)`
 
-7. __Finite Predicate__: `(finite? <real>)`
+7. __NaN Predicate__: `(nan? <real>)`
 
-8. __NaN Predicate__: `(nan? <real>)`
+8. __Exact Number Predicate__: `(exact? <number>)`
 
-9. __Exact Number Predicate__: `(exact? <number>)`
+9. __Inexact Number Predicate__: `(inexact? <number>)`
 
-10. __Inexact Number Predicate__: `(inexact? <number>)`
+10. __Integer Predicate__: `(integer? <number>)`
 
-11. __Integer Predicate__: `(integer? <number>)`
-
-12. __Big-Integer Predicate__: `(bigint? <number>)`
+11. __Big-Integer Predicate__: `(bigint? <number>)`
     * Equivalent to `(and (exact? <number>) (integer? <number>))`
 
 
