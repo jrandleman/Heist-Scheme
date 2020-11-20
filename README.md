@@ -491,7 +491,7 @@ Other primitives of this nature include:<br>
 #### Forms:
 ```scheme
 ;; Define a Variable
-(define <name> <value>)
+(define <var-name> <value>)
 
 ;; Define a Procedure
 (define (<procedure-name> <arg1> <arg2> ...) <body> ...)
@@ -510,9 +510,9 @@ Other primitives of this nature include:<br>
 
 #### Use: ___Set a Syntactic Label to a New Value (must have already been defined)!___
 
-#### Form: `(set! <name> <new-value>)`
+#### Form: `(set! <var-name> <new-value>)`
 
-#### Special Case: becomes `(obj.set-name! <new-value>)` if `<name>` = `<obj.name>`
+#### Special Case: becomes `(obj.set-name! <new-value>)` if `<var-name>` = `<obj.name>`
 
 
 ------------------------
@@ -547,7 +547,7 @@ Other primitives of this nature include:<br>
 
 #### Use: ___Macro Combining [`define`](#define) & [`fn`](#fn)!___
 
-#### Form: `(defn <name> ((<arg> ...) <body> ...) ...)`
+#### Form: `(defn <procedure-name> ((<arg> ...) <body> ...) ...)`
 
 
 ------------------------
