@@ -333,6 +333,12 @@ namespace heist {
     return data(boolean(args[0].num.is_zero()));
   }
 
+  // primitive "not-zero?" procedure
+  data primitive_NOT_ZEROP(scm_list& args) {
+    confirm_unary_numeric(args, "not-zero?", "(not-zero? <num>)");
+    return data(boolean(!args[0].num.is_zero()));
+  }
+
   // primitive "infinite?" procedure
   data primitive_INFINITEP(scm_list& args) {
     confirm_unary_real_numeric(args, "infinite?", "(infinite? <real>)");
@@ -5644,6 +5650,7 @@ namespace heist {
     std::make_pair(primitive_POSITIVEP, "positive?"),
     std::make_pair(primitive_NEGATIVEP, "negative?"),
     std::make_pair(primitive_ZEROP,     "zero?"),
+    std::make_pair(primitive_NOT_ZEROP, "not-zero?"),
     std::make_pair(primitive_INFINITEP, "infinite?"),
     std::make_pair(primitive_FINITEP,   "finite?"),
     std::make_pair(primitive_NANP,      "nan?"),

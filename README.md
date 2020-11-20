@@ -1718,19 +1718,21 @@ Other primitives of this nature include:<br>
 
 4. __Zero Predicate__: `(zero? <number>)`
 
-5. __Infinite Predicate__: `(infinite? <real>)`
+5. __Not Zero Predicate__: `(not-zero? <number>)`
 
-6. __Finite Predicate__: `(finite? <real>)`
+6. __Infinite Predicate__: `(infinite? <real>)`
 
-7. __NaN Predicate__: `(nan? <real>)`
+7. __Finite Predicate__: `(finite? <real>)`
 
-8. __Exact Number Predicate__: `(exact? <number>)`
+8. __NaN Predicate__: `(nan? <real>)`
 
-9. __Inexact Number Predicate__: `(inexact? <number>)`
+9. __Exact Number Predicate__: `(exact? <number>)`
 
-10. __Integer Predicate__: `(integer? <number>)`
+10. __Inexact Number Predicate__: `(inexact? <number>)`
 
-11. __Big-Integer Predicate__: `(bigint? <number>)`
+11. __Integer Predicate__: `(integer? <number>)`
+
+12. __Big-Integer Predicate__: `(bigint? <number>)`
     * Equivalent to `(and (exact? <number>) (integer? <number>))`
 
 
