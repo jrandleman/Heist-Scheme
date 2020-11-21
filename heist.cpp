@@ -4400,7 +4400,7 @@ namespace heist {
       ++count;
       goto tail_call_recur;
     }
-    // clear calls from stack trace
+    // clear calls from stack trace (kept tail calls in trace for debuggability)
     if(count >= G::STACK_TRACE.size())
       G::STACK_TRACE.clear();
     else
