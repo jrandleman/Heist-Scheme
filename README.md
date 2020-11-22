@@ -1299,9 +1299,9 @@ Other primitives of this nature include:<br>
 2. Use [`co-fn`](#Coroutine-Handling-Primitives) to pass local procedures defined in a coroutine to an external procedure
 
 #### Danger Zone:
-0. Nesting `define-coroutine` instances is undefined behavior!
-1. Using `define-coroutine` in a [`scm->cps`](#Scm-Cps) block is undefined behavior!
-2. The [`id`](#compose-bind--id) procedure is returned if no expressions exist after the last `yield`/`pause`!
+0. Nesting `define-coroutine` instances (or use in [`scm->cps`](#Scm-Cps)) is undefined behavior!
+1. Using [`jump!`](#Control-Flow-Procedures) or [`catch-jump`](#Control-Flow-Procedures) in `define-coroutine` is undefined behavior (used by `yield`)!
+2. The [`id`](#compose-bind--id) procedure is returned if no expressions exist after the last `yield`!
 3. Like [`scm->cps`](#Scm-Cps), avoid macros expanding to a `define` in the current environment!
 
 #### Examples:
@@ -1547,7 +1547,7 @@ Other primitives of this nature include:<br>
 ------------------------
 ## Coroutine Handling Primitives:
 0. __Coroutine Object Predicate__: `(coroutine? <obj>)`
-   * Coroutine objects can __only__ be made by [coroutine instantiations](#Define-Coroutine) or [`yield`](#Define-Coroutine)/[`pause`](#Define-Coroutine)
+   * Coroutine objects can __only__ be made by [coroutine instantiations](#Define-Coroutine) or [`yield`](#Define-Coroutine)
 
 1. __Convert Coroutine Object to a Generator Thunk__: `(coroutine->generator <coroutine-object>)`
    * Invoking the generator will continuously yield the next [`yield`](#Define-Coroutine)ed value
