@@ -1111,7 +1111,7 @@ namespace heist {
     "\n                             | ((<method-name> <arg1> <arg2> ...) <body> ...)"\
     "\n                             | (defmethod <method-name> <procedure-value>)"\
     "\n                             | ((make-<class-name> <arg> ...) <body> ...) ; constructor"\
-    "\n                             | (make-<class-name> ((<arg> ...) <body> ...) ...) ; constructor"\
+    "\n                             | (make-<class-name> ((<arg> ...) <body> ...) ...) ; fn ctor"\
     "\n                             | ((eq? <obj>) <body> ...)    ; overload eq?"\
     "\n                             | ((eqv? <obj>) <body> ...)   ; overload eqv?"\
     "\n                             | ((equal? <obj>) <body> ...) ; overload equal?"\

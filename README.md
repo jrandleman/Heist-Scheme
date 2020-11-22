@@ -71,6 +71,7 @@
    - [Math:](#Math), [Infix-Math-Quote](#Infix-Math-Quote)
 8. [Heist Primitive Variables](#Heist-Primitive-Variables)
 9. [Heist Primitive Procedures](#Heist-Primitive-Procedures)
+   - [Build System Information](#Build-System-Information)
    - [OOP Reflection Primitives](#OOP-Reflection-Primitives)
      * [Object Primitives](#Object-Primitives)
      * [Prototype Primitives](#Prototype-Primitives)
@@ -1176,7 +1177,7 @@ Other primitives of this nature include:<br>
                                  | ((<method-name> <arg1> <arg2> ...) <body> ...)
                                  | (defmethod <method-name> <procedure-value>)
                                  | ((make-<class-name> <arg> ...) <body> ...) ; constructor
-                                 | (make-<class-name> ((<arg> ...) <body> ...) ...) ; constructor
+                                 | (make-<class-name> ((<arg> ...) <body> ...) ...) ; fn ctor
                                  | ((eq? <obj>) <body> ...)    ; overload eq?
                                  | ((eqv? <obj>) <body> ...)   ; overload eqv?
                                  | ((equal? <obj>) <body> ...) ; overload equal?
@@ -1499,6 +1500,14 @@ Other primitives of this nature include:<br>
 ## Prolific Partials:
 #### All of the Below Support Partial Application!
 * IE `(map even?)` is equivalent to `(lambda (x . xs) (apply map (cons even? (cons x xs))))`
+
+
+## Build System Information:
+0. __License__: `(license)`
+
+1. __Sublime Text Build System__: `(sublime-text-build-system)`
+
+2. __Shell Alias__: `(shell-alias)`
 
 
 ## OOP Reflection Primitives:
@@ -2324,6 +2333,7 @@ Other primitives of this nature include:<br>
 ------------------------
 ## Compose, Bind, & Id:
 0. __Compose N `<callable>`s__: `(compose <callable-1> ... <callable-N>)`
+   * _Aliased as `o` for composition shorthand!_
    * _Generates a procedure of N args that applies them to the procedure composition!_
 
 1. __Bind N args to `<callable>`: `(bind <callable> <val-1> ... <val-N>)`__

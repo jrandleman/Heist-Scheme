@@ -407,6 +407,8 @@
           (apply fst-proc args) 
           rest-procs)))
 
+(define o compose)
+
 
 ; BIND ARGUMENTS TO A PROC PRODUCING A NEW PROC
 (define (bind proc . bound-vals)
@@ -520,3 +522,22 @@
 (defn tbp 
   (() (display tbp-string))
   ((out-port-or-string) (display tbp-string out-port-or-string)))
+
+;; =============================================================
+;; =========== LICENSE ST-BUILD-SYSTEM & SHELL-ALIAS ===========
+;; =============================================================
+
+(define license
+  (let ((license-text (slurp-file (append heist-dirname "/LICENSE"))))
+    (fn (() (display license-text))
+        ((string-or-output-port) (display license-text string-or-output-port)))))
+
+(define sublime-text-build-system
+  (let ((stbs (append "{\n  \"cmd\": [\"" heist-dirname "/heist\", \"-nansi\", \"-script\", \"$file\"],\n  \"file_regex\": \"^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$\",\n}")))
+    (fn (() (display stbs))
+        ((string-or-output-port) (display stbs string-or-output-port)))))
+
+(define shell-alias
+  (let ((shell-alias-string (append "alias heist='" heist-dirname "/heist'")))
+    (fn (() (display shell-alias-string))
+        ((string-or-output-port) (display shell-alias-string string-or-output-port)))))
