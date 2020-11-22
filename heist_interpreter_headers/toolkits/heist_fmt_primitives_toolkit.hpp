@@ -294,7 +294,7 @@ namespace heist_fmt {
 
   // fills "art_buffer" with "non_art_buffer"'s chars in ASCII/Whitespace Art
   std::string convert_non_art_string_to_alpha_art(std::string& non_art_buffer, const std::size_t TOTAL_ROWS, 
-                                                  const char** ALPHA_ART_MATRIX[TOTAL_ROWS])noexcept{
+                                                  const char*** ALPHA_ART_MATRIX)noexcept{
     std::string art_buffer;
     static constexpr const std::size_t NEWLINE_ART_IDX = 1; // idx (hash value) of '\n' ASCII art repn
     bool is_ascii_art = (TOTAL_ROWS == TOTAL_ASCII_ART_ROWS);
@@ -341,7 +341,7 @@ namespace heist_fmt {
 
           // if at a backspace, move back the width of the preceding character
           } else if(alpha_art_letter_idxs[idx] == BACKSPACE_ART_IDX) {
-            if(prior_char_idx > -1) {
+            if(prior_char_idx != std::size_t(-1)) {
               std::size_t prior_char_length = strlen(ALPHA_ART_MATRIX[row][alpha_art_letter_idxs[prior_char_idx]]);
               for(std::size_t i = 0; i < prior_char_length; ++i) art_buffer += "\b";
               --prior_char_idx;
