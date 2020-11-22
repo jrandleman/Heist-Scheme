@@ -113,7 +113,7 @@
      * [Formatting Stringification & Output](#Formatting-Stringification--Output)
      * [Formatting Guidelines](#Formatting-Guidelines)
      * [Convert Strings to ASCII/Whitespace Art](#Convert-Strings-to-ASCIIWhitespace-Art)
-     * [Get ANSI Escape Code String (or `""` if `nansi` is active!)](#Get-ANSI-Escape-Code-String (or `""` if `nansi` is active!))
+     * [Get ANSI Escape Code String (or `""` if `nansi` is active!)](#get-ansi-escape-code-string-or--if-nansi-is-active)
    - [Input Procedures](#Input-Procedures)
    - [File & Port Procedures](#File--Port-Procedures)
    - [System Interface Procedures](#System-Interface-Procedures)
