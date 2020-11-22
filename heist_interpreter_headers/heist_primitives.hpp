@@ -4859,11 +4859,23 @@ namespace heist {
                                             G::USING_ANSI_ESCAPE_SEQUENCES);
   }
 
+  data primitive_NANSIP(scm_list& args) {
+    if(!args.empty())
+      THROW_ERR("'nansi? doesn't take any args!\n     (nansi?)" << FCN_ERR("nansi?",args));
+    return boolean(!G::USING_ANSI_ESCAPE_SEQUENCES);
+  }
+
   // Defaults to enabling case-sensitivity, if not given a boolean.
   // Returns whether case-sensitivity was active prior this call
   data primitive_SET_CI(scm_list& args) {
     return primitive_TOGGLE_DISPLAY_SETTING(args, "set-ci!", 
                                             G::USING_CASE_SENSITIVE_SYMBOLS);
+  }
+
+  data primitive_CIP(scm_list& args) {
+    if(!args.empty())
+      THROW_ERR("'ci? doesn't take any args!\n     (ci?)" << FCN_ERR("ci?",args));
+    return boolean(!G::USING_CASE_SENSITIVE_SYMBOLS);
   }
 
   data primitive_SET_PPRINT_COLUMN_WIDTH_BANG(scm_list& args) {
@@ -4900,6 +4912,12 @@ namespace heist {
   // Toggles Procedure Argument Call Tracing (returns the previous state prior toggle)
   data primitive_SET_TRACE_ARGS(scm_list& args) {
     return primitive_TOGGLE_BOOLEAN_SETTING(args,"set-trace-args!",G::TRACE_ARGS);
+  }
+
+  data primitive_TRACE_ARGSP(scm_list& args) {
+    if(!args.empty())
+      THROW_ERR("'trace-args? doesn't take any args!\n     (trace-args?)" << FCN_ERR("trace-args?",args));
+    return boolean(G::TRACE_ARGS);
   }
 
   /******************************************************************************
@@ -6074,12 +6092,15 @@ namespace heist {
     std::make_pair(primitive_CURRENT_DATE,        "current-date"),
 
     std::make_pair(primitive_SET_NANSI,                    "set-nansi!"),
+    std::make_pair(primitive_NANSIP,                       "nansi?"),
     std::make_pair(primitive_SET_CI,                       "set-ci!"),
+    std::make_pair(primitive_CIP,                          "ci?"),
     std::make_pair(primitive_SET_PPRINT_COLUMN_WIDTH_BANG, "set-pprint-column-width!"),
     std::make_pair(primitive_SET_MAX_RECURSION_DEPTH,      "set-max-recursion-depth!"),
     std::make_pair(primitive_SET_REPL_PROMPT,              "set-repl-prompt!"),
     std::make_pair(primitive_SET_DYNAMIC_CALL_TRACE_BANG,  "set-dynamic-call-trace!"),
     std::make_pair(primitive_SET_TRACE_ARGS,               "set-trace-args!"),
+    std::make_pair(primitive_TRACE_ARGSP,                  "trace-args?"),
 
     std::make_pair(primitive_EXIT,            "exit"),
     std::make_pair(primitive_ERROR,           "error"),

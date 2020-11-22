@@ -2565,9 +2565,11 @@ Other primitives of this nature include:<br>
 ------------------------
 ## Interpreter Invariants Manipulation:
 0. __Disable ANSI Escape Codes__: `(set-nansi! <boolean>)`
+   * Check status via `(nansi?)`!
 
 1. __Enable Case-Insensitivity__: `(set-ci! <boolean>)`
    * Works by having the reader convert all input to lower-case!
+   * Check status via `(ci?)`!
 
 2. __Set Pretty-Print Column Length__: `(set-pprint-column-width! <positive-integer>)`
 
@@ -2578,6 +2580,7 @@ Other primitives of this nature include:<br>
 5. __Dynamic Procedure Trace (Last Resort Debugging)__: `(set-dynamic-call-trace! <boolean>)`
 
 6. __Trace Procedure Call Arguments Too__: `(set-trace-args! <boolean>)`
+   * Check status via `(trace-args?)`!
 
 
 
