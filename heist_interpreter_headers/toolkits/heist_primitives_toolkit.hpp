@@ -2858,7 +2858,8 @@ namespace heist {
 
   // primitive "string->symbol" conversion helper
   scm_string convert_string_to_symbol(const scm_string& symbol_val)noexcept{
-    if(symbol_val.empty()) return symbol_val;
+    bool string_is_an_escaped_variadic_token(const scm_string& str)noexcept;
+    if(symbol_val.empty() || string_is_an_escaped_variadic_token(symbol_val)) return symbol_val;
     scm_string symbol_str;
     // Convert chars in the string to their symbolic versions
     for(const auto& ch : symbol_val) {

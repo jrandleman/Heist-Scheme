@@ -177,8 +177,15 @@ namespace heist {
   ******************************************************************************/
 
   // Reader macro identification / error-checking helpers
+  bool is_escaped_variadic(const scm_string& input, const size_type i)noexcept{ // do NOT expand \ as a lambda around ...
+    if(input[i] != '\\') return false;
+    size_type n = input.size(), j = i;
+    while(j < n && input[j] == '\\') ++j;
+    return input.compare(j,3,"...") == 0;
+  }
+
   bool input_begins_with_prefix(const scm_string& prefix, const scm_string& input, const size_type i)noexcept{
-    return input.size()-i-1 >= prefix.size() && input.compare(i,prefix.size(),prefix) == 0;
+    return input.size()-i-1 >= prefix.size() && !is_escaped_variadic(input,i) && input.compare(i,prefix.size(),prefix) == 0;
   }
 
   size_type is_expandable_reader_macro(const scm_string& input, const size_type i)noexcept{

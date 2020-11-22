@@ -948,6 +948,27 @@ Other primitives of this nature include:<br>
     ((a ...) ...)     ; Constructs 1+ expressions of 1+ variadic matches <a>
     ```
 
+#### Higher-Order Macro Template Expansion Support:
+* _Writing macros that expand to other macro definitions using `...` can cause_<br>
+  _issues, **however** this can be mediated by escaping nested `...` via `\...`_
+* Example:
+  ```scheme 
+  (core-syntax define-inlined
+    (syntax-rules ()
+      ((_ (name) b ...)
+        (core-syntax name
+          (syntax-rules ()
+            ((_)
+              ((lambda ()
+                b ...))))))
+      ((_ (name a ...) b ...)
+        (core-syntax name
+          (syntax-rules ()
+            ((_ arg \...) ; escape the ... to be un-escaped upon expansion
+              ((lambda (a ...)
+                b ...) arg \...)))))))
+  ```
+
 
 ------------------------
 ## Syntax-Hash:

@@ -3542,6 +3542,33 @@ namespace heist {
   }
 
   /******************************************************************************
+  * MACRO SYNTACTIC EXTENSIONS -- UNWRAP ESCAPED VARIADIC TOKENS
+  ******************************************************************************/
+
+  bool string_is_an_escaped_variadic_token(const scm_string& str)noexcept{
+    if(str.size() < 4 || str.compare(str.size()-3,3,"...")) 
+      return false;
+    for(size_type i = 0, n = str.size()-3; i < n; ++i)
+      if(str[i] != '\\') return false;
+    return true;
+  }
+
+
+  bool datum_is_an_escaped_variadic_token(const data& d)noexcept{
+    return d.is_type(types::sym) && string_is_an_escaped_variadic_token(d.sym);
+  }
+
+
+  void unwrap_macro_escaped_variadic_tokens(scm_list& expanded)noexcept{
+    for(size_type i = 0, n = expanded.size(); i < n; ++i) {
+      if(expanded[i].is_type(types::exp))
+        unwrap_macro_escaped_variadic_tokens(expanded[i].exp);
+      else if(datum_is_an_escaped_variadic_token(expanded[i]))
+        expanded[i].sym = expanded[i].sym.substr(1);
+    }
+  }
+
+  /******************************************************************************
   * MACRO SYNTACTIC EXTENSIONS -- DYNAMICALLY HASH syntax-hash IDENTIFIERS
   ******************************************************************************/
 
@@ -3800,6 +3827,7 @@ namespace heist {
     derive_and_construct_macro_expansion_tree(MID_VARG_PAIR.first,MID_VARG_PAIR.second,MACRO_EXPANSION_TREES);
     expand_non_variadic_macro_symbols(args,name,expanded_exp,MACRO_EXPANSION_TREES);
     expand_macro_variadic_identifiers(args,name,expanded_exp,MACRO_EXPANSION_TREES);
+    unwrap_macro_escaped_variadic_tokens(expanded_exp);
     hash_macro_expansion_identifier("",true); // reset hash idxs
   }
 
