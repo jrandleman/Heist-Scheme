@@ -134,8 +134,7 @@ namespace heist {
   // PRECONDITION: primitive_data_is_a_callable(d)
   data primitive_extract_callable_procedure(data& d)noexcept{
     // handle primitive or compound procedure
-    if(d.is_type(types::fcn)) return d;
-    if(!d.is_type(types::obj)) return data(); // never triggered iff precondition met
+    if(!d.is_type(types::obj)) return d;
     // handle functor
     obj_type obj = d.obj;
     while(obj) {

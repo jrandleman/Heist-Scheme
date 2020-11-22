@@ -10,7 +10,7 @@
 
 // Defines 4 Functions for C++ Interop w/ Heist:
 //   0) eval   // evaluate heist code string, same as _heist literal (see below)
-//   1) apply  // apply args to Heist procedure
+//   1) apply  // apply args to Heist callable (procedure or functor)
 //   2) define // define C++ Heist primitive _OR_ a global Heist variable
 
 #include "heist.cpp"
@@ -76,14 +76,31 @@ namespace heist {
   }
 
 
-  // Apply Heist Scheme Procedure
+  // Apply Heist Scheme Callable by Value
+  data apply(data& heist_procedure, scm_list args) noexcept {
+    if(!G::GLOBAL_ENVIRONMENT_POINTER) set_default_global_environment(), atexit(close_port_registry);
+    if(!primitive_data_is_a_callable(heist_procedure)) {
+      PRINT_ERR("Invalid Heist Scheme Callable: " << PROFILE(heist_procedure));
+      return data();
+    }
+    if(args.empty()) args.push_back(symconst::sentinel_arg);
+    try {
+      return data_cast(execute_callable(heist_procedure, args, G::GLOBAL_ENVIRONMENT_POINTER));
+    } catch(const SCM_EXCEPT& eval_throw) {
+      if(eval_throw == heist::SCM_EXCEPT::JUMP)
+        PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
+          << PROFILE(heist::G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
+      return data();
+    }
+  }
+
+  // Apply Heist Scheme Callable by Name
   data apply(const std::string& heist_procedure_name, scm_list args) noexcept {
     if(!G::GLOBAL_ENVIRONMENT_POINTER) set_default_global_environment(), atexit(close_port_registry);
     if(args.empty()) args.push_back(symconst::sentinel_arg);
     try {
-      return data_cast(execute_application(
-              lookup_variable_value(heist_procedure_name,G::GLOBAL_ENVIRONMENT_POINTER),
-              args, G::GLOBAL_ENVIRONMENT_POINTER));
+      auto val = lookup_variable_value(heist_procedure_name,G::GLOBAL_ENVIRONMENT_POINTER);
+      return data_cast(execute_callable(val, args, G::GLOBAL_ENVIRONMENT_POINTER));
     } catch(const SCM_EXCEPT& eval_throw) {
       if(eval_throw == heist::SCM_EXCEPT::JUMP)
         PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
