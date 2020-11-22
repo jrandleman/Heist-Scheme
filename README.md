@@ -110,6 +110,10 @@
    - [Type Coercion](#Type-Coercion)
    - [Output Procedures](#Output-Procedures)
    - [Formatted Output Procedures](#Formatted-Output-Procedures)
+     * [Formatting Stringification & Output](#Formatting-Stringification--Output)
+     * [Formatting Guidelines](#Formatting-Guidelines)
+     * [Convert Strings to ASCII/Whitespace Art](#Convert-Strings-to-ASCIIWhitespace-Art)
+     * [Get ANSI Escape Code String (or `""` if `nansi` is active!)](#Get-ANSI-Escape-Code-String (or `""` if `nansi` is active!))
    - [Input Procedures](#Input-Procedures)
    - [File & Port Procedures](#File--Port-Procedures)
    - [System Interface Procedures](#System-Interface-Procedures)
@@ -2414,6 +2418,7 @@ Other primitives of this nature include:<br>
 
 ------------------------
 ## Formatted Output Procedures:
+### Formatting Stringification & Output:
 0. __Sprintf__: Returns a new, formatted string!
    * `(sprintf <formatted-string> <optional-arg1> <optional-arg2> ...)`
 
@@ -2426,6 +2431,7 @@ Other primitives of this nature include:<br>
 3. __Formatted-Pretty-Print__: 
    * `(pprintf <optional-output-port> <formatted-string> <optional-arg1> ...)`
    * `(pretty-printf <optional-output-port> <formatted-string> <optional-arg1> ...)`
+
 
 ### Formatting Guidelines:
 ```
@@ -2459,6 +2465,60 @@ Other primitives of this nature include:<br>
    %%  = "%" (escapes a "%")
    ----------------------------------------------------------------------
 ```
+
+
+### Convert Strings to ASCII/Whitespace Art:
+#### Supports Non-Whitespace ASCII, Space, Newline, Tab, Backspace, Esc!
+0. __Convert String to ASCII Art__: `(string->ascii-art <string>)`
+
+1. __Convert String to Whitespace Art__: `(string->space-art <string>)`
+
+
+### Get ANSI Escape Code String (or `""` if `nansi` is active!):
+#### Screen Fromatting & Text Decoration:
+0. __Reset ANSI Formats__: `(fmt:reset)`
+
+1. __Clear Screen__: `(fmt:clear)`
+
+2. __Bold Text__: `(fmt:bold)`
+
+3. __Underlined Text__: `(fmt:line)`
+
+4. __Reverse Background & Foreground Colors__: `(fmt:rev)`
+
+#### Text Colors (8 Basic Colors & Dark->Light Gradients):
+0. __Black Text__: `(fmt:black)`, `(fmt:black1)` ... `(fmt:black8)`
+
+1. __Red Text__: `(fmt:red)`, `(fmt:red1)` ... `(fmt:red8)`
+
+2. __Green Text__: `(fmt:green)`, `(fmt:green1)` ... `(fmt:green8)`
+
+3. __Yellow Text__: `(fmt:yellow)`, `(fmt:yellow1)` ... `(fmt:yellow8)`
+
+4. __Blue Text__: `(fmt:blue)`, `(fmt:blue1)` ... `(fmt:blue8)`
+
+5. __Magenta Text__: `(fmt:magenta)`, `(fmt:magenta1)` ... `(fmt:magenta8)`
+
+6. __Cyan Text__: `(fmt:cyan)`, `(fmt:cyan1)` ... `(fmt:cyan8)`
+
+7. __White Text__: `(fmt:white)`, `(fmt:white1)` ... `(fmt:white8)`
+
+#### Background Colors (8 Basic Colors & Dark->Light Gradients):
+0. __Black Background__: `(fmt:bblack)`, `(fmt:bblack1)` ... `(fmt:bblack8)`
+
+1. __Red Background__: `(fmt:bred)`, `(fmt:bred1)` ... `(fmt:bred8)`
+
+2. __Green Background__: `(fmt:bgreen)`, `(fmt:bgreen1)` ... `(fmt:bgreen8)`
+
+3. __Yellow Background__: `(fmt:byellow)`, `(fmt:byellow1)` ... `(fmt:byellow8)`
+
+4. __Blue Background__: `(fmt:bblue)`, `(fmt:bblue1)` ... `(fmt:bblue8)`
+
+5. __Magenta Background__: `(fmt:bmagenta)`, `(fmt:bmagenta1)` ... `(fmt:bmagenta8)`
+
+6. __Cyan Background__: `(fmt:bcyan)`, `(fmt:bcyan1)` ... `(fmt:bcyan8)`
+
+7. __White Background__: `(fmt:bwhite)`, `(fmt:bwhite1)` ... `(fmt:bwhite8)`
 
 
 

@@ -505,14 +505,15 @@
 ;; =============================================
 
 (define tbp-string
-"        // \\\\
+"          _
+        // \\\\
     2 0 \\\\ // 2 2
    ,_____| |_____,
    |__   ___   __| 
      /  /   \\  \\ 
     /  / CAZ \\  \\ 
 ,__/  /_______\\  \\__,
-|___T____ B ____P___|
+|___T____,B,____P___|
          | |
   C   S  | |  E   N
          |_|")
@@ -521,7 +522,7 @@
 ;; display <tbp-string>
 (defn tbp 
   (() (display tbp-string))
-  ((out-port-or-string) (display tbp-string out-port-or-string)))
+  ((string-or-output-port) (display tbp-string string-or-output-port)))
 
 ;; =============================================================
 ;; =========== LICENSE ST-BUILD-SYSTEM & SHELL-ALIAS ===========

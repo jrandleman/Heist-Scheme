@@ -7,7 +7,7 @@
 #ifndef HEIST_PRIMITIVES_HPP_
 #define HEIST_PRIMITIVES_HPP_
 
-#include "heist_primitives_toolkit.hpp"
+#include "toolkits/heist_primitives_toolkit.hpp"
 
 /******************************************************************************
 * ARITHMETIC PRIMITIVES
@@ -5594,6 +5594,35 @@ namespace heist {
   }
 
   /******************************************************************************
+  * "fmt:" PREFIXED ANSI ESCAPE CODE PRIMITIVES
+  ******************************************************************************/
+
+  #include "toolkits/heist_fmt_primitives_toolkit.hpp"
+
+  /******************************************************************************
+  * STRING->ART PRIMITIVES
+  ******************************************************************************/
+
+  data primitive_STRING_TO_ASCII_ART(scm_list& args) { 
+    if(args.size() != 1 || !args[0].is_type(types::str))
+      THROW_ERR("'string->ascii-art didn't recieve 1 string arg!"
+        "\n     (string->ascii-art <string>)" << FCN_ERR("string->ascii-art",args));
+    return make_str(heist_fmt::convert_to_ascii_art(*args[0].str));
+  }
+
+  data primitive_STRING_TO_SPACE_ART(scm_list& args) { 
+    if(args.size() != 1 || !args[0].is_type(types::str))
+      THROW_ERR("'string->space-art didn't recieve 1 string arg!"
+        "\n     (string->space-art <string>)\n     => <nansi> must be inactive!" 
+        << FCN_ERR("string->space-art",args));
+    if(!G::USING_ANSI_ESCAPE_SEQUENCES)
+      THROW_ERR("'string->space-art can't be used with <nansi> active!"
+        "\n     (string->space-art <string>)\n     => <nansi> must be inactive!" 
+        << FCN_ERR("string->space-art",args));
+    return make_str(heist_fmt::convert_to_whitespace_art(*args[0].str));
+  }
+
+  /******************************************************************************
   * EVALUATE PRIMITIVES DEFINED DIRECTLY IN HEIST SCHEME
   ******************************************************************************/
 
@@ -6102,16 +6131,16 @@ namespace heist {
     std::make_pair(primitive_SET_TRACE_ARGS,               "set-trace-args!"),
     std::make_pair(primitive_TRACE_ARGSP,                  "trace-args?"),
 
-    std::make_pair(primitive_EXIT,            "exit"),
-    std::make_pair(primitive_ERROR,           "error"),
-    std::make_pair(primitive_SYNTAX_ERROR,    "syntax-error"),
-    std::make_pair(primitive_CALL_CE,         "call/ce"),
-    std::make_pair(primitive_CALL_CE,         "call-with-current-environment"),
-    std::make_pair(primitive_INLINE,          "inline"),
-    std::make_pair(primitive_JUMP_BANG,       "jump!"),
-    std::make_pair(primitive_CATCH_JUMP,      "catch-jump"),
-    std::make_pair(primitive_EXPAND,          "expand"),
-    std::make_pair(primitive_TRACE,           "trace"),
+    std::make_pair(primitive_EXIT,         "exit"),
+    std::make_pair(primitive_ERROR,        "error"),
+    std::make_pair(primitive_SYNTAX_ERROR, "syntax-error"),
+    std::make_pair(primitive_CALL_CE,      "call/ce"),
+    std::make_pair(primitive_CALL_CE,      "call-with-current-environment"),
+    std::make_pair(primitive_INLINE,       "inline"),
+    std::make_pair(primitive_JUMP_BANG,    "jump!"),
+    std::make_pair(primitive_CATCH_JUMP,   "catch-jump"),
+    std::make_pair(primitive_EXPAND,       "expand"),
+    std::make_pair(primitive_TRACE,        "trace"),
 
     std::make_pair(primitive_GENSYM,      "gensym"),
     std::make_pair(primitive_SOWN_GENSYM, "sown-gensym"),
@@ -6147,14 +6176,105 @@ namespace heist {
     std::make_pair(primitive_OBJECT_TO_ALIST,             "object->alist"),
     std::make_pair(primitive_OBJECT_TO_JSON,              "object->json"),
 
-    std::make_pair(primitive_PROTO_NAME,              "proto-name"),
-    std::make_pair(primitive_PROTO_MEMBERS,           "proto-members"),
-    std::make_pair(primitive_PROTO_METHODS,           "proto-methods"),
-    std::make_pair(primitive_PROTO_SUPER,             "proto-super"),
-    std::make_pair(primitive_PROTO_ADD_MEMBER_BANG,   "proto-add-member!"),
-    std::make_pair(primitive_PROTO_ADD_METHOD_BANG,   "proto-add-method!"),
+    std::make_pair(primitive_PROTO_NAME,            "proto-name"),
+    std::make_pair(primitive_PROTO_MEMBERS,         "proto-members"),
+    std::make_pair(primitive_PROTO_METHODS,         "proto-methods"),
+    std::make_pair(primitive_PROTO_SUPER,           "proto-super"),
+    std::make_pair(primitive_PROTO_ADD_MEMBER_BANG, "proto-add-member!"),
+    std::make_pair(primitive_PROTO_ADD_METHOD_BANG, "proto-add-method!"),
 
     std::make_pair(primitive_CYCLE_COROUTINES_BANG, "cycle-coroutines!"),
+
+    std::make_pair(primitive_fmt_reset,"fmt:reset"),
+    std::make_pair(primitive_fmt_clear,"fmt:clear"),
+    std::make_pair(primitive_fmt_bold, "fmt:bold"),
+    std::make_pair(primitive_fmt_line, "fmt:line"),
+    std::make_pair(primitive_fmt_rev,  "fmt:rev"),
+
+    std::make_pair(primitive_fmt_black,   "fmt:black"),
+    std::make_pair(primitive_fmt_red,     "fmt:red"),
+    std::make_pair(primitive_fmt_green,   "fmt:green"),
+    std::make_pair(primitive_fmt_yellow,  "fmt:yellow"),
+    std::make_pair(primitive_fmt_blue,    "fmt:blue"),
+    std::make_pair(primitive_fmt_magenta, "fmt:magenta"),
+    std::make_pair(primitive_fmt_cyan,    "fmt:cyan"),
+    std::make_pair(primitive_fmt_white,   "fmt:white"),
+    std::make_pair(primitive_fmt_black1,  "fmt:black1"),  std::make_pair(primitive_fmt_black2,  "fmt:black2"),
+    std::make_pair(primitive_fmt_black3,  "fmt:black3"),  std::make_pair(primitive_fmt_black4,  "fmt:black4"),
+    std::make_pair(primitive_fmt_black5,  "fmt:black5"),  std::make_pair(primitive_fmt_black6,  "fmt:black6"),
+    std::make_pair(primitive_fmt_black7,  "fmt:black7"),  std::make_pair(primitive_fmt_black8,  "fmt:black8"),
+    std::make_pair(primitive_fmt_red1,    "fmt:red1"),    std::make_pair(primitive_fmt_red2,    "fmt:red2"),
+    std::make_pair(primitive_fmt_red3,    "fmt:red3"),    std::make_pair(primitive_fmt_red4,    "fmt:red4"),
+    std::make_pair(primitive_fmt_red5,    "fmt:red5"),    std::make_pair(primitive_fmt_red6,    "fmt:red6"),
+    std::make_pair(primitive_fmt_red7,    "fmt:red7"),    std::make_pair(primitive_fmt_red8,    "fmt:red8"),
+    std::make_pair(primitive_fmt_green1,  "fmt:green1"),  std::make_pair(primitive_fmt_green2,  "fmt:green2"),
+    std::make_pair(primitive_fmt_green3,  "fmt:green3"),  std::make_pair(primitive_fmt_green4,  "fmt:green4"),
+    std::make_pair(primitive_fmt_green5,  "fmt:green5"),  std::make_pair(primitive_fmt_green6,  "fmt:green6"),
+    std::make_pair(primitive_fmt_green7,  "fmt:green7"),  std::make_pair(primitive_fmt_green8,  "fmt:green8"),
+    std::make_pair(primitive_fmt_yellow1, "fmt:yellow1"), std::make_pair(primitive_fmt_yellow2, "fmt:yellow2"),
+    std::make_pair(primitive_fmt_yellow3, "fmt:yellow3"), std::make_pair(primitive_fmt_yellow4, "fmt:yellow4"),
+    std::make_pair(primitive_fmt_yellow5, "fmt:yellow5"), std::make_pair(primitive_fmt_yellow6, "fmt:yellow6"),
+    std::make_pair(primitive_fmt_yellow7, "fmt:yellow7"), std::make_pair(primitive_fmt_yellow8, "fmt:yellow8"),
+    std::make_pair(primitive_fmt_blue1,   "fmt:blue1"),   std::make_pair(primitive_fmt_blue2,   "fmt:blue2"),
+    std::make_pair(primitive_fmt_blue3,   "fmt:blue3"),   std::make_pair(primitive_fmt_blue4,   "fmt:blue4"),
+    std::make_pair(primitive_fmt_blue5,   "fmt:blue5"),   std::make_pair(primitive_fmt_blue6,   "fmt:blue6"),
+    std::make_pair(primitive_fmt_blue7,   "fmt:blue7"),   std::make_pair(primitive_fmt_blue8,   "fmt:blue8"),
+    std::make_pair(primitive_fmt_magenta1,"fmt:magenta1"),std::make_pair(primitive_fmt_magenta2,"fmt:magenta2"),
+    std::make_pair(primitive_fmt_magenta3,"fmt:magenta3"),std::make_pair(primitive_fmt_magenta4,"fmt:magenta4"),
+    std::make_pair(primitive_fmt_magenta5,"fmt:magenta5"),std::make_pair(primitive_fmt_magenta6,"fmt:magenta6"),
+    std::make_pair(primitive_fmt_magenta7,"fmt:magenta7"),std::make_pair(primitive_fmt_magenta8,"fmt:magenta8"),
+    std::make_pair(primitive_fmt_cyan1,   "fmt:cyan1"),   std::make_pair(primitive_fmt_cyan2,   "fmt:cyan2"),
+    std::make_pair(primitive_fmt_cyan3,   "fmt:cyan3"),   std::make_pair(primitive_fmt_cyan4,   "fmt:cyan4"),
+    std::make_pair(primitive_fmt_cyan5,   "fmt:cyan5"),   std::make_pair(primitive_fmt_cyan6,   "fmt:cyan6"),
+    std::make_pair(primitive_fmt_cyan7,   "fmt:cyan7"),   std::make_pair(primitive_fmt_cyan8,   "fmt:cyan8"),
+    std::make_pair(primitive_fmt_white1,  "fmt:white1"),  std::make_pair(primitive_fmt_white2,  "fmt:white2"),
+    std::make_pair(primitive_fmt_white3,  "fmt:white3"),  std::make_pair(primitive_fmt_white4,  "fmt:white4"),
+    std::make_pair(primitive_fmt_white5,  "fmt:white5"),  std::make_pair(primitive_fmt_white6,  "fmt:white6"),
+    std::make_pair(primitive_fmt_white7,  "fmt:white7"),  std::make_pair(primitive_fmt_white8,  "fmt:white8"),
+
+    std::make_pair(primitive_fmt_bblack,   "fmt:bblack"),
+    std::make_pair(primitive_fmt_bred,     "fmt:bred"),
+    std::make_pair(primitive_fmt_bgreen,   "fmt:bgreen"),
+    std::make_pair(primitive_fmt_byellow,  "fmt:byellow"),
+    std::make_pair(primitive_fmt_bblue,    "fmt:bblue"),
+    std::make_pair(primitive_fmt_bmagenta, "fmt:bmagenta"),
+    std::make_pair(primitive_fmt_bcyan,    "fmt:bcyan"),
+    std::make_pair(primitive_fmt_bwhite,   "fmt:bwhite"),
+    std::make_pair(primitive_fmt_bblack1,  "fmt:bblack1"),  std::make_pair(primitive_fmt_bblack2,  "fmt:bblack2"),
+    std::make_pair(primitive_fmt_bblack3,  "fmt:bblack3"),  std::make_pair(primitive_fmt_bblack4,  "fmt:bblack4"),
+    std::make_pair(primitive_fmt_bblack5,  "fmt:bblack5"),  std::make_pair(primitive_fmt_bblack6,  "fmt:bblack6"),
+    std::make_pair(primitive_fmt_bblack7,  "fmt:bblack7"),  std::make_pair(primitive_fmt_bblack8,  "fmt:bblack8"),
+    std::make_pair(primitive_fmt_bred1,    "fmt:bred1"),    std::make_pair(primitive_fmt_bred2,    "fmt:bred2"),
+    std::make_pair(primitive_fmt_bred3,    "fmt:bred3"),    std::make_pair(primitive_fmt_bred4,    "fmt:bred4"),
+    std::make_pair(primitive_fmt_bred5,    "fmt:bred5"),    std::make_pair(primitive_fmt_bred6,    "fmt:bred6"),
+    std::make_pair(primitive_fmt_bred7,    "fmt:bred7"),    std::make_pair(primitive_fmt_bred8,    "fmt:bred8"),
+    std::make_pair(primitive_fmt_bgreen1,  "fmt:bgreen1"),  std::make_pair(primitive_fmt_bgreen2,  "fmt:bgreen2"),
+    std::make_pair(primitive_fmt_bgreen3,  "fmt:bgreen3"),  std::make_pair(primitive_fmt_bgreen4,  "fmt:bgreen4"),
+    std::make_pair(primitive_fmt_bgreen5,  "fmt:bgreen5"),  std::make_pair(primitive_fmt_bgreen6,  "fmt:bgreen6"),
+    std::make_pair(primitive_fmt_bgreen7,  "fmt:bgreen7"),  std::make_pair(primitive_fmt_bgreen8,  "fmt:bgreen8"),
+    std::make_pair(primitive_fmt_byellow1, "fmt:byellow1"), std::make_pair(primitive_fmt_byellow2, "fmt:byellow2"),
+    std::make_pair(primitive_fmt_byellow3, "fmt:byellow3"), std::make_pair(primitive_fmt_byellow4, "fmt:byellow4"),
+    std::make_pair(primitive_fmt_byellow5, "fmt:byellow5"), std::make_pair(primitive_fmt_byellow6, "fmt:byellow6"),
+    std::make_pair(primitive_fmt_byellow7, "fmt:byellow7"), std::make_pair(primitive_fmt_byellow8, "fmt:byellow8"),
+    std::make_pair(primitive_fmt_bblue1,   "fmt:bblue1"),   std::make_pair(primitive_fmt_bblue2,   "fmt:bblue2"),
+    std::make_pair(primitive_fmt_bblue3,   "fmt:bblue3"),   std::make_pair(primitive_fmt_bblue4,   "fmt:bblue4"),
+    std::make_pair(primitive_fmt_bblue5,   "fmt:bblue5"),   std::make_pair(primitive_fmt_bblue6,   "fmt:bblue6"),
+    std::make_pair(primitive_fmt_bblue7,   "fmt:bblue7"),   std::make_pair(primitive_fmt_bblue8,   "fmt:bblue8"),
+    std::make_pair(primitive_fmt_bmagenta1,"fmt:bmagenta1"),std::make_pair(primitive_fmt_bmagenta2,"fmt:bmagenta2"),
+    std::make_pair(primitive_fmt_bmagenta3,"fmt:bmagenta3"),std::make_pair(primitive_fmt_bmagenta4,"fmt:bmagenta4"),
+    std::make_pair(primitive_fmt_bmagenta5,"fmt:bmagenta5"),std::make_pair(primitive_fmt_bmagenta6,"fmt:bmagenta6"),
+    std::make_pair(primitive_fmt_bmagenta7,"fmt:bmagenta7"),std::make_pair(primitive_fmt_bmagenta8,"fmt:bmagenta8"),
+    std::make_pair(primitive_fmt_bcyan1,   "fmt:bcyan1"),   std::make_pair(primitive_fmt_bcyan2,   "fmt:bcyan2"),
+    std::make_pair(primitive_fmt_bcyan3,   "fmt:bcyan3"),   std::make_pair(primitive_fmt_bcyan4,   "fmt:bcyan4"),
+    std::make_pair(primitive_fmt_bcyan5,   "fmt:bcyan5"),   std::make_pair(primitive_fmt_bcyan6,   "fmt:bcyan6"),
+    std::make_pair(primitive_fmt_bcyan7,   "fmt:bcyan7"),   std::make_pair(primitive_fmt_bcyan8,   "fmt:bcyan8"),
+    std::make_pair(primitive_fmt_bwhite1,  "fmt:bwhite1"),  std::make_pair(primitive_fmt_bwhite2,  "fmt:bwhite2"),
+    std::make_pair(primitive_fmt_bwhite3,  "fmt:bwhite3"),  std::make_pair(primitive_fmt_bwhite4,  "fmt:bwhite4"),
+    std::make_pair(primitive_fmt_bwhite5,  "fmt:bwhite5"),  std::make_pair(primitive_fmt_bwhite6,  "fmt:bwhite6"),
+    std::make_pair(primitive_fmt_bwhite7,  "fmt:bwhite7"),  std::make_pair(primitive_fmt_bwhite8,  "fmt:bwhite8"),
+
+    std::make_pair(primitive_STRING_TO_ASCII_ART,"string->ascii-art"),
+    std::make_pair(primitive_STRING_TO_SPACE_ART,"string->space-art"),
   };
 
   frame_vals primitive_procedure_objects()noexcept{

@@ -990,7 +990,7 @@ namespace heist {
 ******************************************************************************/
 
 // Link toolkit here to inherit all of the above type defns
-#include "heist_types_toolkit.hpp"
+#include "toolkits/heist_types_toolkit.hpp"
 
 /******************************************************************************
 * FN PARAMETER MATCHING & PROCEDURE ENVIRONMENT EXTENSION
