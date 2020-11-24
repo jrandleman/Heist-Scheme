@@ -1441,13 +1441,8 @@ namespace heist {
     if(!primitive_is_valid_index(args[2]))
       THROW_ERR("'slice <string> arg "<<PROFILE(args[2])<<" isn't a proper non-negative integer "
         "<optional-length>!" << format << VALID_SEQUENCE_INDEX_RANGE << FCN_ERR("slice", args));
-    // confirm length + start falls w/in range of the sequence
-    const auto length = (size_type)args[2].num.extract_inexact();
-    if(length + start > args[0].str->size())
-      THROW_ERR("'slice <string> received out of range <optional-length> " << length 
-        << " from <start-index> " << start << "\n     for string "
-        <<args[0]<<" of size "<< args[0].str->size()<<'!' << format 
-        << VALID_SEQUENCE_INDEX_RANGE << FCN_ERR("slice", args));
+    auto length = (size_type)args[2].num.extract_inexact();
+    if(length + start > args[0].str->size()) length = std::string::npos;
     return make_str(args[0].str->substr(start,length));
   }
 
@@ -1470,12 +1465,8 @@ namespace heist {
       THROW_ERR("'slice <vector> <optional-length> arg "<<PROFILE(args[2])
         <<" isn't a proper non-negative integer!"<<format<<VALID_SEQUENCE_INDEX_RANGE
         <<FCN_ERR("slice",args));
-    // confirm length + start falls w/in range of the sequence
-    const size_type length = (size_type)args[2].num.extract_inexact();
-    if(start+length > vec_length)
-      THROW_ERR("'slice <vector> length "<<length<<" from <start-index> " 
-        <<start<<" is out of range for vector "<<args[0]<<" of length "
-        <<vec_length<<'!'<<format<<VALID_SEQUENCE_INDEX_RANGE<<FCN_ERR("slice",args));
+    auto length = (size_type)args[2].num.extract_inexact();
+    if(start+length > vec_length) length = args[0].vec->size()-start;
     // Extract the subvector
     if(!length) return make_vec(scm_list()); // length = 0 -> '#()
     return make_vec(scm_list(args[0].vec->begin()+start, args[0].vec->begin()+start+length));
@@ -1514,11 +1505,8 @@ namespace heist {
         <<" isn't a proper non-negative integer!"<<format<<VALID_SEQUENCE_INDEX_RANGE
         <<FCN_ERR("slice",args));
     // confirm length + start falls w/in range of the sequence
-    const size_type length = (size_type)args[2].num.extract_inexact();
-    if(start+length > lis_length)
-      THROW_ERR("'slice <list> <optional-length> "<<length<<" from <start-index> "<<start
-        <<" is out of range for list "<<args[0]<<" of length "<<lis_length<<'!'
-        <<format<<VALID_SEQUENCE_INDEX_RANGE<<FCN_ERR("slice",args));
+    auto length = (size_type)args[2].num.extract_inexact();
+    if(start+length > lis_length) length = size_type(-1);
     // Extract the sublist
     if(!length) return symconst::emptylist; // length = 0 -> '()
     return primitive_MK_SUBLIST_recur(args[0], start, start+length, 0);
