@@ -542,3 +542,19 @@
   (let ((shell-alias-string (append "alias heist='" heist-dirname "/heist'")))
     (fn (() (display shell-alias-string))
         ((string-or-output-port) (display shell-alias-string string-or-output-port)))))
+
+;; ===================================================================================================
+;; =========== FILE & PORT READING (SLURP ALTERNATIVE FOR DATA STRUCTS INSTEAD OF STRINGS) ===========
+;; ===================================================================================================
+
+(defn read-port
+  (() (read-port (current-input-port))) ; read rest of exprs in input-port
+  ((input-port)
+    (define (parse-expression datum)
+      (if (eof-object? datum)
+          '()
+          (cons datum (parse-expression (read input-port)))))
+    (cons 'begin (parse-expression (read input-port)))))
+
+(define (read-file filename) ; read all exprs in filename
+  (read-port (open-input-file filename)))

@@ -2562,6 +2562,10 @@ Other primitives of this nature include:<br>
 
 7. __Slurp Entire File Contents Into a String__: `(slurp-file <filename-string>)`
 
+8. __Read Entire Port Contents as a Data Struct__: `(read-port <optional-open-input-port-or-string>)`
+
+9. __Read Entire File Contents as a Data Struct__: `(read-file <filename-string>)`
+
 
 
 ------------------------
