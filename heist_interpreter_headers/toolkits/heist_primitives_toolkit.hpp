@@ -945,7 +945,7 @@ namespace heist {
 
   // "count" primitive helper
   void primitive_LIST_COUNT_computation(const data& curr_pair, num_type& exact_count, 
-                                        data& pred, size_type count = 1){
+                                        data& pred, size_type count = 0){
     if(count == G::MAX_SIZE_TYPE) {
       exact_count += count;
       count = 0;
@@ -953,7 +953,7 @@ namespace heist {
     if(curr_pair.is_type(types::par)) {
       scm_list args(1,curr_pair.par->first);
       count += size_type(is_true_scm_condition(pred,args)); // if(pred(elt)) ++count
-      primitive_LIST_COUNT_computation(curr_pair.par->second,exact_count,pred,count+1);
+      primitive_LIST_COUNT_computation(curr_pair.par->second,exact_count,pred,count);
     }
     else exact_count += count;
   }
