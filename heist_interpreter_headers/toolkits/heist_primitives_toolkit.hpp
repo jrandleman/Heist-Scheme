@@ -2133,8 +2133,8 @@ namespace heist {
     return min_sequence_length;
   }
 
-  bool convert_lists_to_exp_matrix_and_return_if_empty(scm_list& args,   scm_list& list_exps, 
-                                                       const char* name, const char* format){
+  bool any_every_convert_lists_to_exp_matrix_and_return_if_empty(scm_list& args,   scm_list& list_exps, 
+                                                                 const char* name, const char* format){
     list_exps.push_back(args[0]);
     list_exps.push_back(scm_list());
     shallow_unpack_list_into_exp(args[1], list_exps[1].exp);
@@ -2179,7 +2179,7 @@ namespace heist {
 
   data primitive_list_any_logic(data& procedure, scm_list& args, const char* format){
     scm_list list_exps;
-    if(convert_lists_to_exp_matrix_and_return_if_empty(args,list_exps,"any",format))
+    if(any_every_convert_lists_to_exp_matrix_and_return_if_empty(args,list_exps,"any",format))
       return G::FALSE_DATA_BOOLEAN;
     return primitive_STATIC_SEQUENCE_any_logic<types::exp>(procedure,list_exps,nullptr,"list",format);
   }
@@ -2214,8 +2214,193 @@ namespace heist {
 
   data primitive_list_every_logic(data& procedure, scm_list& args, const char* format){
     scm_list list_exps;
-    convert_lists_to_exp_matrix_and_return_if_empty(args,list_exps,"every",format);
+    any_every_convert_lists_to_exp_matrix_and_return_if_empty(args,list_exps,"every",format);
     return primitive_STATIC_SEQUENCE_every_logic<types::exp>(procedure,list_exps,nullptr,"list",format);
+  }
+
+  /******************************************************************************
+  * SET OPERATIONS
+  ******************************************************************************/
+
+  void convert_lists_to_exp_matrix(scm_list& args, scm_list& list_exps, const char* name, const char* format){
+    for(size_type i = 0, n = args.size(); i < n; ++i) {
+      if(auto stat = is_proper_sequence(args[i],args,name,format); stat != heist_sequence::nul && stat != heist_sequence::lis) {
+        THROW_ERR('\''<<name<<" <list> arg #"<<i+1<<' '<<PROFILE(args[i])<<" isn't a proper list:"
+          << format << FCN_ERR(name,args));
+      } else if(stat == heist_sequence::lis) {
+        list_exps.push_back(scm_list());
+        shallow_unpack_list_into_exp(args[i], list_exps[i].exp);
+      }
+    }
+  }
+
+  void confirm_only_given_data_with_type_of_first_arg(scm_list& args, const char* name, const char* format){
+    for(auto& d : args)
+      if(d.type != args[0].type)
+        THROW_ERR('\''<<name<<" arg " << PROFILE(d) << " isn't of type " << args[0].type_name() 
+          << "!" << format << FCN_ERR(name,args));
+  }
+
+  template<typename SEQ_TYPE>
+  bool found_in_seq(data& callable_predicate, const data& elt, const SEQ_TYPE& seq) {
+    for(const auto& item : seq) {
+      scm_list args(2);
+      args[0] = elt;
+      args[1] = item;
+      if(is_true_scm_condition(callable_predicate,args)) return true;
+    }
+    return false;
+  }
+
+  // UNION
+
+  template<bool IS_LIST, typename SEQUENCE_CTOR, typename SEQUENCE_PTR, typename SEQUENCE_ACCESSOR>
+  data prm_static_container_union(data& callable, scm_list& args, SEQUENCE_ACCESSOR sequence_accessor, 
+                                  SEQUENCE_PTR seq_ptr = nullptr, SEQUENCE_CTOR make_heist_sequence = nullptr) {
+    auto seq = sequence_accessor(args[0]);
+    for(size_type i = 1, n = args.size(); i < n; ++i)
+      for(const auto& elt : sequence_accessor(args[i]))
+        if(!found_in_seq(callable,elt,seq)) seq.push_back(elt);
+    if constexpr (IS_LIST) {
+      seq_ptr = make_heist_sequence = nullptr; // silences unused variables warnings
+      return primitive_LIST_to_CONS_constructor(seq.begin(),seq.end());
+    } else {
+      return make_heist_sequence(seq);
+    }
+  }
+
+  data prm_perform_vector_union(data& callable, scm_list& args, const char* format) {
+    confirm_only_given_data_with_type_of_first_arg(args,"union",format);
+    return prm_static_container_union<false,vec_type(*)(const scm_list&)>(callable,args,[](auto& d){return *(d.vec);},&data::vec,make_vec);
+  }
+
+  data prm_perform_string_union(data& callable, scm_list& args, const char* format) {
+    confirm_only_given_data_with_type_of_first_arg(args,"union",format);
+    return prm_static_container_union<false,str_type(*)(const scm_string&)>(callable,args,[](auto& d){return *(d.str);},&data::str,make_str);
+  }
+
+  data prm_perform_list_union(data& callable, scm_list& args, const char* format) {
+    scm_list list_exps;
+    convert_lists_to_exp_matrix(args,list_exps,"union",format);
+    return prm_static_container_union<true,std::nullptr_t,std::nullptr_t>(callable,list_exps,[](auto& d){return d.exp;});
+  }
+
+  // INTERSECTION
+
+  template<bool IS_LIST, typename SEQUENCE_CTOR, typename SEQUENCE_PTR, typename SEQUENCE_ACCESSOR>
+  data prm_static_container_intersection(data& callable, scm_list& args, SEQUENCE_ACCESSOR sequence_accessor, 
+                                         SEQUENCE_PTR seq_ptr = nullptr, SEQUENCE_CTOR make_heist_sequence = nullptr) {
+    auto first_seq = sequence_accessor(args[0]);
+    decltype(first_seq) seq;
+    for(auto& elt : first_seq) {
+      for(size_type i = 1, n = args.size(); i < n; ++i)
+        if(!found_in_seq(callable,elt,sequence_accessor(args[i]))) 
+          goto next_element;
+      seq.push_back(elt);
+      next_element: continue;
+    }
+    if constexpr (IS_LIST) {
+      seq_ptr = make_heist_sequence = nullptr; // silences unused variables warnings
+      return primitive_LIST_to_CONS_constructor(seq.begin(),seq.end());
+    } else {
+      return make_heist_sequence(seq);
+    }
+  }
+  
+  data prm_perform_vector_intersection(data& callable, scm_list& args, const char* format) {
+    confirm_only_given_data_with_type_of_first_arg(args,"intersection",format);
+    return prm_static_container_intersection<false,vec_type(*)(const scm_list&)>(callable,args,[](auto& d){return *(d.vec);},&data::vec,make_vec);
+  }
+
+  data prm_perform_string_intersection(data& callable, scm_list& args, const char* format) {
+    confirm_only_given_data_with_type_of_first_arg(args,"intersection",format);
+    return prm_static_container_intersection<false,str_type(*)(const scm_string&)>(callable,args,[](auto& d){return *(d.str);},&data::str,make_str);
+  }
+
+  data prm_perform_list_intersection(data& callable, scm_list& args, const char* format) {
+    scm_list list_exps;
+    convert_lists_to_exp_matrix(args,list_exps,"intersection",format);
+    return prm_static_container_intersection<true,std::nullptr_t,std::nullptr_t>(callable,list_exps,[](auto& d){return d.exp;});
+  }
+
+  // SYMMETRIC DIFFERENCE
+
+  template<bool IS_LIST, typename SEQUENCE_CTOR, typename SEQUENCE_PTR, typename SEQUENCE_ACCESSOR>
+  data prm_static_container_sym_diff(data& callable, scm_list& args, SEQUENCE_ACCESSOR sequence_accessor, 
+                                     SEQUENCE_PTR seq_ptr = nullptr, SEQUENCE_CTOR make_heist_sequence = nullptr) {
+    decltype(sequence_accessor(args[0])) seq;
+    for(size_type i = 0, n = args.size(); i < n; ++i) {
+      for(auto& elt : sequence_accessor(args[i])) {
+        for(size_type j = 0; j < n; ++j) {
+          if(i == j) continue;
+          if(found_in_seq(callable,elt,sequence_accessor(args[j]))) 
+            goto next_element;
+        }
+        seq.push_back(elt);
+        next_element: continue;
+      }
+    }
+    if constexpr (IS_LIST) {
+      seq_ptr = make_heist_sequence = nullptr; // silences unused variables warnings
+      return primitive_LIST_to_CONS_constructor(seq.begin(),seq.end());
+    } else {
+      return make_heist_sequence(seq);
+    }
+  }
+  
+  data prm_perform_vector_sym_diff(data& callable, scm_list& args, const char* format) {
+    confirm_only_given_data_with_type_of_first_arg(args,"symmetric-difference",format);
+    return prm_static_container_sym_diff<false,vec_type(*)(const scm_list&)>(callable,args,[](auto& d){return *(d.vec);},&data::vec,make_vec);
+  }
+
+  data prm_perform_string_sym_diff(data& callable, scm_list& args, const char* format) {
+    confirm_only_given_data_with_type_of_first_arg(args,"symmetric-difference",format);
+    return prm_static_container_sym_diff<false,str_type(*)(const scm_string&)>(callable,args,[](auto& d){return *(d.str);},&data::str,make_str);
+  }
+
+  data prm_perform_list_sym_diff(data& callable, scm_list& args, const char* format) {
+    scm_list list_exps;
+    convert_lists_to_exp_matrix(args,list_exps,"symmetric-difference",format);
+    return prm_static_container_sym_diff<true,std::nullptr_t,std::nullptr_t>(callable,list_exps,[](auto& d){return d.exp;});
+  }
+
+  // DIFFERENCE
+
+  template<bool IS_LIST, typename SEQUENCE_CTOR, typename SEQUENCE_PTR, typename SEQUENCE_ACCESSOR>
+  data prm_static_container_diff(data& callable, scm_list& args, SEQUENCE_ACCESSOR sequence_accessor, 
+                                     SEQUENCE_PTR seq_ptr = nullptr, SEQUENCE_CTOR make_heist_sequence = nullptr) {
+    decltype(sequence_accessor(args[0])) seq;
+    const auto n = args.size();
+    for(auto& elt : sequence_accessor(args[0])) {
+      for(size_type j = 1; j < n; ++j) {
+        if(found_in_seq(callable,elt,sequence_accessor(args[j]))) 
+          goto next_element;
+      }
+      seq.push_back(elt);
+      next_element: continue;
+    }
+    if constexpr (IS_LIST) {
+      seq_ptr = make_heist_sequence = nullptr; // silences unused variables warnings
+      return primitive_LIST_to_CONS_constructor(seq.begin(),seq.end());
+    } else {
+      return make_heist_sequence(seq);
+    }
+  }
+  
+  data prm_perform_vector_diff(data& callable, scm_list& args, const char* format) {
+    confirm_only_given_data_with_type_of_first_arg(args,"difference",format);
+    return prm_static_container_diff<false,vec_type(*)(const scm_list&)>(callable,args,[](auto& d){return *(d.vec);},&data::vec,make_vec);
+  }
+
+  data prm_perform_string_diff(data& callable, scm_list& args, const char* format) {
+    confirm_only_given_data_with_type_of_first_arg(args,"difference",format);
+    return prm_static_container_diff<false,str_type(*)(const scm_string&)>(callable,args,[](auto& d){return *(d.str);},&data::str,make_str);
+  }
+
+  data prm_perform_list_diff(data& callable, scm_list& args, const char* format) {
+    scm_list list_exps;
+    convert_lists_to_exp_matrix(args,list_exps,"difference",format);
+    return prm_static_container_diff<true,std::nullptr_t,std::nullptr_t>(callable,list_exps,[](auto& d){return d.exp;});
   }
 
   /******************************************************************************

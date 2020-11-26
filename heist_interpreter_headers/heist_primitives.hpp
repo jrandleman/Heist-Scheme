@@ -3022,6 +3022,74 @@ namespace heist {
     }
   }
 
+  // primitive "union" procedure:
+  data primitive_UNION(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (union <predicate> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("union",primitive_ANY,args);
+    if(args.size() < 2) 
+      THROW_ERR("'union received incorrect # of args (given " 
+        << args.size() << "):" << format << FCN_ERR("union",args));
+    auto procedure = validate_and_extract_callable(args[0], "union", format, args);
+    args.erase(args.begin());
+    switch(is_proper_sequence(args[0],args,"union",format)) {
+      case heist_sequence::vec: return prm_perform_vector_union(procedure,args,format);
+      case heist_sequence::str: return prm_perform_string_union(procedure,args,format);
+      default: return prm_perform_list_union(procedure,args,format);
+    }
+  }
+
+  // primitive "intersection" procedure:
+  data primitive_INTERSECTION(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (intersection <predicate> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("intersection",primitive_ANY,args);
+    if(args.size() < 2) 
+      THROW_ERR("'intersection received incorrect # of args (given " 
+        << args.size() << "):" << format << FCN_ERR("intersection",args));
+    auto procedure = validate_and_extract_callable(args[0], "intersection", format, args);
+    args.erase(args.begin());
+    switch(is_proper_sequence(args[0],args,"intersection",format)) {
+      case heist_sequence::vec: return prm_perform_vector_intersection(procedure,args,format);
+      case heist_sequence::str: return prm_perform_string_intersection(procedure,args,format);
+      default: return prm_perform_list_intersection(procedure,args,format);
+    }
+  }
+
+  // primitive "symmetric-difference" procedure:
+  data primitive_SYMMETRIC_DIFFERENCE(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (symmetric-difference <predicate> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("symmetric-difference",primitive_ANY,args);
+    if(args.size() < 2) 
+      THROW_ERR("'symmetric-difference received incorrect # of args (given " 
+        << args.size() << "):" << format << FCN_ERR("symmetric-difference",args));
+    auto procedure = validate_and_extract_callable(args[0], "symmetric-difference", format, args);
+    args.erase(args.begin());
+    switch(is_proper_sequence(args[0],args,"symmetric-difference",format)) {
+      case heist_sequence::vec: return prm_perform_vector_sym_diff(procedure,args,format);
+      case heist_sequence::str: return prm_perform_string_sym_diff(procedure,args,format);
+      default: return prm_perform_list_sym_diff(procedure,args,format);
+    }
+  }
+
+  // primitive "difference" procedure:
+  data primitive_DIFFERENCE(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (difference <predicate> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("difference",primitive_ANY,args);
+    if(args.size() < 2) 
+      THROW_ERR("'difference received incorrect # of args (given " 
+        << args.size() << "):" << format << FCN_ERR("difference",args));
+    auto procedure = validate_and_extract_callable(args[0], "difference", format, args);
+    args.erase(args.begin());
+    switch(is_proper_sequence(args[0],args,"difference",format)) {
+      case heist_sequence::vec: return prm_perform_vector_diff(procedure,args,format);
+      case heist_sequence::str: return prm_perform_string_diff(procedure,args,format);
+      default: return prm_perform_list_diff(procedure,args,format);
+    }
+  }
+
   /******************************************************************************
   * SORTING PRIMITIVES: FOR SEQUENCES (LISTS, VECTORS, & STRINGS)
   ******************************************************************************/
@@ -5920,49 +5988,53 @@ namespace heist {
     std::make_pair(primitive_VECTOR_BINARY_SEARCH,        "vector-binary-search"),
     std::make_pair(primitive_VECTOR_GET_ALL_COMBINATIONS, "vector-get-all-combinations"),
 
-    std::make_pair(primitive_EMPTY,             "empty"),
-    std::make_pair(primitive_LENGTH,            "length"),
-    std::make_pair(primitive_LENGTH_PLUS,       "length+"),
-    std::make_pair(primitive_REVERSE,           "reverse"),
-    std::make_pair(primitive_REVERSE_BANG,      "reverse!"),
-    std::make_pair(primitive_FOLD,              "fold"),
-    std::make_pair(primitive_FOLD_RIGHT,        "fold-right"),
-    std::make_pair(primitive_FILTER,            "filter"),
-    std::make_pair(primitive_MAP,               "map"),
-    std::make_pair(primitive_MAP_BANG,          "map!"),
-    std::make_pair(primitive_FOR_EACH,          "for-each"),
-    std::make_pair(primitive_SEQ_COPY_BANG,     "seq-copy!"),
-    std::make_pair(primitive_COUNT,             "count"),
-    std::make_pair(primitive_REF,               "ref"),
-    std::make_pair(primitive_SLICE,             "slice"),
-    std::make_pair(primitive_SET_INDEX_BANG,    "set-index!"),
-    std::make_pair(primitive_SWAP_INDICES_BANG, "swap-indices!"),
-    std::make_pair(primitive_FILL_BANG,         "fill!"),
-    std::make_pair(primitive_APPEND,            "append"),
-    std::make_pair(primitive_REMOVE,            "remove"),
-    std::make_pair(primitive_REMOVE_FIRST,      "remove-first"),
-    std::make_pair(primitive_REMOVE_LAST,       "remove-last"),
-    std::make_pair(primitive_DELETE,            "delete"),
-    std::make_pair(primitive_LAST,              "last"),
-    std::make_pair(primitive_TAIL,              "tail"),
-    std::make_pair(primitive_HEAD,              "head"),
-    std::make_pair(primitive_INIT,              "init"),
-    std::make_pair(primitive_SEQ_EQ,            "seq="),
-    std::make_pair(primitive_SKIP,              "skip"),
-    std::make_pair(primitive_SKIP_RIGHT,        "skip-right"),
-    std::make_pair(primitive_INDEX,             "index"),
-    std::make_pair(primitive_INDEX_RIGHT,       "index-right"),
-    std::make_pair(primitive_DROP,              "drop"),
-    std::make_pair(primitive_DROP_RIGHT,        "drop-right"),
-    std::make_pair(primitive_TAKE,              "take"),
-    std::make_pair(primitive_TAKE_RIGHT,        "take-right"),
-    std::make_pair(primitive_TAKE_WHILE,        "take-while"),
-    std::make_pair(primitive_TAKE_RIGHT_WHILE,  "take-right-while"),
-    std::make_pair(primitive_DROP_WHILE,        "drop-while"),
-    std::make_pair(primitive_DROP_RIGHT_WHILE,  "drop-right-while"),
-    std::make_pair(primitive_ANY,               "any"),
-    std::make_pair(primitive_EVERY,             "every"),
-    std::make_pair(primitive_CONJ,              "conj"),
+    std::make_pair(primitive_EMPTY,                "empty"),
+    std::make_pair(primitive_LENGTH,               "length"),
+    std::make_pair(primitive_LENGTH_PLUS,          "length+"),
+    std::make_pair(primitive_REVERSE,              "reverse"),
+    std::make_pair(primitive_REVERSE_BANG,         "reverse!"),
+    std::make_pair(primitive_FOLD,                 "fold"),
+    std::make_pair(primitive_FOLD_RIGHT,           "fold-right"),
+    std::make_pair(primitive_FILTER,               "filter"),
+    std::make_pair(primitive_MAP,                  "map"),
+    std::make_pair(primitive_MAP_BANG,             "map!"),
+    std::make_pair(primitive_FOR_EACH,             "for-each"),
+    std::make_pair(primitive_SEQ_COPY_BANG,        "seq-copy!"),
+    std::make_pair(primitive_COUNT,                "count"),
+    std::make_pair(primitive_REF,                  "ref"),
+    std::make_pair(primitive_SLICE,                "slice"),
+    std::make_pair(primitive_SET_INDEX_BANG,       "set-index!"),
+    std::make_pair(primitive_SWAP_INDICES_BANG,    "swap-indices!"),
+    std::make_pair(primitive_FILL_BANG,            "fill!"),
+    std::make_pair(primitive_APPEND,               "append"),
+    std::make_pair(primitive_REMOVE,               "remove"),
+    std::make_pair(primitive_REMOVE_FIRST,         "remove-first"),
+    std::make_pair(primitive_REMOVE_LAST,          "remove-last"),
+    std::make_pair(primitive_DELETE,               "delete"),
+    std::make_pair(primitive_LAST,                 "last"),
+    std::make_pair(primitive_TAIL,                 "tail"),
+    std::make_pair(primitive_HEAD,                 "head"),
+    std::make_pair(primitive_INIT,                 "init"),
+    std::make_pair(primitive_SEQ_EQ,               "seq="),
+    std::make_pair(primitive_SKIP,                 "skip"),
+    std::make_pair(primitive_SKIP_RIGHT,           "skip-right"),
+    std::make_pair(primitive_INDEX,                "index"),
+    std::make_pair(primitive_INDEX_RIGHT,          "index-right"),
+    std::make_pair(primitive_DROP,                 "drop"),
+    std::make_pair(primitive_DROP_RIGHT,           "drop-right"),
+    std::make_pair(primitive_TAKE,                 "take"),
+    std::make_pair(primitive_TAKE_RIGHT,           "take-right"),
+    std::make_pair(primitive_TAKE_WHILE,           "take-while"),
+    std::make_pair(primitive_TAKE_RIGHT_WHILE,     "take-right-while"),
+    std::make_pair(primitive_DROP_WHILE,           "drop-while"),
+    std::make_pair(primitive_DROP_RIGHT_WHILE,     "drop-right-while"),
+    std::make_pair(primitive_ANY,                  "any"),
+    std::make_pair(primitive_EVERY,                "every"),
+    std::make_pair(primitive_CONJ,                 "conj"),
+    std::make_pair(primitive_UNION,                "union"),
+    std::make_pair(primitive_INTERSECTION,         "intersection"),
+    std::make_pair(primitive_SYMMETRIC_DIFFERENCE, "symmetric-difference"),
+    std::make_pair(primitive_DIFFERENCE,           "difference"),
 
     std::make_pair(primitive_SORT,                      "sort"),
     std::make_pair(primitive_SORT_BANG,                 "sort!"),

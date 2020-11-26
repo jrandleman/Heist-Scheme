@@ -101,6 +101,7 @@
    - [Hash-Map Procedures](#Hash-Map-Procedures)
    - [Generic Sequence, List|Vector|String, Algorithmic Procedures](#Generic-Sequence-ListVectorString-Algorithmic-Procedures)
      * [General](#General-3)
+     * [Set Procedures](#Set-Procedures)
      * [Sorting Procedures](#Sorting-Procedures)
    - [Type Predicates, Undefined, & Void](#Type-Predicates-Undefined--Void)
    - [Eval/Apply & Symbol-Append](#evalapply--symbol-append)
@@ -2235,6 +2236,16 @@ Other primitives of this nature include:<br>
 
 42. __Generic `cons`__: `cons` for lists, a copying `push-back` for strings & vectors
     * `(conj <obj> <sequence>)`
+
+
+### Set Procedures:
+0. __Union__: `(union <predicate?> <sequence1> <sequence2> ...)`
+
+1. __Intersection__: `(intersection <predicate?> <sequence1> <sequence2> ...)`
+
+2. __Difference__: `(difference <predicate?> <sequence1> <sequence2> ...)`
+
+3. __Symmetric Difference__: `(symmetric-difference <predicate?> <sequence1> <sequence2> ...)`
 
 
 ### Sorting Procedures:
