@@ -19,20 +19,19 @@
 
 ------------------------
 # Notable Features:
-0. [Eval](#evalapply--symbol-append)
-1. [Tail-Call Optimization](#quick-overview)
-2. [Unhygienic & Reader Macros](#Heist-Macro-System-Procedures-vs-Macros)
-3. [OOP Support](#Defclass)
-4. [Multi-Arity Pattern-Matching](#Fn)
-5. [First-Class Hash-Maps](#Hash-Map-Procedures)
-6. [Opt-In Dynamic Scoping](#control-flow-procedures)
-7. [Opt-In Continuations](#Scm-Cps)
-8. [Native Even Streams](#Stream-Primitives)
-9. [Generic Algorithms](#Generic-Sequence-ListVectorString-Algorithmic-Procedures)
-10. [Expanded String Library](#String-Procedures)
-11. [String I/O](#Output-Procedures)
-12. [Recursive Depth Control](#Interpreter-Invariants-Manipulation)
-13. [A](#Curry)[n](#Heist-Mathematical-Flonum-Constants)[d](#Control-Flow-Procedures) [M](#Gensym)[o](#JSON-Interop)[r](#Define-Coroutine)[e](#System-Interface-Procedures)[!](#Syntax-Procedures)
+0. [Tail-Call Optimization](#quick-overview)
+1. [Unhygienic & Reader Macros](#Heist-Macro-System-Procedures-vs-Macros)
+2. [OOP Support](#Defclass)
+3. [Multi-Arity Pattern-Matching](#Fn)
+4. [First-Class Hash-Maps](#Hash-Map-Procedures)
+5. [Opt-In Dynamic Scoping](#control-flow-procedures)
+6. [Opt-In Continuations](#Scm-Cps)
+7. [Native Even Streams](#Stream-Primitives)
+8. [Generic Algorithms](#Generic-Sequence-ListVectorString-Algorithmic-Procedures)
+0. [Expanded String Library](#String-Procedures)
+10. [String I/O](#Output-Procedures)
+11. [Recursive Depth Control](#Interpreter-Invariants-Manipulation)
+12. [A](#Curry)[n](#Heist-Mathematical-Flonum-Constants)[d](#Control-Flow-Procedures) [M](#Gensym)[o](#JSON-Interop)[r](#Define-Coroutine)[e](#System-Interface-Procedures)[!](#Syntax-Procedures)
 
 ------------------------ 
 # Table of Contents
