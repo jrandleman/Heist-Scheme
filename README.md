@@ -2358,7 +2358,7 @@ Other primitives of this nature include:<br>
 1. __Deep-Copy Datum__: `(copy <obj>)`
    * Deep-copy vectors, strings, proper/dotted/circular lists, hmaps, & objects!
 
-2. Shallow-Copy Datum__: `(shallow-copy <obj>)`
+2. __Shallow-Copy Datum__: `(shallow-copy <obj>)`
    * Shallow-copy vectors, strings, proper/dotted/circular lists, hmaps, & objects!
    * Note that this performs _structural_ allocation w/ shallow content copying
      - Hence `copy` and `shallow-copy` are effectively identical for strings!
