@@ -78,8 +78,6 @@ namespace heist {
     constexpr const char * const period            = ".";
     constexpr const char * const true_t            = "#t";
     constexpr const char * const false_t           = "#f";
-    constexpr const char * const memv              = "memv";
-    constexpr const char * const equalp            = "equal?";
     constexpr const char * const append            = "append";
     constexpr const char * const cons              = "cons";
     constexpr const char * const list              = "list";
