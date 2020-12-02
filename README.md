@@ -1205,17 +1205,22 @@ Other primitives of this nature include:<br>
 => <member-or-method-instance> ::= (<member-name> <default-value>)
                                  | ((<method-name> <arg1> <arg2> ...) <body> ...)
                                  | (defmethod <method-name> <procedure-value>)
+                                 |
                                  | ((make-<class-name> <arg> ...) <body> ...) ; constructor
                                  | (make-<class-name> ((<arg> ...) <body> ...) ...) ; fn ctor
+                                 |
                                  | ((eq? <obj>) <body> ...)    ; overload eq?
                                  | ((eqv? <obj>) <body> ...)   ; overload eqv?
                                  | ((equal? <obj>) <body> ...) ; overload equal?
                                  | ((self= <obj>) <body> ...)  ; overload all the above
+                                 |
                                  | ((write) <body> ...)        ; overload write
                                  | ((display) <body> ...)      ; overload display
                                  | ((pprint) <body> ...)       ; overload pretty-print
                                  | ((self->string) <body> ...) ; overload all the above
+                                 |
                                  | ((self->copy) <body> ...)   ; overload copy
+                                 |
                                  | ((self->procedure <arg> ...) <body> ...) ; overload application
 ```
 
