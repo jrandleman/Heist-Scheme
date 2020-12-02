@@ -348,14 +348,9 @@ namespace heist {
     }
   }
 
-  // #(<...>) => (vector-literal <...>)
-  void expand_vector_literals(scm_string& input) noexcept {
-    return expand_vector_or_hmap_literals<'#',sizeof("vector-literal ")-1>(input,"vector-literal ");
-  }
-
-  // $(<...>) => (hmap-literal <...>)
-  void expand_hmap_literals(scm_string& input) noexcept {
-    return expand_vector_or_hmap_literals<'$',sizeof("hmap-literal ")-1>(input,"hmap-literal ");
+  void expand_vector_and_hmap_literals(scm_string& input) noexcept {
+    expand_vector_or_hmap_literals<'#',sizeof("vector-literal ")-1>(input,"vector-literal ");
+    expand_vector_or_hmap_literals<'$',sizeof("hmap-literal ")-1>(input,"hmap-literal ");
   }
 
   /******************************************************************************
@@ -408,6 +403,69 @@ namespace heist {
     for(auto& datum : ast)
       if(datum.is_type(types::exp))
         expand_reader_lambda_shorthands(datum.exp);
+  }
+
+  /******************************************************************************
+  * READER INFIX->PREFIX CONVERSION
+  ******************************************************************************/
+
+  void convert_left_assoc_infix_expr(exp_type& ast, size_type& i)noexcept{
+    exp_type prefix_expr(3);
+    prefix_expr[0] = ast[i], prefix_expr[1] = ast[i-1], prefix_expr[2] = ast[i+1];
+    ast[i-1] = prefix_expr;
+    ast.erase(ast.begin()+i,ast.begin()+i+2);
+    i -= 2;
+  }
+
+  bool is_infixr_op_in_level(const sym_type& sym, const G::infix_level_t& level)noexcept{
+    for(const auto& op : level) if(!op.first && op.second == sym) return true;
+    return false;
+  }
+
+  size_type get_last_infixr_op_idx(const exp_type& ast, size_type i, const G::infix_level_t& level)noexcept{
+    for(size_type n = ast.size(); i+1 < n && ast[i].is_type(types::sym) && is_infixr_op_in_level(ast[i].sym,level); i += 2);
+    return i - 2;
+  }
+
+  void convert_right_assoc_infix_expr(exp_type& ast, size_type& i, const G::infix_level_t& level)noexcept{
+    size_type last_idx = get_last_infixr_op_idx(ast,i,level);
+    while(last_idx != i)
+      convert_left_assoc_infix_expr(ast,last_idx);
+    convert_left_assoc_infix_expr(ast,i);
+  }
+
+  void convert_expr_if_infix(exp_type& ast, size_type& i, const G::infix_level_t& level)noexcept{
+    for(const auto& op : level)
+      if(ast[i].sym == op.second) {
+        if(op.first) convert_left_assoc_infix_expr(ast,i);
+        else         convert_right_assoc_infix_expr(ast,i,level);
+        return;
+      }
+  }
+
+  void convert_infix_level_ops_to_prefix_notation(exp_type& ast, const G::infix_level_t& level)noexcept{
+    for(size_type i = 0; i < ast.size(); ++i) {
+      if(ast[i].is_type(types::exp))
+        convert_infix_level_ops_to_prefix_notation(ast[i].exp,level);
+      else if(ast[i].is_type(types::sym) && i > 0 && i+1 < ast.size()) // ignore prefix/postfix symbols
+        convert_expr_if_infix(ast,i,level);
+    }
+  }
+
+  void strip_INFIX_ESC_prefix(exp_type& ast)noexcept{
+    for(auto& d : ast) {
+      if(d.is_type(types::exp))
+        strip_INFIX_ESC_prefix(d.exp);
+      else if(d.is_type(types::sym) && d.sym.size() > 2 && d.sym[0] == '#' && d.sym[1] == '!')
+        d.sym = d.sym.substr(2);
+    }
+  }
+
+  void convert_infix_to_prefix(exp_type& ast)noexcept{
+    // expand in descending order (higher precedence first)
+    for(size_type i = 10; i-- != 0;)
+      convert_infix_level_ops_to_prefix_notation(ast,G::INFIX_TABLE[i]);
+    strip_INFIX_ESC_prefix(ast); // #!<symbol> => <symbol>
   }
 
   /******************************************************************************
@@ -565,9 +623,8 @@ namespace heist {
     if(input.empty() || !confirm_valid_scm_expression(input)) return false;
     strip_comments_and_redundant_whitespace(input);
     if(!G::USING_CASE_SENSITIVE_SYMBOLS) render_input_cAsE_iNsEnSiTiVe(input);
-    expand_vector_literals(input);         // #(<exp>) => (vector-literal <exp>)
-    expand_hmap_literals(input);           // $(<exp>) => (hmap-literal <exp>)
-    expand_reader_macro_shorthands(input); // '<exp>   => (quote <exp>)
+    expand_vector_and_hmap_literals(input); // #(<exp>) => (vector-literal <exp>), $(<exp>) => (hmap-literal <exp>)
+    expand_reader_macro_shorthands(input);  // '<exp>   => (quote <exp>)
     return true;
   }
 
@@ -578,6 +635,7 @@ namespace heist {
     size_type start_index = 0;
     construct_abstract_syntax_tree(start_index,input,abstract_syntax_tree);
     expand_reader_lambda_shorthands(abstract_syntax_tree);
+    convert_infix_to_prefix(abstract_syntax_tree);
   }
 } // End of namespace heist
 #endif

@@ -16,7 +16,6 @@
 ; let-syntax
 ; letrec-syntax
 ; defn
-; math:
 
 (core-syntax cond 
   (syntax-rules (else =>)
@@ -128,11 +127,6 @@
      (define name (fn ((a ...) b ...))))
     ((_ name instance ...) 
      (define name (fn instance ...)))))
-
-
-(core-syntax math:
-  (syntax-rules ()
-    ((_ a ...) (eval (infix-math-quote a ...)))))
 
 ;; ==============================================
 ;; =========== LAZY STREAM ALGORITHMS ===========

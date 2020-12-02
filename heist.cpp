@@ -126,7 +126,9 @@
  *         * vector-literal   ; LONGHAND OF #( PREFIX
  *         * hmap-literal     ; LONGHAND OF $( PREFIX
  *         * defined?         ; DETERMINE IF A VARIABLE/OBJECT-PROPERTY-ACCESS EXISTS
- *         * infix-math-quote ; CONVERT MATH INFIX NOTATION TO PREFIX NOTATION
+ *         * infix            ; DEFINE LEFT-ASSOCIATIVE INFIX OPERATORS
+ *         * infixr           ; DEFINE RIGHT-ASSOCIATIVE INFIX OPERATORS
+ *         * unfix            ; DEREGISTER EXISTING INFIX OPERATORS
  *         * cps-quote        ; RETURNS DATA AS CPS-EXPANDED QUOTED LIST
  *         * using-cps?       ; RETURNS WHETHER IN A scm->cps BLOCK OR THE -cps FLAG IS ACTIVE
  *         * scm->cps         ; SCOPED CPS TRANSFORMATION
@@ -1882,6 +1884,101 @@ namespace heist {
   }
 
   /******************************************************************************
+  * REPRESENTING infix infixr unfix SPECIAL FORMS: READER MANIPULATION
+  ******************************************************************************/
+
+  bool is_infix(const scm_list& exp)noexcept {return is_tagged_list(exp,symconst::infix);}
+  bool is_infixr(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::infixr);}
+  bool is_unfix(const scm_list& exp)noexcept {return is_tagged_list(exp,symconst::unfix);}
+
+  void confirm_valid_infix_infixr_unfix_syntax(scm_list& exp, const char* name) {
+    if(exp.size() < 2 || data_is_the_SENTINEL_VAL(exp[1]))
+      THROW_ERR('\''<<name<<" didn't recieve enough arguments!"
+        "\n     ("<<name<<" <precedence-level-integer-literal:[0-9]> <symbol> ...)"
+        "\n     ("<<name<<" <symbol> ...)"<<EXP_ERR(exp));
+    size_type symbols_start_idx = 1 + exp[1].is_type(types::num);
+    if(symbols_start_idx == 2 && (!exp[1].num.is_integer() || exp[1].num.is_neg() || exp[1].num > 9))
+      THROW_ERR('\''<<name<<" precedence level isn't an integer between in domain [0,9]!"
+        "\n     ("<<name<<" <precedence-level-integer-literal:[0-9]> <symbol> ...)"
+        "\n     ("<<name<<" <symbol> ...)"<<EXP_ERR(exp));
+    for(size_type n = exp.size(); symbols_start_idx < n; ++symbols_start_idx)
+      if(!exp[symbols_start_idx].is_type(types::sym))
+        THROW_ERR('\''<<name<<" argument #"<<symbols_start_idx+1<<", "<<PROFILE(exp[symbols_start_idx])
+          << ", isn't a symbol!\n     ("<<name<<" <precedence-level-integer-literal:[0-9]> <symbol> ...)"
+             "\n     ("<<name<<" <symbol> ...)"<<EXP_ERR(exp));
+  }
+
+  void remove_preexisting_operators_from_table(const scm_list& exp)noexcept{
+    const size_type n = exp.size();
+    for(auto& level : G::INFIX_TABLE)
+      for(size_type i = 0; i < level.size(); ++i)
+        for(size_type j = 1; j < n; ++j)
+          if(level[i].second == exp[j].sym) {
+            level.erase(level.begin()+i--);
+            break;
+          }
+  }
+
+  // redefines operators iff already defined
+  exe_fcn_t register_infix_operators(const scm_list& exp,const char* name,bool is_left_assoc) {
+    if(exp.size() < 3)
+      THROW_ERR('\''<<name<<" didn't recieve enough arguments!"
+        "\n     ("<<name<<" <precedence-level-integer-literal:[0-9]> <symbol> ...)"
+        "\n     ("<<name<<" <symbol> ...)"<<EXP_ERR(exp));
+    remove_preexisting_operators_from_table(exp);
+    size_type level = (size_type)exp[1].num.extract_inexact();
+    for(size_type i = 2, n = exp.size(); i < n; ++i)
+      G::INFIX_TABLE[level].push_back(std::make_pair(is_left_assoc,exp[i].sym));
+    return [](env_type&){return G::VOID_DATA_EXPRESSION;};
+  }
+
+  // returns either #f or the precedence level of the symbols
+  exe_fcn_t seek_infix_operators(scm_list& exp,bool is_left_assoc)noexcept{
+    const size_type n = exp.size();
+    for(size_type i = 0; i < 10; ++i) {
+      bool found = false;
+      for(size_type j = 1; j < n; ++j) {
+        if(std::find(G::INFIX_TABLE[i].begin(),G::INFIX_TABLE[i].end(),std::make_pair(is_left_assoc,exp[j].sym)) != G::INFIX_TABLE[i].end()) {
+          if(j == 1) {
+            found = true;
+          } else if(!found) {
+            return [](env_type&){return scm_list(1,G::FALSE_DATA_BOOLEAN);};
+          }
+        } else if(found) {
+          return [](env_type&){return scm_list(1,G::FALSE_DATA_BOOLEAN);};
+        }
+      }
+      if(found) return [i=i](env_type&){return scm_list(1,num_type(i));};
+    }
+    return [](env_type&){return scm_list(1,G::FALSE_DATA_BOOLEAN);};
+  }
+
+  exe_fcn_t analyze_infix(scm_list& exp){
+    confirm_valid_infix_infixr_unfix_syntax(exp,"infix");
+    if(exp[1].is_type(types::num))
+      return register_infix_operators(exp,"infix",true);
+    return seek_infix_operators(exp,true);
+  }
+
+  exe_fcn_t analyze_infixr(scm_list& exp){
+    confirm_valid_infix_infixr_unfix_syntax(exp,"infixr");
+    if(exp[1].is_type(types::num))
+      return register_infix_operators(exp,"infixr",false);
+    return seek_infix_operators(exp,false);
+  }
+
+  exe_fcn_t analyze_unfix(scm_list& exp){
+    if(exp.size() < 2 || data_is_the_SENTINEL_VAL(exp[1]))
+      THROW_ERR("'unfix didn't recieve enough arguments!\n     (unfix <symbol> ...)"<<EXP_ERR(exp));
+    for(size_type i = 1, n = exp.size(); i < n; ++i)
+      if(!exp[i].is_type(types::sym))
+        THROW_ERR("'unfix argument #"<<i+1<<", "<<PROFILE(exp[i])<< ", isn't a symbol!"
+          "\n     (unfix <symbol> ...)"<<EXP_ERR(exp));
+    remove_preexisting_operators_from_table(exp);
+    return [](env_type&){return G::VOID_DATA_EXPRESSION;};
+  }
+
+  /******************************************************************************
   * REPRESENTING defined? SPECIAL FORM: VARS & OBJECT-PROPERTY-ACCESS
   ******************************************************************************/
 
@@ -1992,213 +2089,6 @@ namespace heist {
     return [variable=std::move(exp[1].sym)](env_type& env)mutable{
       return scm_list(1,boolean(!undefined_determination_helpers::property_chain_is_undefined(std::move(variable),env)));
     };
-  }
-
-  /******************************************************************************
-  * REPRESENTING MATH INFIX EXPRESSIONS: (math: <exp>)
-  ******************************************************************************/
-
-  bool is_infix_math_quote(const scm_list& exp)noexcept{
-    return is_tagged_list(exp,symconst::infix_math_quote);
-  }
-
-
-  namespace math_exp_conversion {
-    // -- EXPT CONVERSION
-    bool expression_is_only_expts(const scm_list& exp, const char* name, const char* format) {
-      for(size_type j = 3, n = exp.size(); j < n; j += 2) {
-        if(!exp[j].is_type(types::sym) || exp[j].sym != "**") 
-          return false;
-        else if(j+1 == n)
-          THROW_ERR('\''<<name<<" bad infix expression, ** doesn't have 2 args!" 
-            << format << EXP_ERR(exp));
-      }
-      return true;
-    }
-
-    scm_list shift_up_expt(scm_list& exp)noexcept{
-      scm_list expt_exp(2+exp.size()/2);
-      expt_exp[0] = "expt";
-      for(size_type i = 0, j = 1, n = exp.size(); i < n; i += 2, ++j)
-        expt_exp[j] = exp[i];
-      return expt_exp;
-    }
-
-    void parse_expt_expr(scm_list& exp, size_type& i, const char* name, const char* format) {
-      size_type j = i+2;
-      scm_list expt_call(3);
-      expt_call[0] = "expt";
-      expt_call[1] = exp[i-1];
-      expt_call[2] = exp[i+1];
-      for(size_type n = exp.size(); j < n; j += 2) {
-        if(!exp[j].is_type(types::sym) || exp[j].sym != "**")
-          break;
-        if(j+1 == n)
-          THROW_ERR('\''<<name<<" bad infix expression, ** doesn't have 2 args!" 
-            << format << EXP_ERR(exp));
-        expt_call.push_back(exp[j+1]);
-      }
-      exp.erase(exp.begin()+i,exp.begin()+j);
-      exp[--i] = expt_call;
-    }
-
-    void convert_expts(scm_list&,const char*,const char*);
-    void recursively_apply_expts_parsing_across_exp(scm_list& exp, const char* name, const char* format) {
-      for(size_type j = 1, n = exp.size(); j < n; ++j)
-        if(exp[j].is_type(types::exp))
-          math_exp_conversion::convert_expts(exp[j].exp,name,format);
-    }
-
-    // handle infix ** (right-associative!)
-    void convert_expts(scm_list& exp, const char* name, const char* format) {
-      for(size_type i = 0; i < exp.size(); ++i) {
-        if(exp[i].is_type(types::exp)) {
-          // recursively parse subexpression
-          math_exp_conversion::convert_expts(exp[i].exp,name,format);
-        } else if(exp[i].is_type(types::sym) && exp[i].sym == "**") {
-          // confirm valid **
-          if(!i || i+1 == exp.size())
-            THROW_ERR('\''<<name<<" bad infix expression, ** doesn't have 2 args!" 
-              << format << EXP_ERR(exp));
-          // shift symbol to the front of the expression if expression is entirely **
-          if(i == 1 && math_exp_conversion::expression_is_only_expts(exp,name,format)) {
-            exp = math_exp_conversion::shift_up_expt(exp);
-            recursively_apply_expts_parsing_across_exp(exp,name,format);
-            return;
-          // create a new subexpression of expt invocations
-          } else {
-            math_exp_conversion::parse_expt_expr(exp,i,name,format);
-            recursively_apply_expts_parsing_across_exp(exp[i].exp,name,format);
-          }
-        }
-      }
-    }
-
-
-    // -- LEFT-ASSOCIATIVE CONVERSION
-    void shift_up_op(scm_list& exp, const scm_string& op_name)noexcept{
-      exp[1] = exp[0];
-      exp[0] = op_name;
-    }
-
-    void convert_exp_to_prefix(scm_list& exp, size_type& i, const scm_string& op_name)noexcept{
-      scm_list op_call(3);
-      op_call[0] = op_name;
-      op_call[1] = exp[i-1];
-      op_call[2] = exp[i+1];
-      exp.erase(exp.begin()+i,exp.begin()+i+2);
-      exp[--i] = op_call;
-    }
-
-    void convert_symbol_set(scm_list&,const std::vector<std::pair<scm_string,scm_string>>&,const char*,const char*);
-    void recursively_apply_ops_parsing_across_exp(scm_list& exp, const std::vector<std::pair<scm_string,scm_string>>& ops, 
-                                                                 const char* name, const char* format) {
-      for(size_type j = 1, n = exp.size(); j < n; ++j)
-        if(exp[j].is_type(types::exp))
-          math_exp_conversion::convert_symbol_set(exp[j].exp,ops,name,format);
-    }
-
-    bool exp_begins_with_a_symbol(scm_list& exp, const std::vector<std::pair<scm_string,scm_string>>& ops)noexcept{
-      if(exp[0].is_type(types::sym))
-        for(size_type j = 0, n = ops.size(); j < n; ++j)
-          if(ops[j].first == exp[0].sym)
-            return true;
-      return false;
-    }
-
-    // handle left-associative infix symbols
-    void convert_symbol_set(scm_list& exp, const std::vector<std::pair<scm_string,scm_string>>& ops, const char* name, const char* format) {
-      size_type total_ops = ops.size();
-      // already converted current expression, check subexprs
-      if(total_ops && exp_begins_with_a_symbol(exp,ops)) {
-        for(size_type i = 1, n = exp.size(); i < n; ++i)
-          if(exp[i].is_type(types::exp))
-            convert_symbol_set(exp[i].exp,ops,name,format);
-        return;
-      }
-      for(size_type i = 0; i < exp.size(); ++i) {
-        // recursively parse subexpression
-        if(exp[i].is_type(types::exp)) {
-          math_exp_conversion::convert_symbol_set(exp[i].exp,ops,name,format);
-          continue;
-        }
-        // non-symbol operator
-        if(!exp[i].is_type(types::sym)) continue;
-        // check symbols list
-        for(size_type j = 0; j < total_ops; ++j) {
-          if(exp[i].sym == ops[j].first) {
-            if(!i || i+1 == exp.size())
-              THROW_ERR('\'' << name << " bad infix expression, " << ops[j].first
-                << " doesn't have 2 args!" << format << EXP_ERR(exp));
-            if(exp.size() == 3) {
-              shift_up_op(exp,ops[j].second);
-              recursively_apply_ops_parsing_across_exp(exp,ops,name,format);
-              return;
-            } else {
-              convert_exp_to_prefix(exp,i,ops[j].second);
-              recursively_apply_ops_parsing_across_exp(exp[i].exp,ops,name,format);
-            }
-            break;
-          }
-        }
-      }
-    }
-  } // End of namespace math_exp_conversion
-
-
-  scm_list apply_expt_mod_optimization(scm_list& exp) {
-    if(exp.size() == 3 && exp[0].is_type(types::sym) && exp[0].sym == "modulo" && 
-       exp[1].is_type(types::exp) && exp[1].exp.size() == 3 &&
-        exp[1].exp[0].is_type(types::sym) && exp[1].exp[0].sym == "expt") {
-      scm_list expt_mod(4);
-      expt_mod[0] = "expt-mod", expt_mod[1] = exp[1].exp[1], expt_mod[2] = exp[1].exp[2], expt_mod[3] = exp[2];
-      exp = expt_mod;
-    }
-    for(size_type i = 0, n = exp.size(); i < n; ++i)
-      if(exp[i].is_type(types::exp))
-        apply_expt_mod_optimization(exp[i].exp);
-    return exp;
-  }
-
-
-  scm_list convert_math_expr(scm_list& exp, const char* name, const char* format) {
-    if(exp.size() < 2 || data_is_the_SENTINEL_VAL(exp[1]))
-      THROW_ERR('\''<<name<<" didn't recieve any arguments!"<<format<<EXP_ERR(exp));
-    if(exp.size() == 2 && !exp[1].is_type(types::exp)) {
-      scm_list id_exp(2);
-      id_exp[0] = "id", id_exp[1] = exp[1];
-      return id_exp;
-    }
-    scm_list math_exp;
-    if(exp.size() == 2)
-      math_exp = exp[1].exp;
-    else
-      math_exp = scm_list(exp.begin()+1,exp.end());
-    math_exp_conversion::convert_expts(math_exp,name,format);
-    std::vector<std::pair<scm_string,scm_string>> ops(2);
-    ops[0] = std::make_pair("*","*");
-    ops[1] = std::make_pair("/","/");
-    math_exp_conversion::convert_symbol_set(math_exp,ops,name,format);
-    ops.clear();
-    ops.push_back(std::make_pair("//","quotient"));
-    ops.push_back(std::make_pair("%", "remainder"));
-    ops.push_back(std::make_pair("%%","modulo"));
-    math_exp_conversion::convert_symbol_set(math_exp,ops,name,format);
-    ops.clear();
-    ops.push_back(std::make_pair("+","+"));
-    ops.push_back(std::make_pair("-","-"));
-    math_exp_conversion::convert_symbol_set(math_exp,ops,name,format);
-    return apply_expt_mod_optimization(math_exp);
-  }
-
-
-  // PRECEDENCE: ** (* /) (// % %%) (+ -)
-  // ** = expt, // = quotient, %  = remainder, %% = modulo
-  exe_fcn_t analyze_infix_math_quote(scm_list& exp,const bool tail_call = false,const bool cps_block = false) {
-    scm_list quoted(2);
-    quoted[0] = symconst::quote;
-    quoted[1] = convert_math_expr(exp,symconst::infix_math_quote,"\n     (infix-math-quote <exp>)");
-    return scm_analyze(std::move(quoted),tail_call,cps_block);
   }
 
   /******************************************************************************
@@ -2463,7 +2353,8 @@ namespace heist {
     return app == symconst::cps_quote || app == symconst::scm_cps      || app == symconst::map_literal  ||
            app == symconst::and_t     || app == symconst::or_t         || app == symconst::delay        || 
            app == symconst::do_t      || app == symconst::quasiquote   || app == symconst::vec_literal  ||
-           app == symconst::unquote   || app == symconst::unquo_splice || app == symconst::infix_math_quote;
+           app == symconst::unquote   || app == symconst::unquo_splice || app == symconst::infix        ||
+           app == symconst::infixr    || app == symconst::unfix;
   }
 
 
@@ -4712,7 +4603,9 @@ namespace heist {
     else if(is_define_syntax(exp))   return analyze_define_syntax(exp,cps_block);
     else if(is_syntax_rules(exp))    return analyze_syntax_rules(exp);
     else if(is_definedp(exp))        return analyze_definedp(exp);
-    else if(is_infix_math_quote(exp))return analyze_infix_math_quote(exp,tail_call,cps_block);
+    else if(is_infix(exp))           return analyze_infix(exp);
+    else if(is_infixr(exp))          return analyze_infixr(exp);
+    else if(is_unfix(exp))           return analyze_unfix(exp);
     else if(is_vector_literal(exp))         THROW_ERR("Misplaced keyword 'vector-literal outside of a quotation! -- ANALYZE"   <<EXP_ERR(exp));
     else if(is_hmap_literal(exp))           THROW_ERR("Misplaced keyword 'hmap-literal outside of a quotation! -- ANALYZE"     <<EXP_ERR(exp));
     else if(is_unquote(exp))                THROW_ERR("Misplaced keyword 'unquote outside of 'quasiquote ! -- ANALYZE"         <<EXP_ERR(exp));

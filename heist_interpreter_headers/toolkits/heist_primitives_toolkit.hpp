@@ -3855,12 +3855,12 @@ namespace heist {
 
     // Confirm just appended a valid open/close paren to 'input'
     bool is_valid_open_exp(const scm_string &input,  const size_type& paren_count,
-                           const bool& possible_vect,const bool& found_nonquote_data)noexcept{
+                           const bool& possible_vect,const bool& found_non_reader_syntax_data)noexcept{
       return IS_OPEN_PAREN(*input.rbegin()) && (input.size() < 3 || 
                                                 *(input.rbegin()+2) != '#' || 
                                                 *(input.rbegin()+1) != '\\')
                                             && (paren_count || 
-                                                !found_nonquote_data || 
+                                                !found_non_reader_syntax_data || 
                                                 possible_vect);
     }
 
@@ -3893,13 +3893,11 @@ namespace heist {
 
 
 
-  // Read from a non-stdin port
-  // PRECONDITION: feof(ins) MUST RETURN false
-  scm_list primitive_read_from_port(FILE* outs, FILE* ins) {
+  scm_string primitive_read_expr_from_port(FILE* outs, FILE* ins, size_type& total_read_chars) {
     // input parsing variables & status trackers
     scm_string input;
     int ch;
-    bool in_a_string   = false, possible_vect=false,  found_nonquote_data=false;
+    bool in_a_string   = false, possible_vect=false,  found_non_reader_syntax_data=false;
     bool possible_char = false, confirmed_char=false, parsing_a_char=false;
     bool possible_multi_line_comment_end=false, in_a_single_line_comment=false;
     bool possible_multi_line_comment=false,     in_a_multi_line_comment=false;
@@ -3911,31 +3909,36 @@ namespace heist {
       if(possible_multi_line_comment) {
         possible_multi_line_comment = false;
         if(ch == '|') {
+          ++total_read_chars;
           possible_vect = possible_char = false; // confirmed neither char nor vector (@ a comment)
           in_a_multi_line_comment = true;
           input.erase(input.end()-1);
-          found_nonquote_data = !input.empty(); // if found non-quote data
+          found_non_reader_syntax_data = !input.empty(); // if found non-quote data
           continue;
         }
       }
       if(possible_multi_line_comment_end) {
         possible_multi_line_comment_end = false;
         if(ch == '#') {
+          ++total_read_chars;
           in_a_multi_line_comment = false;
           continue;
         }
       }
       if(in_a_multi_line_comment) {
+        ++total_read_chars;
         possible_multi_line_comment_end = (ch == '|');
         continue;
       }
 
       // don't include text of a single-line comment
       if(in_a_single_line_comment) {
+        ++total_read_chars;
         in_a_single_line_comment = (ch != '\n');
         continue;
       }
       if(!in_a_string && !confirmed_char && ch == ';') {
+        ++total_read_chars;
         in_a_single_line_comment = true;
         continue;
       }
@@ -3944,10 +3947,14 @@ namespace heist {
       possible_multi_line_comment = (!in_a_string && ch == '#');
 
       // don't include prefixing whitespace
-      if(input.empty() && isspace(ch)) continue;
+      if(input.empty() && isspace(ch)) {
+        ++total_read_chars;
+        continue;
+      }
 
       // append the character
       input += ch;
+      ++total_read_chars;
 
       // continue to get the quoted data
       if((macro_length = read_port::input_ends_with_reader_macro_or_quote(input))) {
@@ -3955,16 +3962,16 @@ namespace heist {
         //   return back to the previous non-macro symbol & stop parsing
         //   IFF not in the middle of an expression (since only reading 1 
         //   expression at a time)
-        found_nonquote_data = false; // flags to keep seeking after current macro
-        if(!paren_count) {
-          if(input.size() == macro_length) {
-            continue;
-          } else if(read_port::found_non_macro_prior_macro(input)) {
-            fseek(ins, -macro_length, SEEK_CUR); // mv "ins" back
-            input.erase(input.size()-macro_length);
-            break;
-          }
+        if(!paren_count && input.size() != macro_length && 
+          // mk sure not detecting "\" lambda-shorthand in "#\" of char
+          ((found_non_reader_syntax_data && input.size() > 1 && input.substr(input.size()-2) != "#\\")
+            || read_port::found_non_macro_prior_macro(input))) {
+          fseek(ins, -macro_length, SEEK_CUR); // mv "ins" back
+          input.erase(input.size()-macro_length);
+          total_read_chars -= macro_length;
+          break;
         }
+        found_non_reader_syntax_data = false; // flags to keep seeking after current macro
         continue;
       }
 
@@ -3984,7 +3991,7 @@ namespace heist {
       if(possible_vect && !IS_OPEN_PAREN(ch)) possible_vect = false;
 
       // check if at a string
-      if(ch == '"' && (in_a_string || paren_count || !found_nonquote_data)) {
+      if(ch == '"' && (in_a_string || paren_count || !found_non_reader_syntax_data)) {
         if(!in_a_string)
           in_a_string = true;
         else if(is_non_escaped_double_quote(input.size()-1,input)) {
@@ -3995,7 +4002,7 @@ namespace heist {
 
       // check if at an expression or vector => PARSES BOTH!
       else if(read_port::is_valid_open_exp(input,paren_count,possible_vect,
-                                                       found_nonquote_data))
+                                                       found_non_reader_syntax_data))
         possible_vect = false, ++paren_count;
       // check if at a closing expression
       else if(read_port::is_valid_close_exp(input)) {
@@ -4019,47 +4026,102 @@ namespace heist {
       else if(paren_count) continue;
 
       // check if at a char, vector
-      else if(ch == '#' && !found_nonquote_data) 
+      else if(ch == '#' && !found_non_reader_syntax_data) 
         possible_vect = possible_char = true;
       else if(possible_char && ch == '\\') confirmed_char=true, possible_char=false;
 
       // check for the end of the current atomic. if so, mv "ins" back to the end
-      else if(found_nonquote_data && !paren_count && input.size() > 2 && 
+      else if(found_non_reader_syntax_data && !paren_count && input.size() > 2 && 
               IS_END_OF_WORD(*(input.end()-2), ch)) {
         fseek(ins, -2, SEEK_CUR);    // mv "ins" back
         input.erase(input.size()-2); // erase the excess from "input"
+        total_read_chars -= 2;
         break;
       }
 
-      found_nonquote_data = !input.empty(); // if found non-quote data
+      found_non_reader_syntax_data = !input.empty(); // if found non-quote data
     } // -- End of parsing loop
 
+    if(!input.empty()) {
+      // Confirm file didn't end mid-string or mid-expression
+      if(in_a_string || paren_count) {
+        if(in_a_string)
+             alert_non_repl_reader_error(outs,READER_ERROR::incomplete_string,input);
+        else alert_non_repl_reader_error(outs,READER_ERROR::incomplete_expression,input);
+        throw SCM_EXCEPT::READ;
+      }
 
+      // Parse the char literal if appeared at the end of the buffer
+      //   NOTE: possible_char & confirmed_char are ok 2B true w/o further logic
+      if(parsing_a_char) {
+        read_port::parse_char(ins,input);
+
+      // Confirm didn't quote the end of the buffer
+      } else if(read_port::improper_EOF_quotation(input)) {
+        alert_reader_error(outs, READER_ERROR::quoted_end_of_buffer,input);
+        throw SCM_EXCEPT::READ;
+      }
+    }
+    return input;
+  }
+
+
+  void trim_edge_whitespace(scm_string& sym)noexcept{
+    size_type i = 0;
+    for(size_type n = sym.size(); i < n && isspace(sym[i]); ++i);
+    sym.erase(sym.begin(),sym.begin()+i);
+    for(i = sym.size(); i-- != 0;) if(!isspace(sym[i])) break;
+      sym.erase(sym.begin()+i+1,sym.end());
+  }
+
+
+  // returns either 10 (if dne) or the precedence level of the symbols
+  bool is_infix_operator(sym_type sym)noexcept{
+    trim_edge_whitespace(sym);
+    for(size_type i = 0; i < 10; ++i)
+      for(const auto& op : G::INFIX_TABLE[i])
+        if(op.second == sym) return true;
+    return false;
+  }
+
+
+  // Accounts for needing to read in exprs w/ infix operators as well
+  scm_string primitive_read_1_expr_from_port(FILE* outs, FILE* ins) {
+    // Read an expression from the port
+    scm_string input, infix_operator;
+    size_type total_read_chars = 0, total_operator_chars = 0;
+    auto buffer = primitive_read_expr_from_port(outs,ins,total_read_chars);
+    if(buffer.empty()) return buffer;
+
+  operator_read_start:
+    total_operator_chars = total_read_chars = 0;
+    infix_operator = primitive_read_expr_from_port(outs,ins,total_operator_chars);
+    if(is_infix_operator(infix_operator)) {
+      input = primitive_read_expr_from_port(outs,ins,total_read_chars);
+      if(!input.empty()) {
+        buffer += ' ' + infix_operator + ' ' + input;
+        goto operator_read_start;
+      } else {
+        fseek(ins, -total_read_chars-total_operator_chars, SEEK_CUR);
+        return buffer;
+      }
+    } else {
+      fseek(ins, -total_operator_chars, SEEK_CUR);
+      return buffer;
+    }
+    return buffer;
+  }
+
+
+  // Read from a non-stdin port
+  // PRECONDITION: feof(ins) MUST RETURN false
+  scm_list primitive_read_from_port(FILE* outs, FILE* ins) {
+    auto input = primitive_read_1_expr_from_port(outs,ins);
     // If read an empty file
     if(input.empty()) {
       scm_list eof_char(1,chr_type(EOF));
       return eof_char;
     }
-
-    // Confirm file didn't end mid-string or mid-expression
-    if(in_a_string || paren_count) {
-      if(in_a_string)
-           alert_non_repl_reader_error(outs,READER_ERROR::incomplete_string,input);
-      else alert_non_repl_reader_error(outs,READER_ERROR::incomplete_expression,input);
-      throw SCM_EXCEPT::READ;
-    }
-
-    // Parse the char literal if appeared at the end of the buffer
-    //   NOTE: possible_char & confirmed_char are ok 2B true w/o further logic
-    if(parsing_a_char) {
-      read_port::parse_char(ins,input);
-
-    // Confirm didn't quote the end of the buffer
-    } else if(read_port::improper_EOF_quotation(input)) {
-      alert_reader_error(outs, READER_ERROR::quoted_end_of_buffer,input);
-      throw SCM_EXCEPT::READ;
-    }
-
     // Try parsing the given input expression, & throw an error as needed
     try {
       scm_list abstract_syntax_tree;

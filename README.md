@@ -23,15 +23,16 @@
 1. [Unhygienic & Reader Macros](#Heist-Macro-System-Procedures-vs-Macros)
 2. [OOP Support](#Defclass)
 3. [Multi-Arity Pattern-Matching](#Fn)
-4. [First-Class Hash-Maps](#Hash-Map-Procedures)
-5. [Opt-In Dynamic Scoping](#control-flow-procedures)
-6. [Opt-In Continuations](#Scm-Cps)
-7. [Native Even Streams](#Stream-Primitives)
-8. [Generic Algorithms](#Generic-Sequence-ListVectorString-Algorithmic-Procedures)
-0. [Expanded String Library](#String-Procedures)
-10. [String I/O](#Output-Procedures)
-11. [Recursive Depth Control](#Interpreter-Invariants-Manipulation)
-12. [A](#Curry)[n](#Heist-Mathematical-Flonum-Constants)[d](#Control-Flow-Procedures) [M](#Gensym)[o](#JSON-Interop)[r](#Define-Coroutine)[e](#System-Interface-Procedures)[!](#Syntax-Procedures)
+4. [ML-Style Infix-Operator Support](#Infix--Infixr)
+5. [First-Class Hash-Maps](#Hash-Map-Procedures)
+6. [Opt-In Dynamic Scoping](#control-flow-procedures)
+7. [Opt-In Continuations](#Scm-Cps)
+8. [Native Even Streams](#Stream-Primitives)
+9. [Generic Algorithms](#Generic-Sequence-ListVectorString-Algorithmic-Procedures)
+10. [Expanded String Library](#String-Procedures)
+11. [String I/O](#Output-Procedures)
+12. [Recursive Depth Control](#Interpreter-Invariants-Manipulation)
+13. [A](#Curry)[n](#Heist-Mathematical-Flonum-Constants)[d](#Control-Flow-Procedures) [M](#Gensym)[o](#JSON-Interop)[r](#Define-Coroutine)[e](#System-Interface-Procedures)[!](#Syntax-Procedures)
 
 ------------------------ 
 # Table of Contents
@@ -67,7 +68,7 @@
    - [Defclass](#Defclass)
    - [Define-Coroutine](#Define-Coroutine)
    - [Define-Overload](#Define-Overload)
-   - [Math:](#Math), [Infix-Math-Quote](#Infix-Math-Quote)
+   - [Infix](#Infix--Infixr), [Infixr](#Infix--Infixr), [Unfix](#Unfix)
 8. [Heist Primitive Variables](#Heist-Primitive-Variables)
 9. [Heist Primitive Procedures](#Heist-Primitive-Procedures)
    - [Build System Information](#Build-System-Information)
@@ -1422,49 +1423,76 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
-## Math::
+## Infix & Infixr:
 
-#### Use: ___Evaluate a Math Expression Using Infix Notation!___
-* _Note: `math:` is actually a macro directly defined **in** Heist Scheme!_
-* _Designed to be able to write math formulas in a more intuitive fashion!_
+#### Use: ___Define an Infix Operator with Precedence!___
+* _Note: use `infix` for left-associativity & `infixr` for right-associativity!_
+* _Note: converted to prefix notation by the reader!_
+* _Inspired by Standard ML!_
 
-#### Form: `(math: <exp>)`
+#### Forms: 
+* `(infix <integer> <symbol1> ...)`, `(infixr <integer> <symbol1> ...)`
+  - _Define operators `<symbol1> ...` with `<integer>` precedence (from 0-9)_
+* `(infix <symbol1> ...)`, `(infixr <symbol1> ...)`
+  - _Returns precedence level if `<symbol1> ...` are operators, else returns `#f`_
 
-#### Precedence:
-0. `**`: exponentiation
-1. `*`, `/`: multiply, divide
-2. `//`, `%`, `%%`: quotient, remainder, modulo
-2. `+`, `-`: addition, subtraction
+#### Rules of Use & Converting Operators to Procedures:
+* _Prefix/postfix operators are ignored (presumed intentionally placed)_
+* _Escape infix operators from prefix conversion via `#!` prefix (rm'd by reader)!_
 
-#### Derivation Using [Infix-Math-Quote](#Infix-Math-Quote):
+
+#### Examples:
 ```scheme
-(core-syntax math:
-  ((_ a ...) (eval (infix-math-quote a ...))))
+(define :: cons)
+(define @ append)
+(infixr 5 :: @)
+
+(defn qsort
+  ((()) '())
+  (((x . xs))
+    (qsort (filter (>= x) xs)) @
+    x :: (qsort (filter (< x) xs))))
+
+(display (qsort '(1 3 5 7 2 4 6 8))) ; (1 2 3 4 5 6 7 8)
+
+
+
+(define ** expt)
+(define %% modulo)
+(define % remainder)
+(define // quotient)
+(define != (compose not =))
+(infixr 8 **)
+(infix  7 * / // %% %)
+(infix  6 + -)
+(infix  4 > < >= <= = !=)
+
+(display 10 + 2 ** 5) ; 42
+
+
+; (display (map + '(1 2) '(3 4)))) ; ERROR, READS: ((+ map '(1 2)) '(4 5))
+(display (map #!+ '(1 2) '(3 4)))  ; OK: ESCAPED "+" AVOIDS INFIX CONVERSION
 ```
 
 
 ------------------------
-## Infix-Math-Quote:
+## Unfix:
 
-#### Use: ___Convert a Math Expression From Infix to Prefix Notation!___
+#### Use: ___Deregister Existing Operators!___
 
-#### Form: `(infix-math-quote <exp>)`
+#### Form: `(unfix <symbol1> ...)`
 
-#### Precedence:
-0. `**`: exponentiation
-1. `*`, `/`: multiply, divide
-2. `//`, `%`, `%%`: quotient, remainder, modulo
-2. `+`, `-`: addition, subtraction
-
-#### Example:
+#### Examples:
 ```scheme
-(infix-math-quote 5 + 2 ** 3 ** 2 * 2) ; '(+ 5 (* (expt 2 3 2) 2))
+(infix 5 compose)
 
-(infix-math-quote (2 + 5) ** 3) ; '(expt (+ 2 5) 3)
+; (length #<procedure>)
+(display (list even? compose length)) 
 
-(infix-math-quote 3 * 5 / 2) ; '(/ (* 3 5) 2)
+(unfix compose)
 
-(infix-math-quote 3 / 5 * 2) ; '(* (/ 3 5) 2)
+; (length #<procedure even?> #<procedure compose> #<procedure length>)
+(display (list even? compose length))
 ```
 
 

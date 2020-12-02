@@ -87,8 +87,10 @@ namespace heist {
     constexpr const char * const vector            = "vector";
     constexpr const char * const hmap              = "hmap";
     constexpr const char * const definedp          = "defined?";
-    constexpr const char * const infix_math_quote  = "infix-math-quote";
     constexpr const char * const defmethod         = "defmethod";
+    constexpr const char * const infix             = "infix";
+    constexpr const char * const infixr            = "infixr";
+    constexpr const char * const unfix             = "unfix";
   } // End namespace symconst
 
   /******************************************************************************
@@ -212,6 +214,15 @@ namespace heist {
     bool TRACE_ARGS = false;
 
     size_type TRACE_LIMIT = 16;
+
+    /******************************************************************************
+    * INFIX SYMBOL READER TABLE
+    ******************************************************************************/
+
+    using infix_op_t    = std::pair<bool,std::string>; // {left-assoc,symbol}
+    using infix_level_t = std::vector<infix_op_t>;
+
+    std::vector<infix_level_t> INFIX_TABLE(10,infix_level_t());
 
     /******************************************************************************
     * MAX VALUE FOR SIZE_TYPE
@@ -610,7 +621,7 @@ namespace heist {
             case '\0':   return "#\\nul";
             case '\x1b': return "#\\esc";
             case '\x7f': return "#\\delete";
-            case EOF:    return "#\\eof";
+            case EOF:    return "#<eof>";
             default: 
               if(isprint(chr)) return scm_string("#\\") + char(chr);
               else {
