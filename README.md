@@ -1203,6 +1203,7 @@ Other primitives of this nature include:<br>
 ```
 (defclass <class-name> (<optional-inherited-prototype>) <member-or-method-instances>)
 => <member-or-method-instance> ::= (<member-name> <default-value>)
+                                 |
                                  | ((<method-name> <arg1> <arg2> ...) <body> ...)
                                  | (defmethod <method-name> <procedure-value>)
                                  |
