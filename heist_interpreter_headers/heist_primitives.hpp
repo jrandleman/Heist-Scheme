@@ -754,6 +754,16 @@ namespace heist {
   * CHARACTER PRIMITIVES
   ******************************************************************************/
 
+  // --------------
+  // EOF Generator:
+  // --------------
+
+  data primitive_EOF(scm_list& args) {
+    if(!args.empty())
+      THROW_ERR("'eof doesn't accept any args!\n     (eof)" << FCN_ERR("eof",args));
+    return chr_type(EOF);
+  }
+
   // -----------------
   // Char Comparators:
   // -----------------
@@ -5837,6 +5847,7 @@ namespace heist {
     std::make_pair(primitive_EQUALP, "equal?"),
     std::make_pair(primitive_NOT,    "not"),
 
+    std::make_pair(primitive_EOF,                "eof"),
     std::make_pair(primitive_CHAR_EQ,            "char=?"),
     std::make_pair(primitive_CHAR_LT,            "char<?"),
     std::make_pair(primitive_CHAR_GT,            "char>?"),

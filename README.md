@@ -87,6 +87,7 @@
    - [Equality Predicates](#Equality-Predicates)
    - [Character Procedures](#Character-Procedures)
      * [General](#General-1)
+     * [Eof Character](#Eof-Character)
      * [Character Predicates](#Character-Predicates)
    - [String Procedures](#String-Procedures)
      * [General](#General-2)
@@ -203,6 +204,10 @@
 2. Pair ([quoted](#Quote) expression `'(1 2 3)`, [list](#ListPair-Procedures) `(list 1 2 3)`, or [cons](#ListPair-Procedures) `(cons 1 (cons 2 (cons 3 '())))`)
 3. String (wrapped by `""`, `"hello"`)
 4. Char (have the `#\` prefix, `#\h #\e #\l #\l #\o`) (uses `ascii` encoding!)
+   * Also Supports Named Chars and Hex Chars:
+     - `#\space`, `#\tab`, `#\newline`, `#\vtab`, `#\page`, `#\return`,<br>
+       `#\alarm`, `#\backspace`, `#\nul`, `#\esc`, `#\delete`
+     - `#\x0` -> `#\xff`
 5. Boolean (true or false, `#t` or`#f`)
 6. Vector (quoted literal `'#(1 2 3)`, or primitive `(vector 1 2 3)`)
 7. Hash-Map (quoted literal `'$(a 1 b 2)`, or primitive `(hmap 'a 1 'b 2)`)
@@ -1891,6 +1896,10 @@ Other primitives of this nature include:<br>
 11. __Convert to Uppercase__: `(char-upcase <char>)`
 
 12. __Convert to Lowercase__: `(char-downcase <char>)`
+
+
+### Eof Character:
+0. __Get EOF Character__: `(eof)`
 
 
 ### Character Predicates:
