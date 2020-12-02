@@ -1434,8 +1434,8 @@ Other primitives of this nature include:<br>
 * _Inspired by Standard ML!_
 
 #### Forms: 
-* `(infix <integer> <symbol1> ...)`, `(infixr <integer> <symbol1> ...)`
-  - _Define operators `<symbol1> ...` with `<integer>` precedence (from 0-9)_
+* `(infix <integer-literal> <symbol1> ...)`, `(infixr <integer-literal> <symbol1> ...)`
+  - _Define operators `<symbol1> ...` with `<integer-literal>` precedence (from 0-9)_
 * `(infix <symbol1> ...)`, `(infixr <symbol1> ...)`
   - _Returns precedence level if `<symbol1> ...` are operators, else returns `#f`_
 
