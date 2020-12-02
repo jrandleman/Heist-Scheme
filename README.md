@@ -23,7 +23,7 @@
 1. [Unhygienic & Reader Macros](#Heist-Macro-System-Procedures-vs-Macros)
 2. [OOP Support](#Defclass)
 3. [Multi-Arity Pattern-Matching](#Fn)
-4. [ML-Style Infix-Operator Support](#Infix--Infixr)
+4. [Infix-Operator Support](#Infix--Infixr)
 5. [First-Class Hash-Maps](#Hash-Map-Procedures)
 6. [Opt-In Dynamic Scoping](#control-flow-procedures)
 7. [Opt-In Continuations](#Scm-Cps)
@@ -1425,7 +1425,7 @@ Other primitives of this nature include:<br>
 ------------------------
 ## Infix & Infixr:
 
-#### Use: ___Define an Infix Operator with Precedence!___
+#### Use: ___Define Infix Operators with Precedence!___
 * _Note: use `infix` for left-associativity & `infixr` for right-associativity!_
 * _Note: converted to prefix notation by the reader!_
 * _Inspired by Standard ML!_
@@ -1436,7 +1436,7 @@ Other primitives of this nature include:<br>
 * `(infix <symbol1> ...)`, `(infixr <symbol1> ...)`
   - _Returns precedence level if `<symbol1> ...` are operators, else returns `#f`_
 
-#### Rules of Use & Converting Operators to Procedures:
+#### Rules of Use & Preventing Infix->Prefix Reader Conversion:
 * _Prefix/postfix operators are ignored (presumed intentionally placed)_
 * _Escape infix operators from prefix conversion via `#!` prefix (rm'd by reader)!_
 
@@ -1478,7 +1478,7 @@ Other primitives of this nature include:<br>
 ------------------------
 ## Unfix:
 
-#### Use: ___Deregister Existing Operators!___
+#### Use: ___Deregister Existing Infix Operators!___
 
 #### Form: `(unfix <symbol1> ...)`
 
@@ -1486,12 +1486,12 @@ Other primitives of this nature include:<br>
 ```scheme
 (infix 5 compose)
 
-; (length #<procedure>)
+; (#<procedure>)
 (display (list even? compose length)) 
 
 (unfix compose)
 
-; (length #<procedure even?> #<procedure compose> #<procedure length>)
+; (#<procedure even?> #<procedure compose> #<procedure length>)
 (display (list even? compose length))
 ```
 
