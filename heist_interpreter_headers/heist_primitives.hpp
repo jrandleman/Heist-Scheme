@@ -4988,7 +4988,7 @@ namespace heist {
   }
 
   // Toggles Procedure Argument Call Tracing (returns the previous state prior toggle)
-  data primitive_SET_TRACE_ARGS(scm_list& args) {
+  data primitive_SET_TRACE_ARGS_BANG(scm_list& args) {
     return primitive_TOGGLE_BOOLEAN_SETTING(args,"set-trace-args!",G::TRACE_ARGS);
   }
 
@@ -4996,6 +4996,13 @@ namespace heist {
     if(!args.empty())
       THROW_ERR("'trace-args? doesn't take any args!\n     (trace-args?)" << FCN_ERR("trace-args?",args));
     return boolean(G::TRACE_ARGS);
+  }
+
+  data primitive_SET_MAX_PRECEDENCE_BANG(scm_list& args) {
+    if(args.size() != 1 || !args[0].is_type(types::num) || !args[0].num.is_integer() || args[0].num.is_neg())
+      THROW_ERR("'set-max-precedence! didn't receive 1 non-negative integer!"
+        "\n     (set-max-precedence! <non-negative-integer>)" << FCN_ERR("set-max-precedence!",args));
+    return num_type(prm_alter_max_precedence((size_type)args[0].num.extract_inexact()));
   }
 
   /******************************************************************************
@@ -6242,8 +6249,9 @@ namespace heist {
     std::make_pair(primitive_SET_MAX_RECURSION_DEPTH,      "set-max-recursion-depth!"),
     std::make_pair(primitive_SET_REPL_PROMPT,              "set-repl-prompt!"),
     std::make_pair(primitive_SET_DYNAMIC_CALL_TRACE_BANG,  "set-dynamic-call-trace!"),
-    std::make_pair(primitive_SET_TRACE_ARGS,               "set-trace-args!"),
+    std::make_pair(primitive_SET_TRACE_ARGS_BANG,          "set-trace-args!"),
     std::make_pair(primitive_TRACE_ARGSP,                  "trace-args?"),
+    std::make_pair(primitive_SET_MAX_PRECEDENCE_BANG,      "set-max-precedence!"),
 
     std::make_pair(primitive_EXIT,         "exit"),
     std::make_pair(primitive_ERROR,        "error"),

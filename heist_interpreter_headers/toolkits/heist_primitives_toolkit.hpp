@@ -4582,6 +4582,15 @@ namespace heist {
     return num_type(original);
   }
 
+  size_type prm_alter_max_precedence(const size_type& max_prec) {
+    size_type old_max_prec = G::INFIX_TABLE.size()-1;
+    std::vector<G::infix_level_t> tmp(max_prec+1,G::infix_level_t());
+    for(size_type i = 0, n = std::min(G::INFIX_TABLE.size(),max_prec+1); i < n; ++i)
+      tmp[i] = std::move(G::INFIX_TABLE[i]);
+    G::INFIX_TABLE = std::move(tmp);
+    return old_max_prec;
+  }
+
   /******************************************************************************
   * ERROR HANDLING PRIMITIVE HELPERS
   ******************************************************************************/

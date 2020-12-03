@@ -90,17 +90,18 @@ namespace heist {
   ******************************************************************************/
 
   #define HEIST_COMMAND_LINE_ARGS\
-      "> Interpret Script:    -script <script-filename> <argv1> <argv2> ..."\
-    "\n> Compile Script:      -compile <script-filename> <optional-compiled-filename>"\
-    "\n> Load Script:         -l <script-filename>"\
-    "\n> With CPS Evaluation: -cps"\
-    "\n> Disable ANSI Colors: -nansi"\
-    "\n> Case Insensitivity:  -ci"\
-    "\n> Dynamic Call Trace:  -dynamic-call-trace"\
-    "\n> Trace Call Args:     -trace-args"\
-    "\n> Stack Trace Size:    -trace-limit <non-negative-integer>"\
-    "\n> Interpreter Version: --version"\
-    "\n> Show This Message:   --help"
+      "> Interpret Script:     -script <script-filename> <argv1> <argv2> ..."\
+    "\n> Compile Script:       -compile <script-filename> <optional-compiled-filename>"\
+    "\n> Load Script:          -l <script-filename>"\
+    "\n> With CPS Evaluation:  -cps"\
+    "\n> Disable ANSI Colors:  -nansi"\
+    "\n> Case Insensitivity:   -ci"\
+    "\n> Dynamic Call Trace:   -dynamic-call-trace"\
+    "\n> Trace Call Args:      -trace-args"\
+    "\n> Stack Trace Size:     -trace-limit <non-negative-integer>"\
+    "\n> Max Infix Precedence: -max-precedence <non-negative-integer>"\
+    "\n> Interpreter Version:  --version"\
+    "\n> Show This Message:    --help"
 
   /******************************************************************************
   * PLATFORM IDENTIFICATION

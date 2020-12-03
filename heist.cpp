@@ -1899,8 +1899,9 @@ namespace heist {
         "\n     ("<<name<<" <symbol> ...)"<<EXP_ERR(exp));
     size_type symbols_start_idx = 1 + exp[1].is_type(types::num);
     if(symbols_start_idx == 2 && (!exp[1].num.is_integer() || exp[1].num.is_neg() || exp[1].num > G::INFIX_TABLE.size()-1))
-      THROW_ERR('\''<<name<<" precedence level isn't an integer between in domain [0,9]!"
-        "\n     ("<<name<<" <precedence-level-integer-literal:[0-"
+      THROW_ERR('\''<<name<<" precedence level isn't an integer between in domain [0-"
+        <<std::to_string(G::INFIX_TABLE.size()-1)<<
+        "]!\n     ("<<name<<" <precedence-level-integer-literal:[0-"
         << std::to_string(G::INFIX_TABLE.size()-1) << "]> <symbol> ...)"
         "\n     ("<<name<<" <symbol> ...)"<<EXP_ERR(exp));
     for(size_type n = exp.size(); symbols_start_idx < n; ++symbols_start_idx)
@@ -4810,8 +4811,28 @@ void driver_loop() {
 * COMMAND LINE ARGUMENT VALIDATION
 ******************************************************************************/
 
-void POPULATE_ARGV_REGISTRY(int argc,int& i,char* argv[]) {
+void POPULATE_ARGV_REGISTRY(int argc,int& i,char* argv[])noexcept{
   while(i < argc) heist::G::ARGV.push_back(heist::str_type(argv[i++]));
+}
+
+
+bool confirm_valid_non_negative_integer(const char* name, int& i, int argc, char* argv[], heist::size_type& result)noexcept{
+  if(i == argc-1) {
+    fprintf(stderr,"\n> \"%s\" wasn't followed by a non-negative integer!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n",name);
+    return false;
+  }
+  auto num = heist::num_type(argv[++i]);
+  if(!num.is_integer() || num.is_neg()) {
+    fprintf(stderr,"\n> \"%s\" wasn't followed by a non-negative integer!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n",name);
+    return false;
+  }
+  auto float_num = num.to_inexact();
+  if(float_num < 0 || float_num > heist::G::MAX_SIZE_TYPE) {
+    fprintf(stderr,"\n> \"%s\" integer was out of range: [0, %zu]!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n",name,heist::G::MAX_SIZE_TYPE);
+    return false;
+  }
+  result = heist::size_type(float_num.extract_inexact());
+  return true;
 }
 
 
@@ -4848,21 +4869,13 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
     } else if(cmd_flag == "-cps") {
       heist::G::USING_CPS_CMD_LINE_FLAG = true;
     } else if(cmd_flag == "-trace-limit") {
-      if(i == argc-1) {
-        fprintf(stderr,"\n> \"-trace-limit\" wasn't followed by a non-negative integer!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n");
+      if(!confirm_valid_non_negative_integer("-trace-limit",i,argc,argv,heist::G::TRACE_LIMIT))
         return false;
-      }
-      auto num = heist::num_type(argv[++i]);
-      if(!num.is_integer() || num.is_neg()) {
-        fprintf(stderr,"\n> \"-trace-limit\" wasn't followed by a non-negative integer!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n");
+    } else if(cmd_flag == "-max-precedence") {
+      heist::size_type max_prec = 0;
+      if(!confirm_valid_non_negative_integer("-max-precedence",i,argc,argv,max_prec))
         return false;
-      }
-      auto float_num = num.to_inexact();
-      if(float_num < 0 || float_num > heist::G::MAX_SIZE_TYPE) {
-        fprintf(stderr,"\n> \"-trace-limit\" integer was out of range: [0, %zu]!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n",heist::G::MAX_SIZE_TYPE);
-        return false;
-      }
-      heist::G::TRACE_LIMIT = heist::size_type(float_num.extract_inexact());
+      heist::prm_alter_max_precedence(max_prec);
     } else if(cmd_flag == "-l") {
       if(i == argc-1) {
         fprintf(stderr,"\n> \"-l\" wasn't followed by a file!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n");
