@@ -463,7 +463,7 @@ namespace heist {
 
   void convert_infix_to_prefix(exp_type& ast)noexcept{
     // expand in descending order (higher precedence first)
-    for(size_type i = 10; i-- != 0;)
+    for(size_type i = G::INFIX_TABLE.size(); i-- != 0;)
       convert_infix_level_ops_to_prefix_notation(ast,G::INFIX_TABLE[i]);
     strip_INFIX_ESC_prefix(ast); // #!<symbol> => <symbol>
   }

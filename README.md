@@ -124,6 +124,7 @@
    - [Gensym](#Gensym)
    - [Scm->Cps Procedures](#Scm-Cps-Procedures)
    - [Syntax Procedures](#Syntax-Procedures)
+   - [Infix & Infixr Analysis](#Infix--Infixr-Analysis)
    - [JSON Interop](#JSON-Interop)
 10. [Heist Mathematical Flonum Constants](#Heist-Mathematical-Flonum-Constants)
 11. [Heist Minimalist REPL Example](#Heist-Minimalist-REPL-Example)
@@ -2809,15 +2810,26 @@ Other primitives of this nature include:<br>
            ; >>> Hence `%1` didn't get expanded to `(display 1)` by the reader!
    ```
 
-5. __Mutate Core Syntax__: `(set-core-syntax! <old-name-symbol> <optional-new-name-symbol>)`
+5. __Get Alist of Reader Syntax Shorthands & Longhands__: `(reader-syntax-list)`
+
+6. __Mutate Core Syntax__: `(set-core-syntax! <old-name-symbol> <optional-new-name-symbol>)`
    * Only old name: ___DELETES___ `<old-name-symbol>` as core-syntax
    * Both old & new name: ___RENAMES___ syntax's old name to new name
      - _NOTE: also recursively renames all recursive calls to the macro in its templates!_
 
-6. __Mutate Runtime Syntax__: `(set-runtime-syntax! <old-name-symbol> <optional-new-name-symbol>)`
+7. __Mutate Runtime Syntax__: `(set-runtime-syntax! <old-name-symbol> <optional-new-name-symbol>)`
    * Only old name: ___DELETES___ `<old-name-symbol>` as runtime-syntax
    * Both old & new name: ___RENAMES___ syntax's old name to new name
      - _NOTE: also recursively renames all recursive calls to the macro in its templates!_
+
+
+
+------------------------
+## Infix & Infixr Analysis:
+
+0. __Get Alist of Infix Symbols & Their Precedence Levels__: `(infix-list)`
+
+1. __Get Alist of Infixr Symbols & Their Precedence Levels__: `(infixr-list)`
 
 
 

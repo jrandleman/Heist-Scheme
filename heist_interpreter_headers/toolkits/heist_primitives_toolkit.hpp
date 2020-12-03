@@ -4078,8 +4078,8 @@ namespace heist {
   // returns either 10 (if dne) or the precedence level of the symbols
   bool is_infix_operator(sym_type sym)noexcept{
     trim_edge_whitespace(sym);
-    for(size_type i = 0; i < 10; ++i)
-      for(const auto& op : G::INFIX_TABLE[i])
+    for(const auto& level : G::INFIX_TABLE)
+      for(const auto& op : level)
         if(op.second == sym) return true;
     return false;
   }
@@ -4810,6 +4810,25 @@ namespace heist {
     // Register new reader macro
     G::SHORTHAND_READER_MACRO_REGISTRY.push_back(shorthand);
     G::LONGHAND_READER_MACRO_REGISTRY.push_back(longhand);
+  }
+
+  /******************************************************************************
+  * INFIX & INFIXR LISTS HELPER
+  ******************************************************************************/
+
+  data get_infix_list(bool is_left_assoc) {
+    scm_list infixes;
+    for(size_type i = 0, n = G::INFIX_TABLE.size(); i < n; ++i) {
+      for(const auto& op : G::INFIX_TABLE[i]) {
+        if(op.first == is_left_assoc) {
+          data inf = make_par();
+          inf.par->first = num_type(i);
+          inf.par->second = op.second;
+          infixes.push_back(inf);
+        }
+      }
+    }
+    return primitive_LIST_to_CONS_constructor(infixes.begin(),infixes.end());
   }
 
   /******************************************************************************

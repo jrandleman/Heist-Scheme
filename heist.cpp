@@ -1894,17 +1894,20 @@ namespace heist {
   void confirm_valid_infix_infixr_unfix_syntax(scm_list& exp, const char* name) {
     if(exp.size() < 2 || data_is_the_SENTINEL_VAL(exp[1]))
       THROW_ERR('\''<<name<<" didn't recieve enough arguments!"
-        "\n     ("<<name<<" <precedence-level-integer-literal:[0-9]> <symbol> ...)"
+        "\n     ("<<name<<" <precedence-level-integer-literal:[0-"
+        << std::to_string(G::INFIX_TABLE.size()-1) << "]> <symbol> ...)"
         "\n     ("<<name<<" <symbol> ...)"<<EXP_ERR(exp));
     size_type symbols_start_idx = 1 + exp[1].is_type(types::num);
-    if(symbols_start_idx == 2 && (!exp[1].num.is_integer() || exp[1].num.is_neg() || exp[1].num > 9))
+    if(symbols_start_idx == 2 && (!exp[1].num.is_integer() || exp[1].num.is_neg() || exp[1].num > G::INFIX_TABLE.size()-1))
       THROW_ERR('\''<<name<<" precedence level isn't an integer between in domain [0,9]!"
-        "\n     ("<<name<<" <precedence-level-integer-literal:[0-9]> <symbol> ...)"
+        "\n     ("<<name<<" <precedence-level-integer-literal:[0-"
+        << std::to_string(G::INFIX_TABLE.size()-1) << "]> <symbol> ...)"
         "\n     ("<<name<<" <symbol> ...)"<<EXP_ERR(exp));
     for(size_type n = exp.size(); symbols_start_idx < n; ++symbols_start_idx)
       if(!exp[symbols_start_idx].is_type(types::sym))
         THROW_ERR('\''<<name<<" argument #"<<symbols_start_idx+1<<", "<<PROFILE(exp[symbols_start_idx])
-          << ", isn't a symbol!\n     ("<<name<<" <precedence-level-integer-literal:[0-9]> <symbol> ...)"
+          << ", isn't a symbol!\n     ("<<name<<" <precedence-level-integer-literal:[0-"
+          << std::to_string(G::INFIX_TABLE.size()-1) << "]> <symbol> ...)"
              "\n     ("<<name<<" <symbol> ...)"<<EXP_ERR(exp));
   }
 
@@ -1923,7 +1926,8 @@ namespace heist {
   exe_fcn_t register_infix_operators(const scm_list& exp,const char* name,bool is_left_assoc) {
     if(exp.size() < 3)
       THROW_ERR('\''<<name<<" didn't recieve enough arguments!"
-        "\n     ("<<name<<" <precedence-level-integer-literal:[0-9]> <symbol> ...)"
+        "\n     ("<<name<<" <precedence-level-integer-literal:[0-"
+        << std::to_string(G::INFIX_TABLE.size()-1) << "]> <symbol> ...)"
         "\n     ("<<name<<" <symbol> ...)"<<EXP_ERR(exp));
     remove_preexisting_operators_from_table(exp);
     size_type level = (size_type)exp[1].num.extract_inexact();
@@ -1935,7 +1939,7 @@ namespace heist {
   // returns either #f or the precedence level of the symbols
   exe_fcn_t seek_infix_operators(scm_list& exp,bool is_left_assoc)noexcept{
     const size_type n = exp.size();
-    for(size_type i = 0; i < 10; ++i) {
+    for(size_type i = 0, m = G::INFIX_TABLE.size(); i < m; ++i) {
       bool found = false;
       for(size_type j = 1; j < n; ++j) {
         if(std::find(G::INFIX_TABLE[i].begin(),G::INFIX_TABLE[i].end(),std::make_pair(is_left_assoc,exp[j].sym)) != G::INFIX_TABLE[i].end()) {

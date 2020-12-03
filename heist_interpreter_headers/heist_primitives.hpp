@@ -5245,7 +5245,7 @@ namespace heist {
   }
 
   /******************************************************************************
-  * READER MACRO DEFINITION PRIMITIVE
+  * READER MACRO DEFINITION & ANALYSIS PRIMITIVE
   ******************************************************************************/
 
   data primitive_DEFINE_READER_SYNTAX(scm_list& args) {
@@ -5260,6 +5260,37 @@ namespace heist {
     // Define/Redefine Reader Macro
     register_reader_macro(*args[0].str,*args[1].str);
     return G::VOID_DATA_OBJECT;
+  }
+
+  data primitive_READER_SYNTAX_LIST(scm_list& args) {
+    if(!args.empty())
+      THROW_ERR("'reader-syntax-list doesn't accept any args!"
+        "\n     (reader-syntax-list)" << FCN_ERR("reader-syntax-list",args));
+    scm_list pairs;
+    for(size_type i = 0, n = G::SHORTHAND_READER_MACRO_REGISTRY.size(); i < n; ++i) {
+      pairs.push_back(make_par());
+      pairs[i].par->first = make_str(G::SHORTHAND_READER_MACRO_REGISTRY[i]);
+      pairs[i].par->second = make_str(G::LONGHAND_READER_MACRO_REGISTRY[i]);
+    }
+    return primitive_LIST_to_CONS_constructor(pairs.begin(),pairs.end());
+  }
+
+  /******************************************************************************
+  * INFIX & INFIXR LISTS
+  ******************************************************************************/
+
+  data primitive_INFIX_LIST(scm_list& args) {
+    if(!args.empty())
+      THROW_ERR("'infix-list doesn't accept any args!"
+        "\n     (infix-list)" << FCN_ERR("infix-list",args));
+    return get_infix_list(true);
+  }
+
+  data primitive_INFIXR_LIST(scm_list& args) {
+    if(!args.empty())
+      THROW_ERR("'infixr-list doesn't accept any args!"
+        "\n     (infixr-list)" << FCN_ERR("infixr-list",args));
+    return get_infix_list(false);
   }
 
   /******************************************************************************
@@ -6236,6 +6267,10 @@ namespace heist {
     std::make_pair(primitive_SET_RUNTIME_SYNTAX_BANG, "set-runtime-syntax!"),
 
     std::make_pair(primitive_DEFINE_READER_SYNTAX, "define-reader-syntax"),
+    std::make_pair(primitive_READER_SYNTAX_LIST,   "reader-syntax-list"),
+
+    std::make_pair(primitive_INFIX_LIST,  "infix-list"),
+    std::make_pair(primitive_INFIXR_LIST, "infixr-list"),
 
     std::make_pair(primitive_JSON_TO_SCM, "json->scm"),
     std::make_pair(primitive_SCM_TO_JSON, "scm->json"),
