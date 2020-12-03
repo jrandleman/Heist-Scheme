@@ -1495,7 +1495,7 @@ Other primitives of this nature include:<br>
 
 #### Examples:
 ```scheme
-(infix 5 compose)
+(infixr 5 compose)
 
 ; (#<procedure>)
 (display (list even? compose length)) 
