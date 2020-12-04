@@ -1451,7 +1451,7 @@ Other primitives of this nature include:<br>
 #### Rules of Use, Preventing Infix->Prefix Reader Conversion, & Forcing Precedence:
 * _Prefix/postfix operators are ignored (presumed intentionally placed)_
 * _Escape infix operators from prefix conversion via `#!` prefix (rm'd by reader)!_
-* _Force precedence via `{}` (like `()`'s use in most programming langauges)!_
+* _Force precedence via `{}` (like `()`'s use in most programming languages)!_
 
 
 #### Examples:
