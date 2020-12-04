@@ -68,7 +68,7 @@
    - [Defclass](#Defclass)
    - [Define-Coroutine](#Define-Coroutine)
    - [Define-Overload](#Define-Overload)
-   - [Infix](#Infix--Infixr), [Infixr](#Infix--Infixr), [Unfix](#Unfix)
+   - [Infix!](#Infix--Infixr), [Infixr!](#Infix--Infixr), [Unfix!](#Unfix)
 8. [Heist Primitive Variables](#Heist-Primitive-Variables)
 9. [Heist Primitive Procedures](#Heist-Primitive-Procedures)
    - [Build System Information](#Build-System-Information)
@@ -1433,18 +1433,18 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
-## Infix & Infixr:
+## Infix! & Infixr!:
 
 #### Use: ___Define Infix Operators with Precedence!___
-* _Note: use `infix` for left-associativity & `infixr` for right-associativity!_
+* _Note: use `infix!` for left-associativity & `infixr!` for right-associativity!_
 * _Note: converted to prefix notation by the reader!_
 * _Inspired by Standard ML!_
 
 #### Forms: 
-* `(infix <integer-literal> <symbol1> ...)`, `(infixr <integer-literal> <symbol1> ...)`
+* `(infix! <integer-literal> <symbol1> ...)`, `(infixr! <integer-literal> <symbol1> ...)`
   - _Define operators `<symbol1> ...` with `<integer-literal>` precedence (from 0-9)_
   - _Increase max precedence via the [`set-max-precedence!`](#Interpreter-Invariants-Manipulation) primitive!_
-* `(infix <symbol1> ...)`, `(infixr <symbol1> ...)`
+* `(infix! <symbol1> ...)`, `(infixr! <symbol1> ...)`
   - _Returns precedence level if `<symbol1> ...` are operators, else returns `#f`_
 
 #### Rules of Use & Preventing Infix->Prefix Reader Conversion:
@@ -1456,7 +1456,7 @@ Other primitives of this nature include:<br>
 ```scheme
 (define :: cons)
 (define @ append)
-(infixr 5 :: @)
+(infixr! 5 :: @)
 
 (defn qsort
   ((()) '())
@@ -1473,10 +1473,10 @@ Other primitives of this nature include:<br>
 (define % remainder)
 (define // quotient)
 (define != (compose not =))
-(infixr 8 **)
-(infix  7 * / // %% %)
-(infix  6 + -)
-(infix  4 > < >= <= = !=)
+(infixr! 8 **)
+(infix!  7 * / // %% %)
+(infix!  6 + -)
+(infix!  4 > < >= <= = !=)
 
 (display 10 + 2 ** 5) ; 42
 
@@ -1487,20 +1487,20 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
-## Unfix:
+## Unfix!:
 
 #### Use: ___Deregister Existing Infix Operators!___
 
-#### Form: `(unfix <symbol1> ...)`
+#### Form: `(unfix! <symbol1> ...)`
 
 #### Examples:
 ```scheme
-(infixr 5 compose)
+(infixr! 5 compose)
 
 ; (#<procedure>)
 (display (list even? compose length)) 
 
-(unfix compose)
+(unfix! compose)
 
 ; (#<procedure even?> #<procedure compose> #<procedure length>)
 (display (list even? compose length))

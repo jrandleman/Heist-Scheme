@@ -126,9 +126,9 @@
  *         * vector-literal   ; LONGHAND OF #( PREFIX
  *         * hmap-literal     ; LONGHAND OF $( PREFIX
  *         * defined?         ; DETERMINE IF A VARIABLE/OBJECT-PROPERTY-ACCESS EXISTS
- *         * infix            ; DEFINE LEFT-ASSOCIATIVE INFIX OPERATORS
- *         * infixr           ; DEFINE RIGHT-ASSOCIATIVE INFIX OPERATORS
- *         * unfix            ; DEREGISTER EXISTING INFIX OPERATORS
+ *         * infix!           ; DEFINE LEFT-ASSOCIATIVE INFIX OPERATORS
+ *         * infixr!          ; DEFINE RIGHT-ASSOCIATIVE INFIX OPERATORS
+ *         * unfix!           ; DEREGISTER EXISTING INFIX OPERATORS
  *         * cps-quote        ; RETURNS DATA AS CPS-EXPANDED QUOTED LIST
  *         * using-cps?       ; RETURNS WHETHER IN A scm->cps BLOCK OR THE -cps FLAG IS ACTIVE
  *         * scm->cps         ; SCOPED CPS TRANSFORMATION
@@ -1884,7 +1884,7 @@ namespace heist {
   }
 
   /******************************************************************************
-  * REPRESENTING infix infixr unfix SPECIAL FORMS: READER MANIPULATION
+  * REPRESENTING infix! infixr! unfix! SPECIAL FORMS: READER MANIPULATION
   ******************************************************************************/
 
   bool is_infix(const scm_list& exp)noexcept {return is_tagged_list(exp,symconst::infix);}
@@ -1959,26 +1959,26 @@ namespace heist {
   }
 
   exe_fcn_t analyze_infix(scm_list& exp){
-    confirm_valid_infix_infixr_unfix_syntax(exp,"infix");
+    confirm_valid_infix_infixr_unfix_syntax(exp,symconst::infix);
     if(exp[1].is_type(types::num))
-      return register_infix_operators(exp,"infix",true);
+      return register_infix_operators(exp,symconst::infix,true);
     return seek_infix_operators(exp,true);
   }
 
   exe_fcn_t analyze_infixr(scm_list& exp){
-    confirm_valid_infix_infixr_unfix_syntax(exp,"infixr");
+    confirm_valid_infix_infixr_unfix_syntax(exp,symconst::infixr);
     if(exp[1].is_type(types::num))
-      return register_infix_operators(exp,"infixr",false);
+      return register_infix_operators(exp,symconst::infixr,false);
     return seek_infix_operators(exp,false);
   }
 
   exe_fcn_t analyze_unfix(scm_list& exp){
     if(exp.size() < 2 || data_is_the_SENTINEL_VAL(exp[1]))
-      THROW_ERR("'unfix didn't recieve enough arguments!\n     (unfix <symbol> ...)"<<EXP_ERR(exp));
+      THROW_ERR("'unfix! didn't recieve enough arguments!\n     (unfix! <symbol> ...)"<<EXP_ERR(exp));
     for(size_type i = 1, n = exp.size(); i < n; ++i)
       if(!exp[i].is_type(types::sym))
-        THROW_ERR("'unfix argument #"<<i+1<<", "<<PROFILE(exp[i])<< ", isn't a symbol!"
-          "\n     (unfix <symbol> ...)"<<EXP_ERR(exp));
+        THROW_ERR("'unfix! argument #"<<i+1<<", "<<PROFILE(exp[i])<< ", isn't a symbol!"
+          "\n     (unfix! <symbol> ...)"<<EXP_ERR(exp));
     remove_preexisting_operators_from_table(exp);
     return [](env_type&){return G::VOID_DATA_EXPRESSION;};
   }

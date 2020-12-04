@@ -86,9 +86,9 @@ namespace heist {
     constexpr const char * const hmap              = "hmap";
     constexpr const char * const definedp          = "defined?";
     constexpr const char * const defmethod         = "defmethod";
-    constexpr const char * const infix             = "infix";
-    constexpr const char * const infixr            = "infixr";
-    constexpr const char * const unfix             = "unfix";
+    constexpr const char * const infix             = "infix!";
+    constexpr const char * const infixr            = "infixr!";
+    constexpr const char * const unfix             = "unfix!";
   } // End namespace symconst
 
   /******************************************************************************
