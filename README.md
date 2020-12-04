@@ -1442,7 +1442,7 @@ Other primitives of this nature include:<br>
 
 #### Forms: 
 * `(infix! <integer-literal> <symbol1> ...)`, `(infixr! <integer-literal> <symbol1> ...)`
-  - _Define operators `<symbol1> ...` with `<integer-literal>` precedence (from 0-9)_
+  - _Define operators `<symbol1> ...` with `<integer-literal>` non-negative precedence!_
 * `(infix! <symbol1> ...)`, `(infixr! <symbol1> ...)`
   - _Returns precedence level if `<symbol1> ...` are operators, else returns `#f`_
 
