@@ -124,7 +124,7 @@
    - [Gensym](#Gensym)
    - [Scm->Cps Procedures](#Scm-Cps-Procedures)
    - [Syntax Procedures](#Syntax-Procedures)
-   - [Infix & Infixr Analysis](#Infix--Infixr-Analysis)
+   - [Infix Analysis](#Infix-Analysis)
    - [JSON Interop](#JSON-Interop)
 10. [Heist Mathematical Flonum Constants](#Heist-Mathematical-Flonum-Constants)
 11. [Heist Minimalist REPL Example](#Heist-Minimalist-REPL-Example)
@@ -192,8 +192,7 @@
 6. Dynamic Call Trace: `-dynamic-call-trace`
 7. Trace Call Args: `-trace-args`
 8. Stack Trace Size: `-trace-limit <non-negative-integer>`
-9. Max Infix Precedence: `-max-precedence <non-negative-integer>`
-10. Interpreter Version: `--version`
+9. Interpreter Version: `--version`
 11. Show These Options: `--help`
 
 
@@ -1444,7 +1443,6 @@ Other primitives of this nature include:<br>
 #### Forms: 
 * `(infix! <integer-literal> <symbol1> ...)`, `(infixr! <integer-literal> <symbol1> ...)`
   - _Define operators `<symbol1> ...` with `<integer-literal>` precedence (from 0-9)_
-  - _Increase max precedence via the [`set-max-precedence!`](#Interpreter-Invariants-Manipulation) primitive!_
 * `(infix! <symbol1> ...)`, `(infixr! <symbol1> ...)`
   - _Returns precedence level if `<symbol1> ...` are operators, else returns `#f`_
 
@@ -2723,9 +2721,6 @@ Other primitives of this nature include:<br>
 6. __Trace Procedure Call Arguments Too__: `(set-trace-args! <boolean>)`
    * Check status via `(trace-args?)`!
 
-7. __Set Max Precedent Available for Infix Operators__: `(set-max-precedence! <non-negative-integer>)`
-   * Defaults to 9!
-
 
 
 ------------------------
@@ -2833,11 +2828,9 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
-## Infix & Infixr Analysis:
+## Infix Analysis:
 
-0. __Get Alist of Infix Symbols & Their Precedence Levels__: `(infix-list)`
-
-1. __Get Alist of Infixr Symbols & Their Precedence Levels__: `(infixr-list)`
+0. __Get Alist of Infix Symbols, Associativity, & Precedence__: `(infix-list)`
 
 
 

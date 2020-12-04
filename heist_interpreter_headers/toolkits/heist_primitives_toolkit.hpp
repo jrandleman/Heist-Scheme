@@ -4078,8 +4078,8 @@ namespace heist {
   // returns either 10 (if dne) or the precedence level of the symbols
   bool is_infix_operator(sym_type sym)noexcept{
     trim_edge_whitespace(sym);
-    for(const auto& level : G::INFIX_TABLE)
-      for(const auto& op : level)
+    for(const auto& prec_level : G::INFIX_TABLE)
+      for(const auto& op : prec_level.second)
         if(op.second == sym) return true;
     return false;
   }
@@ -4582,15 +4582,6 @@ namespace heist {
     return num_type(original);
   }
 
-  size_type prm_alter_max_precedence(const size_type& max_prec) {
-    size_type old_max_prec = G::INFIX_TABLE.size()-1;
-    std::vector<G::infix_level_t> tmp(max_prec+1,G::infix_level_t());
-    for(size_type i = 0, n = std::min(G::INFIX_TABLE.size(),max_prec+1); i < n; ++i)
-      tmp[i] = std::move(G::INFIX_TABLE[i]);
-    G::INFIX_TABLE = std::move(tmp);
-    return old_max_prec;
-  }
-
   /******************************************************************************
   * ERROR HANDLING PRIMITIVE HELPERS
   ******************************************************************************/
@@ -4825,18 +4816,19 @@ namespace heist {
   * INFIX & INFIXR LISTS HELPER
   ******************************************************************************/
 
-  data get_infix_list(bool is_left_assoc) {
+  data get_infix_list() {
     scm_list infixes;
-    for(size_type i = 0, n = G::INFIX_TABLE.size(); i < n; ++i) {
-      for(const auto& op : G::INFIX_TABLE[i]) {
-        if(op.first == is_left_assoc) {
-          data inf = make_par();
-          inf.par->first = num_type(i);
-          inf.par->second = op.second;
-          infixes.push_back(inf);
-        }
+    for(const auto& prec_level : G::INFIX_TABLE)
+      for(const auto& op : prec_level.second) {
+        data inf = make_par();
+        inf.par->first = num_type(prec_level.first);
+        inf.par->second = make_par();
+        inf.par->second.par->first = op.first ? "infix" : "infixr";
+        inf.par->second.par->second = make_par();
+        inf.par->second.par->second.par->first = op.second;
+        inf.par->second.par->second.par->second = "";
+        infixes.push_back(inf);
       }
-    }
     return primitive_LIST_to_CONS_constructor(infixes.begin(),infixes.end());
   }
 

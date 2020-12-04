@@ -498,8 +498,8 @@ namespace heist {
 
   void convert_infix_to_prefix(exp_type& ast)noexcept{
     // expand in descending order (higher precedence first)
-    for(size_type i = G::INFIX_TABLE.size(); i-- != 0;)
-      convert_infix_level_ops_to_prefix_notation(ast,G::INFIX_TABLE[i]);
+    for(auto iter = G::INFIX_TABLE.rbegin(), end = G::INFIX_TABLE.rend(); iter != end; ++iter)
+      convert_infix_level_ops_to_prefix_notation(ast,iter->second);
     strip_INFIX_ESC_prefix_and_INF_PRECEDENCE_tag(ast); // #!<symbol> => <symbol>
   }
 

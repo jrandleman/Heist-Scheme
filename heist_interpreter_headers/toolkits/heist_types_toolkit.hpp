@@ -99,7 +99,6 @@ namespace heist {
     "\n> Dynamic Call Trace:   -dynamic-call-trace"\
     "\n> Trace Call Args:      -trace-args"\
     "\n> Stack Trace Size:     -trace-limit <non-negative-integer>"\
-    "\n> Max Infix Precedence: -max-precedence <non-negative-integer>"\
     "\n> Interpreter Version:  --version"\
     "\n> Show This Message:    --help"
 

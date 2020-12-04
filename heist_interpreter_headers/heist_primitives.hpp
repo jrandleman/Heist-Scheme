@@ -4998,13 +4998,6 @@ namespace heist {
     return boolean(G::TRACE_ARGS);
   }
 
-  data primitive_SET_MAX_PRECEDENCE_BANG(scm_list& args) {
-    if(args.size() != 1 || !args[0].is_type(types::num) || !args[0].num.is_integer() || args[0].num.is_neg())
-      THROW_ERR("'set-max-precedence! didn't receive 1 non-negative integer!"
-        "\n     (set-max-precedence! <non-negative-integer>)" << FCN_ERR("set-max-precedence!",args));
-    return num_type(prm_alter_max_precedence((size_type)args[0].num.extract_inexact()));
-  }
-
   /******************************************************************************
   * CONTROL-FLOW PRIMITIVES: EXITING, ERROR HANDLING, INLINING, & JUMPING
   ******************************************************************************/
@@ -5283,21 +5276,14 @@ namespace heist {
   }
 
   /******************************************************************************
-  * INFIX & INFIXR LISTS
+  * INFIX TABLE ALIST
   ******************************************************************************/
 
   data primitive_INFIX_LIST(scm_list& args) {
     if(!args.empty())
       THROW_ERR("'infix-list doesn't accept any args!"
         "\n     (infix-list)" << FCN_ERR("infix-list",args));
-    return get_infix_list(true);
-  }
-
-  data primitive_INFIXR_LIST(scm_list& args) {
-    if(!args.empty())
-      THROW_ERR("'infixr-list doesn't accept any args!"
-        "\n     (infixr-list)" << FCN_ERR("infixr-list",args));
-    return get_infix_list(false);
+    return get_infix_list();
   }
 
   /******************************************************************************
@@ -6251,7 +6237,6 @@ namespace heist {
     std::make_pair(primitive_SET_DYNAMIC_CALL_TRACE_BANG,  "set-dynamic-call-trace!"),
     std::make_pair(primitive_SET_TRACE_ARGS_BANG,          "set-trace-args!"),
     std::make_pair(primitive_TRACE_ARGSP,                  "trace-args?"),
-    std::make_pair(primitive_SET_MAX_PRECEDENCE_BANG,      "set-max-precedence!"),
 
     std::make_pair(primitive_EXIT,         "exit"),
     std::make_pair(primitive_ERROR,        "error"),
@@ -6278,7 +6263,6 @@ namespace heist {
     std::make_pair(primitive_READER_SYNTAX_LIST,   "reader-syntax-list"),
 
     std::make_pair(primitive_INFIX_LIST,  "infix-list"),
-    std::make_pair(primitive_INFIXR_LIST, "infixr-list"),
 
     std::make_pair(primitive_JSON_TO_SCM, "json->scm"),
     std::make_pair(primitive_SCM_TO_JSON, "scm->json"),

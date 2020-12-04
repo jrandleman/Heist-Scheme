@@ -8,6 +8,7 @@
 #include <ctime>
 #include <filesystem>
 #include <functional>
+#include <map>
 #include <ratio>
 #include <tuple>
 #include <unordered_map>
@@ -218,10 +219,10 @@ namespace heist {
     * INFIX SYMBOL READER TABLE
     ******************************************************************************/
 
-    using infix_op_t    = std::pair<bool,std::string>; // {left-assoc,symbol}
+    using infix_op_t    = std::pair<bool,std::string>; // {left-assoc?, symbol}
     using infix_level_t = std::vector<infix_op_t>;
 
-    std::vector<infix_level_t> INFIX_TABLE(10,infix_level_t());
+    std::map<size_type,infix_level_t> INFIX_TABLE;
 
     /******************************************************************************
     * MAX VALUE FOR SIZE_TYPE
