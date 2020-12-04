@@ -354,6 +354,20 @@ namespace heist {
   }
 
   /******************************************************************************
+  * INFIX OPERATOR INF PRECEDENCE SCOPING EXPANSION
+  ******************************************************************************/
+
+  // "{" => "(heist:core:inf-precedence "
+  void expand_inf_precedence_scoping(scm_string& input) noexcept {
+    for(size_type i = 0; i < input.size(); ++i) {
+      if(is_non_escaped_double_quote(i,input))
+        skip_string_literal(i,input); 
+      else if(input[i] == '{' && (i <= 1 || input[i-1] != '\\' || input[i-2] != '#'))
+        input = (input.substr(0,i) + '(') + symconst::inf_precedence + (' ' + input.substr(i+1));
+    }
+  }
+
+  /******************************************************************************
   * READER LAMBDA SHORTHAND EXPANSION
   ******************************************************************************/
 
@@ -409,11 +423,22 @@ namespace heist {
   * READER INFIX->PREFIX CONVERSION
   ******************************************************************************/
 
+  bool data_is_inf_precedence_tag(const data& d)noexcept{
+    return d.is_type(types::sym) && d.sym == symconst::inf_precedence;
+  }
+
   void convert_left_assoc_infix_expr(exp_type& ast, size_type& i)noexcept{
-    exp_type prefix_expr(3);
-    prefix_expr[0] = ast[i], prefix_expr[1] = ast[i-1], prefix_expr[2] = ast[i+1];
-    ast[i-1] = prefix_expr;
-    ast.erase(ast.begin()+i,ast.begin()+i+2);
+    if(i > 1 && data_is_inf_precedence_tag(ast[i-2])) {
+      data tmp = ast[i-1];
+      ast[i-1] = ast[i];
+      ast[i] = tmp;
+      ast.erase(ast.begin()+i-2); // erase inf-precedence tag
+    } else {
+      exp_type prefix_expr(3);
+      prefix_expr[0] = ast[i], prefix_expr[1] = ast[i-1], prefix_expr[2] = ast[i+1];
+      ast[i-1] = prefix_expr;
+      ast.erase(ast.begin()+i,ast.begin()+i+2);
+    }
     i -= 2;
   }
 
@@ -445,19 +470,29 @@ namespace heist {
 
   void convert_infix_level_ops_to_prefix_notation(exp_type& ast, const G::infix_level_t& level)noexcept{
     for(size_type i = 0; i < ast.size(); ++i) {
-      if(ast[i].is_type(types::exp))
+      if(ast[i].is_type(types::exp)) {
         convert_infix_level_ops_to_prefix_notation(ast[i].exp,level);
-      else if(ast[i].is_type(types::sym) && i > 0 && i+1 < ast.size()) // ignore prefix/postfix symbols
-        convert_expr_if_infix(ast,i,level);
+      } else if(ast[i].is_type(types::sym)) {
+        if(data_is_inf_precedence_tag(ast[i])) { // ignore operators after expanded {} tag
+          ++i;
+          continue;
+        } else if(i > 0 && i+1 < ast.size()) { // ignore prefix/postfix symbols
+          convert_expr_if_infix(ast,i,level);
+        }
+      } 
     }
   }
 
-  void strip_INFIX_ESC_prefix(exp_type& ast)noexcept{
-    for(auto& d : ast) {
-      if(d.is_type(types::exp))
-        strip_INFIX_ESC_prefix(d.exp);
-      else if(d.is_type(types::sym) && d.sym.size() > 2 && d.sym[0] == '#' && d.sym[1] == '!')
-        d.sym = d.sym.substr(2);
+  void strip_INFIX_ESC_prefix_and_INF_PRECEDENCE_tag(exp_type& ast)noexcept{
+    for(size_type i = 0; i < ast.size(); ++i) {
+      if(ast[i].is_type(types::exp)) {
+        strip_INFIX_ESC_prefix_and_INF_PRECEDENCE_tag(ast[i].exp);
+      } else if(ast[i].is_type(types::sym)) {
+        if(ast[i].sym.size() > 2 && ast[i].sym[0] == '#' && ast[i].sym[1] == '!')
+          ast[i].sym = ast[i].sym.substr(2);
+        else if(ast[i].sym == symconst::inf_precedence)
+          ast.erase(ast.begin()+(i--));
+      }
     }
   }
 
@@ -465,7 +500,7 @@ namespace heist {
     // expand in descending order (higher precedence first)
     for(size_type i = G::INFIX_TABLE.size(); i-- != 0;)
       convert_infix_level_ops_to_prefix_notation(ast,G::INFIX_TABLE[i]);
-    strip_INFIX_ESC_prefix(ast); // #!<symbol> => <symbol>
+    strip_INFIX_ESC_prefix_and_INF_PRECEDENCE_tag(ast); // #!<symbol> => <symbol>
   }
 
   /******************************************************************************
@@ -623,6 +658,7 @@ namespace heist {
     if(input.empty() || !confirm_valid_scm_expression(input)) return false;
     strip_comments_and_redundant_whitespace(input);
     if(!G::USING_CASE_SENSITIVE_SYMBOLS) render_input_cAsE_iNsEnSiTiVe(input);
+    expand_inf_precedence_scoping(input);   //  "{" => "(heist:core:inf-precedence "
     expand_vector_and_hmap_literals(input); // #(<exp>) => (vector-literal <exp>), $(<exp>) => (hmap-literal <exp>)
     expand_reader_macro_shorthands(input);  // '<exp>   => (quote <exp>)
     return true;

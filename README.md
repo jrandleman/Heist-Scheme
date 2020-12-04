@@ -151,6 +151,7 @@
 * `?` suffix denotes a predicate procedure
 * `!` suffix denotes a mutative (non-purely-functional) procedure
 * `(`, `[`, & `{` are interchangeable (as are `)`, `]`, & `}`)
+  - _Note: `{}` can also force precedence with [infix operators](#Infix--Infixr)!_
 * `procedure` is said instead of `function`
 * `#it` refers to the REPL's last evaluated expression
 
@@ -1447,9 +1448,10 @@ Other primitives of this nature include:<br>
 * `(infix! <symbol1> ...)`, `(infixr! <symbol1> ...)`
   - _Returns precedence level if `<symbol1> ...` are operators, else returns `#f`_
 
-#### Rules of Use & Preventing Infix->Prefix Reader Conversion:
+#### Rules of Use, Preventing Infix->Prefix Reader Conversion, & Forcing Precedence:
 * _Prefix/postfix operators are ignored (presumed intentionally placed)_
 * _Escape infix operators from prefix conversion via `#!` prefix (rm'd by reader)!_
+* _Force precedence via `{}` (like `()`'s use in most programming langauges)!_
 
 
 #### Examples:
@@ -1478,7 +1480,8 @@ Other primitives of this nature include:<br>
 (infix!  6 + -)
 (infix!  4 > < >= <= = !=)
 
-(display 10 + 2 ** 5) ; 42
+(display 10 + 2 ** 5)   ; 42
+(display {10 + 2} ** 5) ; 248832 ; PRECEDENCE FORCED VIA "{}"
 
 
 ; (display (map + '(1 2) '(3 4)))) ; ERROR, READS: ((+ map '(1 2)) '(4 5))
