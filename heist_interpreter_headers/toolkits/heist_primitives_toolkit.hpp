@@ -3847,7 +3847,8 @@ namespace heist {
       if(input.size() <= 1) return false;
       auto last_ch = *input.rbegin();
       // Not improper ending -> false
-      if(!IS_CLOSE_PAREN(last_ch) && !isspace(last_ch)) return false;
+      if((!IS_CLOSE_PAREN(last_ch) && !isspace(last_ch)) || 
+         (input.size() > 3 && *(input.rbegin()+2) == '\\' && *(input.rbegin()+3) == '#')) return false;
       input.pop_back(); // rm last char to check for quote/reader-macro
       bool ends_with_reader_macro_or_quote = input_ends_with_reader_macro_or_quote(input);
       input.push_back(last_ch); // add last char back in
