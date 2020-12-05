@@ -979,12 +979,17 @@ namespace heist {
   // primitive "string" procedure:
   data primitive_STRING(scm_list& args) {
     if(args.empty()) return make_str("");
-    if(auto i = confirm_only_args_of_type(args, types::chr); i != G::MAX_SIZE_TYPE)
+    if(auto i = confirm_only_args_of_type(args, types::chr, types::str); i != G::MAX_SIZE_TYPE)
       THROW_ERR("'string arg #" << i+1 << ", " << PROFILE(args[i]) 
-        << ",\n     isn't a character: (string <char1> <char2> ...)"
+        << ", isn't a character or string:\n     (string <char-or-string1> <char2-or-string> ...)"
         << FCN_ERR("string", args));
     scm_string str_val;
-    for(const auto& ch : args) str_val += ch.chr;
+    for(const auto& e : args) {
+      if(e.is_type(types::chr)) 
+        str_val += e.chr;
+      else
+        str_val += *e.str;
+    }
     return make_str(str_val);
   }
 

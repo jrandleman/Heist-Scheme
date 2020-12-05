@@ -1933,7 +1933,7 @@ Other primitives of this nature include:<br>
    * `(make-string <size> <optional-fill-char>)`
    * defaults to a `<fill-char>` of `?`
 
-1. __Construction Given Characters__: `(string <char1> <char2> ...)`
+1. __Construction__: `(string <char-or-string1> <char-or-string2> ...)`
 
 2. __Unfold__: Form a string by mapping & incrementing seed, until `<break-condition>` is true
    * `(string-unfold <break-condition> <map-callable> <successor-callable> <seed>)`

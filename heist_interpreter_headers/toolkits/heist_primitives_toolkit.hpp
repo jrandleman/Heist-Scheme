@@ -80,6 +80,15 @@ namespace heist {
     return G::MAX_SIZE_TYPE;
   }
 
+  // Confirm args only consists of datum w/ type 't1' or 't2'
+  // POSTCONDITION: returns i >= 0 for i'th index of non-type-t data,
+  //                else returns G::MAX_SIZE_TYPE if all data is of type t1 or t2
+  size_type confirm_only_args_of_type(const scm_list& args, types t1, types t2)noexcept{
+    for(size_type i = 0, n = args.size(); i < n; ++i)
+      if(!args[i].is_type(t1) && !args[i].is_type(t2)) return i;
+    return G::MAX_SIZE_TYPE;
+  }
+
   /******************************************************************************
   * GENERATE A PARTIALLY APPLIED PRIMITIVE PROCEDURE
   ******************************************************************************/
