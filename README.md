@@ -2841,7 +2841,6 @@ Other primitives of this nature include:<br>
 
 1. __Convert Scheme Datum to a JSON String__: `(scm->json <obj> <optional-indent-width>)`
    ```
-   (scm->json <obj>)
    <obj> ::= <string>
            | <number>
            | <'()>    ; -> <null>
