@@ -4101,7 +4101,7 @@ namespace heist {
     scm_string input, infix_operator;
     size_type total_read_chars = 0, total_operator_chars = 0;
     auto buffer = primitive_read_expr_from_port(outs,ins,total_read_chars);
-    if(buffer.empty()) return buffer;
+    if(G::INFIX_TABLE.empty() || buffer.empty()) return buffer;
 
   operator_read_start:
     total_operator_chars = total_read_chars = 0;
