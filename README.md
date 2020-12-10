@@ -1446,10 +1446,10 @@ Other primitives of this nature include:<br>
 * `(infix! <symbol1> ...)`, `(infixr! <symbol1> ...)`
   - _Returns precedence level if `<symbol1> ...` are operators, else returns `#f`_
 
-#### Rules of Use, Preventing Infix->Prefix Reader Conversion, & Forcing Precedence:
-* _Prefix/postfix operators are ignored (presumed intentionally placed)_
-* _Escape infix operators from prefix conversion via `#!` prefix (rm'd by reader)!_
+#### Forcing Precedence & Preventing Infix->Prefix Reader Conversion:
 * _Force precedence via `{}` (like `()`'s use in most programming languages)!_
+* _Escape infix operators from prefix conversion via `#!` prefix (rm'd by reader)!_
+* _Prefix/postfix operators are ignored (presumed intentionally placed)!_
 
 
 #### Examples:
