@@ -90,6 +90,7 @@ namespace heist {
     constexpr const char * const infix             = "infix!";
     constexpr const char * const infixr            = "infixr!";
     constexpr const char * const unfix             = "unfix!";
+    constexpr const char * const defn_reader_alias = "define-reader-alias";
     constexpr const char * const inf_precedence    = "heist:core:inf-precedence";
   } // End namespace symconst
 

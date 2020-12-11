@@ -5279,19 +5279,6 @@ namespace heist {
     return G::VOID_DATA_OBJECT;
   }
 
-  data primitive_DEFINE_READER_ALIAS(scm_list& args) {
-    if(args.empty() || args.size() > 2 || !args[0].is_type(types::str) || 
-      (args.size() == 2 && !args[1].is_type(types::str)))
-      THROW_ERR("'define-reader-alias improper arg signature!"
-        "\n     (define-reader-alias <alias-string> <name-string>)"
-        << FCN_ERR("define-reader-alias",args));
-    // Delete Reader Alias
-    if(args.size() == 1) return delete_reader_alias(*args[0].str);
-    // Define/Redefine Reader Alias
-    register_reader_alias(args);
-    return G::VOID_DATA_OBJECT;
-  }
-
   data primitive_READER_SYNTAX_LIST(scm_list& args) {
     if(!args.empty())
       THROW_ERR("'reader-syntax-list doesn't accept any args!"
@@ -6304,7 +6291,6 @@ namespace heist {
     std::make_pair(primitive_SET_RUNTIME_SYNTAX_BANG, "set-runtime-syntax!"),
 
     std::make_pair(primitive_DEFINE_READER_SYNTAX, "define-reader-syntax"),
-    std::make_pair(primitive_DEFINE_READER_ALIAS,  "define-reader-alias"),
     std::make_pair(primitive_READER_SYNTAX_LIST,   "reader-syntax-list"),
     std::make_pair(primitive_READER_ALIAS_LIST,    "reader-alias-list"),
 

@@ -88,50 +88,51 @@
  *                     2) SPECIAL FORM ARGS ARE NOT EVALUATED PRIOR APPLICATION
  *                     3) USERS CAN DEFINE THEIR OWN SPECIAL FORMS VIA MACROS
  *       - EXAMPLES:
- *         * '                ; quote
- *         * `                ; quasiquote
- *         * ,                ; unquote
- *         * ,@               ; unquote-splicing
- *         * `@               ; syntax-hash
- *         * .                ; VARIADIC ARGS, cons LITERAL
- *         * #\               ; CHARACTER PREFIX
- *         * =>               ; APPLY CONDITION RESULT (FOR cond)
- *         * quote            ; SYMBOLIZE ARGS (CONVERT CODE TO DATA)
- *         * quasiquote       ; SELECTIVELY eval AND SYMBOLIZE CODE
- *         * unquote          ; eval quasiquote CODE
- *         * unquote-splicing ; eval AND SPLICE IN quasiquote CODE'S RESULT
- *         * define-syntax    ; RUN-TIME MACRO DEFINITION
- *         * core-syntax      ; ANALYSIS-TIME GLOBAL MACRO DEFINITION
- *         * let-syntax       ; LOCALLY-SCOPED MACRO DEFINITION
- *         * letrec-syntax    ; LOCALLY-SCOPED RECURSIVE MACRO DEFINITION
- *         * syntax-rules     ; SYNTAX OBJECT
- *         * syntax-hash      ; HASH A MACRO-TEMPLATE VAR TO AVOID COLLISION
- *         * lambda           ; ANONYMOUS PROCEDURE
- *         * define           ; BIND VARIABLE TO VALUE
- *         * set!             ; ASSIGN VARIABLE A NEW VALUE (MUTATATION)
- *         * begin            ; SEQUENTIALLY eval ARGS
- *         * delay            ; DELAY ARG eval (RETURNS PROMISE)
- *         * if               ; ARG1 ? ARG2 : ARG3
- *         * and              ; ALL ARGS ARE TRUE
- *         * or               ; NOT ALL ARGS ARE FALSE
- *         * cond             ; ALTERNATIVE TO NESTED IF-ELSE CHAINS
- *         * case             ; SWITCH-STATEMENT EQUIVALENT IN HEIST SCHEME
- *         * let              ; LOCALLY-SCOPED DEFINITIONS
- *         * let*             ; let WITH BINDINGS IN TERMS OF ONE ANOTHER
- *         * letrec           ; let WITH RECURSIVE BINDINGS
- *         * do               ; ITERATION CONSTRUCT ('LOOP' MECHANISM)
- *         * scons            ; STREAM-PAIR CONSTRUCTION
- *         * stream           ; STREAM CONSTRUCTION
- *         * defclass         ; CLASS PROTOTYPE DEFINITION
- *         * vector-literal   ; LONGHAND OF #( PREFIX
- *         * hmap-literal     ; LONGHAND OF $( PREFIX
- *         * defined?         ; DETERMINE IF A VARIABLE/OBJECT-PROPERTY-ACCESS EXISTS
- *         * infix!           ; DEFINE LEFT-ASSOCIATIVE INFIX OPERATORS
- *         * infixr!          ; DEFINE RIGHT-ASSOCIATIVE INFIX OPERATORS
- *         * unfix!           ; DEREGISTER EXISTING INFIX OPERATORS
- *         * cps-quote        ; RETURNS DATA AS CPS-EXPANDED QUOTED LIST
- *         * using-cps?       ; RETURNS WHETHER IN A scm->cps BLOCK OR THE -cps FLAG IS ACTIVE
- *         * scm->cps         ; SCOPED CPS TRANSFORMATION
+ *         * '                   ; quote
+ *         * `                   ; quasiquote
+ *         * ,                   ; unquote
+ *         * ,@                  ; unquote-splicing
+ *         * `@                  ; syntax-hash
+ *         * .                   ; VARIADIC ARGS, cons LITERAL
+ *         * #\                  ; CHARACTER PREFIX
+ *         * =>                  ; APPLY CONDITION RESULT (FOR cond)
+ *         * quote               ; SYMBOLIZE ARGS (CONVERT CODE TO DATA)
+ *         * quasiquote          ; SELECTIVELY eval AND SYMBOLIZE CODE
+ *         * unquote             ; eval quasiquote CODE
+ *         * unquote-splicing    ; eval AND SPLICE IN quasiquote CODE'S RESULT
+ *         * define-syntax       ; RUN-TIME MACRO DEFINITION
+ *         * core-syntax         ; ANALYSIS-TIME GLOBAL MACRO DEFINITION
+ *         * let-syntax          ; LOCALLY-SCOPED MACRO DEFINITION
+ *         * letrec-syntax       ; LOCALLY-SCOPED RECURSIVE MACRO DEFINITION
+ *         * syntax-rules        ; SYNTAX OBJECT
+ *         * syntax-hash         ; HASH A MACRO-TEMPLATE VAR TO AVOID COLLISION
+ *         * lambda              ; ANONYMOUS PROCEDURE
+ *         * define              ; BIND VARIABLE TO VALUE
+ *         * set!                ; ASSIGN VARIABLE A NEW VALUE (MUTATATION)
+ *         * begin               ; SEQUENTIALLY eval ARGS
+ *         * delay               ; DELAY ARG eval (RETURNS PROMISE)
+ *         * if                  ; ARG1 ? ARG2 : ARG3
+ *         * and                 ; ALL ARGS ARE TRUE
+ *         * or                  ; NOT ALL ARGS ARE FALSE
+ *         * cond                ; ALTERNATIVE TO NESTED IF-ELSE CHAINS
+ *         * case                ; SWITCH-STATEMENT EQUIVALENT IN HEIST SCHEME
+ *         * let                 ; LOCALLY-SCOPED DEFINITIONS
+ *         * let*                ; let WITH BINDINGS IN TERMS OF ONE ANOTHER
+ *         * letrec              ; let WITH RECURSIVE BINDINGS
+ *         * do                  ; ITERATION CONSTRUCT ('LOOP' MECHANISM)
+ *         * scons               ; STREAM-PAIR CONSTRUCTION
+ *         * stream              ; STREAM CONSTRUCTION
+ *         * defclass            ; CLASS PROTOTYPE DEFINITION
+ *         * vector-literal      ; LONGHAND OF #( PREFIX
+ *         * hmap-literal        ; LONGHAND OF $( PREFIX
+ *         * defined?            ; DETERMINE IF A VARIABLE/OBJECT-PROPERTY-ACCESS EXISTS
+ *         * define-reader-alias ; DEFINE A SYMBOLIC ALIAS REPLACED VIA READER
+ *         * infix!              ; DEFINE LEFT-ASSOCIATIVE INFIX OPERATORS
+ *         * infixr!             ; DEFINE RIGHT-ASSOCIATIVE INFIX OPERATORS
+ *         * unfix!              ; DEREGISTER EXISTING INFIX OPERATORS
+ *         * cps-quote           ; RETURNS DATA AS CPS-EXPANDED QUOTED LIST
+ *         * using-cps?          ; RETURNS WHETHER IN A scm->cps BLOCK OR THE -cps FLAG IS ACTIVE
+ *         * scm->cps            ; SCOPED CPS TRANSFORMATION
  *
  *    (C) PRIMITIVES:
  *       - DEFINITION: C++ FUNCTIONS DEFINED IN THE HEIST GLOBAL ENVIRONMENT
@@ -487,6 +488,35 @@ namespace heist {
       }
     // define the new syntax in the foremost frame & register its label
     macs.push_back(mac);
+  }
+
+  /******************************************************************************
+  * REPRESENTING READER ALIASES: (define-reader-alias <alias> <name>)
+  ******************************************************************************/
+
+  bool is_defn_reader_alias(const scm_list& exp) noexcept{
+    return is_tagged_list(exp,symconst::defn_reader_alias);
+  }
+
+  exe_fcn_t analyze_defn_reader_alias(scm_list& exp) { 
+    static constexpr const char * const format = 
+      "\n     (define-reader-alias <alias-symbol> <name-symbol>)"
+      "\n     (define-reader-alias <alias-symbol-to-delete>)";
+    if((exp.size() == 2 && data_is_the_SENTINEL_VAL(exp[1])) || exp.size() == 1 || exp.size() > 3)
+      THROW_ERR("'define-reader-alias recieve incorrect # of symbols!" << format << EXP_ERR(exp));
+    if(!exp[1].is_type(types::sym))
+      THROW_ERR("'define-reader-alias 1st arg isn't a symbol!" << format << EXP_ERR(exp));
+    data val;
+    if(exp.size() == 2) {
+      val = delete_reader_alias(exp[1].sym);
+    } else {
+      if(!exp[2].is_type(types::sym))
+        THROW_ERR("'define-reader-alias 2nd arg isn't a symbol!" << format << EXP_ERR(exp));
+      if(exp[1].sym != exp[2].sym) // no-op if defining a symbol to itself
+        register_reader_alias(exp[1].sym,exp[2].sym);
+      val = data(types::dne);
+    }
+    return [val=std::move(val)](env_type&){return scm_list(1,val);};
   }
 
   /******************************************************************************
@@ -2354,7 +2384,7 @@ namespace heist {
            app == symconst::and_t     || app == symconst::or_t         || app == symconst::delay        || 
            app == symconst::do_t      || app == symconst::quasiquote   || app == symconst::vec_literal  ||
            app == symconst::unquote   || app == symconst::unquo_splice || app == symconst::infix        ||
-           app == symconst::infixr    || app == symconst::unfix;
+           app == symconst::infixr    || app == symconst::unfix        || app == symconst::defn_reader_alias;
   }
 
 
@@ -4581,37 +4611,38 @@ namespace heist {
 
 
   exe_fcn_t scm_analyze(scm_list&& exp,const bool tail_call,const bool cps_block) { // analyze expression
-    if(exp.empty())                         THROW_ERR("Can't eval an empty expression!"<<EXP_ERR("()"));
-    else if(is_self_evaluating(exp)) return [exp=std::move(exp)](env_type&){return exp;};
-    else if(is_quoted(exp))          return analyze_quoted(exp);
-    else if(is_assignment(exp))      return analyze_assignment(exp,cps_block);
-    else if(is_definition(exp))      return analyze_definition(exp,cps_block);
-    else if(is_if(exp))              return analyze_if(exp,tail_call,cps_block);
-    else if(is_and(exp))             return analyze_and(exp,tail_call,cps_block);
-    else if(is_or(exp))              return analyze_or(exp,tail_call,cps_block);
-    else if(is_lambda(exp))          return analyze_lambda(exp,cps_block);
-    else if(is_begin(exp))           return analyze_sequence(begin_actions(exp),tail_call,cps_block);
-    else if(is_delay(exp))           return analyze_delay(exp,cps_block);
-    else if(is_do(exp))              return scm_analyze(convert_do_letrec(exp),tail_call,cps_block);
-    else if(is_defclass(exp))        return analyze_defclass(exp);
-    else if(is_fn(exp))              return analyze_fn(exp,cps_block);
-    else if(is_scm_cps(exp))         return analyze_scm_cps(exp);
-    else if(is_cps_quote(exp))       return analyze_cps_quote(exp,cps_block);
-    else if(is_using_cpsp(exp))      return analyze_using_cpsp(exp,cps_block);
-    else if(is_quasiquote(exp))      return analyze_quasiquote(exp,cps_block);
-    else if(is_core_syntax(exp))     return analyze_core_syntax(exp,cps_block);
-    else if(is_define_syntax(exp))   return analyze_define_syntax(exp,cps_block);
-    else if(is_syntax_rules(exp))    return analyze_syntax_rules(exp);
-    else if(is_definedp(exp))        return analyze_definedp(exp);
-    else if(is_infix(exp))           return analyze_infix(exp);
-    else if(is_infixr(exp))          return analyze_infixr(exp);
-    else if(is_unfix(exp))           return analyze_unfix(exp);
-    else if(is_vector_literal(exp))         THROW_ERR("Misplaced keyword 'vector-literal outside of a quotation! -- ANALYZE"   <<EXP_ERR(exp));
-    else if(is_hmap_literal(exp))           THROW_ERR("Misplaced keyword 'hmap-literal outside of a quotation! -- ANALYZE"     <<EXP_ERR(exp));
-    else if(is_unquote(exp))                THROW_ERR("Misplaced keyword 'unquote outside of 'quasiquote ! -- ANALYZE"         <<EXP_ERR(exp));
-    else if(is_unquote_splicing(exp))       THROW_ERR("Misplaced keyword 'unquote-splicing outside of 'quasiquote ! -- ANALYZE"<<EXP_ERR(exp));
-    else if(is_application(exp))     return analyze_application(exp,tail_call,cps_block);
-    else if(is_variable(exp))        return analyze_variable(exp[0].sym);
+    if(exp.empty())                           THROW_ERR("Can't eval an empty expression!"<<EXP_ERR("()"));
+    else if(is_self_evaluating(exp))   return [exp=std::move(exp)](env_type&){return exp;};
+    else if(is_quoted(exp))            return analyze_quoted(exp);
+    else if(is_assignment(exp))        return analyze_assignment(exp,cps_block);
+    else if(is_definition(exp))        return analyze_definition(exp,cps_block);
+    else if(is_if(exp))                return analyze_if(exp,tail_call,cps_block);
+    else if(is_and(exp))               return analyze_and(exp,tail_call,cps_block);
+    else if(is_or(exp))                return analyze_or(exp,tail_call,cps_block);
+    else if(is_lambda(exp))            return analyze_lambda(exp,cps_block);
+    else if(is_begin(exp))             return analyze_sequence(begin_actions(exp),tail_call,cps_block);
+    else if(is_delay(exp))             return analyze_delay(exp,cps_block);
+    else if(is_do(exp))                return scm_analyze(convert_do_letrec(exp),tail_call,cps_block);
+    else if(is_defclass(exp))          return analyze_defclass(exp);
+    else if(is_fn(exp))                return analyze_fn(exp,cps_block);
+    else if(is_scm_cps(exp))           return analyze_scm_cps(exp);
+    else if(is_cps_quote(exp))         return analyze_cps_quote(exp,cps_block);
+    else if(is_using_cpsp(exp))        return analyze_using_cpsp(exp,cps_block);
+    else if(is_quasiquote(exp))        return analyze_quasiquote(exp,cps_block);
+    else if(is_core_syntax(exp))       return analyze_core_syntax(exp,cps_block);
+    else if(is_define_syntax(exp))     return analyze_define_syntax(exp,cps_block);
+    else if(is_syntax_rules(exp))      return analyze_syntax_rules(exp);
+    else if(is_definedp(exp))          return analyze_definedp(exp);
+    else if(is_infix(exp))             return analyze_infix(exp);
+    else if(is_infixr(exp))            return analyze_infixr(exp);
+    else if(is_unfix(exp))             return analyze_unfix(exp);
+    else if(is_defn_reader_alias(exp)) return analyze_defn_reader_alias(exp);
+    else if(is_vector_literal(exp))           THROW_ERR("Misplaced keyword 'vector-literal outside of a quotation! -- ANALYZE"   <<EXP_ERR(exp));
+    else if(is_hmap_literal(exp))             THROW_ERR("Misplaced keyword 'hmap-literal outside of a quotation! -- ANALYZE"     <<EXP_ERR(exp));
+    else if(is_unquote(exp))                  THROW_ERR("Misplaced keyword 'unquote outside of 'quasiquote ! -- ANALYZE"         <<EXP_ERR(exp));
+    else if(is_unquote_splicing(exp))         THROW_ERR("Misplaced keyword 'unquote-splicing outside of 'quasiquote ! -- ANALYZE"<<EXP_ERR(exp));
+    else if(is_application(exp))       return analyze_application(exp,tail_call,cps_block);
+    else if(is_variable(exp))          return analyze_variable(exp[0].sym);
     throw_unknown_analysis_anomalous_error(exp);
     return exe_fcn_t();
   }

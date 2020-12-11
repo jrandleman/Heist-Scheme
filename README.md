@@ -61,7 +61,8 @@
    - [Do](#Do)
    - [Delay](#Delay), [Scons](#Scons), [Stream](#Stream)
    - [Vector-Literal](#Vector-Literal), [Hmap-Literal](#Hmap-Literal)
-   - [Define-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax), [Core-Syntax](#Core-Syntax), [Let-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax), [Letrec-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax)
+   - [Define-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax), [Core-Syntax](#Core-Syntax), [Define-Reader-Syntax](#Define-Reader-Syntax)
+   - [Let-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax), [Letrec-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax)
    - [Syntax-Rules](#Syntax-Rules), [Syntax-Hash](#Syntax-Hash)
    - [Scm->Cps](#Scm-Cps), [Cps-Quote](#Cps-Quote), [Using-Cps?](#Using-Cps)
    - [Curry](#Curry)
@@ -1070,6 +1071,18 @@ Other primitives of this nature include:<br>
   (f)                        ; RUN f TO REGISTER my-macro AS core-syntax IN THE GLOBAL ENV
   (define (g) (my-macro 13)) ; EXPANDS AT ANALYSIS TIME
 ```
+
+
+------------------------
+## Define-Reader-Syntax:
+
+#### Use: ___Define a Symbolic Alias to be Replaced by the Reader!___
+* Check for aliases via the [`reader-alias?`](#Syntax-Procedures) primitive!
+* Get all current aliases via the [`reader-alias-list`](#Syntax-Procedures) primitive!
+
+#### Forms:
+* `(define-reader-alias <alias-symbol> <name-symbol>)`
+* `(define-reader-alias <alias-symbol-to-delete>)`
 
 
 ------------------------
@@ -2785,19 +2798,15 @@ Other primitives of this nature include:<br>
 2. __Runtime-Syntax?__: Determine if a symbol was defined by [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax)
    * `(runtime-syntax? <symbol>)`
 
-3. __Reader-Syntax?__: Determine if a symbol was defined by `define-reader-syntax`
-   * `(reader-syntax? <string>)`
-   * Must be a string to avoid expansion by the reader if **IS** syntax!
-
-4. __Reader-Alias?__: Determine if a symbol was defined by `define-reader-alias`
+3. __Reader-Alias?__: Determine if a symbol was defined by `define-reader-alias`
    * `(reader-alias? <string>)`
    * Must be a string to avoid conversion by the reader if **IS** an alias!
 
-5. __Define Reader Symbolic Alias__: 
-   * `(define-reader-alias <alias-string> <name-string>)`
-   * Have the reader replace all symbolic instances of `<alias>` with `<name>`
+4. __Reader-Syntax?__: Determine if a symbol was defined by `define-reader-syntax`
+   * `(reader-syntax? <string>)`
+   * Must be a string to avoid expansion by the reader if **IS** syntax!
 
-6. __Define Reader Shorthand Syntax__: 
+5. __Define Reader Shorthand Syntax__: 
    * `(define-reader-syntax <shorthand-string> <optional-longhand-string>)`
    * Have the reader expand `<shorthand-string>` around objects into `<longhand-string>`
      - _Internally, `'` works as if interpreted `(define-reader-syntax "'" "quote")`_
@@ -2822,16 +2831,16 @@ Other primitives of this nature include:<br>
            ; >>> Hence `%1` didn't get expanded to `(display 1)` by the reader!
    ```
 
+6. __Get Alist of Reader Syntax Shorthands & Longhands__: `(reader-syntax-list)`
+
 7. __Get Alist of Reader Aliases & Names__: `(reader-alias-list)`
 
-8. __Get Alist of Reader Syntax Shorthands & Longhands__: `(reader-syntax-list)`
-
-9. __Mutate Core Syntax__: `(set-core-syntax! <old-name-symbol> <optional-new-name-symbol>)`
+8. __Mutate Core Syntax__: `(set-core-syntax! <old-name-symbol> <optional-new-name-symbol>)`
    * Only old name: ___DELETES___ `<old-name-symbol>` as core-syntax
    * Both old & new name: ___RENAMES___ syntax's old name to new name
      - _NOTE: also recursively renames all recursive calls to the macro in its templates!_
 
-10. __Mutate Runtime Syntax__: `(set-runtime-syntax! <old-name-symbol> <optional-new-name-symbol>)`
+9. __Mutate Runtime Syntax__: `(set-runtime-syntax! <old-name-symbol> <optional-new-name-symbol>)`
    * Only old name: ___DELETES___ `<old-name-symbol>` as runtime-syntax
    * Both old & new name: ___RENAMES___ syntax's old name to new name
      - _NOTE: also recursively renames all recursive calls to the macro in its templates!_

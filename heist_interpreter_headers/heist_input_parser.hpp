@@ -390,7 +390,7 @@ namespace heist {
       if(ast[i].is_type(types::exp))
         expand_reader_aliases(ast[i].exp);
       else if(data_is_reader_alias(ast[i],idx))
-        ast[i--].sym = G::LONGHAND_READER_ALIAS_REGISTRY[idx];
+        ast[i].sym = G::LONGHAND_READER_ALIAS_REGISTRY[idx];
     }
   }
 

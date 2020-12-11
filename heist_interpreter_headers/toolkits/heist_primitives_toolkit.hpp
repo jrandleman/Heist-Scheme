@@ -4825,34 +4825,6 @@ namespace heist {
   }
 
 
-  void throw_circular_reader_alias_expansion_error(const scm_list& args, const std::vector<scm_string>& seen_aliases){
-    scm_string circular_expansion_list = *args[0].str;
-    for(const auto& seen_alias : seen_aliases)
-      circular_expansion_list += " -> " + seen_alias;
-    circular_expansion_list += " -> " + *args[0].str;
-    THROW_ERR("'define-reader-alias circular reader alias expansion detected:"
-      << "\n     " << circular_expansion_list 
-      << "\n     (define-reader-alias <alias-string> <name-string>)" 
-      << FCN_ERR("define-reader-alias",args));
-  }
-
-
-  void confirm_no_circular_reader_alias_expansion(const scm_list& args){
-    auto& shorthand = *args[0].str; // longhand
-    std::vector<scm_string> seen_aliases(1,*args[1].str);
-    auto sbegin = G::SHORTHAND_READER_ALIAS_REGISTRY.begin(), send = G::SHORTHAND_READER_ALIAS_REGISTRY.end();
-    auto iter = std::find(sbegin,send,*args[1].str);
-    while(iter != send) {
-      auto& expansion = *(G::LONGHAND_READER_ALIAS_REGISTRY.begin() + size_type(iter - sbegin));
-      if(expansion == shorthand)
-        throw_circular_reader_alias_expansion_error(args,seen_aliases);
-      else
-        seen_aliases.push_back(expansion);
-      iter = std::find(sbegin,send,expansion);
-    }
-  }
-
-
   data delete_reader_macro(const scm_string& shorthand)noexcept{
     return delete_reader_macro_OR_alias(shorthand,G::SHORTHAND_READER_MACRO_REGISTRY,
                                                   G::LONGHAND_READER_MACRO_REGISTRY);
@@ -4869,11 +4841,9 @@ namespace heist {
                                                   G::LONGHAND_READER_ALIAS_REGISTRY);
   }
 
-  void register_reader_alias(scm_list& args) {
-    confirm_no_circular_reader_alias_expansion(args);
-    return register_reader_macro_OR_alias(*args[0].str,*args[1].str,
-                                 G::SHORTHAND_READER_ALIAS_REGISTRY,
-                                 G::LONGHAND_READER_ALIAS_REGISTRY);
+  void register_reader_alias(const scm_string& shorthand, const scm_string& longhand)noexcept{
+    return register_reader_macro_OR_alias(shorthand,longhand,G::SHORTHAND_READER_ALIAS_REGISTRY,
+                                                             G::LONGHAND_READER_ALIAS_REGISTRY);
   }
 
   /******************************************************************************
