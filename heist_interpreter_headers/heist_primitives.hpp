@@ -759,8 +759,7 @@ namespace heist {
   // --------------
 
   data primitive_EOF(scm_list& args) {
-    if(!args.empty())
-      THROW_ERR("'eof doesn't accept any args!\n     (eof)" << FCN_ERR("eof",args));
+    confirm_no_args_given(args,"eof");
     return chr_type(EOF);
   }
 
@@ -4624,9 +4623,7 @@ namespace heist {
 
   // retrieve the current default input & output ports
   data primitive_CURRENT_INPUT_PORT(scm_list& args){
-    if(!args.empty()) 
-      THROW_ERR("'current-input-port doesn't take arguments: (current-input-port)"
-        << FCN_ERR("current-input-port", args));
+    confirm_no_args_given(args,"current-input-port");
     for(size_type i = 0, n = G::PORT_REGISTRY.size(); i < n; ++i)
       if(G::CURRENT_INPUT_PORT == G::PORT_REGISTRY[i]) 
         return iport(i);
@@ -4634,9 +4631,7 @@ namespace heist {
   }
 
   data primitive_CURRENT_OUTPUT_PORT(scm_list& args){
-    if(!args.empty()) 
-      THROW_ERR("'current-output-port doesn't take arguments: (current-output-port)"
-        << FCN_ERR("current-output-port", args));
+    confirm_no_args_given(args,"current-output-port");
     for(size_type i = 0, n = G::PORT_REGISTRY.size(); i < n; ++i)
       if(G::CURRENT_OUTPUT_PORT == G::PORT_REGISTRY[i]) 
         return oport(i);
@@ -4890,17 +4885,13 @@ namespace heist {
 
   // Returns a string of Heist Scheme's command-line args & their descriptions
   data primitive_COMMAND_LINE(scm_list& args) {
-    if(!args.empty())
-      THROW_ERR("'command-line doesn't take any arguments:"
-        "\n     (command-line)" << FCN_ERR("command-line",args));
+    confirm_no_args_given(args,"command-line");
     return make_str(HEIST_COMMAND_LINE_ARGS);
   }
 
   // Returns a string of the current working directory
   data primitive_GETCWD(scm_list& args) {
-    if(!args.empty())
-      THROW_ERR("'getcwd doesn't take any arguments:"
-        "\n     (getcwd)" << FCN_ERR("getcwd",args));
+    confirm_no_args_given(args,"getcwd");
     return make_str(std::filesystem::current_path());
   }
 
@@ -4917,9 +4908,7 @@ namespace heist {
   ******************************************************************************/
 
   data primitive_SECONDS_SINCE_EPOCH(scm_list& args) {
-    if(!args.empty())
-      THROW_ERR("'seconds-since-epoch doesn't take any arguments:"
-        "\n     (seconds-since-epoch)" << FCN_ERR("seconds-since-epoch",args));
+    confirm_no_args_given(args,"seconds-since-epoch");
     return num_type(std::chrono::duration_cast<std::chrono::seconds>(
                     std::chrono::system_clock::now().time_since_epoch()).count());
   }
@@ -4943,8 +4932,7 @@ namespace heist {
   }
 
   data primitive_NANSIP(scm_list& args) {
-    if(!args.empty())
-      THROW_ERR("'nansi? doesn't take any args!\n     (nansi?)" << FCN_ERR("nansi?",args));
+    confirm_no_args_given(args,"nansi?");
     return boolean(!G::USING_ANSI_ESCAPE_SEQUENCES);
   }
 
@@ -4956,8 +4944,7 @@ namespace heist {
   }
 
   data primitive_CIP(scm_list& args) {
-    if(!args.empty())
-      THROW_ERR("'ci? doesn't take any args!\n     (ci?)" << FCN_ERR("ci?",args));
+    confirm_no_args_given(args,"ci?");
     return boolean(!G::USING_CASE_SENSITIVE_SYMBOLS);
   }
 
@@ -4966,24 +4953,40 @@ namespace heist {
                                             G::PPRINT_MAX_COLUMN_WIDTH);
   }
 
-  data primitive_SET_MAX_RECURSION_DEPTH(scm_list& args) {
+  data primitive_PPRINT_COLUMN_WIDTH(scm_list& args) {
+    confirm_no_args_given(args,"pprint-column-width");
+    return num_type(G::PPRINT_MAX_COLUMN_WIDTH);
+  }
+
+  data primitive_SET_MAX_RECURSION_DEPTH_BANG(scm_list& args) {
     return primitive_TOGGLE_NUMERIC_SETTING(args,"set-max-recursion-depth!",
                                             G::MAX_RECURSION_DEPTH);
   }
 
+  data primitive_MAX_RECURSION_DEPTH(scm_list& args) {
+    confirm_no_args_given(args,"max-recursion-depth");
+    return num_type(G::MAX_RECURSION_DEPTH);
+  }
+
   // Changes the REPL's line-by-line prompt from the default "> "
-  data primitive_SET_REPL_PROMPT(scm_list& args) {
+  data primitive_SET_REPL_PROMPT_BANG(scm_list& args) {
     confirm_given_one_arg(args,"set-repl-prompt!","<prompt-string>");
     if(!args[0].is_type(types::str))
       THROW_ERR("'set-repl-prompt! "<<PROFILE(args[0])<<" isn't a string:"
         "\n     (set-repl-prompt! <prompt-string>)" << FCN_ERR("set-repl-prompt!",args));
+    scm_string old_prompt = G::REPL_PROMPT;
     if(args[0].str->empty()) {
       G::REPL_PROMPT = G::REPL_TAB = "";
-      return G::VOID_DATA_OBJECT;
+      return make_str(old_prompt);
     }
     G::REPL_PROMPT = *args[0].str;
     G::REPL_TAB = scm_string(G::REPL_PROMPT.size(), ' ');
-    return G::VOID_DATA_OBJECT;
+    return make_str(old_prompt);
+  }
+
+  data primitive_REPL_PROMPT(scm_list& args) {
+    confirm_no_args_given(args,"repl-prompt");
+    return make_str(G::REPL_PROMPT);
   }
 
   // Toggles Dynamic Procedure Call Tracing (returns the previous state prior toggle)
@@ -4992,14 +4995,18 @@ namespace heist {
                                             G::TRACING_ALL_FUNCTION_CALLS);
   }
 
+  data primitive_DYNAMIC_CALL_TRACEP(scm_list& args) {
+    confirm_no_args_given(args,"dynamic-call-trace?");
+    return boolean(G::TRACING_ALL_FUNCTION_CALLS);
+  }
+
   // Toggles Procedure Argument Call Tracing (returns the previous state prior toggle)
   data primitive_SET_TRACE_ARGS_BANG(scm_list& args) {
     return primitive_TOGGLE_BOOLEAN_SETTING(args,"set-trace-args!",G::TRACE_ARGS);
   }
 
   data primitive_TRACE_ARGSP(scm_list& args) {
-    if(!args.empty())
-      THROW_ERR("'trace-args? doesn't take any args!\n     (trace-args?)" << FCN_ERR("trace-args?",args));
+    confirm_no_args_given(args,"trace-args?");
     return boolean(G::TRACE_ARGS);
   }
 
@@ -5280,9 +5287,7 @@ namespace heist {
   }
 
   data primitive_READER_SYNTAX_LIST(scm_list& args) {
-    if(!args.empty())
-      THROW_ERR("'reader-syntax-list doesn't accept any args!"
-        "\n     (reader-syntax-list)" << FCN_ERR("reader-syntax-list",args));
+    confirm_no_args_given(args,"reader-syntax-list");
     scm_list pairs;
     for(size_type i = 0, n = G::SHORTHAND_READER_MACRO_REGISTRY.size(); i < n; ++i) {
       pairs.push_back(make_par());
@@ -5293,9 +5298,7 @@ namespace heist {
   }
 
   data primitive_READER_ALIAS_LIST(scm_list& args) {
-    if(!args.empty())
-      THROW_ERR("'reader-alias-list doesn't accept any args!"
-        "\n     (reader-alias-list)" << FCN_ERR("reader-alias-list",args));
+    confirm_no_args_given(args,"reader-alias-list");
     scm_list pairs;
     for(size_type i = 0, n = G::SHORTHAND_READER_ALIAS_REGISTRY.size(); i < n; ++i) {
       pairs.push_back(make_par());
@@ -5310,9 +5313,7 @@ namespace heist {
   ******************************************************************************/
 
   data primitive_INFIX_LIST(scm_list& args) {
-    if(!args.empty())
-      THROW_ERR("'infix-list doesn't accept any args!"
-        "\n     (infix-list)" << FCN_ERR("infix-list",args));
+    confirm_no_args_given(args,"infix-list");
     return get_infix_list();
   }
 
@@ -6262,9 +6263,13 @@ namespace heist {
     std::make_pair(primitive_SET_CI,                       "set-ci!"),
     std::make_pair(primitive_CIP,                          "ci?"),
     std::make_pair(primitive_SET_PPRINT_COLUMN_WIDTH_BANG, "set-pprint-column-width!"),
-    std::make_pair(primitive_SET_MAX_RECURSION_DEPTH,      "set-max-recursion-depth!"),
-    std::make_pair(primitive_SET_REPL_PROMPT,              "set-repl-prompt!"),
+    std::make_pair(primitive_PPRINT_COLUMN_WIDTH,          "pprint-column-width"),
+    std::make_pair(primitive_SET_MAX_RECURSION_DEPTH_BANG, "set-max-recursion-depth!"),
+    std::make_pair(primitive_MAX_RECURSION_DEPTH,          "max-recursion-depth"),
+    std::make_pair(primitive_SET_REPL_PROMPT_BANG,         "set-repl-prompt!"),
+    std::make_pair(primitive_REPL_PROMPT,                  "repl-prompt"),
     std::make_pair(primitive_SET_DYNAMIC_CALL_TRACE_BANG,  "set-dynamic-call-trace!"),
+    std::make_pair(primitive_DYNAMIC_CALL_TRACEP,          "dynamic-call-trace?"),
     std::make_pair(primitive_SET_TRACE_ARGS_BANG,          "set-trace-args!"),
     std::make_pair(primitive_TRACE_ARGSP,                  "trace-args?"),
 

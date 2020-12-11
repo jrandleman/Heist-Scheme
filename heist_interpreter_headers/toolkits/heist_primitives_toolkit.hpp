@@ -63,6 +63,13 @@ namespace heist {
   * PRIMITIVE ARGUMENT ANALYSIS HELPERS
   ******************************************************************************/
 
+  void confirm_no_args_given(scm_list& args, const char* name){
+    if(!args.empty())
+      THROW_ERR('\'' << name << " doesn't accept any args!\n     ("
+        << name << ")" << FCN_ERR(name,args));
+  }
+  
+
   void confirm_given_one_arg(const scm_list& args, const char* name, 
                              const char* arg_name = "<obj>"){
     if(args.size() != 1)

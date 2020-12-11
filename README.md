@@ -2725,12 +2725,16 @@ Other primitives of this nature include:<br>
    * Check status via `(ci?)`!
 
 2. __Set Pretty-Print Column Length__: `(set-pprint-column-width! <positive-integer>)`
+   * Get current width via `(pprint-column-width)`!
 
 3. __Set Recursion Depth Limit__: `(set-max-recursion-depth! <positive-integer>)`
+   * Get current max depth via `(max-recursion-depth)`!
 
 4. __Set REPL Prompt__: `(set-repl-prompt! <string>)`
+   * Get current repl prompt string via `(repl-prompt)`!
 
 5. __Dynamic Procedure Trace (Last Resort Debugging)__: `(set-dynamic-call-trace! <boolean>)`
+   * Check status via `(dynamic-call-trace?)`!
 
 6. __Trace Procedure Call Arguments Too__: `(set-trace-args! <boolean>)`
    * Check status via `(trace-args?)`!
