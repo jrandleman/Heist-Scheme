@@ -61,7 +61,7 @@
    - [Do](#Do)
    - [Delay](#Delay), [Scons](#Scons), [Stream](#Stream)
    - [Vector-Literal](#Vector-Literal), [Hmap-Literal](#Hmap-Literal)
-   - [Define-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax), [Core-Syntax](#Core-Syntax), [Define-Reader-Syntax](#Define-Reader-Syntax)
+   - [Define-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax), [Core-Syntax](#Core-Syntax), [Define-Reader-Alias](#Define-Reader-Alias)
    - [Let-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax), [Letrec-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax)
    - [Syntax-Rules](#Syntax-Rules), [Syntax-Hash](#Syntax-Hash)
    - [Scm->Cps](#Scm-Cps), [Cps-Quote](#Cps-Quote), [Using-Cps?](#Using-Cps)
@@ -1074,7 +1074,7 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
-## Define-Reader-Syntax:
+## Define-Reader-Alias:
 
 #### Use: ___Define a Symbolic Alias to be Replaced by the Reader!___
 * _Check for aliases via the [`reader-alias?`](#Syntax-Procedures) primitive!_
