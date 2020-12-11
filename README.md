@@ -1482,6 +1482,7 @@ Other primitives of this nature include:<br>
 (display {10 + 2} ** 5) ; 248832 ; PRECEDENCE FORCED VIA "{}"
 
 
+
 ; (display (map + '(1 2) '(3 4)))) ; ERROR, READS: ((+ map '(1 2)) '(4 5))
 (display (map #!+ '(1 2) '(3 4)))  ; OK: ESCAPED "+" AVOIDS INFIX CONVERSION
 ```
