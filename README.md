@@ -1077,8 +1077,8 @@ Other primitives of this nature include:<br>
 ## Define-Reader-Syntax:
 
 #### Use: ___Define a Symbolic Alias to be Replaced by the Reader!___
-* Check for aliases via the [`reader-alias?`](#Syntax-Procedures) primitive!
-* Get all current aliases via the [`reader-alias-list`](#Syntax-Procedures) primitive!
+* _Check for aliases via the [`reader-alias?`](#Syntax-Procedures) primitive!_
+* _Get all current aliases via the [`reader-alias-list`](#Syntax-Procedures) primitive!_
 
 #### Forms:
 * `(define-reader-alias <alias-symbol> <name-symbol>)`
