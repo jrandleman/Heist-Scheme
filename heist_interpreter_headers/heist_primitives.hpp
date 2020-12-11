@@ -1452,22 +1452,22 @@ namespace heist {
   // primitive "hmap-merge":
   data primitive_HMAP_MERGE(scm_list& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("hmap-merge",primitive_HMAP_MERGE,args);
-    hmap_confirm_given_2_maps("hmap-merge","\n     (hmap-merge <hash-map-1> <hash-map-2>)",args);
+    hmap_confirm_given_2_or_more_maps("hmap-merge","\n     (hmap-merge <hash-map-1> <hash-map-2> ...)",args);
     scm_map map;
-    for(const auto& keyval : args[1].map->val)
-      map.val[keyval.first] = keyval.second;
-    for(const auto& keyval : args[0].map->val) // 1st arg key vals supersede 2nd arg key vals
-      map.val[keyval.first] = keyval.second;
+    for(size_type i = args.size(); i-- > 0;)
+      for(const auto& keyval : args[i].map->val)
+        map.val[keyval.first] = keyval.second; // left arg key vals supersede right arg key vals
     return make_map(std::move(map));
   }
 
   // primitive "hmap-merge!":
   data primitive_HMAP_MERGE_BANG(scm_list& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("hmap-merge!",primitive_HMAP_MERGE_BANG,args);
-    hmap_confirm_given_2_maps("hmap-merge!","\n     (hmap-merge! <hash-map-1> <hash-map-2>)",args);
-    for(const auto& keyval : args[1].map->val)
-      if(!args[0].map->val.count(keyval.first))
-        args[0].map->val[keyval.first] = keyval.second;
+    hmap_confirm_given_2_or_more_maps("hmap-merge!","\n     (hmap-merge! <hash-map-1> <hash-map-2> ...)",args);
+    for(size_type i = 1, n = args.size(); i < n; ++i)
+      for(const auto& keyval : args[i].map->val)
+        if(!args[0].map->val.count(keyval.first))
+          args[0].map->val[keyval.first] = keyval.second;
     return G::VOID_DATA_OBJECT;
   }
 

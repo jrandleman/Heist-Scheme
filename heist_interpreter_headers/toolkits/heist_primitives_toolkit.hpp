@@ -68,7 +68,7 @@ namespace heist {
       THROW_ERR('\'' << name << " doesn't accept any args!\n     ("
         << name << ")" << FCN_ERR(name,args));
   }
-  
+
 
   void confirm_given_one_arg(const scm_list& args, const char* name, 
                              const char* arg_name = "<obj>"){
@@ -853,11 +853,11 @@ namespace heist {
   }
 
 
-  void hmap_confirm_given_2_maps(const char* name, const char* format, scm_list& args){
-    if(args.size() != 2) 
-      THROW_ERR('\''<<name<<" didn't receive 2 args!" 
+  void hmap_confirm_given_2_or_more_maps(const char* name, const char* format, scm_list& args){
+    if(args.size() < 2) 
+      THROW_ERR('\''<<name<<" didn't receive at least 2 args!" 
         << format << FCN_ERR(name, args));
-    for(size_type i = 0; i < 2; ++i)
+    for(size_type i = 0, n = args.size(); i < n; ++i)
       if(!args[i].is_type(types::map))
         THROW_ERR('\''<<name<<" arg #"<<i+1<<' '<<PROFILE(args[i])<<" isn't a hash-map!" 
           << format << FCN_ERR(name, args));

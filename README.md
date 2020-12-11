@@ -2178,11 +2178,11 @@ Other primitives of this nature include:<br>
 
 9. __Empty? Predicate__: `(hmap-empty? <hash-map>)`
 
-10. __Merge Hash-Maps into a New Copy__: `(hmap-merge <hash-map-1> <hash-map-2>)`
-    * _Note: if both maps share a key, `<hash-map-1>`'s value takes precedence_
+10. __Merge Hash-Maps into a New Copy__: `(hmap-merge <hash-map-1> <hash-map-2> ...)`
+    * _Note: keys of hmaps on the left take precedence over those on the right!_
 
-11. __Merge `<hash-map-2>` into `<hash-map-1>`__: `(hmap-merge! <hash-map-1> <hash-map-2>)`
-    * _Note: if both maps share a key, `<hash-map-1>`'s value takes precedence_
+11. __Merge `<hash-map-2> ...` into `<hash-map-1>`__: `(hmap-merge! <hash-map-1> <hash-map-2> ...)`
+    * _Note: keys of hmaps on the left take precedence over those on the right!_
 
 12. __Iterate Over Key-Value Pairs__: `(hmap-for-each <callable> <hash-map>)` 
 
