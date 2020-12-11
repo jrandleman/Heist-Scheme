@@ -368,6 +368,33 @@ namespace heist {
   }
 
   /******************************************************************************
+  * READER ALIAS CONVERSION
+  ******************************************************************************/
+
+  bool data_is_reader_alias(const data& d, size_type& idx)noexcept{
+    if(d.is_type(types::sym)) {
+      auto result = std::find(G::SHORTHAND_READER_ALIAS_REGISTRY.begin(),
+                              G::SHORTHAND_READER_ALIAS_REGISTRY.end(),d.sym);
+      if(result != G::SHORTHAND_READER_ALIAS_REGISTRY.end()) {
+        idx = result - G::SHORTHAND_READER_ALIAS_REGISTRY.begin();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void expand_reader_aliases(exp_type& ast)noexcept{
+    if(G::SHORTHAND_READER_ALIAS_REGISTRY.empty()) return;
+    size_type idx = 0;
+    for(size_type i = 0, n = ast.size(); i < n; ++i) {
+      if(ast[i].is_type(types::exp))
+        expand_reader_aliases(ast[i].exp);
+      else if(data_is_reader_alias(ast[i],idx))
+        ast[i--].sym = G::LONGHAND_READER_ALIAS_REGISTRY[idx];
+    }
+  }
+
+  /******************************************************************************
   * READER LAMBDA SHORTHAND EXPANSION
   ******************************************************************************/
 
@@ -487,10 +514,10 @@ namespace heist {
     for(size_type i = 0; i < ast.size(); ++i) {
       if(ast[i].is_type(types::exp)) {
         strip_INFIX_ESC_prefix_and_INF_PRECEDENCE_tag(ast[i].exp);
-      } else if(ast[i].is_type(types::sym)) {
-        if(ast[i].sym.size() > 2 && ast[i].sym[0] == '#' && ast[i].sym[1] == '!')
+      } else if(ast[i].is_type(types::sym)) { 
+        if(ast[i].sym.size() > 2 && ast[i].sym[0] == '#' && ast[i].sym[1] == '!') // infix escape prefix
           ast[i].sym = ast[i].sym.substr(2);
-        else if(ast[i].sym == symconst::inf_precedence)
+        else if(ast[i].sym == symconst::inf_precedence) // infinite precedence via {}
           ast.erase(ast.begin()+(i--));
       }
     }
@@ -670,6 +697,7 @@ namespace heist {
     if(!prepare_string_for_AST_generation(input)) return;
     size_type start_index = 0;
     construct_abstract_syntax_tree(start_index,input,abstract_syntax_tree);
+    expand_reader_aliases(abstract_syntax_tree);
     expand_reader_lambda_shorthands(abstract_syntax_tree);
     convert_infix_to_prefix(abstract_syntax_tree);
   }

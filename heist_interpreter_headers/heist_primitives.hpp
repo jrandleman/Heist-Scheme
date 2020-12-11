@@ -5206,6 +5206,19 @@ namespace heist {
     return G::FALSE_DATA_BOOLEAN;
   }
 
+
+  data primitive_READER_ALIASP(scm_list& args) {
+    if(args.size() != 1 || !args[0].is_type(types::str))
+      THROW_ERR("'reader-alias? didn't recieve 1 string arg!"
+        "\n     => Must be a string to avoid expansion by the reader if IS syntax!"
+        "\n     (reader-alias? <string>)" << FCN_ERR("reader-alias?",args));
+    auto& sought_shorthand = *args[0].str;
+    for(const auto& reader_syntax_label : G::SHORTHAND_READER_ALIAS_REGISTRY)
+      if(reader_syntax_label == sought_shorthand)
+        return G::TRUE_DATA_BOOLEAN;
+    return G::FALSE_DATA_BOOLEAN;
+  }
+
   /******************************************************************************
   * SYNTAX MUTATING PRIMITIVES
   ******************************************************************************/
@@ -5250,11 +5263,10 @@ namespace heist {
   }
 
   /******************************************************************************
-  * READER MACRO DEFINITION & ANALYSIS PRIMITIVE
+  * READER MACRO/ALIAS DEFINITION & ANALYSIS PRIMITIVE
   ******************************************************************************/
 
   data primitive_DEFINE_READER_SYNTAX(scm_list& args) {
-    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("define-reader-syntax",primitive_DEFINE_READER_SYNTAX,args);
     if(args.empty() || args.size() > 2 || !args[0].is_type(types::str) || 
       (args.size() == 2 && !args[1].is_type(types::str)))
       THROW_ERR("'define-reader-syntax improper arg signature!"
@@ -5267,6 +5279,19 @@ namespace heist {
     return G::VOID_DATA_OBJECT;
   }
 
+  data primitive_DEFINE_READER_ALIAS(scm_list& args) {
+    if(args.empty() || args.size() > 2 || !args[0].is_type(types::str) || 
+      (args.size() == 2 && !args[1].is_type(types::str)))
+      THROW_ERR("'define-reader-alias improper arg signature!"
+        "\n     (define-reader-alias <alias-string> <name-string>)"
+        << FCN_ERR("define-reader-alias",args));
+    // Delete Reader Alias
+    if(args.size() == 1) return delete_reader_alias(*args[0].str);
+    // Define/Redefine Reader Alias
+    register_reader_alias(args);
+    return G::VOID_DATA_OBJECT;
+  }
+
   data primitive_READER_SYNTAX_LIST(scm_list& args) {
     if(!args.empty())
       THROW_ERR("'reader-syntax-list doesn't accept any args!"
@@ -5276,6 +5301,19 @@ namespace heist {
       pairs.push_back(make_par());
       pairs[i].par->first = make_str(G::SHORTHAND_READER_MACRO_REGISTRY[i]);
       pairs[i].par->second = make_str(G::LONGHAND_READER_MACRO_REGISTRY[i]);
+    }
+    return primitive_LIST_to_CONS_constructor(pairs.begin(),pairs.end());
+  }
+
+  data primitive_READER_ALIAS_LIST(scm_list& args) {
+    if(!args.empty())
+      THROW_ERR("'reader-alias-list doesn't accept any args!"
+        "\n     (reader-alias-list)" << FCN_ERR("reader-alias-list",args));
+    scm_list pairs;
+    for(size_type i = 0, n = G::SHORTHAND_READER_ALIAS_REGISTRY.size(); i < n; ++i) {
+      pairs.push_back(make_par());
+      pairs[i].par->first = make_str(G::SHORTHAND_READER_ALIAS_REGISTRY[i]);
+      pairs[i].par->second = make_str(G::LONGHAND_READER_ALIAS_REGISTRY[i]);
     }
     return primitive_LIST_to_CONS_constructor(pairs.begin(),pairs.end());
   }
@@ -6260,12 +6298,15 @@ namespace heist {
     std::make_pair(primitive_CORE_SYNTAXP,    "core-syntax?"),
     std::make_pair(primitive_RUNTIME_SYNTAXP, "runtime-syntax?"),
     std::make_pair(primitive_READER_SYNTAXP,  "reader-syntax?"),
+    std::make_pair(primitive_READER_ALIASP,   "reader-alias?"),
 
     std::make_pair(primitive_SET_CORE_SYNTAX_BANG,    "set-core-syntax!"),
     std::make_pair(primitive_SET_RUNTIME_SYNTAX_BANG, "set-runtime-syntax!"),
 
     std::make_pair(primitive_DEFINE_READER_SYNTAX, "define-reader-syntax"),
+    std::make_pair(primitive_DEFINE_READER_ALIAS,  "define-reader-alias"),
     std::make_pair(primitive_READER_SYNTAX_LIST,   "reader-syntax-list"),
+    std::make_pair(primitive_READER_ALIAS_LIST,    "reader-alias-list"),
 
     std::make_pair(primitive_INFIX_LIST,  "infix-list"),
 

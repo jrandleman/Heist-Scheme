@@ -4784,15 +4784,16 @@ namespace heist {
   * READER MACRO DEFINITION / DELETION PRIMITIVE HELPER
   ******************************************************************************/
 
-  data delete_reader_macro(const scm_string& shorthand)noexcept{
-    for(auto short_iter = G::SHORTHAND_READER_MACRO_REGISTRY.begin(), 
-             long_iter = G::LONGHAND_READER_MACRO_REGISTRY.begin();
-      short_iter != G::SHORTHAND_READER_MACRO_REGISTRY.end();
+  data delete_reader_macro_OR_alias(const scm_string& shorthand, 
+                                    std::vector<scm_string>& shorthand_registry, 
+                                    std::vector<scm_string>& longhand_registry)noexcept{
+    for(auto short_iter = shorthand_registry.begin(), long_iter = longhand_registry.begin();
+      short_iter != shorthand_registry.end();
       ++short_iter, ++long_iter) {
       // Rm shorthand/longhand if found
       if(shorthand == *short_iter) {
-        G::SHORTHAND_READER_MACRO_REGISTRY.erase(short_iter);
-        G::LONGHAND_READER_MACRO_REGISTRY.erase(long_iter);
+        shorthand_registry.erase(short_iter);
+        longhand_registry.erase(long_iter);
         return G::TRUE_DATA_BOOLEAN;
       }
     }
@@ -4800,26 +4801,79 @@ namespace heist {
   }
 
 
-  void register_reader_macro(const scm_string& shorthand, const scm_string& longhand)noexcept{
+  void register_reader_macro_OR_alias(const scm_string& shorthand, const scm_string& longhand, 
+                                      std::vector<scm_string>& shorthand_registry, 
+                                      std::vector<scm_string>& longhand_registry)noexcept{
     const auto shorthand_len = shorthand.size();
-    for(auto short_iter = G::SHORTHAND_READER_MACRO_REGISTRY.begin(), 
-             long_iter = G::LONGHAND_READER_MACRO_REGISTRY.begin();
-      short_iter != G::SHORTHAND_READER_MACRO_REGISTRY.end();
+    for(auto short_iter = shorthand_registry.begin(), long_iter = longhand_registry.begin();
+      short_iter != shorthand_registry.end();
       ++short_iter, ++long_iter) {
       // Change longhand associated w/ existing shorthand
       if(shorthand == *short_iter) {
         *long_iter = longhand;
         return;
-      // Register new reader macro
+      // Register new reader macro/alias
       } else if(shorthand > *short_iter && shorthand_len >= short_iter->size()) {
-        G::SHORTHAND_READER_MACRO_REGISTRY.insert(short_iter,shorthand);
-        G::LONGHAND_READER_MACRO_REGISTRY.insert(long_iter,longhand);
+        shorthand_registry.insert(short_iter,shorthand);
+        longhand_registry.insert(long_iter,longhand);
         return;
       }
     }
-    // Register new reader macro
-    G::SHORTHAND_READER_MACRO_REGISTRY.push_back(shorthand);
-    G::LONGHAND_READER_MACRO_REGISTRY.push_back(longhand);
+    // Register new reader macro/alias
+    shorthand_registry.push_back(shorthand);
+    longhand_registry.push_back(longhand);
+  }
+
+
+  void throw_circular_reader_alias_expansion_error(const scm_list& args, const std::vector<scm_string>& seen_aliases){
+    scm_string circular_expansion_list = *args[0].str;
+    for(const auto& seen_alias : seen_aliases)
+      circular_expansion_list += " -> " + seen_alias;
+    circular_expansion_list += " -> " + *args[0].str;
+    THROW_ERR("'define-reader-alias circular reader alias expansion detected:"
+      << "\n     " << circular_expansion_list 
+      << "\n     (define-reader-alias <alias-string> <name-string>)" 
+      << FCN_ERR("define-reader-alias",args));
+  }
+
+
+  void confirm_no_circular_reader_alias_expansion(const scm_list& args){
+    auto& shorthand = *args[0].str; // longhand
+    std::vector<scm_string> seen_aliases(1,*args[1].str);
+    auto sbegin = G::SHORTHAND_READER_ALIAS_REGISTRY.begin(), send = G::SHORTHAND_READER_ALIAS_REGISTRY.end();
+    auto iter = std::find(sbegin,send,*args[1].str);
+    while(iter != send) {
+      auto& expansion = *(G::LONGHAND_READER_ALIAS_REGISTRY.begin() + size_type(iter - sbegin));
+      if(expansion == shorthand)
+        throw_circular_reader_alias_expansion_error(args,seen_aliases);
+      else
+        seen_aliases.push_back(expansion);
+      iter = std::find(sbegin,send,expansion);
+    }
+  }
+
+
+  data delete_reader_macro(const scm_string& shorthand)noexcept{
+    return delete_reader_macro_OR_alias(shorthand,G::SHORTHAND_READER_MACRO_REGISTRY,
+                                                  G::LONGHAND_READER_MACRO_REGISTRY);
+  }
+
+  void register_reader_macro(const scm_string& shorthand, const scm_string& longhand)noexcept{
+    return register_reader_macro_OR_alias(shorthand,longhand,G::SHORTHAND_READER_MACRO_REGISTRY,
+                                                             G::LONGHAND_READER_MACRO_REGISTRY);
+  }
+
+
+  data delete_reader_alias(const scm_string& shorthand)noexcept{
+    return delete_reader_macro_OR_alias(shorthand,G::SHORTHAND_READER_ALIAS_REGISTRY,
+                                                  G::LONGHAND_READER_ALIAS_REGISTRY);
+  }
+
+  void register_reader_alias(scm_list& args) {
+    confirm_no_circular_reader_alias_expansion(args);
+    return register_reader_macro_OR_alias(*args[0].str,*args[1].str,
+                                 G::SHORTHAND_READER_ALIAS_REGISTRY,
+                                 G::LONGHAND_READER_ALIAS_REGISTRY);
   }
 
   /******************************************************************************

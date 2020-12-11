@@ -206,6 +206,12 @@ namespace heist {
     std::vector<scm_string> LONGHAND_READER_MACRO_REGISTRY({"syntax-hash","unquote-splicing","quasiquote",symconst::reader_lambda,"unquote","quote"});
 
     /******************************************************************************
+    * THE GLOBAL REGISTRY OF READER ALIASES
+    ******************************************************************************/
+
+    std::vector<scm_string> SHORTHAND_READER_ALIAS_REGISTRY, LONGHAND_READER_ALIAS_REGISTRY;
+
+    /******************************************************************************
     * STACK TRACE
     ******************************************************************************/
 

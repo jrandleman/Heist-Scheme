@@ -2788,7 +2788,15 @@ Other primitives of this nature include:<br>
    * `(reader-syntax? <string>)`
    * Must be a string to avoid expansion by the reader if **IS** syntax!
 
-4. __Define Reader Shorthand Syntax__: 
+4. __Reader-Alias?__: Determine if a symbol was defined by `define-reader-alias`
+   * `(reader-alias? <string>)`
+   * Must be a string to avoid conversion by the reader if **IS** an alias!
+
+5. __Define Reader Symbolic Alias__: 
+   * `(define-reader-alias <alias-string> <name-string>)`
+   * Have the reader replace all symbolic instances of `<alias>` with `<name>`
+
+6. __Define Reader Shorthand Syntax__: 
    * `(define-reader-syntax <shorthand-string> <optional-longhand-string>)`
    * Have the reader expand `<shorthand-string>` around objects into `<longhand-string>`
      - _Internally, `'` works as if interpreted `(define-reader-syntax "'" "quote")`_
@@ -2813,14 +2821,16 @@ Other primitives of this nature include:<br>
            ; >>> Hence `%1` didn't get expanded to `(display 1)` by the reader!
    ```
 
-5. __Get Alist of Reader Syntax Shorthands & Longhands__: `(reader-syntax-list)`
+7. __Get Alist of Reader Aliases & Names__: `(reader-alias-list)`
 
-6. __Mutate Core Syntax__: `(set-core-syntax! <old-name-symbol> <optional-new-name-symbol>)`
+8. __Get Alist of Reader Syntax Shorthands & Longhands__: `(reader-syntax-list)`
+
+9. __Mutate Core Syntax__: `(set-core-syntax! <old-name-symbol> <optional-new-name-symbol>)`
    * Only old name: ___DELETES___ `<old-name-symbol>` as core-syntax
    * Both old & new name: ___RENAMES___ syntax's old name to new name
      - _NOTE: also recursively renames all recursive calls to the macro in its templates!_
 
-7. __Mutate Runtime Syntax__: `(set-runtime-syntax! <old-name-symbol> <optional-new-name-symbol>)`
+10. __Mutate Runtime Syntax__: `(set-runtime-syntax! <old-name-symbol> <optional-new-name-symbol>)`
    * Only old name: ___DELETES___ `<old-name-symbol>` as runtime-syntax
    * Both old & new name: ___RENAMES___ syntax's old name to new name
      - _NOTE: also recursively renames all recursive calls to the macro in its templates!_
