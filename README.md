@@ -1084,7 +1084,7 @@ Other primitives of this nature include:<br>
 * `(define-reader-alias <alias-symbol> <name-symbol>)`
 * `(define-reader-alias <alias-symbol-to-delete>)`
 
-#### Warning: ___Reader Aliases Do NOT Recursively Expand!___
+#### Warning: ___Reader Aliases do NOT Recursively Expand!___
 ```scheme
 (define-reader-alias a b)
 (define-reader-alias b +)
