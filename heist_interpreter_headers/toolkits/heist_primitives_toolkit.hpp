@@ -4092,9 +4092,24 @@ namespace heist {
   }
 
 
-  // returns either 10 (if dne) or the precedence level of the symbols
+  bool symbol_is_reader_alias(const scm_string& sym, size_type& idx)noexcept{
+    auto result = std::find(G::SHORTHAND_READER_ALIAS_REGISTRY.begin(),
+                              G::SHORTHAND_READER_ALIAS_REGISTRY.end(),sym);
+    if(result != G::SHORTHAND_READER_ALIAS_REGISTRY.end()) {
+      idx = result - G::SHORTHAND_READER_ALIAS_REGISTRY.begin();
+      return true;
+    }
+    return false;
+  }
+
+
   bool is_infix_operator(sym_type sym)noexcept{
     trim_edge_whitespace(sym);
+    // Check if symbol is a reader alias for another symbol
+    //   (then check if the expansion is an infix operator if so)
+    if(size_type idx = 0; symbol_is_reader_alias(sym,idx))
+      sym = G::LONGHAND_READER_ALIAS_REGISTRY[idx];
+    // Check if symbol is an infix operator
     for(const auto& prec_level : G::INFIX_TABLE)
       for(const auto& op : prec_level.second)
         if(op.second == sym) return true;

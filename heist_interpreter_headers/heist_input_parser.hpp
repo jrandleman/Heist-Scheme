@@ -371,25 +371,13 @@ namespace heist {
   * READER ALIAS CONVERSION
   ******************************************************************************/
 
-  bool data_is_reader_alias(const data& d, size_type& idx)noexcept{
-    if(d.is_type(types::sym)) {
-      auto result = std::find(G::SHORTHAND_READER_ALIAS_REGISTRY.begin(),
-                              G::SHORTHAND_READER_ALIAS_REGISTRY.end(),d.sym);
-      if(result != G::SHORTHAND_READER_ALIAS_REGISTRY.end()) {
-        idx = result - G::SHORTHAND_READER_ALIAS_REGISTRY.begin();
-        return true;
-      }
-    }
-    return false;
-  }
-
   void expand_reader_aliases(exp_type& ast)noexcept{
     if(G::SHORTHAND_READER_ALIAS_REGISTRY.empty()) return;
     size_type idx = 0;
     for(size_type i = 0, n = ast.size(); i < n; ++i) {
       if(ast[i].is_type(types::exp))
         expand_reader_aliases(ast[i].exp);
-      else if(data_is_reader_alias(ast[i],idx))
+      else if(ast[i].is_type(types::sym) && symbol_is_reader_alias(ast[i].sym,idx))
         ast[i].sym = G::LONGHAND_READER_ALIAS_REGISTRY[idx];
     }
   }
