@@ -4198,15 +4198,16 @@ namespace heist {
 
 
   // Returns whether found <sought_property> in <proto> or its inherited prototype
-  bool search_prototype_and_inherited_properties(cls_type& proto, const scm_string& sought_property, bool& is_member, data& value)noexcept{
-    bool seek_call_value_in_local_object(data& value, const scm_string& property, bool& is_member)noexcept;
+  bool search_prototype_and_inherited_properties(cls_type& proto, const scm_string& sought_property, bool& is_member, data& value) {
+    bool seek_call_value_in_local_object(data& value, const scm_string& property, bool& is_member);
     // Search the prototype
     for(size_type i = 0, n = proto->member_names.size(); i < n; ++i)
       if(proto->member_names[i] == sought_property) {
         // cache accessed inherited member
         value.obj->member_names.push_back(sought_property);
-        value.obj->member_values.push_back(proto->member_values[i]);
-        value = proto->member_values[i];
+        auto deep_copied_value = proto->member_values[i].copy();
+        value.obj->member_values.push_back(deep_copied_value);
+        value = deep_copied_value;
         is_member = true;
         return true;
       }
@@ -4228,7 +4229,7 @@ namespace heist {
 
   // Returns whether found <property> as a member/method in <value.obj> 
   // If returns true, <property> value is in <value> & <is_member> denotes whether a member or method
-  bool seek_call_value_in_local_object(data& value, const scm_string& property, bool& is_member)noexcept{
+  bool seek_call_value_in_local_object(data& value, const scm_string& property, bool& is_member) {
     auto& members = value.obj->member_names;
     // Seek members
     for(size_type i = 0, n = members.size(); i < n; ++i)
