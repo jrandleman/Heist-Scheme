@@ -470,7 +470,7 @@ Other primitives of this nature include:<br>
     ```scheme
     (lambda (a (b 1) (c 2)) <body> ...)          ; OK, b & c have default values!
     (lambda (a (b 1) . va-args-list) <body> ...) ; OK, has both optionals & variadics!
-    (lambda ((b 1) a . va-args-list) <body> ...) ; ERROR: a MUST precede optional b
+    (lambda ((b 1) a . va-args-list) <body> ...) ; ERROR: a MUST precede optional b!
     (lambda (a b . (va-args-list 1)) <body> ...) ; ERROR: variadics CAN'T have defaults!
     ```
 
