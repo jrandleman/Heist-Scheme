@@ -551,4 +551,7 @@
     (cons 'begin (parse-expression (read input-port)))))
 
 (define (read-file filename) ; read all exprs in filename
-  (read-port (open-input-file filename)))
+  (define port (open-input-file filename))
+  (define port-contents (read-port port))
+  (close-port port)
+  port-contents)

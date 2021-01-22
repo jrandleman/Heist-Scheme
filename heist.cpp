@@ -993,6 +993,107 @@ namespace heist {
   scm_list lambda_parameters(scm_list& exp)noexcept{return exp[1].exp;}
   scm_list lambda_body(scm_list& exp)      noexcept{return scm_list(exp.begin()+2,exp.end());}
 
+  // Is a lambda using optional args (gets converted to a <fn>)
+  // WARNING: DOES __NOT__ VALIDATE SUCH IS IN PROPER FORM
+  bool is_opt_arg_lambda(const scm_list& exp)noexcept{
+    if(exp.size() >= 3 && exp[0].is_type(types::sym) && exp[0].sym == symconst::lambda && exp[1].is_type(types::exp))
+      for(const auto& arg : exp[1].exp)
+        if(arg.is_type(types::exp))
+          return true;
+    return false;
+  }
+
+  // Validate lambda using optional args prior fn transformation
+  void validate_lambda_opt_args(const scm_list& exp) {
+    const auto& vars = exp[1].exp;
+    const size_type n = vars.size();
+    // variadic (.) arg must have a label afterwards
+    if(n != 0 && vars[n-1].sym == symconst::period)
+      THROW_ERR("Expected one item after variadic dot (.)! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+    // Search the vars list of the fcn's args for improper (.) use & duplicate arg names
+    bool found_opt_arg = false;
+    for(size_type i = 0; i < n; ++i) {
+      if(vars[i].is_type(types::sym)) {
+        // Variadic (.) must come just prior the last arg
+        if(vars[i].sym == symconst::period) {
+          if(i+3 == n && vars[i+2].is_type(types::sym) && string_begins_with(vars[i+2].sym, symconst::continuation)) 
+            return; // allow continuations after variadic
+          if(i+2 != n) 
+            THROW_ERR("More than one item found after variadic dot (.)! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+          if(!vars[i+1].is_type(types::sym))
+            THROW_ERR("Variadic arg can't accept optional values! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+          return;
+        // Confirm haven't already discovered an arg w/ an optional value
+        } else if(found_opt_arg) {
+          THROW_ERR("All mandatory args must precede all optional args! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+        }
+      // Confirm valid optional arg format
+      } else if(vars[i].is_type(types::exp)) {
+        found_opt_arg = true;
+        if(vars[i].exp.size() != 2 || !vars[i].exp[0].is_type(types::sym))
+          THROW_ERR("Improper optional arg format: (<optional-arg-name> <value>) -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+      // ERROR: Neither symbolic arg name, nor optional arg expression
+      } else {
+        THROW_ERR("Arg wasn't an optional-arg expression or symbolic name! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+      }
+    }
+  }
+
+  // Lambda->fn when given a lambda with optional args
+  // PRECONDITION: is_opt_arg_lambda(exp)
+  scm_list convert_lambda_opt_args_to_fn(const scm_list& exp) {
+    validate_lambda_opt_args(exp);
+    auto& params = exp[1].exp;
+    const size_type n = params.size(), variadic_offset = 2;
+    bool is_variadic = n > 1 && params[n-variadic_offset].is_type(types::sym) && params[n-variadic_offset].sym == symconst::period;
+    bool found_dflt = false;
+    // Get vectors of the mandatory args, & form "define" exprs for the default args
+    scm_list mandatory_args, default_value_defns;
+    for(size_type i = 0, j = 0, m = n - (variadic_offset * is_variadic); i < m; ++i) {
+      if(params[i].is_type(types::exp)) {
+        found_dflt = true;
+        default_value_defns.push_back(scm_list(3));
+        default_value_defns[j].exp[0] = symconst::define;
+        default_value_defns[j].exp[1] = params[i].exp[0];
+        default_value_defns[j++].exp[2] = params[i].exp[1];
+      } else if(!found_dflt) {
+        mandatory_args.push_back(params[i]);
+      }
+    }
+    if(is_variadic) {
+      size_type i = default_value_defns.size();
+      default_value_defns.push_back(scm_list(3));
+      default_value_defns[i].exp[0] = symconst::define;
+      default_value_defns[i].exp[1] = params[n-(variadic_offset-1)].sym;
+      default_value_defns[i].exp[2] = scm_list(2);
+      default_value_defns[i].exp[2].exp[0] = symconst::quote;
+      default_value_defns[i].exp[2].exp[1] = scm_list();
+    }
+    // Generate <fn>
+    const size_type fn_size = 2+default_value_defns.size()-is_variadic;
+    scm_list fn_expr(fn_size);
+    fn_expr[0] = symconst::fn;
+    // Generate <fn> bodies
+    for(size_type i = 1; i < fn_size; ++i) {
+      bool last_instance = is_variadic && i+1 == fn_size;
+      fn_expr[i] = scm_list(1);
+      // Generate <fn> parameter list instance
+      fn_expr[i].exp[0] = mandatory_args; // param_list
+      for(size_type j = 0; j < i-1; ++j)  // mandatory args that could've been defaults
+        fn_expr[i].exp[0].exp.push_back(default_value_defns[j].exp[1]);
+      if(last_instance) {                 // add in variadic arg as needed
+        fn_expr[i].exp[0].exp.push_back(symconst::period);
+        fn_expr[i].exp[0].exp.push_back(default_value_defns.rbegin()->exp[1]);
+      }
+      // Generate <fn> body instance
+      for(size_type j = i-1, n = default_value_defns.size()-last_instance; j < n; ++j)
+        fn_expr[i].exp.push_back(default_value_defns[j]); // insert dflt value defns
+      for(size_type j = 2, n = exp.size(); j < n; ++j)
+        fn_expr[i].exp.push_back(exp[j]);                 // insert body
+    }
+    return fn_expr;
+  }
+
   // Ctor for lambdas
   scm_list make_lambda(scm_list parameters,scm_list body)noexcept{
     scm_list new_lambda(body.size()+2); 
@@ -1005,6 +1106,11 @@ namespace heist {
 
   // Returns an exec proc to mk a lambda w/ the analyzed parameter list & body
   exe_fcn_t analyze_lambda(scm_list& exp,const bool cps_block=false) {
+    // convert lambdas w/ optional args to fns
+    exe_fcn_t analyze_fn(scm_list&,const bool cps_block);
+    if(is_opt_arg_lambda(exp)) 
+      return scm_analyze(convert_lambda_opt_args_to_fn(exp),false,cps_block);
+    // handle regular lambdas
     confirm_valid_lambda(exp);
     auto vars = lambda_parameters(exp);
     confirm_valid_procedure_parameters(vars,exp);                      // validate parameters
@@ -1155,6 +1261,25 @@ namespace heist {
     "\n                             | ((self->copy) <body> ...)   ; overload copy"\
     "\n                             | ((self->procedure <arg> ...) <body> ...) ; overload application"
 
+
+  // -- OPTIONAL ARG CONVERSION
+  // converts inline methods using opt args to a defmethod expr
+  // converts inline ctor using opt args to use its <fn> syntax
+  void convert_opt_args_method_or_ctor_to_fn_expr(const sym_type& ctor_name, scm_list& exp)noexcept{
+    sym_type name = exp[0].exp[0].sym;
+    scm_list inline_method_as_lambda(exp.size()+1);
+    inline_method_as_lambda[0] = symconst::lambda;
+    inline_method_as_lambda[1] = scm_list(exp[0].exp.begin()+1,exp[0].exp.end());
+    std::copy(exp.begin()+1,exp.end(),inline_method_as_lambda.begin()+2);
+    if(ctor_name == name) { // ctor
+      exp = convert_lambda_opt_args_to_fn(inline_method_as_lambda);
+      exp[0] = ctor_name;
+    } else { // method
+      exp = scm_list(3);
+      exp[0] = symconst::defmethod, exp[1] = name, exp[2] = inline_method_as_lambda;
+    }
+  }
+
   // -- ERROR HANDLING
   void validate_defclass(scm_list& exp) {
     if(exp.size() < 3)
@@ -1177,7 +1302,7 @@ namespace heist {
             THROW_ERR("'defclass invalid method definition => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
           continue;
         }
-        if(exp[i].exp[0].sym == ctor_name) {
+        if(exp[i].exp[0].sym == ctor_name) { // fn ctor
           if(exp[i].exp.size() == 1)
             THROW_ERR("'defclass <constructor> missing fn arg-body instances => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
           for(size_type j = 1, n = exp[i].exp.size(); j < n; ++j)
@@ -1194,9 +1319,15 @@ namespace heist {
         continue;
       }
       if(exp[i].exp[0].is_type(types::exp)) { // method
-        for(size_type j = 0, m = exp[i].exp[0].exp.size(); j < m; ++j)
-          if(!exp[i].exp[0].exp[j].is_type(types::sym))
+        for(size_type j = 0, m = exp[i].exp[0].exp.size(); j < m; ++j) { // verify proper name/parameters
+          if(!exp[i].exp[0].exp[j].is_type(types::sym)) {
+            if(j && exp[i].exp[0].exp[j].is_type(types::exp)) { // detected optional arg use
+              convert_opt_args_method_or_ctor_to_fn_expr(ctor_name,exp[i].exp);
+              break;
+            }
             THROW_ERR("'defclass invalid <member-or-method-instance> => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
+          }
+        }
         continue;
       }
       THROW_ERR("'defclass invalid <member-or-method-instance> => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
@@ -2795,6 +2926,8 @@ namespace heist {
 
     // LAMBDA
     } else if(is_tagged_list(code.exp,symconst::lambda)) {
+      if(is_opt_arg_lambda(code.exp)) // convert optional-args <lambda> to a <fn>
+        return generate_fundamental_form_cps(convert_lambda_opt_args_to_fn(code.exp),topmost_call);
       scm_list lambda(3);
       generate_cps_lambda_form(code,lambda);
       if(topmost_call) optimize_CPS_code_generation(lambda);

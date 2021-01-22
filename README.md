@@ -465,6 +465,14 @@ Other primitives of this nature include:<br>
     (lambda (a b . va-args-list) <body> ...)   ; OK
     (lambda (a b . va-args-list c) <body> ...) ; ERROR: Variadic Arg Name Isn't Last!
     ```
+* _Note: Assign default values to arguments by using `()`:_
+  - _Note: Mandatory parameters must precede optional ones!_
+    ```scheme
+    (lambda (a (b 1) (c 2)) <body> ...)          ; OK, b & c have default values!
+    (lambda (a (b 1) . va-args-list) <body> ...) ; OK, has both optionals & variadics!
+    (lambda ((b 1) a . va-args-list) <body> ...) ; ERROR: a MUST precede optional b
+    (lambda (a b . (va-args-list 1)) <body> ...) ; ERROR: variadics CAN'T have defaults!
+    ```
 
 #### Reader Shorthand: `\<expr>`
 * Use `%n` to refer to the `n`th argument (1-indexed so `%1` is the 1st arg)
