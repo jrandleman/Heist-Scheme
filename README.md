@@ -43,7 +43,7 @@
    - [Notation](#Notation)
    - [Namespacing](#Namespacing)
 1. [Heist Command-Line Flags](#Heist-Command-Line-Flags)
-   - [`-infix` Infix Operators](#-infix-infix-operators)
+   - [`-infix` Operators](#-infix-operators)
 2. [Heist Primitive Data Types](#Heist-Primitive-Data-Types)
 3. [Heist Numerics](#Heist-Numerics)
    - [4 Number Types](#4-Number-Types)
@@ -198,7 +198,7 @@
 10. Interpreter Version: `--version`
 11. Show These Options: `--help`
 
-## `-infix` Infix Operators
+## `-infix` Operators
 | Precedence |                       Operators                      | Associativity |                     Effects                     |
 | :--------: | :--------------------------------------------------- | :-----------: | :---------------------------------------------- |
 |     10     | `:`                                                  |     Right     | functional composition                          |
