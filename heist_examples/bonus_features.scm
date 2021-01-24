@@ -7,7 +7,7 @@
 ; prn, pr          ; write arbitrary # of args
 ; println, print   ; display arbitrary # of args
 ; pprintln, pprint ; pretty-print arbitrary # of args
-; function         ; proecdure definition that can use <return>!
+; function         ; procedure definition that can use <return>!
 ; time-operation   ; time an operation!
 ; swap!            ; swap 2 variables
 ; tlambda          ; use predicates (including Type checks) on lambda args!
