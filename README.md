@@ -204,7 +204,7 @@
 |   10  | `:`                                                  | Right | functional composition                 |
 |    9  | `**`                                                 | Right | expt                                   |
 |    8  | `*` `/` `%` `//` `mod`                               | Left  | *, /, remainder, quotient, modulo      |
-|    7  | `+` `-`                                              | Left  | +, -                                   |
+|    7  | `+` `-`                                              | Left  | addition, subtractio                   |
 |    6  | `::` `@`                                             | Right | cons, append                           |
 |    5  | `>` `<` `>=` `<=`                                    | Left  | gt, lt, gte, lte                       |
 |    4  | `==` `!=`                                            | Left  | eq, neq                                |
