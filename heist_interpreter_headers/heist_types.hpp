@@ -72,7 +72,6 @@ namespace heist {
     constexpr const char * const begin             = "begin";
     constexpr const char * const if_t              = "if";
     constexpr const char * const cond_result       = "heist:core:cond-result";
-    constexpr const char * const do_t              = "do";
     constexpr const char * const and_t             = "and";
     constexpr const char * const or_t              = "or";
     constexpr const char * const ellipsis          = "...";
@@ -92,6 +91,7 @@ namespace heist {
     constexpr const char * const unfix             = "unfix!";
     constexpr const char * const defn_reader_alias = "define-reader-alias";
     constexpr const char * const inf_precedence    = "heist:core:inf-precedence";
+    constexpr const char * const while_t           = "heist:core:while";
   } // End namespace symconst
 
   /******************************************************************************

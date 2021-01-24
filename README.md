@@ -58,7 +58,7 @@
    - [If](#If), [And](#And), [Or](#Or)
    - [Cond](#Cond), [Case](#Case)
    - [Let](#Let), [Let\*](#Let-1), [Letrec](#Letrec)
-   - [Do](#Do)
+   - [Do](#Do), [While](#While)
    - [Delay](#Delay), [Scons](#Scons), [Stream](#Stream)
    - [Vector-Literal](#Vector-Literal), [Hmap-Literal](#Hmap-Literal)
    - [Define-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax), [Core-Syntax](#Core-Syntax), [Define-Reader-Alias](#Define-Reader-Alias)
@@ -768,12 +768,13 @@ Other primitives of this nature include:<br>
 ------------------------
 ## Do:
 
-#### Use: ___Iteration Construct!___
+#### Use: ___Recursive Iteration Construct!___
+* _Note: `do` is actually a macro directly defined **in** Heist Scheme!_
 
 #### Form:
 ```scheme
-(do ((<var> <initial-val> <update>) ...)         ; <update> is optional (defaults to <var>)!
-  (<break-test> <return-exp1> <return-exp2> ...) ; return expressions are optional (defaults to <void>)!
+(do ((<var> <initial-val> <update>) ...)
+  (<break-test> <return-exp1> <return-exp2> ...) ; returns are optional (<void> by default)!
   <body> ...)
 ```
 
@@ -794,6 +795,20 @@ Other primitives of this nature include:<br>
                   (set! <var> <update>) ...
                   (<INTERNAL-RESERVED-NAME> <var> ...))))))
         (<INTERNAL-RESERVED-NAME> <initial-val> ...))
+```
+
+
+------------------------
+## While:
+
+#### Use: ___True Iteration Construct!___
+* _Warning: degrades to [`do`](#Do) in [cps contexts](#Scm-Cps)!_
+* _Note: uses a true C++ `while` under the hood (no recursion overhead)!_
+
+#### Form:
+```scheme
+(while (<test> <return-exp1> <return-exp2> ...) ; returns are optional (<void> by default)!
+  <body> ...)
 ```
 
 

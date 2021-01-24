@@ -16,6 +16,8 @@
 ; let-syntax
 ; letrec-syntax
 ; defn
+; while
+; do
 
 (core-syntax cond 
   (syntax-rules (else =>)
@@ -127,6 +129,69 @@
      (define name (fn ((a ...) b ...))))
     ((_ name instance ...) 
      (define name (fn instance ...)))))
+
+
+(core-syntax while ; wrap the looping instrinsic to prevent leaking inner defs
+  (syntax-rules ()
+    ((_ (c ...) b ...) ((lambda () (heist:core:while (c ...) b ...))))
+    ((_ (c ...)) ((lambda () (heist:core:while (c ...)))))))
+
+
+(core-syntax do
+  (syntax-rules ()
+    ((_ ((var val update) ...)
+        (break-test returns ...)
+        body ...)
+      (letrec ((heist:core:do-call 
+                (lambda (var ...)
+                  (if break-test
+                      (begin returns ...)
+                      (begin body ... (set! var update) ... (heist:core:do-call var ...))))))
+              (heist:core:do-call val ...)))
+    ; no body
+    ((_ ((var val update) ...)
+        (break-test returns ...))
+      (letrec ((heist:core:do-call 
+                (lambda (var ...)
+                  (if break-test
+                      (begin returns ...)
+                      (begin (set! var update) ... (heist:core:do-call var ...))))))
+              (heist:core:do-call val ...)))
+    ; no returns
+    ((_ ((var val update) ...)
+        (break-test)
+        body ...)
+      (letrec ((heist:core:do-call 
+                (lambda (var ...)
+                  (if (not break-test)
+                      (begin body ... (set! var update) ... (heist:core:do-call var ...))))))
+              (heist:core:do-call val ...)))
+    ; no returns nor body
+    ((_ ((var val update) ...)
+        (break-test))
+      (letrec ((heist:core:do-call 
+                (lambda (var ...)
+                  (if (not break-test)
+                      (begin (set! var update) ... (heist:core:do-call var ...))))))
+              (heist:core:do-call val ...)))
+    ; no params (implies a body)
+    ((_ ()
+        (break-test returns ...)
+        body ...)
+      (letrec ((heist:core:do-call 
+                (lambda ()
+                  (if break-test 
+                      (begin returns ...) 
+                      (begin body ... (heist:core:do-call))))))
+              (heist:core:do-call)))
+    ; no params nor returns (implies a body)
+    ((_ ()
+        (break-test)
+        body ...)
+      (letrec ((heist:core:do-call 
+                (lambda () 
+                  (if (not break-test) (begin body ... (heist:core:do-call))))))
+              (heist:core:do-call)))))
 
 ;; ==============================================
 ;; =========== LAZY STREAM ALGORITHMS ===========

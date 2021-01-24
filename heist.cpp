@@ -1585,197 +1585,55 @@ namespace heist {
   #undef DEFCLASS_LAYOUT
 
   /******************************************************************************
-  * DERIVING DO
+  * REPRESENTING TRUE ITERATION: WHILE (DEGRADES TO "DO" IN CPS BLOCKS)
   ******************************************************************************/
 
-  // (do ((<var-name1> <init-val1> <val-manip1>) 
-  //      ... 
-  //      (<var-nameN> <init-valN> <val-manipN>))
-  //     (<test> <expression1> ... <expressionN>)
-  //     <body>)
+  bool is_while(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::while_t);}
 
-  // (letrec ((<HEIST-DO-LETREC> 
-  //   (lambda (<var-name1> ... <var-nameN>)
-  //     (if <test>)
-  //         (begin <expression1> ... <expressionN>) ; <void> w/o "<expression>"
-  //         (begin 
-  //           <body>
-  //           (set! <var1> <val-manip1>)
-  //           ...
-  //           (set! <varN> <val-manipN>)
-  //           (<HEIST-DO-LETREC> <var-name1> ... <var-nameN>)))))
-  //   (<HEIST-DO-LETREC> <init-val1> ... <init-valN>))
-  bool is_do(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::do_t);}
-
-  // Confirms do-expression's var_defn_list is valid in structure
-  void confirm_valid_var_defn_list(const scm_list& var_defn_list, const scm_list& exp) {
-    for(const auto& var_defn : var_defn_list) {
-      if(!var_defn.is_type(types::exp) || (var_defn.is_type(types::exp) && 
-          var_defn.exp.size() != 2 && var_defn.exp.size() != 3))
-        THROW_ERR("DO expression has non-var-defn-expression in <var-defn> list! -- CONVERT_DO_LETREC\n     -> [ "
-                    << PROFILE(var_defn) << " ]\n     <var-defn> = (<var> <init-val> <optional-iteration-mutation>)"
-                    << EXP_ERR(exp));
-      else if(!var_defn.exp[0].is_type(types::sym))
-        THROW_ERR("DO expression has an invalid <var> name in its <var-defn> list! -- CONVERT_DO_LETREC\n     -> [ "
-                    << PROFILE(var_defn.exp[0]) 
-                    << " ]\n     <var-defn> = (<var> <init-val> <optional-iteration-mutation>)" << EXP_ERR(exp));
-    }
-  }
-
-  // Returns list of var-init-mod inner lists
-  scm_list do_var_defn_list(const data& defn_exp, const scm_list& exp) {
-    if(defn_exp.is_type(types::exp) && defn_exp.exp.empty())
-      return scm_list(); // empty list, no vars to speak of
-    if(!defn_exp.is_type(types::exp))
-      THROW_ERR("DO expression expects <var-defn>s at position 1 -- CONVERT_DO_LETREC!\n     -> [ "
-        << PROFILE(defn_exp) << " ]\n     <var-defn> = (<var> <init-val> <optional-iteration-mutation>)"
-        << EXP_ERR(exp));
-    confirm_valid_var_defn_list(defn_exp.exp, exp);
-    return defn_exp.exp;
-  }
-
-  // Returns a list of variable names being defined
-  // PRECONDITION: 'var_defn_list' MUST BE VALIDATED
-  frame_vars do_var_names(const scm_list& var_defn_list, const scm_list& exp) {
-    if(var_defn_list.empty()) {
-      frame_vars no_vars(1,symconst::sentinel_arg); 
-      return no_vars;
-    }
-    frame_vars names(var_defn_list.size());
-    // parse variable names
-    for(size_type i = 0, n = var_defn_list.size(); i < n; ++i)
-      names[i] = var_defn_list[i].exp[0].sym;
-    // confirm no duplicate variables names
-    for(size_type i = 0, n = names.size(); i+1 < n; ++i)
-      for(size_type j = i+1; j < n; ++j) 
-        if(names[i] == names[j])
-          THROW_ERR("DO expression has a duplicate <var> name in its <var-defn> list -- CONVERT_DO_LETREC!\n     -> [ " 
-            << names[i] << " ]\n     <var-defn> = (<var> <init-val> <optional-iteration-mutation>)"
-            << EXP_ERR(exp));
-    return names;
-  }
-
-  // Returns a list of variabl initial values
-  // PRECONDITION: 'var_defn_list' MUST BE VALIDATED
-  scm_list do_var_init_values(const scm_list& var_defn_list)noexcept{
-    if(var_defn_list.empty()) {
-      scm_list empty_inits(1,scm_list(2));
-      empty_inits[0].exp[0] = symconst::quote;
-      empty_inits[0].exp[1] = symconst::sentinel_arg;
-      return empty_inits;
-    }
-    scm_list init_values(var_defn_list.size());
-    for(size_type i = 0, n = var_defn_list.size(); i < n; ++i)
-      init_values[i] = var_defn_list[i].exp[1];
-    return init_values;
-  }
-
-  // Returns a list of variable per-iteration value modifications
-  // PRECONDITION: 'var_defn_list' MUST BE VALIDATED
-  scm_list do_var_iteration_updates(const scm_list& var_defn_list, 
-                                    const frame_vars& names)noexcept{
-    if(var_defn_list.empty()) return scm_list();
-    scm_list modifications(var_defn_list.size());
-    // parse variable modifications
-    for(size_type i = 0, n = var_defn_list.size(); i < n; ++i){
-      if(var_defn_list[i].exp.size() != 3)
-        modifications[i] = names[i];
-      else
-        modifications[i] = var_defn_list[i].exp[2];
-    }
-    return modifications;
-  }
-
-
-  // Returns a list breaking conditions for the do-expression
-  scm_list do_break_test_exps(const data& break_exp, const scm_list& exp) {
-    if(!break_exp.is_type(types::exp) || break_exp.exp.empty())
-      THROW_ERR("DO expression expects <break-condition-list> at position 2 -- CONVERT_DO_LETREC! -> [ " 
-        << PROFILE(break_exp) << " ]\n     <break-condition-list> = (<break-condition> <optional-returned-expression>)"
-        << EXP_ERR(exp));
-    return break_exp.exp;
-  }
-
-
-  // Returns the do-exp's body + variable modifications (per-iteration) wrapped in a 'begin' clause
-  scm_list do_modified_body(const scm_list& exp, const frame_vars& names, 
-                                                 const scm_list&& mod_vals)noexcept{
-    // Add the do-expression's body
-    scm_list body(exp.begin()+3, exp.end());
-    // Add the modifications of its values (per-iteration)
-    if(names.size() > 1 || names[0] != symconst::sentinel_arg) {
-      scm_list set_exp(3); set_exp[0] = symconst::set;
-      for(size_type i = 0, n = names.size(); i < n; ++i) {
-        set_exp[1] = names[i], set_exp[2] = mod_vals[i];
-        body.push_back(set_exp);
+  exe_fcn_t analyze_while(scm_list& exp,const bool cps_block=false) {
+    // "while"s in cps contexts degrade to "do"s
+    if(cps_block) {
+      exp[0] = symconst::cps_app_tag;
+      exp.insert(exp.begin()+1,"do");
+      exp.insert(exp.begin()+2,data(scm_list()));
+      if(exp.size() > 3 && exp[3].is_type(types::exp) && !exp[3].exp.empty()) {
+        scm_list negated_cond(2);
+        negated_cond[0] = "not", negated_cond[1] = exp[3].exp[0];
+        exp[3].exp[0] = negated_cond;
       }
+      return scm_analyze(std::move(exp),false,true);
     }
-    // Add the recursive call to reiterate the do-expression
-    body.push_back(scm_list(1,symconst::do_label));
-    auto& recursive_call = body[body.size()-1].exp;
-    for(const auto& name : names) 
-      recursive_call.push_back(name);
-    return convert_sequence_exp(body); // Return as a 'begin' clause
-  }
-
-
-  // Returns a lambda to run for each iteration over the loop, until >= 1 break 
-  //   condition is met
-  scm_list do_iteration_lambda(const scm_list& body, const scm_list&& break_test_exps, 
-                                                     const frame_vars& names)noexcept{
-    // test the break condition
-    scm_list conditioned_body(2);
-    conditioned_body[0] = symconst::if_t;
-    conditioned_body[1] = break_test_exps[0];
-    // eval each expression & return the last one (iff provided optional exps)
-    if(break_test_exps.size() > 1) {
-      conditioned_body.push_back(scm_list(1, symconst::begin));
-      auto& break_exps = conditioned_body.rbegin()->exp;
-      break_exps.insert(break_exps.end(), break_test_exps.begin()+1, break_test_exps.end());
-    // if NOT given the optional exps, return <void>
+    // validate has a condition
+    if(exp.size() < 2 || !exp[1].is_type(types::exp) || exp[1].exp.empty())
+      THROW_ERR("'while 1st argument isn't a condition/return list!"
+        "\n     (while (<condition> <optional-return-expr> ...) <body> ...)" << EXP_ERR(exp));
+    // analyze condition & return exprs (if exists, else returns <void>)
+    exe_fcn_t return_exe, condition_exe = scm_analyze(scm_list_cast(exp[1].exp[0]));
+    if(exp[1].exp.size() >= 2 && !data_is_the_SENTINEL_VAL(exp[1].exp[1])) {
+      scm_list return_exps(exp[1].exp.size());
+      return_exps[0] = symconst::begin;
+      std::copy(exp[1].exp.begin()+1,exp[1].exp.end(),return_exps.begin()+1);
+      return_exe = scm_analyze(std::move(return_exps));
     } else {
-      conditioned_body.push_back(G::VOID_DATA_OBJECT); 
+      return_exe = [](env_type&){return G::VOID_DATA_EXPRESSION;};
     }
-    // if break !condition, evaluate the body & reset values
-    conditioned_body.push_back(body);
-    // convert list of names to a scm_list of name symbols
-    scm_list names_scm_list(names.size());
-    std::copy(names.begin(), names.end(), names_scm_list.begin());
-    scm_list lambda_exp(3);
-    lambda_exp[0] = symconst::lambda;
-    lambda_exp[1] = std::move(names_scm_list);
-    lambda_exp[2] = std::move(conditioned_body);
-    return lambda_exp;
-  }
-
-
-  // Converts the 'do expression into a 'letrec
-  scm_list convert_do_letrec(scm_list& exp) {
-    if(exp.size() < 3)
-      THROW_ERR("DO expression didn't receive enough args!"
-        "\n     (do ((<var> <init-val> <optional-iteration-mutation>) ...)"
-        "\n         (<test> <optional-return-expressions>)"
-        "\n         <optional-body>)"
-        << EXP_ERR(exp));
-
-    auto var_defns = do_var_defn_list(exp[1],exp);
-    auto var_names = do_var_names(var_defns,exp);
-    auto var_inits = do_var_init_values(var_defns);
-    auto iteration_lambda = do_iteration_lambda(do_modified_body(exp, var_names, 
-                                                  do_var_iteration_updates(var_defns,var_names)), 
-                                                do_break_test_exps(exp[2],exp), var_names);
-    // do expression's intial call to be invoked
-    scm_list initial_do_call(var_inits.size()+1);
-    initial_do_call[0] = symconst::do_label;
-    std::move(var_inits.begin(), var_inits.end(), initial_do_call.begin()+1);
-    // ctor the do expression: (letrec ((do-label iteration-lambda)) initial-do-call)
-    scm_list letrec_conversion(3);
-    letrec_conversion[0] = symconst::letrec;
-    letrec_conversion[1] = scm_list(1,scm_list(2));
-    letrec_conversion[1].exp[0].exp[0] = symconst::do_label;
-    letrec_conversion[1].exp[0].exp[1] = std::move(iteration_lambda);
-    letrec_conversion[2] = std::move(initial_do_call);
-    return letrec_conversion;
+    // has no body
+    if(exp.size() == 2) {
+      return [return_exe=std::move(return_exe),condition_exe=std::move(condition_exe)](env_type& env){
+        while(is_true(condition_exe(env)));
+        return return_exe(env);
+      };
+    }
+    // has body
+    scm_list body_exps(exp.size()-1);
+    body_exps[0] = symconst::begin;
+    std::copy(exp.begin()+2,exp.end(),body_exps.begin()+1);
+    exe_fcn_t body_exe = scm_analyze(std::move(body_exps));
+    return [return_exe=std::move(return_exe),condition_exe=std::move(condition_exe),
+            body_exe=std::move(body_exe)](env_type& env){
+      while(is_true(condition_exe(env))) body_exe(env);
+      return return_exe(env);
+    };
   }
 
   /******************************************************************************
@@ -2511,10 +2369,10 @@ namespace heist {
 
   // Heist-specific checker to not prefix C++ derived special forms w/ application tag
   bool is_HEIST_cpp_derived_special_form(const sym_type& app)noexcept{
-    return app == symconst::cps_quote || app == symconst::scm_cps      || app == symconst::map_literal  ||
-           app == symconst::and_t     || app == symconst::or_t         || app == symconst::delay        || 
-           app == symconst::do_t      || app == symconst::quasiquote   || app == symconst::vec_literal  ||
-           app == symconst::unquote   || app == symconst::unquo_splice || app == symconst::infix        ||
+    return app == symconst::cps_quote || app == symconst::scm_cps      || app == symconst::map_literal ||
+           app == symconst::and_t     || app == symconst::or_t         || app == symconst::delay       || 
+           app == symconst::while_t   || app == symconst::quasiquote   || app == symconst::vec_literal ||
+           app == symconst::unquote   || app == symconst::unquo_splice || app == symconst::infix       ||
            app == symconst::infixr    || app == symconst::unfix        || app == symconst::defn_reader_alias;
   }
 
@@ -4756,7 +4614,6 @@ namespace heist {
     else if(is_lambda(exp))            return analyze_lambda(exp,cps_block);
     else if(is_begin(exp))             return analyze_sequence(begin_actions(exp),tail_call,cps_block);
     else if(is_delay(exp))             return analyze_delay(exp,cps_block);
-    else if(is_do(exp))                return scm_analyze(convert_do_letrec(exp),tail_call,cps_block);
     else if(is_defclass(exp))          return analyze_defclass(exp);
     else if(is_fn(exp))                return analyze_fn(exp,cps_block);
     else if(is_scm_cps(exp))           return analyze_scm_cps(exp);
@@ -4771,10 +4628,9 @@ namespace heist {
     else if(is_infixr(exp))            return analyze_infixr(exp);
     else if(is_unfix(exp))             return analyze_unfix(exp);
     else if(is_defn_reader_alias(exp)) return analyze_defn_reader_alias(exp);
+    else if(is_while(exp))             return analyze_while(exp,cps_block);
     else if(is_vector_literal(exp))           THROW_ERR("Misplaced keyword 'vector-literal outside of a quotation! -- ANALYZE"   <<EXP_ERR(exp));
     else if(is_hmap_literal(exp))             THROW_ERR("Misplaced keyword 'hmap-literal outside of a quotation! -- ANALYZE"     <<EXP_ERR(exp));
-    else if(is_unquote(exp))                  THROW_ERR("Misplaced keyword 'unquote outside of 'quasiquote ! -- ANALYZE"         <<EXP_ERR(exp));
-    else if(is_unquote_splicing(exp))         THROW_ERR("Misplaced keyword 'unquote-splicing outside of 'quasiquote ! -- ANALYZE"<<EXP_ERR(exp));
     else if(is_application(exp))       return analyze_application(exp,tail_call,cps_block);
     else if(is_variable(exp))          return analyze_variable(exp[0].sym);
     throw_unknown_analysis_anomalous_error(exp);
