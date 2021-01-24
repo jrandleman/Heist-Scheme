@@ -1933,11 +1933,11 @@ namespace heist {
              << EXP_ERR(exp));
   }
 
-  void remove_preexisting_operators_from_table(const scm_list& exp)noexcept{
+  void remove_preexisting_operators_from_table(const scm_list& exp, const int symbol_offset)noexcept{
     const size_type n = exp.size();
     for(auto& prec_level : G::INFIX_TABLE)
       for(size_type i = 0; i < prec_level.second.size(); ++i)
-        for(size_type j = 1; j < n; ++j)
+        for(size_type j = symbol_offset; j < n; ++j)
           if(prec_level.second[i].second == exp[j].sym) {
             prec_level.second.erase(prec_level.second.begin()+i--);
             break;
@@ -1952,7 +1952,7 @@ namespace heist {
         "\n     ("<<name<<" <symbol> ...)" 
         "\n     <precedence-level> range: ["<<LLONG_MIN<<','<<LLONG_MAX<<']'
         << EXP_ERR(exp));
-    remove_preexisting_operators_from_table(exp);
+    remove_preexisting_operators_from_table(exp,2);
     long long level = exp[1].num.extract_inexact();
     for(size_type i = 2, n = exp.size(); i < n; ++i)
       G::INFIX_TABLE[level].push_back(std::make_pair(is_left_assoc,exp[i].sym));
@@ -2001,7 +2001,7 @@ namespace heist {
       if(!exp[i].is_type(types::sym))
         THROW_ERR("'unfix! argument #"<<i+1<<", "<<PROFILE(exp[i])<< ", isn't a symbol!"
           "\n     (unfix! <symbol> ...)"<<EXP_ERR(exp));
-    remove_preexisting_operators_from_table(exp);
+    remove_preexisting_operators_from_table(exp,1);
     return [](env_type&){return G::VOID_DATA_EXPRESSION;};
   }
 
