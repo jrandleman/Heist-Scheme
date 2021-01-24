@@ -5,6 +5,7 @@
 #define HEIST_TYPES_HPP_
 
 #include <algorithm>
+#include <climits>
 #include <ctime>
 #include <filesystem>
 #include <functional>
@@ -229,7 +230,7 @@ namespace heist {
     using infix_op_t    = std::pair<bool,std::string>; // {left-assoc?, symbol}
     using infix_level_t = std::vector<infix_op_t>;
 
-    std::map<size_type,infix_level_t> INFIX_TABLE;
+    std::map<long long,infix_level_t> INFIX_TABLE;
 
     /******************************************************************************
     * MAX VALUE FOR SIZE_TYPE
@@ -1048,7 +1049,7 @@ namespace heist {
 
 
     bool param_is_variadic(const data& d)noexcept{
-      return d.is_type(types::sym) && d.sym == ".";
+      return d.is_type(types::sym) && d.sym == symconst::period;
     }
 
     bool param_is_token(const data& d)noexcept{

@@ -1157,7 +1157,7 @@ namespace heist {
 
   void validate_fn_list_arg_literal(const scm_list& exp, const scm_list& list_arg) {
     for(size_type i = 0, n = list_arg.size(); i < n; ++i) {
-      if(list_arg[i].is_type(types::sym) && list_arg[i].sym == "." && i+2 != n) {
+      if(list_arg[i].is_type(types::sym) && list_arg[i].sym == symconst::period && i+2 != n) {
         THROW_ERR("'fn invalid variadic list literal in arg (\".\" must be 2nd to last arg): "
           << data(list_arg) << FN_LAYOUT << EXP_ERR(exp));
       } else if(list_arg[i].is_type(types::exp)) {
@@ -1185,7 +1185,7 @@ namespace heist {
   }
 
   bool fn_invalid_variadic_arg(const size_type& i, const size_type& n, const scm_list& args)noexcept{
-    return args[i].is_type(types::sym) && args[i].sym == "." &&
+    return args[i].is_type(types::sym) && args[i].sym == symconst::period &&
       !((i+2 == n && args[i+1].is_type(types::sym)) || 
         (i+3 == n && args[i+1].is_type(types::sym) && data_is_continuation_parameter(args[i+2])));
   }
@@ -1914,17 +1914,23 @@ namespace heist {
     if(exp.size() < 2 || data_is_the_SENTINEL_VAL(exp[1]))
       THROW_ERR('\''<<name<<" didn't recieve enough arguments!"
         "\n     ("<<name<<" <precedence-level-integer-literal> <symbol> ...)"
-        "\n     ("<<name<<" <symbol> ...)"<<EXP_ERR(exp));
+        "\n     ("<<name<<" <symbol> ...)" 
+        "\n     <precedence-level> range: ["<<LLONG_MIN<<','<<LLONG_MAX<<']'
+        << EXP_ERR(exp));
     size_type symbols_start_idx = 1 + exp[1].is_type(types::num);
-    if(symbols_start_idx == 2 && (!exp[1].num.is_integer() || exp[1].num.is_neg()))
-      THROW_ERR('\''<<name<<" precedence level isn't an non-negative integer!"
-        "\n     ("<<name<<" <precedence-level-integer-literal:> <symbol> ...)"
-        "\n     ("<<name<<" <symbol> ...)"<<EXP_ERR(exp));
+    if(symbols_start_idx == 2 && !exp[1].num.is_integer())
+      THROW_ERR('\''<<name<<" precedence level isn't an integer!"
+        "\n     ("<<name<<" <precedence-level-integer-literal> <symbol> ...)"
+        "\n     ("<<name<<" <symbol> ...)" 
+        "\n     <precedence-level> range: ["<<LLONG_MIN<<','<<LLONG_MAX<<']'
+        << EXP_ERR(exp));
     for(size_type n = exp.size(); symbols_start_idx < n; ++symbols_start_idx)
       if(!exp[symbols_start_idx].is_type(types::sym))
         THROW_ERR('\''<<name<<" argument #"<<symbols_start_idx+1<<", "<<PROFILE(exp[symbols_start_idx])
           << ", isn't a symbol!\n     ("<<name<<" <precedence-level-integer-literal> <symbol> ...)"
-             "\n     ("<<name<<" <symbol> ...)"<<EXP_ERR(exp));
+             "\n     ("<<name<<" <symbol> ...)" 
+             "\n     <precedence-level> range: ["<<LLONG_MIN<<','<<LLONG_MAX<<']'
+             << EXP_ERR(exp));
   }
 
   void remove_preexisting_operators_from_table(const scm_list& exp)noexcept{
@@ -1943,9 +1949,11 @@ namespace heist {
     if(exp.size() < 3)
       THROW_ERR('\''<<name<<" didn't recieve enough arguments!"
         "\n     ("<<name<<" <precedence-level-integer-literal> <symbol> ...)"
-        "\n     ("<<name<<" <symbol> ...)"<<EXP_ERR(exp));
+        "\n     ("<<name<<" <symbol> ...)" 
+        "\n     <precedence-level> range: ["<<LLONG_MIN<<','<<LLONG_MAX<<']'
+        << EXP_ERR(exp));
     remove_preexisting_operators_from_table(exp);
-    size_type level = (size_type)exp[1].num.extract_inexact();
+    long long level = exp[1].num.extract_inexact();
     for(size_type i = 2, n = exp.size(); i < n; ++i)
       G::INFIX_TABLE[level].push_back(std::make_pair(is_left_assoc,exp[i].sym));
     return [](env_type&){return G::VOID_DATA_EXPRESSION;};

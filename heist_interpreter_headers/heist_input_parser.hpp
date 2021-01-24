@@ -416,7 +416,7 @@ namespace heist {
     for(size_type i = 0; i < total_args; ++i) // populate args
       ast[1].exp.push_back('%' + std::to_string(i+1));
     if(has_variadic) { // add variadic arg (if present)
-      ast[1].exp.push_back(".");
+      ast[1].exp.push_back(symconst::period);
       ast[1].exp.push_back("%%");
     }
   }
