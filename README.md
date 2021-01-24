@@ -473,7 +473,7 @@ Other primitives of this nature include:<br>
 #### Use: ___Generates Anonymous Procedure!___
 
 #### Form: `(lambda (<arg1> <arg2> ...) <body> ...)`
-* _Note: Pass a variadic number of args (0+) by using `.` as such:_
+* _Note: Pass a variadic number of args (0+) by using [`.`](#Interpreter-Invariants-Manipulation) as such:_
   - _Note: Variadic arg-list name must **always** be the last arg!_
     ```scheme
     (lambda (. va-args-list) <body> ...)       ; OK
@@ -500,7 +500,7 @@ Other primitives of this nature include:<br>
 #### Use: ___Generates Anonymous Multi-Arity Pattern-Matching Procedure!___
 
 #### Form: `(fn ((<arg> ...) <body> ...) ...)`
-* _Note: Pass a variadic number of args (0+) by using `.` (like [`lambda`](#Lambda)!)_
+* _Note: Pass a variadic number of args (0+) by using [`.`](#Interpreter-Invariants-Manipulation) (like [`lambda`](#Lambda)!)_
 * _Note: Pattern-match against containers by using literal syntax!_
   * _Like [`syntax-rules`](#syntax-rules), write more restrictive patterns first!_
   * _Match against symbol literals by using [`quote`](#quote)!_
@@ -1238,7 +1238,7 @@ Other primitives of this nature include:<br>
 * _Enables trivial means to bind arguments to values (especially helps w/ lambda calculus)_
 
 #### Form: `(curry (<arg1> <arg2> ...) <body> ...)`
-* _Note: it is undefined behavior to have a variadic `curry` lambda using `.`!_
+* _Note: it is undefined behavior to have a variadic `curry` lambda using [`.`](#Interpreter-Invariants-Manipulation)!_
 
 #### Example:
 ```scheme
