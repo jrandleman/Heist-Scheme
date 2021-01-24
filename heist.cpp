@@ -4660,11 +4660,13 @@ namespace heist {
     );
     define_variable(symconst::true_t,  G::TRUE_DATA_BOOLEAN,  G::GLOBAL_ENVIRONMENT_POINTER);
     define_variable(symconst::false_t, G::FALSE_DATA_BOOLEAN, G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("heist-dirname",make_str(HEIST_DIRECTORY_FILE_PATH),   G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("fl-precision", num_type(num_type::INEXACT_PRECISION), G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("fl-max",       num_type(num_type::INEXACT_MAX),       G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("fl-min",       num_type(num_type::INEXACT_MIN),       G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("fl-epsilon",   num_type(num_type::INEXACT_EPSILON),   G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("heist-dirname",       make_str(HEIST_DIRECTORY_FILE_PATH),   G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("fl-precision",        num_type(num_type::INEXACT_PRECISION), G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("fl-max",              num_type(num_type::INEXACT_MAX),       G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("fl-min",              num_type(num_type::INEXACT_MIN),       G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("fl-epsilon",          num_type(num_type::INEXACT_EPSILON),   G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("max-infix-precedence",num_type(LLONG_MAX),                   G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("min-infix-precedence",num_type(LLONG_MIN),                   G::GLOBAL_ENVIRONMENT_POINTER);
     define_variable("heist-platform",       HEIST_PLATFORM,         G::GLOBAL_ENVIRONMENT_POINTER);
     define_variable("heist-exact-platform", HEIST_EXACT_PLATFORM,   G::GLOBAL_ENVIRONMENT_POINTER);
     define_variable("stream-null",          symconst::emptylist,    G::GLOBAL_ENVIRONMENT_POINTER);

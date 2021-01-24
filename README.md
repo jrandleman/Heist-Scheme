@@ -1576,46 +1576,45 @@ Other primitives of this nature include:<br>
 ------------------------
 # Heist Primitive Variables
 
-0. __True:__ `#t`
+0. __True & False:__ `#t`, `#f`
 
-1. __False:__ `#f`
-
-2. __Flonum Precision:__ `fl-precision`
+1. __Flonum Precision:__ `fl-precision`
    * Bound to `LDBL_DIG` from  `#include <cfloat>`
 
-3. __Max Flonum Value:__ `fl-max`
-   * Bound to `LDBL_MAX` from `#include <cfloat>`
+2. __Min & Max Flonum Values:__ `fl-min`, `fl-max`
+   * `fl-max` bound to `LDBL_MAX` from `#include <cfloat>`
+   * `fl-min` bound to `LDBL_TRUE_MIN` if exists, else `LDBL_MIN`
+     - _Either option from `#include <cfloat>`_   
 
-4. __Min Flonum Value:__ `fl-min`
-   * Bound to `LDBL_TRUE_MIN` if exists, else `LDBL_MIN`
-     - _Either option from `#include <cfloat>`_
-
-5. __Flonum Epsilon Value:__ `fl-epsilon`
+3. __Flonum Epsilon Value:__ `fl-epsilon`
    * Bound to `LDBL_EPSILON` from `#include <cfloat>`
    * Represents the smallest `x` so `1.0 + x != 1.0`
 
-6. __The Empty Stream:__ `stream-null` (equivalent to `'()`)
+4. __Min & Max Infix Operator Precedences:__ `min-infix-precedence`, `max-infix-precedence`
+   * Bound to `LLONG_MIN` & `LLONG_MAX` from `#include <climits>`
 
-7. __Optional Environment Arg Flags for [`Eval`](#evalapply--symbol-append), [`Load`](#system-interface-procedures), [`Cps-Eval`](#evalapply--symbol-append), [`Cps-Load`](#system-interface-procedures):__
+5. __The Empty Stream:__ `stream-null` (equivalent to `'()`)
+
+6. __Optional Environment Arg Flags for [`Eval`](#evalapply--symbol-append), [`Load`](#system-interface-procedures), [`Cps-Eval`](#evalapply--symbol-append), [`Cps-Load`](#system-interface-procedures):__
    * Null Environment, all effects are sandboxed: `null-environment`
    * Local Environment, using local bindings: `local-environment`
    * Global Environment, using global bindings: `global-environment`
 
-8. __Argc & Argv__: `argc`, `argv`
+7. __Argc & Argv__: `argc`, `argv`
    * Interpreted Scripts: passed at the cmd-line after the script name
    * Compiled Script: passed to the executable of the compiled C++ file
 
-9. __General Current Platform Name__: `heist-platform`
+8. __General Current Platform Name__: `heist-platform`
    * Possible results: `'windows` | `'apple` | `'linux` | `'unix` | `'posix` | `'unknown`
 
-10. __Specific Current Platform Name__: `heist-exact-platform`
-    * Possible results: 
-      - `'windows-64` | `'windows-32`
-      - `'apple-ios-simulator` | `'apple-ios` | `'apple-osx` | `'apple`
-      - `'linux` | `'unix` | `'posix`
-      - `'unknown`
+9. __Specific Current Platform Name__: `heist-exact-platform`
+   * Possible results: 
+     - `'windows-64` | `'windows-32`
+     - `'apple-ios-simulator` | `'apple-ios` | `'apple-osx` | `'apple`
+     - `'linux` | `'unix` | `'posix`
+     - `'unknown`
 
-11. __Get Heist Interpreter Directory__: `heist-dirname`
+10. __Get Heist Interpreter Directory__: `heist-dirname`
     * String to the Heist-Scheme interpreter's directory
 
 
