@@ -414,8 +414,7 @@ Other primitives of this nature include:<br>
 
 #### Quoting a Datum:
 * Proper List: `(quote (<obj1> <obj2> ...))` => `(list '<obj1> '<obj2> (quote ...))`
-* Dotted List: `(quote (<obj1> ... <objN> . <objN+1>))` =><br>
-  `(append (list '<obj1> (quote ...) '<objN>) <objN+1>)`
+* Dotted List: `(quote (<obj1> ... <objN> . <objN+1>))` => `(append '(<obj1> ... <objN>) <objN+1>)`
 * Empty List: `(quote ())` => `'()` _(unique value, ONLY one returning `#t` for [`null?`](#list-predicates) primitive!)_
 * Vector: `(quote #(<obj1> <obj2> ...))` => `(vector '<obj1> '<obj2> (quote ...))`
 * Hash-Map: `(quote $(<key> <val> ...))` => `(hmap '<key> '<val> (quote ...))`
