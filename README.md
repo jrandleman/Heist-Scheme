@@ -209,7 +209,7 @@
 |      5     | `>` `<` `>=` `<=`                                    |     Left      | gt, lt, gte, lte                                |
 |      4     | `==` `!=`                                            |     Left      | eq, neq                                         |
 |      3     | `&&`                                                 |     Left      | and                                             |
-|      2     | `||`                                                 |     Left      | or                                              |
+|      2     | `\|\|`                                                 |     Left      | or                                              |
 |      1     | `->`                                                 |     Left      | lambda                                          |
 |      0     | `=` `<-` `**=` `*=` `/=` `%=` `//=` `mod=` `+=` `-=` |     Right     | define, set!, set! ** * / % // mod + -          |
 
