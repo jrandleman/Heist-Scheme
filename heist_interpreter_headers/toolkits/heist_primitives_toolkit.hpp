@@ -4507,6 +4507,11 @@ namespace heist {
   * CURRENT TIME PRIMITIVE HELPERS
   ******************************************************************************/
 
+  long double convert_us_to_s(const long double& us_duration)noexcept{
+    return (std::size_t)(us_duration * 0.001L) / 1E3L;
+  }
+
+
   scm_string get_current_time_stamp(long long s=0, long long m=0, long long h=0, long long d=0, long long y=0) {
     std::chrono::duration<long long,std::ratio<60*60*24*365>> yr(y);
     std::chrono::duration<long long,std::ratio<60*60*24>> day(d);

@@ -2740,7 +2740,10 @@ Other primitives of this nature include:<br>
 
 9. __Get Seconds Since Epoch__: `(seconds-since-epoch)`
 
-10. __Get Current Date as String__: `(current-date <optional-offset> ...)`
+10. __Time Procedure Execution__: `(time <callable> <arg1> ... <argN>)`
+    * _Returns a pair: `(cons <time-in-seconds> <callable's-result>)`_
+
+11. __Get Current Date as String__: `(current-date <optional-offset> ...)`
     * `<optional-offset>` = `(<symbolic-unit> <integer-amount>)`
     * `<symbolic-unit>` = `sec` | `min` | `hour` | `day` | `year`
 

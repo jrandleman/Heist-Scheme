@@ -4913,6 +4913,24 @@ namespace heist {
                     std::chrono::system_clock::now().time_since_epoch()).count());
   }
 
+  data primitive_TIME(scm_list& args) {
+    if(args.empty())
+      THROW_ERR("'time recieved incorrect # of args!"
+        "\n     (time <callable> <arg1> ... <argN>)" << FCN_ERR("time",args));
+    primitive_confirm_data_is_a_callable(args[0], "time", 
+      "\n     (time <callable> <arg1> ... <argN>)", args);
+    scm_list time_args(args.begin()+1,args.end());
+    if(time_args.empty()) time_args.push_back(symconst::sentinel_arg);
+    auto start = std::chrono::high_resolution_clock::now();
+    auto result = execute_callable(args[0],time_args);
+    auto end = std::chrono::high_resolution_clock::now();
+    // return a pair: (cons <time> <result>)
+    data p = make_par();
+    p.par->first = num_type(convert_us_to_s(std::chrono::duration_cast<std::chrono::microseconds>(end-start).count()));
+    p.par->second = data_cast(result);
+    return p;
+  }
+
   data primitive_CURRENT_DATE(scm_list& args) {
     if(args.empty()) return make_str(get_current_time_stamp());
     long long s=0, m=0, h=0, d=0, y=0;
@@ -6256,6 +6274,7 @@ namespace heist {
     std::make_pair(primitive_DIRNAME,      "dirname"),
     
     std::make_pair(primitive_SECONDS_SINCE_EPOCH, "seconds-since-epoch"),
+    std::make_pair(primitive_TIME,                "time"),
     std::make_pair(primitive_CURRENT_DATE,        "current-date"),
 
     std::make_pair(primitive_SET_NANSI,                    "set-nansi!"),
