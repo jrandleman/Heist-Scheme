@@ -4863,7 +4863,7 @@ bool confirm_valid_non_negative_integer(const char* name, int& i, int argc, char
 bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
                                      int& compile_pos,std::string& compile_as,
                                      bool& immediate_exit, bool& trace_calls,
-                                     std::vector<char*>& LOADED_FILES)noexcept{
+                                     std::vector<const char*>& LOADED_FILES)noexcept{
   if(argc == 1) return true;
 
   // Validate argument layout
@@ -4884,6 +4884,8 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
       immediate_exit = true;
       puts(HEIST_COMMAND_LINE_ARGS);
       return true;
+    } else if(cmd_flag == "-infix") {
+      LOADED_FILES.push_back(HEIST_DIRECTORY_FILE_PATH "/heist_interpreter_headers/toolkits/heist_infix_toolkit.scm");
     } else if(cmd_flag == "-dynamic-call-trace") {
       trace_calls = true;
     } else if(cmd_flag == "-trace-args") {
@@ -4935,7 +4937,7 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
 * INTERPRET SCRIPT HELPER FUNCTION
 ******************************************************************************/
 
-int load_script(char* filename){
+int load_script(const char* filename){
   // Load the script & immediately exit
   heist::scm_list load_args(2 + heist::G::USING_CPS_CMD_LINE_FLAG);
   load_args[0] = heist::make_str(filename);
@@ -5007,7 +5009,7 @@ int compile_script(char* argv[], const int& compile_pos, std::string& compile_as
 * LOAD SCRIPT HELPER FUNCTION
 ******************************************************************************/
 
-int load_scripts(const std::vector<char*>& LOADED_FILES) {
+int load_scripts(const std::vector<const char*>& LOADED_FILES) {
   bool old_cps_val = heist::G::USING_CPS_CMD_LINE_FLAG;
   heist::G::USING_CPS_CMD_LINE_FLAG = false;
   for(auto filename : LOADED_FILES)
@@ -5028,7 +5030,7 @@ int main(int argc, char* argv[]) {
   int script_pos = -1, compile_pos = -1;
   bool immediate_exit = false, trace_calls = false;
   std::string compile_as = "HEIST_COMPILER_OUTPUT.cpp";
-  std::vector<char*> LOADED_FILES;
+  std::vector<const char*> LOADED_FILES;
   if(!confirm_valid_command_line_args(argc,argv,script_pos,compile_pos,compile_as,
     immediate_exit,trace_calls,LOADED_FILES)) return 1;
   // "--version" & "--help" trigger an immediate exit

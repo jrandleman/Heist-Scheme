@@ -43,6 +43,7 @@
    - [Notation](#Notation)
    - [Namespacing](#Namespacing)
 1. [Heist Command-Line Flags](#Heist-Command-Line-Flags)
+   - [`-infix` Infix Operators](#-infix-infix-operators)
 2. [Heist Primitive Data Types](#Heist-Primitive-Data-Types)
 3. [Heist Numerics](#Heist-Numerics)
    - [4 Number Types](#4-Number-Types)
@@ -187,15 +188,30 @@
 0. Interpret Script: `-script <script-filename> <argv1> <argv2> ...`
 1. Compile Script: `-compile <script-filename> <optional-compiled-filename>`
 2. Load Script: `-l <script-filename>`
-3. With CPS Evaluation: `-cps`
-4. Disable ANSI Colors: `-nansi`
-5. Case Insensitivity: `-ci`
-6. Dynamic Call Trace: `-dynamic-call-trace`
-7. Trace Call Args: `-trace-args`
-8. Stack Trace Size: `-trace-limit <non-negative-integer>`
-9. Interpreter Version: `--version`
+3. Infix Operators: `-infix`
+4. With CPS Evaluation: `-cps`
+5. Disable ANSI Colors: `-nansi`
+6. Case Insensitivity: `-ci`
+7. Dynamic Call Trace: `-dynamic-call-trace`
+8. Trace Call Args: `-trace-args`
+9. Stack Trace Size: `-trace-limit <non-negative-integer>`
+10. Interpreter Version: `--version`
 11. Show These Options: `--help`
 
+## `-infix` Infix Operators
+| Precedence |                       Operators                      | Associativity |                     Effects                     |
+| :--------: | :--------------------------------------------------- | :-----------: | :---------------------------------------------- |
+|     10     | `:`                                                  |     Right     | functional composition                          |
+|      9     | `**`                                                 |     Right     | expt                                            |
+|      8     | `*` `/` `%` `//` `mod`                               |     Left      | multiply, division, remainder, quotient, modulo |
+|      7     | `+` `-`                                              |     Left      | addition, subtraction                           |
+|      6     | `::` `@`                                             |     Right     | cons, append                                    |
+|      5     | `>` `<` `>=` `<=`                                    |     Left      | gt, lt, gte, lte                                |
+|      4     | `==` `!=`                                            |     Left      | eq, neq                                         |
+|      3     | `&&`                                                 |     Left      | and                                             |
+|      2     | `||`                                                 |     Left      | or                                              |
+|      1     | `->`                                                 |     Left      | lambda                                          |
+|      0     | `=` `<-` `**=` `*=` `/=` `%=` `//=` `mod=` `+=` `-=` |     Right     | define, set!, set! ** * / % // mod + -          |
 
 
 
