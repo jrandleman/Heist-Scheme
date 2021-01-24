@@ -199,7 +199,7 @@
 11. Show These Options: `--help`
 
 ### `-infix` Operators
-| Order |                       Operators                      | Assoc |                Effects                 |
+| Prec |                       Operators                      | Assoc |                Effects                 |
 | :---: | :--------------------------------------------------- | :---: | :------------------------------------- |
 |   10  | `:`                                                  | Right | functional composition                 |
 |    9  | `**`                                                 | Right | expt                                   |
