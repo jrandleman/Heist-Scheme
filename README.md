@@ -223,8 +223,10 @@
 2. Pair ([quoted](#Quote) expression `'(1 2 3)`, [list](#ListPair-Procedures) `(list 1 2 3)`, or [cons](#ListPair-Procedures) `(cons 1 (cons 2 (cons 3 '())))`)
 3. String (wrapped by `""`, `"hello"`)
 4. Char (have the `#\` prefix, `#\h #\e #\l #\l #\o`) (uses `ascii` encoding!)
-   * Also Supports Named Chars and Hex Chars: `#\space`, `#\tab`, `#\newline`, `#\vtab`, `#\page`,<br> 
-     `#\return`, `#\alarm`, `#\backspace`, `#\nul`, `#\esc`, `#\delete`, `#\x0` -> `#\xff`
+   * Also Supports Named Chars and Hex Chars:
+     - `#\space`, `#\tab`, `#\newline`, `#\vtab`, `#\page`, `#\return`
+     - `#\alarm`, `#\backspace`, `#\nul`, `#\esc`, `#\delete`
+     - `#\x0` -> `#\xff`
 5. Boolean (true or false, `#t` or`#f`)
 6. Vector (quoted literal `'#(1 2 3)`, or primitive `(vector 1 2 3)`)
 7. Hash-Map (quoted literal `'$(a 1 b 2)`, or primitive `(hmap 'a 1 'b 2)`)
