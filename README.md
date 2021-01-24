@@ -2788,6 +2788,11 @@ Other primitives of this nature include:<br>
 6. __Trace Procedure Call Arguments Too__: `(set-trace-args! <boolean>)`
    * Check status via `(trace-args?)`!
 
+7. __Set Dot Character For Pair Literals & Variadics__: `(set-dot! <char>)`
+   * Defaults to `.`!
+   * Returns the last character that served this role!
+   * Get current dot via `(dot)`!
+
 
 
 ------------------------

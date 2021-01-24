@@ -76,7 +76,6 @@ namespace heist {
     constexpr const char * const and_t             = "and";
     constexpr const char * const or_t              = "or";
     constexpr const char * const ellipsis          = "...";
-    constexpr const char * const period            = ".";
     constexpr const char * const true_t            = "#t";
     constexpr const char * const false_t           = "#f";
     constexpr const char * const append            = "append";
@@ -93,6 +92,7 @@ namespace heist {
     constexpr const char * const defn_reader_alias = "define-reader-alias";
     constexpr const char * const inf_precedence    = "heist:core:inf-precedence";
     constexpr const char * const while_t           = "heist:core:while";
+    char                         dot[2]            = "."; // see the "set-dot!" primitive
   } // End namespace symconst
 
   /******************************************************************************
@@ -1049,7 +1049,7 @@ namespace heist {
 
 
     bool param_is_variadic(const data& d)noexcept{
-      return d.is_type(types::sym) && d.sym == symconst::period;
+      return d.is_type(types::sym) && d.sym == symconst::dot;
     }
 
     bool param_is_token(const data& d)noexcept{

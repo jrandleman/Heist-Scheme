@@ -5028,6 +5028,21 @@ namespace heist {
     return boolean(G::TRACE_ARGS);
   }
 
+  data primitive_SET_DOT_BANG(scm_list& args) {
+    if(args.size() != 1 || !args[0].is_type(types::chr))
+      THROW_ERR("'set-dot! didn't recieve 1 character!"
+        "\n     (set-dot! <char>)" << FCN_ERR("set-dot!",args));
+    data original_dot = symconst::dot[0];
+    symconst::dot[0] = args[0].chr;
+    return original_dot;
+  }
+
+  data primitive_DOT(scm_list& args) {
+    if(!args.empty())
+      THROW_ERR("'dot doesn't accept any args: (dot)" << FCN_ERR("dot",args));
+    return data(symconst::dot[0]);
+  }
+
   /******************************************************************************
   * CONTROL-FLOW PRIMITIVES: EXITING, ERROR HANDLING, INLINING, & JUMPING
   ******************************************************************************/
@@ -6291,6 +6306,8 @@ namespace heist {
     std::make_pair(primitive_DYNAMIC_CALL_TRACEP,          "dynamic-call-trace?"),
     std::make_pair(primitive_SET_TRACE_ARGS_BANG,          "set-trace-args!"),
     std::make_pair(primitive_TRACE_ARGSP,                  "trace-args?"),
+    std::make_pair(primitive_SET_DOT_BANG,                 "set-dot!"),
+    std::make_pair(primitive_DOT,                          "dot"),
 
     std::make_pair(primitive_EXIT,         "exit"),
     std::make_pair(primitive_ERROR,        "error"),

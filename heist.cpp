@@ -219,6 +219,10 @@ namespace heist {
                   scm_string(afmt(AFMT_01)) + ' ' + defn_signature + ')';
   }
 
+  bool symbol_is_property_chain_access(const sym_type& sym)noexcept{
+    return sym.find('.') != scm_string::npos && sym != "." && sym != "..";
+  }
+
   /******************************************************************************
   * AST DATA VALIDATION HELPER FUNCTIONS
   ******************************************************************************/
@@ -228,13 +232,13 @@ namespace heist {
   void confirm_valid_procedure_parameters(const scm_list& vars,const scm_list& exp){
     const size_type n = vars.size();
     // variadic (.) arg must have a label afterwards
-    if(n != 0 && vars[n-1].sym == symconst::period)
+    if(n != 0 && vars[n-1].sym == symconst::dot)
       THROW_ERR("Expected one item after variadic dot (.)! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
     // Search the vars list of the fcn's args for improper (.) use & duplicate arg names
     for(size_type i = 0; i < n; ++i) {
       if(!vars[i].is_type(types::sym)) // args must be symbols
         THROW_ERR("Non-Symbolic parameter [ "<<vars[i]<<" ] is an invalid arg name! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
-      if(i+2 != n && vars[i].sym == symconst::period) { // variadic (.) must come just prior the last arg
+      if(i+2 != n && vars[i].sym == symconst::dot) { // variadic (.) must come just prior the last arg
         if(i+3 == n && string_begins_with(vars[i+2].sym, symconst::continuation))
           continue; // allow continuations after variadic
         THROW_ERR("More than one item found after variadic dot (.)! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
@@ -269,7 +273,7 @@ namespace heist {
         << exp[1].type_name() << "\" can't be defined (only symbols):"
         "\n     (define <var> <val>)"
         "\n     (define (<procedure-name> <args>) <body>)" << EXP_ERR(exp));
-    if(exp[1].is_type(types::sym) && exp[1].sym.find('.') != scm_string::npos)
+    if(exp[1].is_type(types::sym) && symbol_is_property_chain_access(exp[1].sym))
       THROW_ERR("'define 1st arg object property-chain-access [ " << exp[1] 
         << " ] can't be defined (only symbols):\n     (define <var> <val>)"
         "\n     (define (<procedure-name> <args>) <body>)" << EXP_ERR(exp));
@@ -339,9 +343,9 @@ namespace heist {
 
   // Determine whether proc takes variadic args
   bool variadic_arg_declaration(const frame_vars& vars) {
-    return (vars.size() > 1 && vars[vars.size()-2] == symconst::period) || 
+    return (vars.size() > 1 && vars[vars.size()-2] == symconst::dot) || 
            (vars.size() > 2 && string_begins_with(vars[vars.size()-1],symconst::continuation)
-                            && vars[vars.size()-3] == symconst::period);
+                            && vars[vars.size()-3] == symconst::dot);
   }
 
 
@@ -349,7 +353,7 @@ namespace heist {
   bool invalid_variadic_arg_declaration(const frame_vars& vars, const frame_vals& vals){
     return vals.size() < vars.size() - 2 -
       (vars.size() > 2 && string_begins_with(vars[vars.size()-1],symconst::continuation)
-                       && vars[vars.size()-3] == symconst::period); // - again if at a continuation
+                       && vars[vars.size()-3] == symconst::dot); // - again if at a continuation
   }
 
 
@@ -728,7 +732,7 @@ namespace heist {
     confirm_valid_assignment(exp);
     auto& var       = assignment_variable(exp);
     auto value_proc = scm_analyze(assignment_value(exp),false,cps_block);
-    if(exp[1].sym.find('.') == scm_string::npos)
+    if(symbol_is_property_chain_access(exp[1].sym))
       return [var=std::move(var),value_proc=std::move(value_proc)](env_type& env){
         set_variable_value(var,data_cast(value_proc(env)),env);
         return G::VOID_DATA_EXPRESSION; // return is undefined
@@ -841,7 +845,7 @@ namespace heist {
 
   // Returns whether data is the (.) symbol
   bool data_is_dot_operator(const data& d)noexcept{
-    return d.is_type(types::sym) && d.sym == symconst::period;
+    return d.is_type(types::sym) && d.sym == symconst::dot;
   }
 
   // Returns quoted data's contents
@@ -1008,14 +1012,14 @@ namespace heist {
     const auto& vars = exp[1].exp;
     const size_type n = vars.size();
     // variadic (.) arg must have a label afterwards
-    if(n != 0 && vars[n-1].sym == symconst::period)
+    if(n != 0 && vars[n-1].sym == symconst::dot)
       THROW_ERR("Expected one item after variadic dot (.)! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
     // Search the vars list of the fcn's args for improper (.) use & duplicate arg names
     bool found_opt_arg = false;
     for(size_type i = 0; i < n; ++i) {
       if(vars[i].is_type(types::sym)) {
         // Variadic (.) must come just prior the last arg
-        if(vars[i].sym == symconst::period) {
+        if(vars[i].sym == symconst::dot) {
           if(i+3 == n && vars[i+2].is_type(types::sym) && string_begins_with(vars[i+2].sym, symconst::continuation)) 
             return; // allow continuations after variadic
           if(i+2 != n) 
@@ -1045,7 +1049,7 @@ namespace heist {
     validate_lambda_opt_args(exp);
     auto& params = exp[1].exp;
     const size_type n = params.size(), variadic_offset = 2;
-    bool is_variadic = n > 1 && params[n-variadic_offset].is_type(types::sym) && params[n-variadic_offset].sym == symconst::period;
+    bool is_variadic = n > 1 && params[n-variadic_offset].is_type(types::sym) && params[n-variadic_offset].sym == symconst::dot;
     bool found_dflt = false;
     // Get vectors of the mandatory args, & form "define" exprs for the default args
     scm_list mandatory_args, default_value_defns;
@@ -1082,7 +1086,7 @@ namespace heist {
       for(size_type j = 0; j < i-1; ++j)  // mandatory args that could've been defaults
         fn_expr[i].exp[0].exp.push_back(default_value_defns[j].exp[1]);
       if(last_instance) {                 // add in variadic arg as needed
-        fn_expr[i].exp[0].exp.push_back(symconst::period);
+        fn_expr[i].exp[0].exp.push_back(symconst::dot);
         fn_expr[i].exp[0].exp.push_back(default_value_defns.rbegin()->exp[1]);
       }
       // Generate <fn> body instance
@@ -1157,7 +1161,7 @@ namespace heist {
 
   void validate_fn_list_arg_literal(const scm_list& exp, const scm_list& list_arg) {
     for(size_type i = 0, n = list_arg.size(); i < n; ++i) {
-      if(list_arg[i].is_type(types::sym) && list_arg[i].sym == symconst::period && i+2 != n) {
+      if(list_arg[i].is_type(types::sym) && list_arg[i].sym == symconst::dot && i+2 != n) {
         THROW_ERR("'fn invalid variadic list literal in arg (\".\" must be 2nd to last arg): "
           << data(list_arg) << FN_LAYOUT << EXP_ERR(exp));
       } else if(list_arg[i].is_type(types::exp)) {
@@ -1185,7 +1189,7 @@ namespace heist {
   }
 
   bool fn_invalid_variadic_arg(const size_type& i, const size_type& n, const scm_list& args)noexcept{
-    return args[i].is_type(types::sym) && args[i].sym == symconst::period &&
+    return args[i].is_type(types::sym) && args[i].sym == symconst::dot &&
       !((i+2 == n && args[i+1].is_type(types::sym)) || 
         (i+3 == n && args[i+1].is_type(types::sym) && data_is_continuation_parameter(args[i+2])));
   }
@@ -1442,7 +1446,7 @@ namespace heist {
     dflt_ctor[0] = symconst::define;
     dflt_ctor[1] = scm_list(3);
     dflt_ctor[1].exp[0] = name_prefix+class_name;
-    dflt_ctor[1].exp[1] = symconst::period;
+    dflt_ctor[1].exp[1] = symconst::dot;
     dflt_ctor[1].exp[2] = "optional-member-value-container";
     dflt_ctor[2] = scm_list(4);
     dflt_ctor[2].exp[0] = symconst::if_t;
@@ -2108,7 +2112,7 @@ namespace heist {
     if(!exp[1].is_type(types::sym))
       THROW_ERR("'defined? arg "<<PROFILE(exp[1])<<" isn't a symbol!\n     (defined? <symbol>)"<<EXP_ERR(exp));
     // Check if non-member-access symbol is defined in the environment
-    if(exp[1].sym.find('.') == scm_string::npos || exp[1].sym == "..")
+    if(!symbol_is_property_chain_access(exp[1].sym))
       return [variable=std::move(exp[1].sym)](env_type& env){
         return scm_list(1,boolean(!undefined_determination_helpers::variable_is_undefined(variable,env)));
       };
@@ -4279,7 +4283,7 @@ namespace heist {
 
   exe_fcn_t analyze_variable(scm_string variable) {
     // If a regular variable (no object property chain)
-    if(variable.find('.') == scm_string::npos || variable == "..")
+    if(!symbol_is_property_chain_access(variable))
       return [variable=std::move(variable)](env_type& env){
         return scm_list_cast(lookup_variable_value(variable,env));
       };
