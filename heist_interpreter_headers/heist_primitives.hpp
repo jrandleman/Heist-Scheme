@@ -5763,7 +5763,7 @@ namespace heist {
   * "fmt:" PREFIXED ANSI ESCAPE CODE PRIMITIVES
   ******************************************************************************/
 
-  #include "toolkits/heist_fmt_primitives_toolkit.hpp"
+  #include "toolkits/heist_fmt_toolkit.hpp"
 
   /******************************************************************************
   * STRING->ART PRIMITIVES
