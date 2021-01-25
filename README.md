@@ -273,12 +273,12 @@
    * Both the real and imaginary components will match in exactness
    * Supports `+inf.0` or `-inf.0` components (_`+nan.0` is unique & never complex!_)
    * _Special Case_: imaginary value of `0` becomes a real (non-complex) number!
-   ```scheme
-   3/4+1/2i
-   3/4+0.5i ; becomes 0.75+0.5i to match exactness
-   -i       ; valid complex number!
-   -44+0i   ; becomes -44
-   ```
+     ```scheme
+     3/4+1/2i
+     3/4+0.5i ; becomes 0.75+0.5i to match exactness
+     -i       ; valid complex number!
+     -44+0i   ; becomes -44
+     ```
 
 
 ### 2 Prefix Types:
