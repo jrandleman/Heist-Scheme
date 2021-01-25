@@ -916,6 +916,7 @@ Other primitives of this nature include:<br>
 
 #### Use: ___Longhand Variant of the `$` Hashmap-Literal Shorthand!___
 * _Hence, like `$`, `hmap-literal` **must** be quoted to form a hash-map object!_
+* _Keys ::= `symbol` | `string` | `number` | `character` | `boolean`_
 
 #### Form: `'(hmap-literal <obj1> <obj2> <obj3> ...)`
 
