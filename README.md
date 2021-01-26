@@ -1024,7 +1024,7 @@ Other primitives of this nature include:<br>
 #### Use: ___Hash Local Macro Template Identifiers to Avoid Expansion Name Conflicts!___
 
 #### Form: `(syntax-hash <symbol>)`
-* _**ONLY** valid in `syntax-rules` or `core-syntax` templates!_
+* _**ONLY** valid in `syntax-rules` templates!_
 * _Expander replaces `syntax-hash` expression, and every instance of `<symbol>`,<br>
   with a hashed version of `<symbol>` unique to the expansion instance!_
   - _Similar to [`gensym`](#Gensym) but specialized for macro expansions!_
