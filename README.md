@@ -918,7 +918,7 @@ Other primitives of this nature include:<br>
 * _Hence, like `$`, `hmap-literal` **must** be quoted to form a hash-map object!_
 * _Keys ::= `symbol` | `string` | `number` | `character` | `boolean`_
 
-#### Form: `'(hmap-literal <obj1> <obj2> <obj3> ...)`
+#### Form: `'(hmap-literal <key1> <val1> <key2> <val2> ...)`
 
 #### Transformation:
 ```scheme
