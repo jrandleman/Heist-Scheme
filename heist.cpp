@@ -732,7 +732,7 @@ namespace heist {
     confirm_valid_assignment(exp);
     auto& var       = assignment_variable(exp);
     auto value_proc = scm_analyze(assignment_value(exp),false,cps_block);
-    if(symbol_is_property_chain_access(exp[1].sym))
+    if(!symbol_is_property_chain_access(exp[1].sym))
       return [var=std::move(var),value_proc=std::move(value_proc)](env_type& env){
         set_variable_value(var,data_cast(value_proc(env)),env);
         return G::VOID_DATA_EXPRESSION; // return is undefined
