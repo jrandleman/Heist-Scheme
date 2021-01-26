@@ -600,6 +600,23 @@ namespace heist {
   }
 
 
+  // Equality proper list recursive helper (p1 || p2 confirmed not to be a circular list)
+  template<DATA_COMPARER same_as>
+  bool proper_list_equality_recur(const data& p1, const data& p2){
+    // Confirm working with 2 pairs
+    if(!p1.is_type(types::par) || !p2.is_type(types::par)) 
+      return (p1.*same_as)(p2);
+    // Confirm car elts are equal
+    if(!(p1.par->first.*same_as)(p2.par->first)) 
+      return false;
+    // Confirm next 2 elts are pairs
+    if(!p1.par->second.is_type(types::par) || !p2.par->second.is_type(types::par)) 
+      return (p1.par->second.*same_as)(p2.par->second);
+    // Check the rest of the list
+    return proper_list_equality_recur<same_as>(p1.par->second, p2.par->second);
+  }
+
+
   // Equality list recursive helper
   template<DATA_COMPARER same_as>
   bool list_equality_recur(const data& slow1, const data& fast1, const data& slow2, const data& fast2, 
@@ -613,6 +630,10 @@ namespace heist {
     // Confirm next 2 elts are pairs
     if(!slow1.par->second.is_type(types::par) || !slow2.par->second.is_type(types::par)) 
       return (slow1.par->second.*same_as)(slow2.par->second);
+    // If confirmed either list isn't circular, just check the rest of the lists w/o checking for cycles
+    if(!fast1.is_type(types::par) || !fast1.par->second.is_type(types::par) || 
+       !fast2.is_type(types::par) || !fast2.par->second.is_type(types::par))
+      return proper_list_equality_recur<same_as>(slow1.par->second,slow2.par->second);
     // Check if detected a cycle (simultaneously performs Floyd's Loop Detection algorithm)
     if(new_cycle_detected(slow1,fast1,cycle_start1)) find_cycle_start(slow1,fast1,cycle_start1);
     if(new_cycle_detected(slow2,fast2,cycle_start2)) find_cycle_start(slow2,fast2,cycle_start2);
