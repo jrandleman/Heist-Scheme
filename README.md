@@ -1384,8 +1384,8 @@ Other primitives of this nature include:<br>
   - `.next`: either starts or continues the coroutine's execution
 
 #### Associated Special Form:
-0. `(yield <value>)`: yield a value from the coroutine via a new coroutine object!
-   * `(yield)` is equivalent to `(yield #f)`, designed for use with [`cycle-coroutines!`](#Coroutine-Handling-Primitives)
+* `(yield <value>)`: yield a value from the coroutine via a new coroutine object!
+  - `(yield)` is equivalent to `(yield #f)`, designed for use with [`cycle-coroutines!`](#Coroutine-Handling-Primitives)
 
 #### Special Conditions:
 0. Use [`co-eval`](#Coroutine-Handling-Primitives) instead of [`eval`](#evalapply--symbol-append) in coroutines
