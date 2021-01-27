@@ -3818,9 +3818,11 @@ namespace heist {
 
 
     size_type input_ends_with_reader_macro_or_quote(const scm_string& input)noexcept{
-      for(const auto& reader_macro_shorthand : G::SHORTHAND_READER_MACRO_REGISTRY)
-        if(input_ends_with_postfix(reader_macro_shorthand,input))
-          return reader_macro_shorthand.size();
+      const size_type n = input.size();
+      if(n < 2 || input[n-2] != '#' || input[n-1] != '\\') // prevents matching lambda "\" against char "#\"
+        for(const auto& reader_macro_shorthand : G::SHORTHAND_READER_MACRO_REGISTRY)
+          if(input_ends_with_postfix(reader_macro_shorthand,input))
+            return reader_macro_shorthand.size();
       return 0;
     }
 
@@ -3980,9 +3982,7 @@ namespace heist {
         //   IFF not in the middle of an expression (since only reading 1 
         //   expression at a time)
         if(!paren_count && input.size() != macro_length && 
-          // mk sure not detecting "\" lambda-shorthand in "#\" of char
-          ((found_non_reader_syntax_data && input.size() > 1 && input.substr(input.size()-2) != "#\\")
-            || read_port::found_non_macro_prior_macro(input))) {
+          (found_non_reader_syntax_data || read_port::found_non_macro_prior_macro(input))) {
           fseek(ins, -macro_length, SEEK_CUR); // mv "ins" back
           input.erase(input.size()-macro_length);
           total_read_chars -= macro_length;
@@ -4033,7 +4033,7 @@ namespace heist {
 
       // check for improper quotation shorthand use
       else if(read_port::improper_quotation(input)){
-        if(IS_CLOSE_PAREN(ch)) 
+        if(IS_CLOSE_PAREN(ch))
              alert_reader_error(outs,READER_ERROR::quoted_end_of_expression,input);
         else alert_reader_error(outs,READER_ERROR::quoted_space,input);
         throw SCM_EXCEPT::READ;
