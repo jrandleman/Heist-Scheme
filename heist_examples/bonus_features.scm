@@ -1,7 +1,7 @@
 ;; Author: Jordan Randleman -- bonus_features.scm
 ;; Nice Procedures to have in addition to Heist-Scheme's default facilities
 
-;; NOTE: 'curry, 'compose, & 'coroutine got integrated from here originally!
+;; NOTE: 'curry, 'coroutine, & 'new got integrated from here originally!
 
 ; -:- TABLE OF CONTENTS -:-
 ; prn, pr          ; write arbitrary # of args
@@ -104,9 +104,9 @@
       (eval (heist:core:tlambda->lambda (cons 'lambda (cons (list 'a ...) '(b ...))) err-message)))))
 
 
-;; Ex1: (tlambda ((string? s) any-arg (number? n)) <body>) ; predicated & arbitrary args
-;; Ex2: (tlambda "optional-description" ((string? s) any-arg) <body>) ; optional descriptor
-;; Ex3: (tlambda ((string? s) . ((lambda (ns) (every even? ns)) numbers)) <body>) ; predicated variadic 
+;; Ex1: ; (tlambda ((string? s) any-arg (number? n)) <body>) ; predicated & arbitrary args
+;; Ex2: ; (tlambda "optional-description" ((string? s) any-arg) <body>) ; optional descriptor
+;; Ex3: ; (tlambda ((string? s) . ((lambda (ns) (every even? ns)) numbers)) <body>) ; predicated variadic 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; DEFSTRUCT MACRO FOR SIMPLE VECTOR-BASED OO

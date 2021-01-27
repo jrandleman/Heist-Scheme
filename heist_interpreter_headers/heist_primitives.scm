@@ -193,6 +193,39 @@
                   (if (not break-test) (begin body ... (heist:core:do-call))))))
               (heist:core:do-call)))))
 
+;; =========================================================
+;; =========== "NEW" MACRO FOR ANONYMOUS OBJECTS ===========
+;; =========================================================
+
+(define (heist:oo:anon:members=? lhs rhs) 
+  (define lhs-members (object-members lhs)) 
+  (define rhs-members (object-members rhs))
+  (hmap-delete! lhs-members 'prototype) 
+  (hmap-delete! rhs-members 'prototype)
+  (equal? lhs-members rhs-members))
+
+(define (heist:oo:anon:methods=? lhs rhs) ; checks NAME equality
+  (equal? (hmap-keys (object-methods lhs)) (hmap-keys (object-methods rhs))))
+
+(define (heist:oo:anon:generate-obj names values)
+  `(let ()
+    (defclass heist:oo:anon:prototype ()
+      ,@(map (lambda (n v) (if (callable? v) (list 'defmethod n v) (list n v)))
+             names 
+             values)
+      ((equal? obj) ; structural equality (w/o prototype)
+        (and (object? obj) 
+             (eq? 'heist:oo:anon:prototype (proto-name obj.prototype))
+             (heist:oo:anon:methods=? self obj)
+             (heist:oo:anon:members=? self obj))))
+    (new-heist:oo:anon:prototype))) ; return obj instance
+
+; Macro "new" used to create anonymous objects!
+(core-syntax new
+  (syntax-rules ()
+    ((_ (name value) ...)
+     (eval (heist:oo:anon:generate-obj '(name ...) (list value ...))))))
+
 ;; ==============================================
 ;; =========== LAZY STREAM ALGORITHMS ===========
 ;; ==============================================

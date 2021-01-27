@@ -67,7 +67,7 @@
    - [Syntax-Rules](#Syntax-Rules), [Syntax-Hash](#Syntax-Hash)
    - [Scm->Cps](#Scm-Cps), [Cps-Quote](#Cps-Quote), [Using-Cps?](#Using-Cps)
    - [Curry](#Curry)
-   - [Defclass](#Defclass)
+   - [Defclass](#Defclass), [New](#New)
    - [Define-Coroutine](#Define-Coroutine)
    - [Define-Overload](#Define-Overload)
    - [Infix!](#Infix--Infixr), [Infixr!](#Infix--Infixr), [Unfix!](#Unfix)
@@ -1362,6 +1362,16 @@ Other primitives of this nature include:<br>
 (newline)
 (display (root.left.leaf?)) ; #t
 ```
+
+
+------------------------
+## New:
+
+#### Use: ___Create Anonymous Objects!___
+* _Overloads [`equal?`](#Equality-Predicates) for structural equality against other anonymous objects!
+* _Note: `new` is actually a macro directly defined **in** Heist Scheme!_
+
+#### Form: `(new (<property-name> <property-value>) ...)`
 
 
 ------------------------
