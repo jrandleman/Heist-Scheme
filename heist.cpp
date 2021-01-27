@@ -3133,7 +3133,7 @@ namespace heist {
     --args_idx;
     // Confirm enough room in <args_exp> for the variadic
     const auto& args_size = args_exp.size();
-    if(number_args_left_after_variadic + args_idx > args_size) return true;
+    if(number_args_left_after_variadic + args_idx >= args_size) return true;
     const auto va_objs_end = args_size - number_args_left_after_variadic;
     // Confirm each variadic obj in <args_exp> matches the layout of <pat_obj_prior_ellipsis>
     // Symbol Identifiers may expand to _any_ form
