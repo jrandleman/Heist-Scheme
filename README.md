@@ -1368,7 +1368,7 @@ Other primitives of this nature include:<br>
 ## New:
 
 #### Use: ___Create Anonymous Objects!___
-* _Overloads [`equal?`](#Equality-Predicates) for structural equality against other anonymous objects!
+* _Overloads [`equal?`](#Equality-Predicates) for structural equality against other anonymous objects!_
 * _Note: `new` is actually a macro directly defined **in** Heist Scheme!_
 
 #### Form: `(new (<property-name> <property-value>) ...)`
