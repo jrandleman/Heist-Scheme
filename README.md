@@ -1232,9 +1232,8 @@ Other primitives of this nature include:<br>
 #### Form: `(cps-quote <exp>)`
 
 #### Note on Application Transformations:
-* Applications may have a peculiar tag in front of them, with their arguments NOT having been<br>
-  turned into CPS. This is because Heist doesn't know whether an application is a macro or a<br>
-  callable at "cps-transformation-time", and hence does so at run-time.
+* Applications may have a peculiar tag in front of them, with ___non-cps___ arguments<br>
+  - _This is b/c Heist only knows if an application is a macro or callable at run-time!_
   - _For callables, cps-transformation precedes execution!_
   - _For macros, execution precedes cps-transformation (& re-execution)!_
 
