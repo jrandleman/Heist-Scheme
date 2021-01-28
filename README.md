@@ -1156,7 +1156,8 @@ Other primitives of this nature include:<br>
   * Experimentally, go wild! 
   * For practical code, leave `scm->cps` to be used by libraries, & prefer<br>
     specialized solutions rather than homebrewed alternatives. 
-    - IE use `define-coroutine` and the `jump!`/`catch-jump` idiom rather than spinning up your own versions via continuations.
+    - IE use `define-coroutine` and the `jump!`/`catch-jump` idiom rather<br>
+      than spinning up your own versions via continuations.
 
 #### Coroutine Example Using [`call/cc`](#scm-cps-procedures):
 ```scheme
