@@ -2860,7 +2860,7 @@ Other primitives of this nature include:<br>
 ## Scm->Cps Procedures:
 0. __Call With Current Continuation__: 
    * `(call/cc <unary-continuation-callable>)`
-   * `(call-with-current-continuation <unary-continuation-callable>`
+   * `(call-with-current-continuation <unary-continuation-callable>)`
 
 1. __Cps->Scm__: Bind [`id`](#compose-bind--id) as callable's "topmost" continuation
    * _Note: To pass procs defined **in** a [`scm->cps`](#Scm-Cps) block as an arg to a proc defined **out** of [`scm->cps`](#Scm-Cps)_
