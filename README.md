@@ -2066,9 +2066,9 @@ Other primitives of this nature include:<br>
 
 13. __Split String Into a List of Substrings__:
     * `(string-split <target-string> <optional-string-delimiter> <optional-start-index>)`
-    * Note: `<string-delimiter>` defaults to `""`
-    * Note: `<optional-start-index>` defaults to `0`
-    * Enables splitting with delimiters using regex-significant chars more easily!
+    * _Note: `<string-delimiter>` defaults to `""`_
+    * _Note: `<optional-start-index>` defaults to `0`_
+    * _Enables splitting with delimiters using regex-significant chars more easily!_
       - _See [`regex-split`](#regex-uses-ecmascript-syntax) for a regex-based alternative!_
 
 14. __Swap String Pointers__: `(string-swap! <string1> <string2>)`
