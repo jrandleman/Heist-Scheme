@@ -654,7 +654,7 @@ Other primitives of this nature include:<br>
 
 #### Form: `(cond <clause1> <clause2> ...)`, `<clause>` = `(<condition> <exp1> <exp2> ...)`
 * _Using `else` as the condition of the last clause is equivalent to using `#t` as the condition_
-* _Use `=>` to apply the result of the condition to a procedure_
+* _Use `=>` to apply the result of the condition to a callable_
 
 #### Derivation Using [`if`](#if):
 ```scheme
@@ -2265,9 +2265,9 @@ Other primitives of this nature include:<br>
 
 14. __Iterate Over Values__: `(hmap-for-each-val <callable> <hash-map>)` 
 
-15. __Map Procedure Over Values Making a New Hash-Map__: `(hmap-map <callable> <hash-map>)`
+15. __Map Callable Over Values Making a New Hash-Map__: `(hmap-map <callable> <hash-map>)`
 
-16. __Mutative Map Procedure Over Values__: `(hmap-map! <callable> <hash-map>)`
+16. __Mutative Map Callable Over Values__: `(hmap-map! <callable> <hash-map>)`
 
 
 
@@ -2502,7 +2502,7 @@ Other primitives of this nature include:<br>
 ## Compose, Bind, & Id:
 0. __Compose N `<callable>`s__: `(compose <callable-1> ... <callable-N>)`
    * _Aliased as `o` for composition shorthand!_
-   * _Generates a procedure of N args that applies them to the procedure composition!_
+   * _Generates a procedure of N args that applies them to the callable composition!_
 
 1. __Bind N args to `<callable>`: `(bind <callable> <val-1> ... <val-N>)`__
    * _Generates a procedure that when invoked calls the arg-bound `<callable>`!_
@@ -2784,7 +2784,7 @@ Other primitives of this nature include:<br>
 
 9. __Get Seconds Since Epoch__: `(seconds-since-epoch)`
 
-10. __Time Procedure Execution__: `(time <callable> <arg1> ... <argN>)`
+10. __Time Callable Execution__: `(time <callable> <arg1> ... <argN>)`
     * _Returns a pair: `(cons <time-in-seconds> <callable's-result>)`_
 
 11. __Get Current Date as String__: `(current-date <optional-offset> ...)`
