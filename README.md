@@ -2061,10 +2061,12 @@ Other primitives of this nature include:<br>
 12. __Join a List of Strings Into 1 String__:
     * `(string-join <string-list> <optional-string-delimiter> <optional-grammar>)`
     * `<optional-grammar> = 'infix | 'suffix | 'prefix`
+    * _Note: `<optional-string-delimiter>` defaults to `""`_
+    * _Note: `<optional-grammar>` defaults to `'infix`_
 
 13. __Split String Into a List of Substrings__:
     * `(string-split <target-string> <optional-string-delimiter> <optional-start-index>)`
-    * `<string-delimiter>` defaults to `""`
+    * _Note: `<string-delimiter>` defaults to `""`_
     * Enables splitting with delimiters using regex-significant chars more easily!
       - _See [`regex-split`](#regex-uses-ecmascript-syntax) for a regex-based alternative!_
 
