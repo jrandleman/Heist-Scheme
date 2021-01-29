@@ -1062,7 +1062,7 @@ namespace heist {
     }
 
     bool param_boolean_mismatch(const sym_type& sym, const data& arg)noexcept{ 
-      return !arg.is_type(types::bol) || ((sym == "#t") ^ (arg.bol.val));
+      return (sym == "#f") ^ (arg.is_type(types::bol) && !arg.bol.val);
     }
 
     bool param_is_symbol_literal(const data& d)noexcept{
