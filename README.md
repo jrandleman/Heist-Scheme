@@ -2016,7 +2016,7 @@ Other primitives of this nature include:<br>
 ### General:
 0. __Construction__: Creates a string of length `<size>`
    * `(make-string <size> <optional-fill-char>)`
-   * defaults to a `<fill-char>` of `?`
+   * _Note: `<optional-fill-char>` defaults to `#\?`_
 
 1. __Construction__: `(string <char-or-string1> <char-or-string2> ...)`
 
@@ -2066,7 +2066,7 @@ Other primitives of this nature include:<br>
 
 13. __Split String Into a List of Substrings__:
     * `(string-split <target-string> <optional-string-delimiter> <optional-start-index>)`
-    * _Note: `<string-delimiter>` defaults to `""`_
+    * Note: `<string-delimiter>` defaults to `""`
     * Enables splitting with delimiters using regex-significant chars more easily!
       - _See [`regex-split`](#regex-uses-ecmascript-syntax) for a regex-based alternative!_
 
