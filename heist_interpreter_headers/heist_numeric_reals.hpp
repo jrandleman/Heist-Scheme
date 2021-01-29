@@ -1866,7 +1866,7 @@ namespace scm_numeric {
       case 0: if(fractional != 0 && integral >= 0) integral += 1; break; // ceil
       case 1: if(fractional != 0 && integral <= 0) integral -= 1; break; // floor
       case 3: if(std::abs(fractional) >= 0.5)                            // round
-                integral += 1-2*(integral<0); // (integral < 0) ? -1 : 1;
+                integral += 1-2*(flt_val<0); // (flt_val < 0) ? -1 : 1;
     }
     tmp.float_num = integral;
     tmp.adjust_float_invariants();
