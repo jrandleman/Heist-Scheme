@@ -2183,9 +2183,9 @@ Other primitives of this nature include:<br>
    * _Seek using `equal?`_: `(member <obj> <list>)`
 
 1. __(Associative Lists) Get Pair Beginning w/ a Key If Present (`#f` Otherwise)__:
-   * _Seek using `eq?`_: `(assq <obj> <list>)`
-   * _Seek using `eqv?`_: `(assv <obj> <list>)`
-   * _Seek using `equal?`_: `(assoc <obj> <list>)`
+   * _Seek using `eq?`_: `(assq <obj> <alist>)`
+   * _Seek using `eqv?`_: `(assv <obj> <alist>)`
+   * _Seek using `equal?`_: `(assoc <obj> <alist>)`
 
 
 
