@@ -2028,10 +2028,10 @@ Other primitives of this nature include:<br>
    * `(string-unfold-right <break-condition> <map-callable> <successor-callable> <seed>)`
    * _Note: **map** via `<map-callable>`, **increment** via `<successor-callable>`_
 
-4. __Character Padding Left of String__: pads `<length>` characters, `<character>` defaults to `<space>`
+4. __Character Padding Left of String__: pads `<length>` characters, `<character>` defaults to `#\space`
    * `(string-pad <string> <length> <optional-character>)`
 
-5. __Character Padding Right of String__: pads `<length>` characters, `<character>` defaults to `<space>`
+5. __Character Padding Right of String__: pads `<length>` characters, `<character>` defaults to `#\space`
    * `(string-pad-right <string> <length> <optional-character>)`
 
 6. __Character Trimming Left of String__: trims characters while `<predicate?>` is true
