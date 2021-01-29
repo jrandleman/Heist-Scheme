@@ -2116,7 +2116,7 @@ Other primitives of this nature include:<br>
 
 3. __Regex Split String Into a List of Substrings__:
    * `(regex-split <target-string> <optional-regex-string>  <optional-start-index>)`
-   * `<regex-string>` defaults to `""` to split into char-strings
+   * `<optional-regex-string>` defaults to `""` to split into char-strings
    * `<optional-start-index>` defaults to `0`
 
 
