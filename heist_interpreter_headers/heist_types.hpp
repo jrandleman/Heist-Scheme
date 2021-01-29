@@ -1056,6 +1056,15 @@ namespace heist {
       return d.is_type(types::sym);
     }
 
+    // PRECONDITION: param_is_token(d)
+    bool param_is_boolean_literal(const data& d)noexcept{ 
+      return d.sym == "#f" || d.sym == "#t";
+    }
+
+    bool param_boolean_mismatch(const sym_type& sym, const data& arg)noexcept{ 
+      return !arg.is_type(types::bol) || ((sym == "#t") ^ (arg.bol.val));
+    }
+
     bool param_is_symbol_literal(const data& d)noexcept{
       return d.is_type(types::exp) && d.exp.size() == 2 && 
              d.exp[0].is_type(types::sym) && d.exp[1].is_type(types::sym) && 
@@ -1094,8 +1103,13 @@ namespace heist {
       for(size_type i = 1, j = 0, n = vec.exp.size(); i < n; ++i, ++j) {
         // tokens match anything
         if(param_is_token(vec.exp[i])) {
-          unpacked_params.push_back(vec.exp[i].sym);
-          values.push_back(arg.vec->operator[](j));
+          // booleans are a specialized token instance
+          if(param_is_boolean_literal(vec.exp[i])) {
+            if(param_boolean_mismatch(vec.exp[i].sym,arg.vec->operator[](j))) return false;
+          } else {
+            unpacked_params.push_back(vec.exp[i].sym);
+            values.push_back(arg.vec->operator[](j));
+          }
         // match against quoted non-nil literal symbols
         } else if(param_is_symbol_literal(vec.exp[i])) {
           if(param_symbol_mismatch(vec.exp[i].exp[1].sym,arg.vec->operator[](j))) return false;
@@ -1125,8 +1139,13 @@ namespace heist {
         for(size_type offset = 0; offset < 2; ++offset) {
           // tokens match anything
           if(param_is_token(map.exp[i+offset])) {
-            unpacked_params.push_back(map.exp[i+offset].sym);
-            values.push_back(elt);
+            // booleans are a specialized token instance
+            if(param_is_boolean_literal(map.exp[i+offset])) {
+              if(param_boolean_mismatch(map.exp[i+offset].sym,elt)) return false;
+            } else {
+              unpacked_params.push_back(map.exp[i+offset].sym);
+              values.push_back(elt);
+            }
           // match against quoted non-nil literal symbols
           } else if(param_is_symbol_literal(map.exp[i+offset])) {
             if(param_symbol_mismatch(map.exp[i+offset].exp[1].sym,elt)) return false;
@@ -1159,9 +1178,14 @@ namespace heist {
         if(param_is_variadic(lst.exp[i])) {
           // pattern match dotted elt
           if(param_is_token(lst.exp[i+1])) {
-            unpacked_params.push_back(lst.exp[i+1].sym);
-            values.push_back(iter);
-            return true;
+            // booleans are a specialized token instance
+            if(param_is_boolean_literal(lst.exp[i+1])) {
+              return !param_boolean_mismatch(lst.exp[i+1].sym,iter);
+            } else {
+              unpacked_params.push_back(lst.exp[i+1].sym);
+              values.push_back(iter);
+              return true;
+            }
           } 
           // match against quoted non-nil literal symbols
           if(param_is_symbol_literal(lst.exp[i+1]))
@@ -1182,8 +1206,13 @@ namespace heist {
         if(!iter.is_type(types::par)) return false;
         // tokens match anything
         if(param_is_token(lst.exp[i])) {
-          unpacked_params.push_back(lst.exp[i].sym);
-          values.push_back(iter.par->first);
+          // booleans are a specialized token instance
+          if(param_is_boolean_literal(lst.exp[i])) {
+            if(param_boolean_mismatch(lst.exp[i].sym,iter.par->first)) return false;
+          } else {
+            unpacked_params.push_back(lst.exp[i].sym);
+            values.push_back(iter.par->first);
+          }
         // match against quoted non-nil literal symbols
         } else if(param_is_symbol_literal(lst.exp[i])) {
           if(param_symbol_mismatch(lst.exp[i].exp[1].sym,iter.par->first)) return false;
@@ -1232,8 +1261,13 @@ namespace heist {
         if(j == m) return false;
         // tokens match anything
         if(param_is_token(params[i])) {
-          unpacked_params.push_back(params[i].sym);
-          values.push_back(arguments[j]);
+          // booleans are a specialized token instance
+          if(param_is_boolean_literal(params[i])) {
+            if(param_boolean_mismatch(params[i].sym,arguments[j])) return false;
+          } else {
+            unpacked_params.push_back(params[i].sym);
+            values.push_back(arguments[j]);
+          }
         // match against quoted non-nil literal symbols
         } else if(param_is_symbol_literal(params[i])) {
           if(param_symbol_mismatch(params[i].exp[1].sym,arguments[j])) return false;
