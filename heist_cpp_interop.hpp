@@ -29,9 +29,14 @@ namespace heist {
             return data_cast(scm_eval(scm_list_cast(abstract_syntax_tree[i]),G::GLOBAL_ENVIRONMENT_POINTER));
           scm_eval(scm_list_cast(abstract_syntax_tree[i]),G::GLOBAL_ENVIRONMENT_POINTER);
         } catch(const SCM_EXCEPT& eval_throw) {
-          if(eval_throw == heist::SCM_EXCEPT::JUMP)
+          if(eval_throw == heist::SCM_EXCEPT::JUMP) {
             PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
               << PROFILE(heist::G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
+          } else if(eval_throw == heist::SCM_EXCEPT::EXIT) {
+            if(heist::G::HEIST_EXIT_CODE)
+              return data(heist::symconst::exit_failure);
+            return data(heist::symconst::exit_success);
+          }
           fputs("\n",stderr);
           return data();
         } catch(...) {
@@ -87,9 +92,14 @@ namespace heist {
     try {
       return data_cast(execute_callable(heist_procedure, args, G::GLOBAL_ENVIRONMENT_POINTER));
     } catch(const SCM_EXCEPT& eval_throw) {
-      if(eval_throw == heist::SCM_EXCEPT::JUMP)
+      if(eval_throw == heist::SCM_EXCEPT::JUMP) {
         PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
           << PROFILE(heist::G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
+      } else if(eval_throw == heist::SCM_EXCEPT::EXIT) {
+        if(heist::G::HEIST_EXIT_CODE)
+          return data(heist::symconst::exit_failure);
+        return data(heist::symconst::exit_success);
+      }
       return data();
     }
   }
@@ -102,9 +112,14 @@ namespace heist {
       auto val = lookup_variable_value(heist_procedure_name,G::GLOBAL_ENVIRONMENT_POINTER);
       return data_cast(execute_callable(val, args, G::GLOBAL_ENVIRONMENT_POINTER));
     } catch(const SCM_EXCEPT& eval_throw) {
-      if(eval_throw == heist::SCM_EXCEPT::JUMP)
+      if(eval_throw == heist::SCM_EXCEPT::JUMP) {
         PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
           << PROFILE(heist::G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
+      } else if(eval_throw == heist::SCM_EXCEPT::EXIT) {
+        if(heist::G::HEIST_EXIT_CODE)
+          return data(heist::symconst::exit_failure);
+        return data(heist::symconst::exit_success);
+      }
       return data();
     }
   }

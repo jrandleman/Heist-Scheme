@@ -2830,6 +2830,9 @@ Other primitives of this nature include:<br>
 ------------------------
 ## Control Flow Procedures:
 0. __Exit__: `(exit <optional-integer-exit-code>)`
+   * Note: `<optional-integer-exit-code>` defaults to `*exit-success*`
+   * If triggered while embedded in C++ ([`heist_cpp_interop.hpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/heist_cpp_interop.hpp))), eval'd code returns<br>
+     either `*exit-success*` or `*exit-failure*` as a SYMBOL!
 
 1. __Trigger Error__: `(error <errorful-obj-symbol> <error-string> <optional-errorful-objs>)`
 
