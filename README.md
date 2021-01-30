@@ -1629,17 +1629,20 @@ Other primitives of this nature include:<br>
    * Interpreted Scripts: passed at the cmd-line after the script name
    * Compiled Script: passed to the executable of the compiled C++ file
 
-8. __General Current Platform Name__: `heist-platform`
+8. __EXIT_SUCCESS & EXIT_FAILURE__: `*exit-success*`, `*exit-failure*`
+   * Designed to be used in conjunction with [`(exit)`](#Control-Flow-Procedures)
+
+9. __General Current Platform Name__: `heist-platform`
    * Possible results: `'windows` | `'apple` | `'linux` | `'unix` | `'posix` | `'unknown`
 
-9. __Specific Current Platform Name__: `heist-exact-platform`
-   * Possible results: 
-     - `'windows-64` | `'windows-32`
-     - `'apple-ios-simulator` | `'apple-ios` | `'apple-osx` | `'apple`
-     - `'linux` | `'unix` | `'posix`
-     - `'unknown`
+10. __Specific Current Platform Name__: `heist-exact-platform`
+    * Possible results: 
+      - `'windows-64` | `'windows-32`
+      - `'apple-ios-simulator` | `'apple-ios` | `'apple-osx` | `'apple`
+      - `'linux` | `'unix` | `'posix`
+      - `'unknown`
 
-10. __Get Heist Interpreter Directory__: `heist-dirname`
+11. __Get Heist Interpreter Directory__: `heist-dirname`
     * String to the Heist-Scheme interpreter's directory
 
 

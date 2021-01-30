@@ -4674,6 +4674,8 @@ namespace heist {
     define_variable("heist-platform",       HEIST_PLATFORM,         G::GLOBAL_ENVIRONMENT_POINTER);
     define_variable("heist-exact-platform", HEIST_EXACT_PLATFORM,   G::GLOBAL_ENVIRONMENT_POINTER);
     define_variable("stream-null",          symconst::emptylist,    G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable(symconst::exit_success, num_type(0),            G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable(symconst::exit_failure, num_type(1),            G::GLOBAL_ENVIRONMENT_POINTER);
     define_variable(symconst::null_env,     symconst::null_env,     G::GLOBAL_ENVIRONMENT_POINTER);
     define_variable(symconst::local_env,    symconst::local_env,    G::GLOBAL_ENVIRONMENT_POINTER);
     define_variable(symconst::global_env,   symconst::global_env,   G::GLOBAL_ENVIRONMENT_POINTER);

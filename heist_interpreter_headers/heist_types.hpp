@@ -54,6 +54,8 @@ namespace heist {
     constexpr const char * const null_env          = "null-environment";
     constexpr const char * const local_env         = "local-environment";
     constexpr const char * const global_env        = "global-environment";
+    constexpr const char * const exit_success      = "*exit-success*";
+    constexpr const char * const exit_failure      = "*exit-failure*";
     constexpr const char * const lambda            = "lambda";
     constexpr const char * const fn                = "fn";
     constexpr const char * const vec_literal       = "vector-literal";
