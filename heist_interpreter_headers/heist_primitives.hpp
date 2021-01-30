@@ -168,7 +168,7 @@ namespace heist {
   // primitive "log" procedure -- NATURAL LOGARITHM
   data primitive_LOG(scm_list& args) {
     if(args.empty() || args.size() > 2)
-      THROW_ERR("'log didn't recieve correct number of args!"
+      THROW_ERR("'log didn't receive correct number of args!"
         << "\n     (log <num> <optional-base>)" << FCN_ERR("log", args));
     if(!args[0].is_type(types::num))
       THROW_ERR("'log 1st <num> arg "<<PROFILE(args[0])<<" isn't a number!"
@@ -504,7 +504,7 @@ namespace heist {
     static constexpr const char * const format = 
       "\n     (atan <num>)\n     (atan <real> <real>) ; atan2 in C++";
     if(args.empty() || args.size() > 2)
-      THROW_ERR("'atan recieved incorrect # of args!" << format << FCN_ERR("atan",args));
+      THROW_ERR("'atan received incorrect # of args!" << format << FCN_ERR("atan",args));
     if(!args[0].is_type(types::num))
       THROW_ERR("'atan 1st arg " << PROFILE(args[0]) << " isn't a number!" 
         << format << FCN_ERR("atan",args));
@@ -1061,7 +1061,7 @@ namespace heist {
       "\n     (string-replace <string1> <string2> <start1> <end1>)";
       if(!args.empty() && args.size() < 4) return GENERATE_PRIMITIVE_PARTIAL("string-replace",primitive_STRING_REPLACE,args);
     if(args.size() != 4)
-      THROW_ERR("'string-replace recieved incorrect # of args (given " 
+      THROW_ERR("'string-replace received incorrect # of args (given " 
         << args.size() << "):" << format 
         << FCN_ERR("string-replace", args));
     if(!args[0].is_type(types::str))
@@ -1156,7 +1156,7 @@ namespace heist {
       "\n     (string-swap! <string> <string>)";
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-swap!",primitive_STRING_SWAP_BANG,args);
     if(args.size() != 2)
-      THROW_ERR("'string-swap! recieved incorrect # of args (given " 
+      THROW_ERR("'string-swap! received incorrect # of args (given " 
         << args.size() << "):" << format 
         << FCN_ERR("string-swap!", args));
     if(!args[0].is_type(types::str))
@@ -1177,7 +1177,7 @@ namespace heist {
       "\n     (string-push! <string> <char>)";
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-push!",primitive_STRING_PUSH_BANG,args);
     if(args.size() != 2)
-      THROW_ERR("'string-push! recieved incorrect # of args (given " 
+      THROW_ERR("'string-push! received incorrect # of args (given " 
         << args.size() << "):" << format 
         << FCN_ERR("string-push!", args));
     if(!args[0].is_type(types::str))
@@ -1314,7 +1314,7 @@ namespace heist {
 
   data primitive_SYMBOL_APPEND(scm_list& args) {
     if(args.empty())
-      THROW_ERR("'symbol-append recieved incorrect # of args!"
+      THROW_ERR("'symbol-append received incorrect # of args!"
         "\n     (symbol-append <symbol-1> ... <symbol-N>)" 
         << FCN_ERR("symbol-append", args));
     if(auto idx=confirm_only_args_of_type(args,types::sym);idx!=G::MAX_SIZE_TYPE)
@@ -1333,7 +1333,7 @@ namespace heist {
 
   data primitive_TYPEOF(scm_list& args) {
     if(args.size() != 1)
-      THROW_ERR("'typeof recieved incorrect # of args!\n     (typeof <obj>)" 
+      THROW_ERR("'typeof received incorrect # of args!\n     (typeof <obj>)" 
         << FCN_ERR("typeof", args));
     if(data_is_stream_pair(args[0])) return "#<stream>";
     if(data_is_a_delay(args[0]))     return "#<delay>";
@@ -1342,7 +1342,7 @@ namespace heist {
 
   data primitive_COPY(scm_list& args) {
     if(args.size() != 1)
-      THROW_ERR("'copy recieved incorrect # of args!\n     (copy <obj>)" 
+      THROW_ERR("'copy received incorrect # of args!\n     (copy <obj>)" 
         "\n     -> Deep-Copy: Vector | String | List/Dotted/Circular | Hmap | Object"
         << FCN_ERR("copy", args));
     return args[0].copy();
@@ -1350,7 +1350,7 @@ namespace heist {
 
   data primitive_SHALLOW_COPY(scm_list& args) {
     if(args.size() != 1)
-      THROW_ERR("'shallow-copy recieved incorrect # of args!\n     (shallow-copy <obj>)" 
+      THROW_ERR("'shallow-copy received incorrect # of args!\n     (shallow-copy <obj>)" 
         "\n     -> Shallow-Copy: Vector | String | List/Dotted/Circular | Hmap | Object"
         << FCN_ERR("shallow-copy", args));
     return args[0].shallow_copy();
@@ -1366,7 +1366,7 @@ namespace heist {
       "\n     (hmap <key1> <val1> <key2> <val2> ...)" HEIST_HASH_MAP_KEY_FORMAT;
     if(args.empty()) return make_map(scm_map());
     if(args.size() & 1) 
-      THROW_ERR("'hmap recieved uneven # of args!"<<format<<FCN_ERR("hmap",args));
+      THROW_ERR("'hmap received uneven # of args!"<<format<<FCN_ERR("hmap",args));
     scm_map hmap;
     // verify all keys are hashable
     for(size_type i = args.size()-2; i != G::MAX_SIZE_TYPE-1; i -= 2) {
@@ -1547,7 +1547,7 @@ namespace heist {
   // primitive "alist->hmap"
   data primitive_ALIST_TO_HMAP(scm_list& args) {
     if(args.size() != 1)
-      THROW_ERR("'alist->hmap didn't recieve 1 arg!"
+      THROW_ERR("'alist->hmap didn't receive 1 arg!"
         "\n     (alist->hmap <alist>)" << FCN_ERR("alist->hmap",args));
     if(!data_is_proper_list(args[0]))
       THROW_ERR("'alist->hmap arg "<<PROFILE(args[0])<<" isn't an <alist> of proper-list pairs of items!"
@@ -2022,7 +2022,7 @@ namespace heist {
   // primitive "get-all-combinations" procedure:
   data primitive_GET_ALL_COMBINATIONS(scm_list& args) {
     if(args.size() != 1)
-      THROW_ERR("'get-all-combinations didn't recieve 1 arg!"
+      THROW_ERR("'get-all-combinations didn't receive 1 arg!"
         "\n     (get-all-combinations <proper-list>)" << FCN_ERR("get-all-combinations",args));
     if(!data_is_proper_list(args[0]))
       THROW_ERR("'get-all-combinations arg " << PROFILE(args[0]) << " isn't a proper list!"
@@ -2236,7 +2236,7 @@ namespace heist {
   // primitive "vector-get-all-combinations" procedure:
   data primitive_VECTOR_GET_ALL_COMBINATIONS(scm_list& args) {
     if(args.size() != 1)
-      THROW_ERR("'vector-get-all-combinations didn't recieve 1 arg!"
+      THROW_ERR("'vector-get-all-combinations didn't receive 1 arg!"
         "\n     (vector-get-all-combinations <vector>)" << FCN_ERR("vector-get-all-combinations",args));
     if(!args[0].is_type(types::vec))
       THROW_ERR("'vector-get-all-combinations arg " << PROFILE(args[0]) << " isn't a vector!"
@@ -2790,7 +2790,7 @@ namespace heist {
   data primitive_SEQ_EQ(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (seq= <elt=?> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
-    if(args.empty()) THROW_ERR("'seq= didn't recieve any args:" << format << FCN_ERR("seq=", args));
+    if(args.empty()) THROW_ERR("'seq= didn't receive any args:" << format << FCN_ERR("seq=", args));
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("seq=",primitive_SEQ_EQ,args);
     auto procedure = validate_and_extract_callable(args[0], "seq=", format, args);
     switch(is_proper_sequence(args[1],args,"seq=",format)) {
@@ -4404,7 +4404,7 @@ namespace heist {
       "\n     (sprintf <formatted-string> <optional-arg1> <optional-arg2> ...)"
       sprintf_formatting_token_format;
     if(args.empty())
-      THROW_ERR("'sprintf no args recieved!" << format << FCN_ERR("sprintf",args));
+      THROW_ERR("'sprintf no args received!" << format << FCN_ERR("sprintf",args));
     if(!args[0].is_type(types::str))
       THROW_ERR("'sprintf 1st arg "<<PROFILE(args[0])<<" isn't a string!" 
         << format << FCN_ERR("sprintf",args));
@@ -4790,7 +4790,7 @@ namespace heist {
     auto local_env = args.rbegin()->env;
     args.pop_back();
     if(args.size() < 2)
-      THROW_ERR("'cps-load recieved incorrect # of args!" << format << FCN_ERR("cps-load",args));
+      THROW_ERR("'cps-load received incorrect # of args!" << format << FCN_ERR("cps-load",args));
     // extract the continuation
     auto continuation = *(args.rbegin());
     auto continuation_procedure = validate_and_extract_callable(continuation, "cps-load", format, args);
@@ -4915,7 +4915,7 @@ namespace heist {
 
   data primitive_TIME(scm_list& args) {
     if(args.empty())
-      THROW_ERR("'time recieved incorrect # of args!"
+      THROW_ERR("'time received incorrect # of args!"
         "\n     (time <callable> <arg1> ... <argN>)" << FCN_ERR("time",args));
     primitive_confirm_data_is_a_callable(args[0], "time", 
       "\n     (time <callable> <arg1> ... <argN>)", args);
@@ -5030,7 +5030,7 @@ namespace heist {
 
   data primitive_SET_DOT_BANG(scm_list& args) {
     if(args.size() != 1 || !args[0].is_type(types::chr))
-      THROW_ERR("'set-dot! didn't recieve 1 character!"
+      THROW_ERR("'set-dot! didn't receive 1 character!"
         "\n     (set-dot! <char>)" << FCN_ERR("set-dot!",args));
     data original_dot = symconst::dot[0];
     symconst::dot[0] = args[0].chr;
@@ -5048,13 +5048,24 @@ namespace heist {
   ******************************************************************************/
 
   data primitive_EXIT(scm_list& args) {
+    static constexpr const auto MAX_INT = std::numeric_limits<int>::max();
+    static constexpr const auto MIN_INT = std::numeric_limits<int>::min();
     if(args.size() > 1)
       THROW_ERR("'exit received more than 1 argument!"
-        "\n     (exit <optional-integer-exit-code>)" << FCN_ERR("exit",args));
+        "\n     (exit <optional-integer-exit-code>)"
+        "\n     => <optional-integer-exit-code> bounds: [" 
+        << MIN_INT << ", " << MAX_INT <<']' << FCN_ERR("exit",args));
     if(args.empty()) throw SCM_EXCEPT::EXIT;
     if(!args[0].is_type(types::num) || !args[0].num.is_integer())
-      THROW_ERR("'exit didn't recieve an integer argument!"
-        "\n     (exit <optional-integer-exit-code>)" << FCN_ERR("exit",args));
+      THROW_ERR("'exit didn't receive an integer argument!"
+        "\n     (exit <optional-integer-exit-code>)"
+        "\n     => <optional-integer-exit-code> bounds: [" 
+        << MIN_INT << ", " << MAX_INT <<']' << FCN_ERR("exit",args));
+    if(args[0].num > MAX_INT || args[0].num < MIN_INT)
+      THROW_ERR("'exit integer argument doesn't fall w/in proper bounds!"
+        "\n     (exit <optional-integer-exit-code>)"
+        "\n     => <optional-integer-exit-code> bounds: [" 
+        << MIN_INT << ", " << MAX_INT <<']' << FCN_ERR("exit",args));
     G::HEIST_EXIT_CODE = (int)args[0].num.extract_inexact();
     throw SCM_EXCEPT::EXIT;
     return data();
@@ -5075,7 +5086,7 @@ namespace heist {
     auto env = args.rbegin()->env;
     args.pop_back();
     if(args.empty())
-      THROW_ERR("'call/ce recieved incorrect # of args!"
+      THROW_ERR("'call/ce received incorrect # of args!"
         "\n     (call/ce <callable> <arg1> ... <argN>)" << FCN_ERR("call/ce",args));
     primitive_confirm_data_is_a_callable(args[0], "call/ce", 
       "\n     (call/ce <callable> <arg1> ... <argN>)", args);
@@ -5090,7 +5101,7 @@ namespace heist {
     auto env = args.rbegin()->env;
     args.pop_back();
     if(args.empty())
-      THROW_ERR("'inline recieved incorrect # of args!"
+      THROW_ERR("'inline received incorrect # of args!"
         "\n     (inline <callable> <arg1> ... <argN>)" << FCN_ERR("inline",args));
     primitive_confirm_data_is_a_callable(args[0], "inline", 
       "\n     (inline <callable> <arg1> ... <argN>)", args);
@@ -5109,7 +5120,7 @@ namespace heist {
 
   data primitive_JUMP_BANG(scm_list& args) {
     if(args.size() > 1)
-      THROW_ERR("'jump! recieved incorrect # of args!"
+      THROW_ERR("'jump! received incorrect # of args!"
         "\n     (jump! <optional-arg>)" << FCN_ERR("jump!",args));
     if(args.size() == 1)
       G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT = args[0];
@@ -5121,7 +5132,7 @@ namespace heist {
 
   data primitive_CATCH_JUMP(scm_list& args) {
     if(args.empty())
-      THROW_ERR("'catch-jump recieved incorrect # of args!"
+      THROW_ERR("'catch-jump received incorrect # of args!"
         "\n     (catch-jump <callable> <arg1> ... <argN>)" << FCN_ERR("catch-jump",args));
     primitive_confirm_data_is_a_callable(args[0], "catch-jump", 
       "\n     (catch-jump <callable> <arg1> ... <argN>)", args);
@@ -5157,7 +5168,7 @@ namespace heist {
   // NOTE: The procedure MUST be a NAMED procedure (no anonymous lambda tracing support)!
   data primitive_TRACE(scm_list& args) {
     if(args.empty())
-      THROW_ERR("'trace recieved incorrect # of args!"
+      THROW_ERR("'trace received incorrect # of args!"
         "\n     (trace <procedure> <arg1> ... <argN>)" << FCN_ERR("trace",args));
     primitive_confirm_data_is_a_procedure(args[0], "trace", 
       "\n     (trace <procedure> <arg1> ... <argN>)", args);
@@ -5179,7 +5190,7 @@ namespace heist {
       "\n     (gensym <optional-instance-#-to-reference>)"
       "\n     => (gensym n) refers to the symbol generated by the nth last (gensym) call!";
     if(args.size() > 1)
-      THROW_ERR("'gensym recieved incorrect # of args!" << format << FCN_ERR("gensym",args));
+      THROW_ERR("'gensym received incorrect # of args!" << format << FCN_ERR("gensym",args));
     if(args.size() == 1) {
       if(!args[0].is_type(types::num) || !args[0].num.is_integer() || args[0].num.is_neg())
         THROW_ERR("'gensym arg " << PROFILE(args[0]) << " isn't a non-negative integer!"
@@ -5195,7 +5206,7 @@ namespace heist {
       "\n     (sown-gensym <seed>)"
       "\n     => <seed> = number | symbol | boolean";
     if(args.size() != 1)
-      THROW_ERR("'sown-gensym recieved incorrect # of args!" 
+      THROW_ERR("'sown-gensym received incorrect # of args!" 
         << format << FCN_ERR("sown-gensym",args));
     if(!args[0].is_type(types::num) && !args[0].is_type(types::sym) && !args[0].is_type(types::bol))
       THROW_ERR("'sown-gensym arg "<<PROFILE(args[0])<<" isn't a valid 'sown-gensym key!" 
@@ -5209,7 +5220,7 @@ namespace heist {
 
   data primitive_CORE_SYNTAXP(scm_list& args) {
     if(args.size() != 1 || !args[0].is_type(types::sym))
-      THROW_ERR("'core-syntax? didn't recieve 1 symbolic arg!"
+      THROW_ERR("'core-syntax? didn't receive 1 symbolic arg!"
         "\n     (core-syntax? <symbol>)" << FCN_ERR("core-syntax?",args));
     for(const auto& core_syntax_label : G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY)
       if(core_syntax_label == args[0].sym)
@@ -5222,7 +5233,7 @@ namespace heist {
     auto env = args.rbegin()->env;
     args.pop_back();
     if(args.size() != 1 || !args[0].is_type(types::sym))
-      THROW_ERR("'runtime-syntax? didn't recieve 1 symbolic arg!"
+      THROW_ERR("'runtime-syntax? didn't receive 1 symbolic arg!"
         "\n     (runtime-syntax? <symbol>)" << FCN_ERR("runtime-syntax?",args));
     // Confirm not core-syntax
     for(const auto& core_syntax_label : G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY)
@@ -5244,7 +5255,7 @@ namespace heist {
 
   data primitive_READER_SYNTAXP(scm_list& args) {
     if(args.size() != 1 || !args[0].is_type(types::str))
-      THROW_ERR("'reader-syntax? didn't recieve 1 string arg!"
+      THROW_ERR("'reader-syntax? didn't receive 1 string arg!"
         "\n     => Must be a string to avoid expansion by the reader if IS syntax!"
         "\n     (reader-syntax? <string>)" << FCN_ERR("reader-syntax?",args));
     auto& sought_shorthand = *args[0].str;
@@ -5257,7 +5268,7 @@ namespace heist {
 
   data primitive_READER_ALIASP(scm_list& args) {
     if(args.size() != 1 || !args[0].is_type(types::str))
-      THROW_ERR("'reader-alias? didn't recieve 1 string arg!"
+      THROW_ERR("'reader-alias? didn't receive 1 string arg!"
         "\n     => Must be a string to avoid expansion by the reader if IS syntax!"
         "\n     (reader-alias? <string>)" << FCN_ERR("reader-alias?",args));
     auto& sought_shorthand = *args[0].str;
@@ -5372,7 +5383,7 @@ namespace heist {
 
   data primitive_JSON_TO_SCM(scm_list& args) {
     if(args.size() != 1 || !args[0].is_type(types::str))
-      THROW_ERR("'json->scm didn't recieve 1 string arg!" 
+      THROW_ERR("'json->scm didn't receive 1 string arg!" 
         "\n     (json->scm <string>)" << FCN_ERR("json->scm", args));
     if(args[0].str->empty()) return G::VOID_DATA_OBJECT;
     scm_string input = *args[0].str;
@@ -5406,7 +5417,7 @@ namespace heist {
       "\n             | <vector> ; -> <array>"
       "\n             | <boolean>";
     if(args.empty() || args.size() > 2)
-      THROW_ERR("'scm->json didn't recieve correct # of args:"
+      THROW_ERR("'scm->json didn't receive correct # of args:"
         << format << FCN_ERR("scm->json",args));
     size_type indent_width = 0;
     if(args.size() == 2) {
@@ -5629,7 +5640,7 @@ namespace heist {
     static constexpr const char * const format = "\n     (.. <object> <property-1> ...)";
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("..",primitive_HEIST_CORE_OO_MEMBER_ACCESS,args);
     if(args.size() < 2)
-      THROW_ERR("'.. not enough args recieved!" << format << FCN_ERR("..",args));
+      THROW_ERR("'.. not enough args received!" << format << FCN_ERR("..",args));
     data value = args[0];
     // get the call value
     for(size_type i = 1, n = args.size(); i < n; ++i) {
@@ -5667,7 +5678,7 @@ namespace heist {
     static constexpr const char * const format = 
       "\n     (object->json <object> <optional-indent-width>)";
     if(args.empty() || args.size() > 2)
-      THROW_ERR("'object->json didn't recieve correct # of args:"
+      THROW_ERR("'object->json didn't receive correct # of args:"
         << format << FCN_ERR("object->json",args));
     if(!args[0].is_type(types::obj))
       THROW_ERR("'object->json arg " << PROFILE(args[0]) << " isn't an object!"
@@ -5779,14 +5790,14 @@ namespace heist {
 
   data primitive_STRING_TO_ASCII_ART(scm_list& args) { 
     if(args.size() != 1 || !args[0].is_type(types::str))
-      THROW_ERR("'string->ascii-art didn't recieve 1 string arg!"
+      THROW_ERR("'string->ascii-art didn't receive 1 string arg!"
         "\n     (string->ascii-art <string>)" << FCN_ERR("string->ascii-art",args));
     return make_str(heist_fmt::convert_to_ascii_art(*args[0].str));
   }
 
   data primitive_STRING_TO_SPACE_ART(scm_list& args) { 
     if(args.size() != 1 || !args[0].is_type(types::str))
-      THROW_ERR("'string->space-art didn't recieve 1 string arg!"
+      THROW_ERR("'string->space-art didn't receive 1 string arg!"
         "\n     (string->space-art <string>)\n     => <nansi> must be inactive!" 
         << FCN_ERR("string->space-art",args));
     if(!G::USING_ANSI_ESCAPE_SEQUENCES)

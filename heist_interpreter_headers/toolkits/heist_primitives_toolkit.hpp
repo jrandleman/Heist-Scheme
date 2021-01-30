@@ -646,7 +646,7 @@ namespace heist {
   char confirm_valid_string_pad_args(scm_list& args, const char* name, 
                                                      const char* format){
     if(args.size() != 2 && args.size() != 3)
-      THROW_ERR('\''<<name<<" recieved incorrect # of args (given " 
+      THROW_ERR('\''<<name<<" received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR(name, args));
     confirm_given_string_and_valid_length(args, name, format);
     if(args.size() == 3) {
@@ -662,7 +662,7 @@ namespace heist {
   void confirm_valid_string_trim_args(scm_list& args, const char* name, 
                                                       const char* format){
     if(args.empty() || args.size() > 2)
-      THROW_ERR('\''<<name<<" recieved incorrect # of args (given " 
+      THROW_ERR('\''<<name<<" received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR(name, args));
     if(!args[0].is_type(types::str))
       THROW_ERR('\''<<name<<" 1st arg " << PROFILE(args[0]) << " isn't a string:"
@@ -720,7 +720,7 @@ namespace heist {
   data prm_string_contains_template(scm_list& args,     const char* name, 
                                     const char* format, const bool& from_left){
     if(args.size() != 2) 
-      THROW_ERR('\''<<name<<" recieved incorrect # of args (given " 
+      THROW_ERR('\''<<name<<" received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR(name, args));
     if(!args[0].is_type(types::str))
       THROW_ERR('\''<<name<<" 1st arg "<<PROFILE(args[0])<<" isn't a string:" 
@@ -768,7 +768,7 @@ namespace heist {
       "\n     (string-join <string-list> <optional-string-delimiter> <optional-grammar>)"
       "\n     <optional-grammar> = 'infix | 'suffix | 'prefix";
     if(args.empty() || args.size() > 3) // confirm enough args
-      THROW_ERR("'string-join recieved incorrect # of args (given " 
+      THROW_ERR("'string-join received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR("string-join", args));
     confirm_given_list_of_strings(args, format, strings_list); // confirm list of strings
     if(args.size() > 1) { // confirm proper delimiter
@@ -3697,13 +3697,13 @@ namespace heist {
   template<prm_ptr_t OUTPUT_FCN>
   data generic_formatted_output_prm(scm_list& args, const char* format, const char* name) {
     if(args.empty())
-      THROW_ERR('\''<<name<<" no args recieved!" << format << FCN_ERR(name,args));
+      THROW_ERR('\''<<name<<" no args received!" << format << FCN_ERR(name,args));
     if((!args[0].is_type(types::fop) || !args[0].fop.is_open()) && !args[0].is_type(types::str))
       THROW_ERR('\''<<name<<" 1st arg "<<PROFILE(args[0])<<" isn't an open output port or string!" 
         << format << FCN_ERR(name,args));
     if(!args[0].is_type(types::str)) {
       if(args.size() < 2)
-        THROW_ERR('\''<<name<<" not enough args (only recieved an open output port)!" 
+        THROW_ERR('\''<<name<<" not enough args (only received an open output port)!" 
           << format << FCN_ERR(name,args));
       if(!args[1].is_type(types::str))
         THROW_ERR('\''<<name<<" 2nd arg "<<PROFILE(args[1])<<" isn't a string!" 
@@ -4317,7 +4317,7 @@ namespace heist {
   void primitive_LOAD_interpret_file_contents(scm_list& args, env_type& env, const char* format){
     // Load file contents
     if(args.size() != 1)
-      THROW_ERR("'load recieved incorrect # of arguments!" << format << FCN_ERR("load", args));
+      THROW_ERR("'load received incorrect # of arguments!" << format << FCN_ERR("load", args));
     FILE* ins = confirm_valid_input_file(args[0],"load",format,args);
     size_type exp_count = 1;
     while(!feof(ins)) {
@@ -4345,7 +4345,7 @@ namespace heist {
   scm_list primitive_CPS_LOAD_interpret_file_contents(scm_list& args, env_type& env, const char* format){
     // Load file contents
     if(args.size() != 1)
-      THROW_ERR("'cps-load recieved incorrect # of arguments!" << format << FCN_ERR("cps-load", args));
+      THROW_ERR("'cps-load received incorrect # of arguments!" << format << FCN_ERR("cps-load", args));
     FILE* ins = confirm_valid_input_file(args[0],"cps-load",format,args);
     size_type exp_count = 1;
     scm_list AST;
@@ -4755,7 +4755,7 @@ namespace heist {
 
   void confirm_proper_set_syntax_args(scm_list& args,const char* name,const char* format){
     if(args.empty() || args.size() > 2)
-      THROW_ERR('\''<<name<<" didn't recieve correct # of args!"
+      THROW_ERR('\''<<name<<" didn't receive correct # of args!"
         << format << FCN_ERR(name,args));
     for(size_type i = 0, n = args.size(); i < n; ++i)
       if(!args[i].is_type(types::sym))
@@ -5351,7 +5351,7 @@ namespace heist {
                                         scm_string& delimiter,size_type& start_index){
     // confirm proper arg signature
     if(args.empty() || args.size() > 3) 
-      THROW_ERR('\''<<name<<" recieved incorrect # of args (given " 
+      THROW_ERR('\''<<name<<" received incorrect # of args (given " 
         << args.size() << "):" << format << FCN_ERR(name, args));
     if(!args[0].is_type(types::str))
       THROW_ERR('\''<<name<<" 1st arg "<<PROFILE(args[0])<<" isn't a string:"

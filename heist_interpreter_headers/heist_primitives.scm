@@ -596,7 +596,7 @@
 ;; =========== TAU BETA PI ASCII ART ===========
 ;; =============================================
 
-(define tbp-string
+(define *tbp-string*
 "          _
         // \\\\
     2 0 \\\\ // 2 2
@@ -611,10 +611,10 @@
          |_|")
 
 
-;; display <tbp-string>
+;; display <*tbp-string*>
 (defn tbp 
-  (() (display tbp-string))
-  ((string-or-output-port) (display tbp-string string-or-output-port)))
+  (() (display *tbp-string*))
+  ((string-or-output-port) (display *tbp-string* string-or-output-port)))
 
 ;; =============================================================
 ;; =========== LICENSE ST-BUILD-SYSTEM & SHELL-ALIAS ===========

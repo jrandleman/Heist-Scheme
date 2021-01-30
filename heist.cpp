@@ -507,7 +507,7 @@ namespace heist {
       "\n     (define-reader-alias <alias-symbol> <name-symbol>)"
       "\n     (define-reader-alias <alias-symbol-to-delete>)";
     if((exp.size() == 2 && data_is_the_SENTINEL_VAL(exp[1])) || exp.size() == 1 || exp.size() > 3)
-      THROW_ERR("'define-reader-alias recieve incorrect # of symbols!" << format << EXP_ERR(exp));
+      THROW_ERR("'define-reader-alias receive incorrect # of symbols!" << format << EXP_ERR(exp));
     if(!exp[1].is_type(types::sym))
       THROW_ERR("'define-reader-alias 1st arg isn't a symbol!" << format << EXP_ERR(exp));
     data val;
@@ -1214,7 +1214,7 @@ namespace heist {
 
   void validate_fn(const scm_list& exp) {
     if(exp.size() == 1 || data_is_the_SENTINEL_VAL(exp[1]))
-      THROW_ERR("'fn didn't recieve any match expressions!" FN_LAYOUT << EXP_ERR(exp));
+      THROW_ERR("'fn didn't receive any match expressions!" FN_LAYOUT << EXP_ERR(exp));
     for(size_type i = 1, n = exp.size(); i < n; ++i) {
       if(!exp[i].is_type(types::exp) || exp[i].exp.size() < 2)
         THROW_ERR("'fn invalid non-exp match expression: " << PROFILE(exp[i]) << "!" FN_LAYOUT << EXP_ERR(exp));
@@ -1916,7 +1916,7 @@ namespace heist {
 
   void confirm_valid_infix_infixr_unfix_syntax(scm_list& exp, const char* name) {
     if(exp.size() < 2 || data_is_the_SENTINEL_VAL(exp[1]))
-      THROW_ERR('\''<<name<<" didn't recieve enough arguments!"
+      THROW_ERR('\''<<name<<" didn't receive enough arguments!"
         "\n     ("<<name<<" <precedence-level-integer-literal> <symbol> ...)"
         "\n     ("<<name<<" <symbol> ...)" 
         "\n     <precedence-level> range: ["<<LLONG_MIN<<','<<LLONG_MAX<<']'
@@ -1951,7 +1951,7 @@ namespace heist {
   // redefines operators iff already defined
   exe_fcn_t register_infix_operators(const scm_list& exp,const char* name,bool is_left_assoc) {
     if(exp.size() < 3)
-      THROW_ERR('\''<<name<<" didn't recieve enough arguments!"
+      THROW_ERR('\''<<name<<" didn't receive enough arguments!"
         "\n     ("<<name<<" <precedence-level-integer-literal> <symbol> ...)"
         "\n     ("<<name<<" <symbol> ...)" 
         "\n     <precedence-level> range: ["<<LLONG_MIN<<','<<LLONG_MAX<<']'
@@ -2000,7 +2000,7 @@ namespace heist {
 
   exe_fcn_t analyze_unfix(scm_list& exp){
     if(exp.size() < 2 || data_is_the_SENTINEL_VAL(exp[1]))
-      THROW_ERR("'unfix! didn't recieve enough arguments!\n     (unfix! <symbol> ...)"<<EXP_ERR(exp));
+      THROW_ERR("'unfix! didn't receive enough arguments!\n     (unfix! <symbol> ...)"<<EXP_ERR(exp));
     for(size_type i = 1, n = exp.size(); i < n; ++i)
       if(!exp[i].is_type(types::sym))
         THROW_ERR("'unfix! argument #"<<i+1<<", "<<PROFILE(exp[i])<< ", isn't a symbol!"
@@ -2108,7 +2108,7 @@ namespace heist {
   // NOTE: USE runtime-syntax? core-syntax? reader-syntax? TO CHECK MACROS !!!
   exe_fcn_t analyze_definedp(scm_list& exp) {
     if(exp.size() != 2 || data_is_the_SENTINEL_VAL(exp[1]))
-      THROW_ERR("'defined? didn't recieve 1 argument!\n     (defined? <symbol>)"<<EXP_ERR(exp));
+      THROW_ERR("'defined? didn't receive 1 argument!\n     (defined? <symbol>)"<<EXP_ERR(exp));
     if(!exp[1].is_type(types::sym))
       THROW_ERR("'defined? arg "<<PROFILE(exp[1])<<" isn't a symbol!\n     (defined? <symbol>)"<<EXP_ERR(exp));
     // Check if non-member-access symbol is defined in the environment
@@ -2450,7 +2450,7 @@ namespace heist {
       set_exp[1].exp[1] = var;
       set_exp[1].exp[2] = val;
     // Cps-ify non-atomic values, passing a lambda as a continuation that in 
-    //   turn sets the recieved value & passes such to the continuation given here as an arg
+    //   turn sets the received value & passes such to the continuation given here as an arg
     } else {
       set_exp[0] = generate_fundamental_form_cps(val,false);
       set_exp[1] = scm_list(3);
@@ -4092,9 +4092,9 @@ namespace heist {
     static constexpr const char * const format = 
       "\n     (core-syntax <name> (<keyword> ...) (<pattern> <template>) ...)";
     if(exp.size() < 3)
-      THROW_ERR("'core-syntax didn't recieve enough args!\n     In expression: " << exp << format);
+      THROW_ERR("'core-syntax didn't receive enough args!\n     In expression: " << exp << format);
     if(!exp[1].is_type(types::sym))
-      THROW_ERR("'core-syntax didn't recieve enough args!\n     In expression: " << exp << format);
+      THROW_ERR("'core-syntax didn't receive enough args!\n     In expression: " << exp << format);
     // Eval the syntax defn in the global env at runtime
     exp[0] = symconst::defn_syn;
     auto core_syntax_name = exp[1].sym;
@@ -4328,7 +4328,7 @@ namespace heist {
     // Extend partially applied args as needed
     if(!proc.fcn.param_instances.empty()) {
       if(args.empty())
-        THROW_ERR('\''<<proc.fcn.printable_procedure_name()<<" partial procedure didn't recieve any arguments!"
+        THROW_ERR('\''<<proc.fcn.printable_procedure_name()<<" partial procedure didn't receive any arguments!"
           << "\n     Partial Bindings: " << procedure_call_signature(proc.fcn.printable_procedure_name(),proc.fcn.param_instances[0]));
       args.insert(args.begin(),proc.fcn.param_instances[0].begin(),proc.fcn.param_instances[0].end());
     }
@@ -4823,7 +4823,12 @@ int driver_loop() {
         print_repl_newline(printed_data);
       } catch(const heist::SCM_EXCEPT& eval_throw) {
         if(eval_throw == heist::SCM_EXCEPT::EXIT) { 
-          if(!heist::G::HEIST_EXIT_CODE) puts("Adios!"); 
+          if(!heist::G::HEIST_EXIT_CODE) {
+            puts("Adios!"); 
+          } else {
+            PRINT_ERR("HEIST SCHEME REPL TERMINATION: EXIT FAILURE (" << heist::G::HEIST_EXIT_CODE << ")!");
+            puts("");
+          }
           return heist::G::HEIST_EXIT_CODE; 
         }
         if(eval_throw == heist::SCM_EXCEPT::JUMP)

@@ -1705,7 +1705,7 @@ Other primitives of this nature include:<br>
 2. __Cyclical Coroutine Invocation__: `(cycle-coroutines! <coroutine-object-1> ...)`
    * ___TAKE HEED___: if none of the coroutines ever finish, neither will this procedure!
    * Invokes first coroutine until yields, then invokes next, and so on until wraps around
-   * Returns the first non-coroutine-object recieved from a [`.next`](#Define-Coroutine) invocation
+   * Returns the first non-coroutine-object received from a [`.next`](#Define-Coroutine) invocation
    * See the example from the [`define-coroutine`](#Define-Coroutine) section!
 
 3. __Eval in Coroutines__: `(co-eval <datum>)`
