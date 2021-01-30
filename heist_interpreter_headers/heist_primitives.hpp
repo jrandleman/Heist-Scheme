@@ -5047,8 +5047,16 @@ namespace heist {
   * CONTROL-FLOW PRIMITIVES: EXITING, ERROR HANDLING, INLINING, & JUMPING
   ******************************************************************************/
 
-  data primitive_EXIT(scm_list&) {
-    throw SCM_EXCEPT::EXIT; // regardless of args, 'exit' exits
+  data primitive_EXIT(scm_list& args) {
+    if(args.size() > 1)
+      THROW_ERR("'exit received more than 1 argument!"
+        "\n     (exit <optional-integer-exit-code>)" << FCN_ERR("exit",args));
+    if(args.empty()) throw SCM_EXCEPT::EXIT;
+    if(!args[0].is_type(types::num) || !args[0].num.is_integer())
+      THROW_ERR("'exit didn't recieve an integer argument!"
+        "\n     (exit <optional-integer-exit-code>)" << FCN_ERR("exit",args));
+    G::HEIST_EXIT_CODE = (int)args[0].num.extract_inexact();
+    throw SCM_EXCEPT::EXIT;
     return data();
   }
 

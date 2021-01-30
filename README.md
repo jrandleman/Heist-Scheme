@@ -2826,7 +2826,7 @@ Other primitives of this nature include:<br>
 
 ------------------------
 ## Control Flow Procedures:
-0. __Exit__: `(exit)`
+0. __Exit__: `(exit <optional-integer-exit-code>)`
 
 1. __Trigger Error__: `(error <errorful-obj-symbol> <error-string> <optional-errorful-objs>)`
 

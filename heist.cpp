@@ -4805,7 +4805,7 @@ heist::exp_type repl_tag_expression(const heist::data& d)noexcept{
 }
 
 
-void driver_loop() {
+int driver_loop() {
   bool printed_data = true;
   print_repl_newline(printed_data);
   for(;;) {
@@ -4820,7 +4820,10 @@ void driver_loop() {
         user_print(stdout, value);
         print_repl_newline(printed_data);
       } catch(const heist::SCM_EXCEPT& eval_throw) {
-        if(eval_throw == heist::SCM_EXCEPT::EXIT) { puts("Adios!"); return; }
+        if(eval_throw == heist::SCM_EXCEPT::EXIT) { 
+          if(!heist::G::HEIST_EXIT_CODE) puts("Adios!"); 
+          return heist::G::HEIST_EXIT_CODE; 
+        }
         if(eval_throw == heist::SCM_EXCEPT::JUMP)
           PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
             << PROFILE(heist::G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
@@ -4831,7 +4834,7 @@ void driver_loop() {
              "\n  => Please send your code to jrandleman@scu.edu to fix"
              "\n     the interpreter's bug!"
              "\n  => Terminating Heist Scheme Interpretation.");
-        return;
+        return 1;
       }
     }
   }
@@ -4957,9 +4960,13 @@ int load_script(const char* filename){
     else
       heist::primitive_LOAD(load_args);
   } catch(const heist::SCM_EXCEPT& eval_throw) {
+    /* warn about uncaught <jump!> */
     if(eval_throw == heist::SCM_EXCEPT::JUMP)
       PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
         << PROFILE(heist::G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
+    /* catch <exit> signal */
+    if(eval_throw == heist::SCM_EXCEPT::EXIT) 
+      return heist::G::HEIST_EXIT_CODE;
     /* catch errors already output to stdout */ 
     putchar('\n');
     return 1;
@@ -4991,11 +4998,16 @@ int compile_script(char* argv[], const int& compile_pos, std::string& compile_as
     else
       heist::primitive_COMPILE(compile_args);
   } catch(const heist::SCM_EXCEPT& eval_throw) {
+    /* warn about uncaught <jump!> */
     if(eval_throw == heist::SCM_EXCEPT::JUMP)
       PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
         << PROFILE(heist::G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
+    /* catch <exit> signal */
+    if(eval_throw == heist::SCM_EXCEPT::EXIT) 
+      return heist::G::HEIST_EXIT_CODE;
     /* catch errors already output to stdout */ 
     putchar('\n');
+    return 1;
   } catch(...) {
     /* catch uncaught C++ exceptions -:- ANOMALY -:- */
     PRINT_ERR(afmt(heist::AFMT_1) << 
@@ -5019,9 +5031,9 @@ int load_scripts(const std::vector<const char*>& LOADED_FILES) {
   bool old_cps_val = heist::G::USING_CPS_CMD_LINE_FLAG;
   heist::G::USING_CPS_CMD_LINE_FLAG = false;
   for(auto filename : LOADED_FILES)
-    if(load_script(filename)) {
+    if(int result = load_script(filename); result) {
       heist::close_port_registry();
-      return 1;
+      return result;
     }
   heist::G::USING_CPS_CMD_LINE_FLAG = old_cps_val;
   return 0;
@@ -5048,7 +5060,8 @@ int main(int argc, char* argv[]) {
   // Trace All Subsequent Calls (as needed)
   if(trace_calls) heist::G::TRACING_ALL_FUNCTION_CALLS = true;
   // Load Files (as needed)
-  if(!LOADED_FILES.empty() && load_scripts(LOADED_FILES)) return 1;
+  if(!LOADED_FILES.empty()) 
+    if(int result = load_scripts(LOADED_FILES); result) return result;
   // Interpret a Script (as needed)
   if(script_pos != -1) {
     int result = load_script(argv[script_pos]);
@@ -5060,9 +5073,9 @@ int main(int argc, char* argv[]) {
     return compile_script(argv, compile_pos, compile_as);
   // Run the REPL
   puts("Heist Scheme Version 6.0\nEnter '(exit)' to Terminate REPL");
-  driver_loop();
+  int result = driver_loop();
   heist::close_port_registry();
-  return 0;
+  return result;
 }
 
 /******************************************************************************
@@ -5070,7 +5083,7 @@ int main(int argc, char* argv[]) {
 ******************************************************************************/
 
 #else // @ONLY-COMPILER
-void interpret_premade_AST_code(){
+int interpret_premade_AST_code(){
   heist::set_default_global_environment();
   heist::G::STACK_TRACE.clear();
   POPULATE_HEIST_PRECOMPILED_READ_AST_EXPS();
@@ -5078,7 +5091,7 @@ void interpret_premade_AST_code(){
     try {
       heist::scm_eval(heist::scm_list_cast(input),heist::G::GLOBAL_ENVIRONMENT_POINTER);
     } catch(const heist::SCM_EXCEPT& eval_throw) {
-      if(eval_throw == heist::SCM_EXCEPT::EXIT) return;
+      if(eval_throw == heist::SCM_EXCEPT::EXIT) return heist::G::HEIST_EXIT_CODE;
       if(eval_throw == heist::SCM_EXCEPT::JUMP)
         PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
           << PROFILE(heist::G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
@@ -5088,17 +5101,18 @@ void interpret_premade_AST_code(){
            "\n  => Please send your source & compiled code to jrandleman@scu.edu to fix"
            "\n     the interpreter's bug!"
            "\n  => Terminating Heist Scheme Interpretation.");
-      return;
+      return 1;
     }
   }
+  return 0;
 }
 
 int main(int argc, char* argv[]) {
   int i = 0;
   POPULATE_ARGV_REGISTRY(argc,i,argv);
-  interpret_premade_AST_code(); 
+  int result = interpret_premade_AST_code(); 
   heist::close_port_registry();
-  return 0;
+  return result;
 }
 #endif // @ONLY-COMPILER
 #undef afmt
