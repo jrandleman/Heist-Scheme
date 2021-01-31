@@ -4089,12 +4089,14 @@ namespace heist {
   // primitive "number->string" procedure:
   data primitive_COERCE_NUMBER_TO_STRING(scm_list& args) {
     static constexpr const char * const format = 
-      "\n     (number->string <number> <optional-radix> <optional-precision>)";
+      "\n     (number->string <number> <optional-radix> <optional-precision>)"
+      "\n     <optional-radix> ::= [2,36]"
+      "\n     <optional-precision> ::= Integer";
     if(args.size() > 3 || args.empty())
       THROW_ERR("'number->string received incorrect # of arguments:"
         << format << FCN_ERR("number->string",args));
     // No number or invalid radix/precision given
-    if(invalid_NUMBER_TO_STRING_args(args)) return G::FALSE_DATA_BOOLEAN;
+    validate_NUMBER_TO_STRING_args(args,format);
     // Given a radix
     scm_string number_as_string;
     if(args.size() > 1) {

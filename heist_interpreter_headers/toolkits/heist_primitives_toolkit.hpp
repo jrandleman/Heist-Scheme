@@ -3055,13 +3055,16 @@ namespace heist {
 
 
   // primitive "number->string" conversion helper
-  bool invalid_NUMBER_TO_STRING_args(const scm_list& args)noexcept{
-    return !args[0].is_type(types::num) || 
-            (args.size() > 1 && 
-              (!args[1].is_type(types::num) || !args[1].num.is_integer() ||
-                (args.size() == 3 && 
-                  (!args[2].is_type(types::num) || !args[2].num.is_integer() || 
-                                                   !args[2].num.is_pos()))));
+  void validate_NUMBER_TO_STRING_args(const scm_list& args, const char* format) {
+    if(!args[0].is_type(types::num))
+      THROW_ERR("'number->string 1st arg " << PROFILE(args[0]) << " isn't a number!"
+        << format << FCN_ERR("number->string", args));
+    if(args.size() > 1 && (!args[1].is_type(types::num) || !args[1].num.is_integer() || args[1].num < 2 || args[1].num > 36))
+      THROW_ERR("'number->string radix (2nd) arg " << PROFILE(args[1]) << " isn't an integer between 2 & 36 (inclusive)!"
+        << format << FCN_ERR("number->string", args));
+    if(args.size() == 3 && (!args[2].is_type(types::num) || !args[2].num.is_integer() || !args[2].num.is_pos()))
+      THROW_ERR("'number->string precision (3rd) arg " << PROFILE(args[2]) << " isn't a positive integer!"
+        << format << FCN_ERR("number->string", args));
   }
 
 
