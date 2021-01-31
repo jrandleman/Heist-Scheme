@@ -820,12 +820,27 @@ Other primitives of this nature include:<br>
 
 #### Use: ___True Iteration Construct!___
 * _Warning: degrades to [`do`](#Do) in [cps contexts](#Scm-Cps)!_
-* _Note: uses a true C++ `while` under the hood (no recursion overhead)!_
+* _Use `*condition*` as an alias for the current condition!_
+* _Uses a true C++ `while` under the hood (no recursion overhead)!_
 
 #### Form:
 ```scheme
 (while (<test> <return-exp1> <return-exp2> ...) ; returns are optional (<void> by default)!
   <body> ...)
+```
+
+#### Examples:
+```scheme
+(define x 0)
+(while ((< x 10))
+  (set! x (+ x 1))
+  (if (= x 5)
+      (set! *condition* #f))) ; set condition to false w/o modifying "x"!
+(display x) ; 5
+
+(define x 0)
+(while ((< x 10)) (set! x (+ x 1)))
+(display x) ; 10 (as expected)
 ```
 
 

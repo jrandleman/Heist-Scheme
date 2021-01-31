@@ -133,8 +133,18 @@
 
 (core-syntax while ; wrap the looping instrinsic to prevent leaking inner defs
   (syntax-rules ()
-    ((_ (c ...) b ...) ((lambda () (heist:core:while (c ...) b ...))))
-    ((_ (c ...)) ((lambda () (heist:core:while (c ...)))))))
+    ((_ (c) b ...)       ; condition & body
+      ((lambda (*condition*) 
+        (heist:core:while ((and *condition* c)) b ...)) #t))
+    ((_ (c r ...) b ...) ; condition, returns, & body
+      ((lambda (*condition*) 
+        (heist:core:while ((and *condition* c) r ...) b ...)) #t))
+    ((_ (c))             ; only condition
+      ((lambda (*condition*) 
+        (heist:core:while ((and *condition* c)))) #t))
+    ((_ (c r ...))       ; condition & returns
+      ((lambda (*condition*) 
+        (heist:core:while ((and *condition* c) r ...))) #t))))
 
 
 (core-syntax do
