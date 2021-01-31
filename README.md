@@ -1629,10 +1629,10 @@ Other primitives of this nature include:<br>
    * Bound to `LDBL_EPSILON` from `#include <cfloat>`
    * Represents the smallest `x` so `1.0 + x != 1.0`
 
-4. __Min & Max Infix Operator Precedences:__ `*min-infix-precedence*`, `*max-infix-precedence*`
-   * Bound to `LLONG_MIN` & `LLONG_MAX` from `#include <climits>`
+4. __The Empty Stream:__ `stream-null` (equivalent to `'()`)
 
-5. __The Empty Stream:__ `stream-null` (equivalent to `'()`)
+5. __Min & Max Infix Operator Precedences:__ `*min-infix-precedence*`, `*max-infix-precedence*`
+   * Bound to `LLONG_MIN` & `LLONG_MAX` from `#include <climits>`
 
 6. __Optional Environment Arg Flags for [`Eval`](#evalapply--symbol-append), [`Load`](#system-interface-procedures), [`Cps-Eval`](#evalapply--symbol-append), [`Cps-Load`](#system-interface-procedures):__
    * Null Environment, all effects are sandboxed: `*null-environment*`
