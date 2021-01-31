@@ -2328,6 +2328,7 @@ Other primitives of this nature include:<br>
 
 14. __Get Subsequence__: `(slice <sequence> <start-index> <optional-length>)`
     * `<optional-length>` defaults to the end of `<sequence>` if not included!
+    * Negative `<optional-length>` denotes offset from the end of the sequence!
 
 15. __Set Elt at an Index__: `(set-index! <sequence> <index> <obj>)`
 

@@ -1449,16 +1449,22 @@ namespace heist {
 
 
   // ************************ "slice" helper ************************
+  size_type confirm_valid_slice_length(scm_list& args, const size_type& seq_len, const size_type& start_idx, 
+                                                        const char* type_instance, const char* format){
+    if(args.size() == 2) return seq_len - start_idx; // to the end of the sequence
+    if(!args[2].is_type(types::num) || !args[2].num.is_integer())
+      THROW_ERR("'slice " << type_instance << " received non-integer length " << PROFILE(args[2])
+         << '!' << format << VALID_SEQUENCE_INDEX_RANGE << FCN_ERR("slice", args));
+    if(args[2].num.is_neg()) args[2].num = seq_len - start_idx + args[2].num; // negative length
+    if(args[2].num.is_neg()) args[2].num = num_type(); // excessive negative offset -> length of 0
+    auto length = (size_type)args[2].num.extract_inexact();
+    if(start_idx + length > seq_len) length = seq_len - start_idx;
+    return length;
+  }
+
   data primitive_substring_logic(scm_list& args, const char* format) {
     const auto start = primitive_get_if_valid_string_idx(args, "slice", format);
-    // Add the default <size> value as needed
-    if(args.size() == 2) args.push_back(num_type(args[0].str->size()-start));
-    // confirm given an in-'size_type'-range non-negative size
-    if(!primitive_is_valid_index(args[2]))
-      THROW_ERR("'slice <string> arg "<<PROFILE(args[2])<<" isn't a proper non-negative integer "
-        "<optional-length>!" << format << VALID_SEQUENCE_INDEX_RANGE << FCN_ERR("slice", args));
-    auto length = (size_type)args[2].num.extract_inexact();
-    if(length + start > args[0].str->size()) length = std::string::npos;
+    const auto length = confirm_valid_slice_length(args,args[0].str->size(),start,"<string>",format);
     return make_str(args[0].str->substr(start,length));
   }
 
@@ -1474,15 +1480,7 @@ namespace heist {
       THROW_ERR("'slice <vector> <start-index> "<<start<<" is out of range for vector "
         <<args[0]<<" of length "<<vec_length<<'!'<<format<<VALID_SEQUENCE_INDEX_RANGE
         <<FCN_ERR("slice",args));
-    // Add the default <size> value as needed
-    if(args.size() == 2) args.push_back(num_type(args[0].vec->size()-start));
-    // confirm given valid in-'size_type'-range non-negative length
-    if(!primitive_is_valid_index(args[2]))
-      THROW_ERR("'slice <vector> <optional-length> arg "<<PROFILE(args[2])
-        <<" isn't a proper non-negative integer!"<<format<<VALID_SEQUENCE_INDEX_RANGE
-        <<FCN_ERR("slice",args));
-    auto length = (size_type)args[2].num.extract_inexact();
-    if(start+length > vec_length) length = args[0].vec->size()-start;
+    const auto length = confirm_valid_slice_length(args,vec_length,start,"<vector>",format);
     // Extract the subvector
     if(!length) return make_vec(scm_list()); // length = 0 -> '#()
     return make_vec(scm_list(args[0].vec->begin()+start, args[0].vec->begin()+start+length));
@@ -1513,16 +1511,7 @@ namespace heist {
       THROW_ERR("'slice <list> <start-index> "<<start<<" is out of range for list "
         <<args[0]<<" of length "<<lis_length<<'!'<<format<<VALID_SEQUENCE_INDEX_RANGE
         <<FCN_ERR("slice",args));
-    // Add the default <size> value as needed
-    if(args.size() == 2) args.push_back(num_type(lis_length-start));
-    // confirm given valid in-'size_type'-range non-negative length
-    if(!primitive_is_valid_index(args[2]))
-      THROW_ERR("'slice <list> <optional-length> arg "<<PROFILE(args[2])
-        <<" isn't a proper non-negative integer!"<<format<<VALID_SEQUENCE_INDEX_RANGE
-        <<FCN_ERR("slice",args));
-    // confirm length + start falls w/in range of the sequence
-    auto length = (size_type)args[2].num.extract_inexact();
-    if(start+length > lis_length) length = size_type(-1);
+    const auto length = confirm_valid_slice_length(args,lis_length,start,"<list>",format);
     // Extract the sublist
     if(!length) return symconst::emptylist; // length = 0 -> '()
     return primitive_MK_SUBLIST_recur(args[0], start, start+length, 0);
