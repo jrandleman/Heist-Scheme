@@ -1490,27 +1490,27 @@ Other primitives of this nature include:<br>
 * _Note: `define-overload` is actually a macro directly defined **in** Heist Scheme!_
 
 #### Form: `(define-overload <procedure-name> (<predicate?> <procedure>) ...)`
-* _Access the original overloaded procedure version via `overload:original`!_
+* _Access the original overloaded procedure version via `*original*`!_
 * _Use `else` as a catch-all predicate!_
 
 #### Examples:
 ```scheme
 (define-overload < 
   (string? string<?) 
-  (char?   char<?)
-  (else overload:original)) ; use <else> to catch all cases!
+  (char? char<?)
+  (else *original*)) ; use <else> to catch all cases!
 
 (define-overload > 
-  (number? overload:original) ; reference original > via overload:original
+  (number? *original*) ; reference original > via *original*
   (string? string>?) 
-  (char?   char>?))
+  (char? char>?))
 
 (define-overload =
-  (number? overload:original)
+  (number? *original*)
   (else equal?))
 
 (define-overload +
-  (number? overload:original)
+  (number? *original*)
   (char? string)
   (seq? append)
   (hmap? hmap-merge))

@@ -468,19 +468,19 @@
 ;; =========================================================
 
 ; OVERLOAD EXISTING PROCEDURES
-; => Use "overload:original" to refer to <overloaded>
+; => Use "*original*" to refer to <overloaded>
 ; => Use <else> to catch all other args that don't satisfy any <pred?>
 (core-syntax define-overload
   (syntax-rules (else)
     ((_ overloaded (pred? function) ... (else else-function))
       (define overloaded
-        (let ((overload:original overloaded))
+        (let ((*original* overloaded))
           (lambda (`@x . `@xs)
             (cond ((pred? x) (apply function (cons x xs))) ...
                   (else (apply else-function (cons x xs))))))))
     ((_ overloaded (pred? function) ...)
       (define overloaded
-        (let ((overload:original overloaded))
+        (let ((*original* overloaded))
           (lambda (`@x . `@xs)
             (cond ((pred? x) (apply function (cons x xs))) ...
                   (else (error 'overloaded "Unsupported Arg Type" x)))))))))
