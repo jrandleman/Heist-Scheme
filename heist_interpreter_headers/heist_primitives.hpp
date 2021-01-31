@@ -3418,16 +3418,16 @@ namespace heist {
   data primitive_EVAL(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (eval <data> <optional-environment>)" 
-      "\n     -> Pass 'null-environment to eval in the empty environment!"
-      "\n     -> Pass 'local-environment to eval in the local environment (default)!"
-      "\n     -> Pass 'global-environment to eval in the global environment!";
+      "\n     -> Pass *null-environment* to eval in the empty environment!"
+      "\n     -> Pass *local-environment* to eval in the local environment (default)!"
+      "\n     -> Pass *global-environment* to eval in the global environment!";
     // extract the local environment
     auto local_env = args.rbegin()->env;
     args.pop_back();
-    // Set local-environment evaluation as default
+    // Set *local-environment* evaluation as default
     if(args.size() == 1) args.push_back(symconst::local_env);
-    // use the initial/local environment if passed 'null-environment or
-    //   'local-environment as a 2nd arg
+    // use the initial/local environment if passed *null-environment* or
+    //   *local-environment* as a 2nd arg
     auto original_global_env = G::GLOBAL_ENVIRONMENT_POINTER;
     auto env = G::GLOBAL_ENVIRONMENT_POINTER;
     bool must_reset_global_env = false;
@@ -3486,9 +3486,9 @@ namespace heist {
   data primitive_CPS_EVAL(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (cps-eval <data> <optional-environment> <continuation>)" 
-      "\n     -> Pass 'null-environment to cps-eval in the empty environment!"
-      "\n     -> Pass 'local-environment to cps-eval in the local environment (default)!"
-      "\n     -> Pass 'global-environment to cps-eval in the global environment!";
+      "\n     -> Pass *null-environment* to cps-eval in the empty environment!"
+      "\n     -> Pass *local-environment* to cps-eval in the local environment (default)!"
+      "\n     -> Pass *global-environment* to cps-eval in the global environment!";
     // extract the local environment
     auto local_env = args.rbegin()->env;
     args.pop_back();
@@ -3501,14 +3501,14 @@ namespace heist {
     // set the continuation to be inlined on application
     prm_set_procedure_INLINE_INVOCATION(continuation_procedure, true);
     args.pop_back();
-    // use the initial/global environment if passed 'null-environment or
-    //   'global-environment as a 2nd arg
+    // use the initial/global environment if passed *null-environment* or
+    //   *global-environment* as a 2nd arg
     bool must_reset_global_env = false;
     auto original_global_env = G::GLOBAL_ENVIRONMENT_POINTER;
     auto env = local_env;
     prm_CPS_EVAL_confirm_correct_number_of_args(args,must_reset_global_env,env,
                                                   original_global_env,"cps-eval",format);
-    // Reset "inline"ing of the continuation if EVALing in the 'null-environment
+    // Reset "inline"ing of the continuation if EVALing in the *null-environment*
     if(must_reset_global_env) prm_set_procedure_INLINE_INVOCATION(continuation_procedure,false);
     // if arg is self-evaluating, return arg
     if(prm_EVAL_data_is_self_evaluating(args[0])) {
@@ -4743,13 +4743,13 @@ namespace heist {
   data primitive_LOAD(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (load <filename-string> <optional-environment>)"
-      "\n     -> Pass 'null-environment to load in the empty environment!"
-      "\n     -> Pass 'local-environment to load in the local environment (default)!"
-      "\n     -> Pass 'global-environment to load in the global environment!";
+      "\n     -> Pass *null-environment* to load in the empty environment!"
+      "\n     -> Pass *local-environment* to load in the local environment (default)!"
+      "\n     -> Pass *global-environment* to load in the global environment!";
     // extract the local environment
     auto local_env = args.rbegin()->env;
     args.pop_back();
-    // Set local-environment evaluation as default
+    // Set *local-environment* evaluation as default
     if(args.size() == 1) args.push_back(symconst::local_env);
     // determine which environment to load <filename-string> wrt to
     auto env = G::GLOBAL_ENVIRONMENT_POINTER;
@@ -4769,7 +4769,7 @@ namespace heist {
       } else if(args[1].sym == symconst::local_env) {
         env = local_env, args.pop_back();
       } else if(args[1].sym == symconst::global_env) {
-        args.pop_back(); // global-environment is default
+        args.pop_back(); // *global-environment* is default
       } else {
         THROW_ERR("'load \""<<args[1].sym<<"\" isn't an evaluation environment:"
           << format << FCN_ERR("load", args));
@@ -4783,9 +4783,9 @@ namespace heist {
   data primitive_CPS_LOAD(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (cps-load <filename-string> <optional-environment> <continuation-callable>)"
-      "\n     -> Pass 'null-environment to cps-load in the empty environment!"
-      "\n     -> Pass 'local-environment to cps-load in the local environment (default)!"
-      "\n     -> Pass 'global-environment to cps-load in the global environment!";
+      "\n     -> Pass *null-environment* to cps-load in the empty environment!"
+      "\n     -> Pass *local-environment* to cps-load in the local environment (default)!"
+      "\n     -> Pass *global-environment* to cps-load in the global environment!";
     // extract the local environment
     auto local_env = args.rbegin()->env;
     args.pop_back();
@@ -4801,7 +4801,7 @@ namespace heist {
     auto env = local_env;
     if(args.size()==2 && args[1].is_type(types::sym)) {
       if(args[1].sym == symconst::null_env) {
-        // Reset "inline"ing of the continuation, no need in null-environment
+        // Reset "inline"ing of the continuation, no need in *null-environment*
         prm_set_procedure_INLINE_INVOCATION(continuation_procedure,false);
         // Reset "G::GLOBAL_ENVIRONMENT_POINTER" to its default state
         set_default_global_environment(), args.pop_back();
@@ -4821,7 +4821,7 @@ namespace heist {
       } else if(args[1].sym == symconst::global_env) {
         env = G::GLOBAL_ENVIRONMENT_POINTER; args.pop_back();
       } else if(args[1].sym == symconst::local_env) {
-        args.pop_back(); // local-environment is default
+        args.pop_back(); // *local-environment* is default
       } else {
         THROW_ERR("'cps-load \""<<args[1].sym<<"\" isn't an evaluation environment:"
           << format << FCN_ERR("cps-load", args));

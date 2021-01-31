@@ -48,12 +48,10 @@ namespace heist {
     constexpr const char * const scm_cps           = "scm->cps";
     constexpr const char * const cps_quote         = "cps-quote";
     constexpr const char * const using_cpsp        = "using-cps?";
-    constexpr const char * const argc              = "argc";
-    constexpr const char * const argv              = "argv";
     constexpr const char * const defclass          = "defclass";
-    constexpr const char * const null_env          = "null-environment";
-    constexpr const char * const local_env         = "local-environment";
-    constexpr const char * const global_env        = "global-environment";
+    constexpr const char * const null_env          = "*null-environment*";
+    constexpr const char * const local_env         = "*local-environment*";
+    constexpr const char * const global_env        = "*global-environment*";
     constexpr const char * const exit_success      = "*exit-success*";
     constexpr const char * const exit_failure      = "*exit-failure*";
     constexpr const char * const lambda            = "lambda";

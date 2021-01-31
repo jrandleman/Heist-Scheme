@@ -2627,7 +2627,7 @@ namespace heist {
       } else if(args[1].sym == symconst::local_env) {
         env = local_env, args.pop_back();
       } else if(args[1].sym == symconst::global_env) {
-        args.pop_back(); // global-environment is default
+        args.pop_back(); // *global-environment* is default (from c++'s perspective. from scm's, local env is dflt)
       } else {
         THROW_ERR('\''<<name<<" \""<<args[1].sym<<"\" isn't an evaluation environment:"
           << format << FCN_ERR(name, args));
@@ -2653,7 +2653,7 @@ namespace heist {
       } else if(args[1].sym == symconst::global_env) {
         env = G::GLOBAL_ENVIRONMENT_POINTER, args.pop_back();
       } else if(args[1].sym == symconst::local_env) {
-        args.pop_back(); // local-environment is default
+        args.pop_back(); // *local-environment* is default
       } else { 
         THROW_ERR('\''<<name<<" \""<<args[1].sym<<"\" isn't an evaluation environment:"
           << format << FCN_ERR(name, args));

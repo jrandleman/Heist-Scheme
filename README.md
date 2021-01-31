@@ -12,7 +12,7 @@
 
 0. Compiling the Interpreter: `$ clang++ -std=c++17 -O3 -o heist heist.cpp`
 1. REPL: `$ ./heist` (exit REPL via [`(exit)`](#Control-Flow-Procedures) command)
-2. Interpret Script: `$ ./heist -script <script-filename> <argv-1> <argv-2> ...`
+2. Interpret Script: `$ ./heist -script <script-filename> <argv1> <argv2> ...`
 3. Compile Script to C++: `$ ./heist -compile <script-filename> <optional-target-name>`
 4. Embed Heist in C++: `#include` the [`heist_cpp_interop.hpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/heist_cpp_interop.hpp) header into your code (read it for more details)!
    * See [`embedded_heist_demo.cpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/heist_examples/embedded_heist_demo.cpp) for an example of embedding Heist in action!
@@ -1071,9 +1071,8 @@ Other primitives of this nature include:<br>
    (syntax-rules ()
      ((_ a) 
        (eval 
-         `(let ((,(gensym) 10)) ; form the expression by splicing in a unique symbol,
-             (+ a ,(gensym 1))) ; then evaluate the expression in the local environment
-         'local-environment))))
+         `(let ((,(gensym) 10))     ; form the expression by splicing in a unique symbol,
+             (+ a ,(gensym 1))))))) ; then evaluate the expression in the local environment
 
   (define b 5)
   (write (my-macro b)) ; 15
@@ -1630,34 +1629,34 @@ Other primitives of this nature include:<br>
    * Bound to `LDBL_EPSILON` from `#include <cfloat>`
    * Represents the smallest `x` so `1.0 + x != 1.0`
 
-4. __Min & Max Infix Operator Precedences:__ `min-infix-precedence`, `max-infix-precedence`
+4. __Min & Max Infix Operator Precedences:__ `*min-infix-precedence*`, `*max-infix-precedence*`
    * Bound to `LLONG_MIN` & `LLONG_MAX` from `#include <climits>`
 
 5. __The Empty Stream:__ `stream-null` (equivalent to `'()`)
 
 6. __Optional Environment Arg Flags for [`Eval`](#evalapply--symbol-append), [`Load`](#system-interface-procedures), [`Cps-Eval`](#evalapply--symbol-append), [`Cps-Load`](#system-interface-procedures):__
-   * Null Environment, all effects are sandboxed: `null-environment`
-   * Local Environment, using local bindings: `local-environment`
-   * Global Environment, using global bindings: `global-environment`
+   * Null Environment, all effects are sandboxed: `*null-environment*`
+   * Local Environment, using local bindings: `*local-environment*`
+   * Global Environment, using global bindings: `*global-environment*`
 
-7. __Argc & Argv__: `argc`, `argv`
+7. __Argc & Argv__: `*argc*`, `*argv*`
    * Interpreted Scripts: passed at the cmd-line after the script name
    * Compiled Script: passed to the executable of the compiled C++ file
 
 8. __EXIT_SUCCESS & EXIT_FAILURE__: `*exit-success*`, `*exit-failure*`
    * Designed to be used in conjunction with [`(exit)`](#Control-Flow-Procedures)
 
-9. __General Current Platform Name__: `heist-platform`
+9. __General Current Platform Name__: `*heist-platform*`
    * Possible results: `'windows` | `'apple` | `'linux` | `'unix` | `'posix` | `'unknown`
 
-10. __Specific Current Platform Name__: `heist-exact-platform`
+10. __Specific Current Platform Name__: `*heist-exact-platform*`
     * Possible results: 
       - `'windows-64` | `'windows-32`
       - `'apple-ios-simulator` | `'apple-ios` | `'apple-osx` | `'apple`
       - `'linux` | `'unix` | `'posix`
       - `'unknown`
 
-11. __Get Heist Interpreter Directory__: `heist-dirname`
+11. __Get Heist Interpreter Directory__: `*heist-dirname*`
     * String to the Heist-Scheme interpreter's directory
 
 
@@ -2486,15 +2485,15 @@ Other primitives of this nature include:<br>
 ## Eval/Apply & Symbol-Append:
 0. __Eval__: Run quoted data as code
    * `(eval <data> <optional-environment>)`
-   * _Pass `'null-environment` to `eval` in the empty environment!_
-   * _Pass `'local-environment` to `eval` in the local environment (default)!_
-   * _Pass `'global-environment` to `eval` in the global environment!_
+   * _Pass `*null-environment*` to `eval` in the empty environment!_
+   * _Pass `*local-environment*` to `eval` in the local environment (default)!_
+   * _Pass `*global-environment*` to `eval` in the global environment!_
 
 1. __Cps-Eval__: Alternative to `eval` for [`scm->cps`](#Scm-Cps) blocks (evals in CPS)!
    * `(cps-eval <data> <optional-environment> <continuation>)`
-   * _Pass `'null-environment` to `cps-eval` in the empty environment!_
-   * _Pass `'local-environment` to `cps-eval` in the local environment (default)!_
-   * _Pass `'global-environment` to `cps-eval` in the global environment!_
+   * _Pass `*null-environment*` to `cps-eval` in the empty environment!_
+   * _Pass `*local-environment*` to `cps-eval` in the local environment (default)!_
+   * _Pass `*global-environment*` to `cps-eval` in the global environment!_
 
 2. __Apply `<callable>` to List of Args__: `(apply <callable> <argument-list>)`
 
@@ -2771,15 +2770,15 @@ Other primitives of this nature include:<br>
 ------------------------
 ## System Interface Procedures:
 0. __Load__: `(load <filename-string> <optional-environment>)`
-   * _Pass `'null-environment` to `load` in the empty environment!_
-   * _Pass `'local-environment` to `load` in the local environment (default)!_
-   * _Pass `'global-environment` to `load` in the global environment!_
+   * _Pass `*null-environment*` to `load` in the empty environment!_
+   * _Pass `*local-environment*` to `load` in the local environment (default)!_
+   * _Pass `*global-environment*` to `load` in the global environment!_
 
 1. __Cps-Load__: `(cps-load <filename-string> <optional-environment> <continuation-callable>)`
    * _Alternative to `load` for [`scm->cps`](#Scm-Cps) blocks (converts file to CPS prior loading)!_
-   * _Pass `'null-environment` to `cps-load` in the empty environment!_
-   * _Pass `'local-environment` to `cps-load` in the local environment (default)!_
-   * _Pass `'global-environment` to `cps-load` in the global environment!_
+   * _Pass `*null-environment*` to `cps-load` in the empty environment!_
+   * _Pass `*local-environment*` to `cps-load` in the local environment (default)!_
+   * _Pass `*global-environment*` to `cps-load` in the global environment!_
 
 2. __System Interface Via Command-Line__: Returns `#f` if feature not offered by OS
    * `(system <optional-system-call-string>)`

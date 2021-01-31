@@ -631,17 +631,17 @@
 ;; =============================================================
 
 (define license
-  (let ((license-text (slurp-file (append heist-dirname "/LICENSE"))))
+  (let ((license-text (slurp-file (append *heist-dirname* "/LICENSE"))))
     (fn (() (display license-text))
         ((string-or-output-port) (display license-text string-or-output-port)))))
 
 (define sublime-text-build-system
-  (let ((stbs (append "{\n  \"cmd\": [\"" heist-dirname "/heist\", \"-nansi\", \"-script\", \"$file\"],\n  \"file_regex\": \"^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$\",\n}")))
-    (fn (() (display stbs))
-        ((string-or-output-port) (display stbs string-or-output-port)))))
+  (let ((st (append "{\n  \"cmd\": [\"" *heist-dirname* "/heist\", \"-nansi\", \"-script\", \"$file\"],\n  \"file_regex\": \"^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$\",\n}")))
+    (fn (() (display st))
+        ((string-or-output-port) (display st string-or-output-port)))))
 
 (define shell-alias
-  (let ((shell-alias-string (append "alias heist='" heist-dirname "/heist'")))
+  (let ((shell-alias-string (append "alias heist='" *heist-dirname* "/heist'")))
     (fn (() (display shell-alias-string))
         ((string-or-output-port) (display shell-alias-string string-or-output-port)))))
 
