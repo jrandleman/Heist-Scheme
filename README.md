@@ -2486,13 +2486,13 @@ Other primitives of this nature include:<br>
 ## Eval/Apply & Symbol-Append:
 0. __Eval__: Run quoted data as code
    * `(eval <data> <optional-environment>)`
-   * _Pass `*null-environment*` to `eval` in the empty environment!_
+   * _Pass `*null-environment*` to `eval` in an empty environment!_
    * _Pass `*local-environment*` to `eval` in the local environment (default)!_
    * _Pass `*global-environment*` to `eval` in the global environment!_
 
 1. __Cps-Eval__: Alternative to `eval` for [`scm->cps`](#Scm-Cps) blocks (evals in CPS)!
    * `(cps-eval <data> <optional-environment> <continuation>)`
-   * _Pass `*null-environment*` to `cps-eval` in the empty environment!_
+   * _Pass `*null-environment*` to `cps-eval` in an empty environment!_
    * _Pass `*local-environment*` to `cps-eval` in the local environment (default)!_
    * _Pass `*global-environment*` to `cps-eval` in the global environment!_
 
@@ -2771,13 +2771,13 @@ Other primitives of this nature include:<br>
 ------------------------
 ## System Interface Procedures:
 0. __Load__: `(load <filename-string> <optional-environment>)`
-   * _Pass `*null-environment*` to `load` in the empty environment!_
+   * _Pass `*null-environment*` to `load` in an empty environment!_
    * _Pass `*local-environment*` to `load` in the local environment (default)!_
    * _Pass `*global-environment*` to `load` in the global environment!_
 
 1. __Cps-Load__: `(cps-load <filename-string> <optional-environment> <continuation-callable>)`
    * _Alternative to `load` for [`scm->cps`](#Scm-Cps) blocks (converts file to CPS prior loading)!_
-   * _Pass `*null-environment*` to `cps-load` in the empty environment!_
+   * _Pass `*null-environment*` to `cps-load` in an empty environment!_
    * _Pass `*local-environment*` to `cps-load` in the local environment (default)!_
    * _Pass `*global-environment*` to `cps-load` in the global environment!_
 
