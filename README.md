@@ -2888,8 +2888,8 @@ Other primitives of this nature include:<br>
    * `(call-with-current-continuation <unary-continuation-callable>)`
 
 1. __Cps->Scm__: Bind [`id`](#compose-bind--id) as callable's "topmost" continuation
-   * _Note: To pass procs defined **in** a [`scm->cps`](#Scm-Cps) block as an arg to a proc defined **out** of [`scm->cps`](#Scm-Cps)_
    * `(cps->scm <callable>)`
+   * _Note: To pass procs defined **in** a [`scm->cps`](#Scm-Cps) block as an arg to a proc defined **out** of [`scm->cps`](#Scm-Cps)_
      - _Hence programs written in and out of [`scm->cps`](#Scm-Cps) blocks may interop!_
      - _BEWARE: primitives are defined **OUT** of a [`scm->cps`](#Scm-Cps) block!_
        - _Hence wrap `cps->scm` around procs being passed to them as args when in a [`scm->cps`](#Scm-Cps) block!_
