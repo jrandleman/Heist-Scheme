@@ -503,9 +503,9 @@ Other primitives of this nature include:<br>
 
 #### Form: `(fn ((<arg> ...) <body> ...) ...)`
 * _Note: Pass a variadic number of args (0+) by using [`.`](#Interpreter-Invariants-Manipulation) (like [`lambda`](#Lambda)!)_
-* _Note: Boolean literals match based on **truthiness** rather than type!_
 * _Note: Pattern-match against containers by using literal syntax!_
   * _Like [`syntax-rules`](#syntax-rules), write more restrictive patterns first!_
+  * _Boolean literals match based on **truthiness** rather than type!_
   * _Match against symbol literals by using [`quote`](#quote)!_
 
 #### Examples:
