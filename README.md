@@ -521,7 +521,6 @@ Other primitives of this nature include:<br>
       ((n p) (factorial (- n 1) (* n p)))))
 
 
-
 (define bool-match-example1
   (fn ((#t) "true")
       ((1)  "one"))) ; NEVER TRIGGERED: 1 is "truthy" & hence matches #t!
