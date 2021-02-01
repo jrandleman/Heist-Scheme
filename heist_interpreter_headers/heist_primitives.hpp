@@ -4784,7 +4784,7 @@ namespace heist {
   // Load a script into the global environment, convert it to CPS, and pass it to the given continuation
   data primitive_CPS_LOAD(scm_list& args) {
     static constexpr const char * const format = 
-      "\n     (cps-load <filename-string> <optional-environment> <continuation-callable>)"
+      "\n     (cps-load <filename-string> <optional-environment> <continuation>)"
       "\n     -> Pass *null-environment* to cps-load in the empty environment!"
       "\n     -> Pass *local-environment* to cps-load in the local environment (default)!"
       "\n     -> Pass *global-environment* to cps-load in the global environment!";
