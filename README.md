@@ -503,6 +503,7 @@ Other primitives of this nature include:<br>
 
 #### Form: `(fn ((<arg> ...) <body> ...) ...)`
 * _Note: Pass a variadic number of args (0+) by using [`.`](#Interpreter-Invariants-Manipulation) (like [`lambda`](#Lambda)!)_
+* _Note: Boolean literals match based on **truthiness** rather than type!_
 * _Note: Pattern-match against containers by using literal syntax!_
   * _Like [`syntax-rules`](#syntax-rules), write more restrictive patterns first!_
   * _Match against symbol literals by using [`quote`](#quote)!_
@@ -513,10 +514,27 @@ Other primitives of this nature include:<br>
   (fn ((f ()) '()) ; match against nil
       ((f (x . xs)) (cons (f x) (list-map f xs))))) ; match & unpack pair
 
+
 (define factorial
   (fn ((n) (factorial n 1))
       ((0 p) p) ; 0 is more restrictive than 'n', so place 1st!
       ((n p) (factorial (- n 1) (* n p)))))
+
+
+; Beware matching against bool literals (place other literals 1st!)
+(define bool-match-example1
+  (fn ((#t) "true")
+      ((1)  "one"))) ; NEVER TRIGGERED: 1 is "truthy" & hence matches #t!
+
+(bool-match-example1 1) ; "true"
+
+; Place "1" literal match prior the more general "#t"!
+(define bool-match-example2
+  (fn ((1)  "one")
+      ((#t) "true")))
+
+(bool-match-example2 1)  ; "one"
+(bool-match-example2 #t) ; "true"
 ```
 
 
