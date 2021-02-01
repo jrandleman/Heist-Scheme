@@ -521,16 +521,15 @@ Other primitives of this nature include:<br>
       ((n p) (factorial (- n 1) (* n p)))))
 
 
-; Beware matching against bool literals (place other literals 1st!)
+
 (define bool-match-example1
   (fn ((#t) "true")
       ((1)  "one"))) ; NEVER TRIGGERED: 1 is "truthy" & hence matches #t!
 
 (bool-match-example1 1) ; "true"
 
-; Place "1" literal match prior the more general "#t"!
 (define bool-match-example2
-  (fn ((1)  "one")
+  (fn ((1)  "one") ; place more restrictive 1 literal first!
       ((#t) "true")))
 
 (bool-match-example2 1)  ; "one"
