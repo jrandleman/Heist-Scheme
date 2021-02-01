@@ -521,18 +521,18 @@ Other primitives of this nature include:<br>
       ((n p) (factorial (- n 1) (* n p)))))
 
 
-(define bool-match-example1
+(define bad-bool-match
   (fn ((#t) "true")
       ((1)  "one"))) ; NEVER TRIGGERED: 1 is "truthy" & hence matches #t!
 
-(bool-match-example1 1) ; "true"
-
-(define bool-match-example2
+(define gud-bool-match
   (fn ((1)  "one") ; place more restrictive 1 literal first!
       ((#t) "true")))
 
-(bool-match-example2 1)  ; "one"
-(bool-match-example2 #t) ; "true"
+(bad-bool-match 1)  ; "true"
+(bad-bool-match #t) ; "true"
+(gud-bool-match 1)  ; "one"
+(gud-bool-match #t) ; "true"
 ```
 
 
