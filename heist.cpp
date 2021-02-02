@@ -1364,12 +1364,18 @@ namespace heist {
     return scm_analyze(std::move(method_lambda));
   }
 
-  void evaluate_method_and_member_exec_procs(class_prototype& proto, std::vector<exe_fcn_t>& member_exec_procs, 
+  void evaluate_method_and_member_exec_procs(const scm_list& exp,
+                                             class_prototype& proto, std::vector<exe_fcn_t>& member_exec_procs, 
                                              std::vector<exe_fcn_t>& method_exec_procs, env_type& env) {
     for(size_type i = 0, n = member_exec_procs.size(); i < n; ++i)
       proto.member_values.push_back(data_cast(member_exec_procs[i](env)));
-    for(size_type i = 0, n = method_exec_procs.size(); i < n; ++i)
-      proto.method_values.push_back(data_cast(method_exec_procs[i](env)));
+    for(size_type i = 0, n = method_exec_procs.size(); i < n; ++i) {
+      auto method_value = data_cast(method_exec_procs[i](env));
+      if(!method_value.is_type(types::fcn)) 
+        THROW_ERR("'defclass 'defmethod value " << PROFILE(method_value)
+          << " isn't a procedure!" DEFCLASS_LAYOUT << EXP_ERR(exp));
+      proto.method_values.push_back(method_value); 
+    }
   }
 
   // ((set-<member-name>! <value>)
@@ -1566,7 +1572,7 @@ namespace heist {
       // NOTE: THIS ORDERING IS IN PART RESPONSIBLE (ALONG WITH SEARCH) FOR LEFT-PREDECENT INHERITANCE
       validate_inherited_entity(proto,exp,env);
       // evaluate member and method values
-      evaluate_method_and_member_exec_procs(proto,member_exec_procs,method_exec_procs,env);
+      evaluate_method_and_member_exec_procs(exp,proto,member_exec_procs,method_exec_procs,env);
       // define setters for members
       define_setter_methods_for_members(proto,env);
       // define dynamic member generator method

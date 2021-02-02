@@ -220,7 +220,7 @@
 (define (heist:oo:anon:generate-obj names values)
   `(let ()
     (defclass heist:oo:anon:prototype ()
-      ,@(map (lambda (n v) (if (callable? v) (list 'defmethod n v) (list n v)))
+      ,@(map (lambda (n v) (if (procedure? v) (list 'defmethod n v) (list n v)))
              names 
              values)
       ((equal? obj) ; structural equality (w/o prototype)
