@@ -293,7 +293,7 @@ namespace help::logic {
 
 
   // Returns G::EMPTY_ENTRY if no match
-  auto get_entry(sym_type query)noexcept{
+  auto get_entry(sym_type& query)noexcept{
     prepare_query(query);
     for(const auto& entry : G::HELP_ENTRIES)
       if(entry[0] == query) 
@@ -329,26 +329,6 @@ namespace help::logic {
     return new_query == "q" || new_query == "quit"  || new_query == ":q";
   }
 } // End of namespace help::logic
-
-/******************************************************************************
-* HELP DB SINGLE QUERYING MAIN FUNCTION
-******************************************************************************/
-
-namespace help {
-  // Returns whether read in "quit" flag
-  bool query_datum(const sym_type& query)noexcept{
-    const auto entry = logic::get_entry(query);
-    if(entry != G::EMPTY_ENTRY) {
-      logic::print_entry(entry);
-    } else {
-      auto new_query = logic::retry_help_query(query);
-      if(!logic::is_quit_string(new_query)) 
-        return query_datum(new_query);
-      return true;
-    }
-    return false;
-  }
-}
 
 /******************************************************************************
 * HELP DB QUERYING DYNAMIC MENU HELPER FUNCTIONS
@@ -406,33 +386,55 @@ namespace help::menu {
   }
 
 
+  bool driver_loop_query_datum(sym_type&& query)noexcept{
+    const auto entry = logic::get_entry(query); // also prepares "query" for any comparison
+    if(entry != G::EMPTY_ENTRY) {
+      logic::print_entry(entry);
+    } else {
+      for(size_type i = 0, n = sizeof(G::HELP_MENU)/sizeof(G::HELP_MENU[0]); i < n; ++i) {
+        if(query == G::HELP_MENU[i]) {
+          menu::display_submenu(G::HELP_MENU_SUBMENUS[i],G::HELP_MENU_SUBMENUS_LENGTH[i]);
+          return false;
+        }
+      }
+      for(size_type i = 1, m = sizeof(G::HELP_MENU_PROCEDURES)/sizeof(G::HELP_MENU_PROCEDURES[0]); i < m; ++i) { // i=1 to skip "help"
+        if(query == G::HELP_MENU_PROCEDURES[i]) {
+          menu::display_submenu(G::HELP_MENU_PROCEDURES_SUBMENU[i],G::HELP_MENU_PROCEDURES_SUBMENU_LENGTH[i]);
+          return false;
+        }
+      }
+      auto new_query = logic::retry_help_query(query);
+      if(!logic::is_quit_string(new_query)) 
+        return driver_loop_query_datum(std::move(new_query));
+      return true;
+    }
+    return false;
+  }
+
+
   void menu_driver_loop()noexcept{
-    auto input = menu::get_input();
-    if(logic::is_quit_string(input)) return;
-    for(size_type i = 0, n = sizeof(G::HELP_MENU)/sizeof(G::HELP_MENU[0]); i < n; ++i) {
-      if(input == G::HELP_MENU[i]) {
-        menu::display_submenu(G::HELP_MENU_SUBMENUS[i],G::HELP_MENU_SUBMENUS_LENGTH[i]);
-        menu_driver_loop();
-        return;
-      }
+    for(;;) {
+      auto input = menu::get_input();
+      if(logic::is_quit_string(input) || driver_loop_query_datum(std::move(input))) return;
     }
-    for(size_type i = 1, m = sizeof(G::HELP_MENU_PROCEDURES)/sizeof(G::HELP_MENU_PROCEDURES[0]); i < m; ++i) { // i=1 to skip "help"
-      if(input == G::HELP_MENU_PROCEDURES[i]) {
-        menu::display_submenu(G::HELP_MENU_PROCEDURES_SUBMENU[i],G::HELP_MENU_PROCEDURES_SUBMENU_LENGTH[i]);
-        menu_driver_loop();
-        return;
-      }
-    }
-    if(help::query_datum(input)) return; // recieved "quit"
-    menu_driver_loop();
   }
 } // End of namespace help::menu
 
 /******************************************************************************
-* HELP DB QUERYING DYNAMIC MENU MAIN FUNCTION
+* HELP DB QUERYING MAIN FUNCTIONS
 ******************************************************************************/
 
 namespace help {
+  void query_datum(sym_type query)noexcept{
+    const auto entry = logic::get_entry(query);
+    if(entry != G::EMPTY_ENTRY) {
+      logic::print_entry(entry);
+    } else {
+      auto new_query = logic::retry_help_query(query);
+      if(!logic::is_quit_string(new_query)) query_datum(new_query);
+    }
+  }
+
   void launch_interactive_menu() {
     puts("\nWelcome to Heist Scheme's help menu!\n\n"
          "Enter a query/language-feature in order to get more details about it.\n"
