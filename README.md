@@ -1686,6 +1686,8 @@ Other primitives of this nature include:<br>
 * IE `(map even?)` is equivalent to `(lambda (x . xs) (apply map (cons even? (cons x xs))))`
 
 
+
+------------------------
 ## Help:
 0. __Query a Heist Scheme Feature__: `(help <query-string-or-symbol>)`
 
