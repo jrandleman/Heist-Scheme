@@ -5,7 +5,7 @@
 #ifndef HEIST_NUMERICS_HPP_
 #define HEIST_NUMERICS_HPP_
 
-#include "heist_numeric_reals.hpp"
+#include "toolkits/heist_numerics_toolkit.hpp"
 
 /***
  * -------------

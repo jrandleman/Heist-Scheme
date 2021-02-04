@@ -4900,7 +4900,7 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
       heist::G::USING_CASE_SENSITIVE_SYMBOLS = false;
     } else if(cmd_flag == "--version") {
       immediate_exit = true;
-      puts("Heist Scheme Version 6.0\nTarget: " HEIST_EXACT_PLATFORM "\nInstalledDir: " HEIST_DIRECTORY_FILE_PATH);
+      puts("Heist Scheme Version 7.0\nTarget: " HEIST_EXACT_PLATFORM "\nInstalledDir: " HEIST_DIRECTORY_FILE_PATH);
       return true;
     } else if(cmd_flag == "--help") {
       immediate_exit = true;
@@ -5085,7 +5085,7 @@ int main(int argc, char* argv[]) {
   if(compile_pos != -1) 
     return compile_script(argv, compile_pos, compile_as);
   // Run the REPL
-  puts("Heist Scheme Version 6.0\nEnter '(exit)' to Terminate REPL");
+  puts("Heist Scheme Version 7.0\nEnter '(help)' for Help, '(exit)' to Exit");
   int result = driver_loop();
   heist::close_port_registry();
   return result;

@@ -1,20 +1,346 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- heist_help_toolkit_db.hpp
 // => Defines db of help entries & descriptions
 
+// VARIABLES DEFINED:
+//   0. EMPTY_ENTRY
+//   1. HELP_ENTRIES
+//   2. HELP_MENU_VARIABLES
+//   3. HELP_MENU_CONSTANTS
+//   4. HELP_MENU_TOPICS
+//   5. HELP_MENU_DOCUMENTATION
+//   6. HELP_MENU_TYPES
+//   7. HELP_MENU_SPECIALS
+//   8. HELP_MENU_SUBMENUS, HELP_MENU_SUBMENUS_LENGTHS
+//   9. HELP_MENU_PROCEDURES (& 31 SUBVARIANTS)
+//   A. HELP_MENU_PROCEDURES_SUBMENU, HELP_MENU_PROCEDURES_SUBMENU_LENGTHS
+
 #ifndef HEIST_HELP_TOOLKIT_DB_HPP_
 #define HEIST_HELP_TOOLKIT_DB_HPP_
 
+/******************************************************************************
+* HELP MENU SUBSECTIONS
+******************************************************************************/
+
+static constexpr const char* HELP_MENU[] = {
+  "topics",    "documentation", "types",      "variables", 
+  "constants", "specials",      "procedures", 
+};
+
+static constexpr const char* HELP_MENU_VARIABLES[] = {
+  "#t",              "#f",                 "fl-precision",           "fl-min", 
+  "fl-max",          "fl-epsilon",         "*min-infix-precedence*", "*max-infix-precedence*", 
+  "stream-null",     "*null-environment*", "*local-environment*",    "*global-environment*",
+  "*argc*",          "*argv*",             "*heist-platform*",       "*heist-exact-platform*",
+  "*heist-dirname*", "*exit-success*",     "*exit-failure*",
+};
+
+static constexpr const char* HELP_MENU_CONSTANTS[] = {
+  "+inf.0",       "-inf.0",     "+nan.0",      "fl-e", "fl-1/e", "fl-e-2",       "fl-pi",        "fl-1/pi",
+  "fl-2pi",       "fl-pi/2",    "fl-pi/4",     "fl-pi-squared",  "fl-rad/deg",   "fl-deg/rad",   "fl-2/pi",
+  "fl-2/sqrt-pi", "fl-e-pi/4",  "fl-log2-e",   "fl-log10-e",     "fl-log-2",     "fl-1/log-2",   "fl-log-3",
+  "fl-log-pi",    "fl-log-10",  "fl-1/log-10", "fl-sqrt-2",      "fl-sqrt-3",    "fl-sqrt-5",    "fl-sqrt-10",
+  "fl-1/sqrt-2",  "fl-cbrt-2",  "fl-cbrt-3",   "fl-4thrt-2",     "fl-phi",       "fl-log-phi",   "fl-1/log-phi",
+  "fl-euler",     "fl-e-euler", "fl-sin-1",    "fl-cos-1",       "fl-gamma-1/2", "fl-gamma-1/3", "fl-gamma-2/3",
+};
+
+static constexpr const char* HELP_MENU_TOPICS[] = { 
+  "comments", "cps", "sequence", "coroutine", 
+};
+
+static constexpr const char* HELP_MENU_DOCUMENTATION[] = { 
+  "heist_cpp_interop.hpp", "readme.md", "install.md", 
+};
+
+static constexpr const char* HELP_MENU_TYPES[] = { 
+  "nil",             "expression", "symbol",     "string",      "number", 
+  "char",            "boolean",    "list",       "pair",        "vector", 
+  "hmap",            "alist",      "input-port", "output-port", "object", 
+  "class-prototype", "procedure",  "void",       "undefined",   "sequence", 
+  "coroutine", 
+};
+
+static constexpr const char* HELP_MENU_SPECIALS[] = { 
+  "quote",            "quasiquote",      "lambda",         "fn",                  "define",
+  "set!",             "defined?",        "defn",           "begin",               "if",
+  "and",              "or",              "cond",           "case",                "let",
+  "let*",             "letrec",          "do",             "while",               "delay",
+  "scons",            "stream",          "vector-literal", "hmap-literal",        "define-syntax",
+  "syntax-rules",     "syntax-hash",     "core-syntax",    "define-reader-alias", "scm->cps",
+  "cps-quote",        "using-cps?",      "curry",          "defclass",            "new",
+  "define-coroutine", "define-overload", "infix",          "unfix!",
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES[] = { 
+  "help",            "build",       "objects",    "prototypes",   "coroutines",
+  "streams",         "numbers",     "equality",   "chars",        "strings",
+  "pairs",           "vectors",     "hmaps",      "sequences",    "predicates",
+  "evalapply",       "copying",     "delayforce", "coercion",     "output",
+  "formatoutput",    "input",       "ports",      "sysinterface", "invariants",
+  "controlflow",     "cps-helpers", "syntax",     "json",         "gensyms",
+  "compose-bind-id",
+};
+
+static constexpr char** HELP_MENU_SUBMENUS[] = {
+  (char**)HELP_MENU_TOPICS,    (char**)HELP_MENU_DOCUMENTATION, (char**)HELP_MENU_TYPES,      (char**)HELP_MENU_VARIABLES, 
+  (char**)HELP_MENU_CONSTANTS, (char**)HELP_MENU_SPECIALS,      (char**)HELP_MENU_PROCEDURES, 
+};
+
+static constexpr size_type HELP_MENU_SUBMENUS_LENGTH[] = {
+  sizeof(HELP_MENU_TOPICS)/sizeof(HELP_MENU_TOPICS[0]),         sizeof(HELP_MENU_DOCUMENTATION)/sizeof(HELP_MENU_DOCUMENTATION[0]), 
+  sizeof(HELP_MENU_TYPES)/sizeof(HELP_MENU_TYPES[0]),           sizeof(HELP_MENU_VARIABLES)/sizeof(HELP_MENU_VARIABLES[0]), 
+  sizeof(HELP_MENU_CONSTANTS)/sizeof(HELP_MENU_CONSTANTS[0]),   sizeof(HELP_MENU_SPECIALS)/sizeof(HELP_MENU_SPECIALS[0]),
+  sizeof(HELP_MENU_PROCEDURES)/sizeof(HELP_MENU_PROCEDURES[0]), 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_HELP[] = {}; // direct link
+
+static constexpr const char* HELP_MENU_PROCEDURES_BUILD[] = {
+  "license", "sublime-text-build-system", "shell-alias",
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_OBJECTS[] = {
+ "..", "object-members", "object-methods", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_PROTOTYPES[] = {
+  "proto-name",        "proto-members",     "proto-methods", "proto-super", 
+  "proto-add-member!", "proto-add-method!", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_COROUTINES[] = {
+  "coroutine?", "coroutine->generator", "cycle-coroutines!", "co-eval", 
+  "co-load",    "co-fn",
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_STREAMS[] = {
+  "stream-length",     "stream-reverse",  "scar",              "scdr", 
+  "scaar...scddddr",   "stream-ref",      "stream-append",     "stream-drop", 
+  "stream-drop-while", "stream-take",     "stream-take-while", "stream-map", 
+  "stream-filter",     "stream-for-each", "stream-unfold",     "stream-fold", 
+  "stream-fold-right", "stream-from",     "stream-iterate",    "stream-zip", 
+  "stream-constant",   "stream-interleave", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_NUMBERS[] = {
+  "+",         "-",        "*",                "/",             "=",             "<",             ">",              "<=", 
+  ">=",        "abs",      "expt",             "expt-mod",      "max",           "min",           "quotient",       "remainder", 
+  "divmod",    "modulo",   "modf",             "exp",           "log",           "sqrt",          "gcd",            "lcm", 
+  "npr",       "ncr",      "numerator",        "denominator",   "make-log-base", "random",        "inexact->exact", "exact->inexact", 
+  "odd?",      "even?",    "positive?",        "not-positive?", "negative?",     "not-negative?", "zero?",          "not-zero?", 
+  "infinite?", "finite?",  "nan?",             "exact?",        "inexact?",      "integer?",      "bigint?",        "ceiling", 
+  "floor",     "truncate", "round",            "sin",           "cos",           "tan",           "asin",           "acos", 
+  "atan",      "sinh",     "cosh",             "tanh",          "asinh",         "acosh",         "atanh",          "logand", 
+  "logor",     "logxor",   "lognot",           "loglsl",        "loglsr",        "logasr",        "logbit?",        "logbit1", 
+  "logbit0",   "logbit~",  "make-rectangular", "make-polar",    "real-part",     "imag-part",     "magnitude",      "angle", 
+  "conjugate", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_EQUALITY[] = {
+  "eq?", "eqv?", "equal?", "not", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_CHARS[] = {
+  "char-alphabetic?", "char-numeric?",      "char-whitespace?", "char-upper-case?", 
+  "char-lower-case?", "char-alphanumeric?", "char-control?",    "char-print?", 
+  "char-graph?",      "char-punctuation?",  "char-xdigit?",     "char-upcase", 
+  "char-downcase",    "eof",                "char=?",           "char<?", 
+  "char>?",           "char<=?",            "char>=?",          "char-ci=?", 
+  "char-ci<?",        "char-ci>?",          "char-ci<=?",       "char-ci>=?", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_STRINGS[] = {
+  "string",           "make-string",       "string-unfold",   "string-unfold-right", 
+  "string-pad",       "string-pad-right",  "string-trim",     "string-trim-right", 
+  "string-trim-both", "string-replace",    "string-contains", "string-contains-right", 
+  "string-join",      "string-split",      "string-swap!",    "string-push!", 
+  "string-empty?",    "string-copy!",      "string=?",        "string<?", 
+  "string>?",         "string<=?",         "string>=?",       "string-ci=?", 
+  "string-ci<?",      "string-ci>?",       "string-ci<=?",    "string-ci>=?", 
+  "regex-replace",    "regex-replace-all", "regex-match",     "regex-split", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_PAIRS[] = {
+  "cons",      "car",      "cdr",          "caar...cddddr", 
+  "set-car!",  "set-cdr!", "last-pair",    "pair-swap!", 
+  "make-list", "list",     "list*",        "circular-list", 
+  "iota",      "unfold",   "unfold-right", "get-all-combinations", 
+  "null?",     "list?",    "list*?",       "circular-list?", 
+  "alist?",    "memq",     "memv",         "member", 
+  "assq",      "assv",     "assoc", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_VECTORS[] = {
+  "vector",        "make-vector",         "vector-push!",         "vector-iota", 
+  "vector-unfold", "vector-unfold-right", "vector-grow",          "vector-empty?", 
+  "vector-copy!",  "vector-swap!",        "vector-binary-search", "vector-get-all-combinations", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_HMAPS[] = {
+  "hmap",           "hmap-keys",         "hmap-vals",         "hmap-key?", 
+  "hmap-hashable?", "hmap-ref",          "hmap-set!",         "hmap-delete!", 
+  "hmap-length",    "hmap-empty?",       "hmap-merge",        "hmap-merge!", 
+  "hmap-for-each",  "hmap-for-each-key", "hmap-for-each-val", "hmap-map", 
+  "hmap-map!", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_SEQUENCES[] = {
+  "empty",                 "length",      "length+",              "reverse", 
+  "reverse!",              "fold",        "fold-right",           "map", 
+  "map!",                  "filter",      "for-each",             "seq-copy!", 
+  "count",                 "ref",         "slice",                "set-index!", 
+  "swap-indices!",         "fill!",       "append",               "remove", 
+  "remove-first",          "remove-last", "delete",               "last", 
+  "tail",                  "head",        "init",                 "seq=", 
+  "skip",                  "skip-right",  "index",                "index-right", 
+  "drop",                  "drop-right",  "drop-while",           "drop-right-while", 
+  "take",                  "take-right",  "take-while",           "take-right-while", 
+  "any",                   "every",       "conj",                 "union", 
+  "intersection",          "difference",  "symmetric-difference", "sort", 
+  "sort!",                 "sorted?",     "merge",                "delete-neighbor-dups", 
+  "delete-neighbor-dups!", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_PREDICATES[] = {
+  "typeof",               "undefined",      "undefined?",   "void", 
+  "void?",                "empty?",         "pair?",        "vector?", 
+  "hmap?",                "char?",          "number?",      "real?", 
+  "complex?",             "rational?",      "string?",      "symbol?", 
+  "boolean?",             "atom?",          "procedure?",   "functor?", 
+  "callable?",            "cps-procedure?", "input-port?",  "output-port?", 
+  "eof-object?",          "stream-pair?",   "stream-null?", "stream?", 
+  "syntax-rules-object?", "seq?",           "object?",      "class-prototype?", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_EVALAPPLY[] = {
+  "eval", "cps-eval", "apply", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_COPY[] = {
+  "copy", "shallow-copy", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_DELAY[] = {
+  "delay?", "force", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_COERCION[] = {
+  "char->integer",  "integer->char",  "number->string",     "string->number", 
+  "string->symbol", "symbol->string", "vector->list",       "list->vector", 
+  "string->vector", "vector->string", "string->list",       "list->string", 
+  "hmap->alist",    "alist->hmap",    "stream->list",       "list->stream", 
+  "object->hmap",   "object->alist",  "functor->procedure", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_OUTPUT[] = {
+  "pretty-print", "write", "display", "newline", "write-char", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_FORMATOUTPUT[] = {
+  "sprintf",           "displayf",          "writef",      "pretty-printf", 
+  "string->ascii-art", "string->space-art", "fmt:reset",   "fmt:clear", 
+  "fmt:bold",          "fmt:line",          "fmt:rev",     "fmt:black", 
+  "fmt:red",           "fmt:green",         "fmt:yellow",  "fmt:blue", 
+  "fmt:magenta",       "fmt:cyan",          "fmt:white",   "fmt:bblack", 
+  "fmt:bred",          "fmt:bgreen",        "fmt:byellow", "fmt:bblue", 
+  "fmt:bmagenta",      "fmt:bcyan",         "fmt:bwhite", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_INPUT[] = {
+  "read",      "read-string", "read-line",  "read-char", 
+  "peek-char", "char-ready?", "slurp-port", "slurp-file",
+  "read-port", "read-file", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_PORTS[] = {
+  "file?",                 "delete-file!",         "rename-file!",          "open-port?", 
+  "closed-port?",          "current-input-port",   "current-output-port",   "call-with-input-file", 
+  "call-with-output-file", "with-input-from-file", "with-output-from-file", "open-input-file", 
+  "open-output-file",      "open-output-file+",    "open-output-file!",     "close-port", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_SYSINTERFACE[] = {
+  "load",         "cps-load",            "system",  "getenv", 
+  "command-line", "getcwd",              "dirname", "compile", 
+  "cps-compile",  "seconds-since-epoch", "time",    "current-date", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_INVARIANTS[] = {
+  "set-nansi!",               "nansi?",              "set-ci!",                  "ci?", 
+  "set-pprint-column-width!", "pprint-column-width", "set-max-recursion-depth!", "max-recursion-depth", 
+  "set-repl-prompt!",         "repl-prompt",         "set-dynamic-call-trace!",  "dynamic-call-trace?", 
+  "set-trace-args!",          "trace-args?",         "set-dot!",                 "dot", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_CONTROLFLOW[] = {
+  "exit",   "error", "syntax-error", "call/ce", 
+  "inline", "jump!", "catch-jump",   "trace", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_CPS[] = {
+  "call/cc", "cps->scm", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_SYNTAX[] = {
+  "expand",           "core-syntax?",         "runtime-syntax?",    "reader-alias?", 
+  "reader-syntax?",   "define-reader-syntax", "reader-syntax-list", "reader-alias-list", 
+  "set-core-syntax!", "set-runtime-syntax!",  "infix-list", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_JSON[] = {
+  "json->scm", "scm->json", "object->json", "json-datum?", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_GENSYM[] = {
+  "gensym", "sown-gensym", "symbol-append", 
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_COMPOSEBINDID[] = {
+  "compose", "bind", "id", 
+};
+
+static constexpr char** HELP_MENU_PROCEDURES_SUBMENU[] = {
+  (char**)HELP_MENU_PROCEDURES_HELP, // help => direct link
+  (char**)HELP_MENU_PROCEDURES_BUILD,       (char**)HELP_MENU_PROCEDURES_OBJECTS,       (char**)HELP_MENU_PROCEDURES_PROTOTYPES,   (char**)HELP_MENU_PROCEDURES_COROUTINES, 
+  (char**)HELP_MENU_PROCEDURES_STREAMS,     (char**)HELP_MENU_PROCEDURES_NUMBERS,       (char**)HELP_MENU_PROCEDURES_EQUALITY,     (char**)HELP_MENU_PROCEDURES_CHARS, 
+  (char**)HELP_MENU_PROCEDURES_STRINGS,     (char**)HELP_MENU_PROCEDURES_PAIRS,         (char**)HELP_MENU_PROCEDURES_VECTORS,      (char**)HELP_MENU_PROCEDURES_HMAPS, 
+  (char**)HELP_MENU_PROCEDURES_SEQUENCES,   (char**)HELP_MENU_PROCEDURES_PREDICATES,    (char**)HELP_MENU_PROCEDURES_EVALAPPLY,    (char**)HELP_MENU_PROCEDURES_COPY, 
+  (char**)HELP_MENU_PROCEDURES_DELAY,       (char**)HELP_MENU_PROCEDURES_COERCION,      (char**)HELP_MENU_PROCEDURES_OUTPUT,       (char**)HELP_MENU_PROCEDURES_FORMATOUTPUT, 
+  (char**)HELP_MENU_PROCEDURES_INPUT,       (char**)HELP_MENU_PROCEDURES_PORTS,         (char**)HELP_MENU_PROCEDURES_SYSINTERFACE, (char**)HELP_MENU_PROCEDURES_INVARIANTS, 
+  (char**)HELP_MENU_PROCEDURES_CONTROLFLOW, (char**)HELP_MENU_PROCEDURES_CPS,           (char**)HELP_MENU_PROCEDURES_SYNTAX,       (char**)HELP_MENU_PROCEDURES_JSON, 
+  (char**)HELP_MENU_PROCEDURES_GENSYM,      (char**)HELP_MENU_PROCEDURES_COMPOSEBINDID, 
+};
+
+static constexpr size_type HELP_MENU_PROCEDURES_SUBMENU_LENGTH[] = {
+  0, // help => direct link
+  sizeof(HELP_MENU_PROCEDURES_BUILD)/sizeof(HELP_MENU_PROCEDURES_BUILD[0]),               sizeof(HELP_MENU_PROCEDURES_OBJECTS)/sizeof(HELP_MENU_PROCEDURES_OBJECTS[0]),
+  sizeof(HELP_MENU_PROCEDURES_PROTOTYPES)/sizeof(HELP_MENU_PROCEDURES_PROTOTYPES[0]),     sizeof(HELP_MENU_PROCEDURES_COROUTINES)/sizeof(HELP_MENU_PROCEDURES_COROUTINES[0]), 
+  sizeof(HELP_MENU_PROCEDURES_STREAMS)/sizeof(HELP_MENU_PROCEDURES_STREAMS[0]),           sizeof(HELP_MENU_PROCEDURES_NUMBERS)/sizeof(HELP_MENU_PROCEDURES_NUMBERS[0]),
+  sizeof(HELP_MENU_PROCEDURES_EQUALITY)/sizeof(HELP_MENU_PROCEDURES_EQUALITY[0]),         sizeof(HELP_MENU_PROCEDURES_CHARS)/sizeof(HELP_MENU_PROCEDURES_CHARS[0]), 
+  sizeof(HELP_MENU_PROCEDURES_STRINGS)/sizeof(HELP_MENU_PROCEDURES_STRINGS[0]),           sizeof(HELP_MENU_PROCEDURES_PAIRS)/sizeof(HELP_MENU_PROCEDURES_PAIRS[0]),
+  sizeof(HELP_MENU_PROCEDURES_VECTORS)/sizeof(HELP_MENU_PROCEDURES_VECTORS[0]),           sizeof(HELP_MENU_PROCEDURES_HMAPS)/sizeof(HELP_MENU_PROCEDURES_HMAPS[0]), 
+  sizeof(HELP_MENU_PROCEDURES_SEQUENCES)/sizeof(HELP_MENU_PROCEDURES_SEQUENCES[0]),       sizeof(HELP_MENU_PROCEDURES_PREDICATES)/sizeof(HELP_MENU_PROCEDURES_PREDICATES[0]),
+  sizeof(HELP_MENU_PROCEDURES_EVALAPPLY)/sizeof(HELP_MENU_PROCEDURES_EVALAPPLY[0]),       sizeof(HELP_MENU_PROCEDURES_COPY)/sizeof(HELP_MENU_PROCEDURES_COPY[0]), 
+  sizeof(HELP_MENU_PROCEDURES_DELAY)/sizeof(HELP_MENU_PROCEDURES_DELAY[0]),               sizeof(HELP_MENU_PROCEDURES_COERCION)/sizeof(HELP_MENU_PROCEDURES_COERCION[0]),
+  sizeof(HELP_MENU_PROCEDURES_OUTPUT)/sizeof(HELP_MENU_PROCEDURES_OUTPUT[0]),             sizeof(HELP_MENU_PROCEDURES_FORMATOUTPUT)/sizeof(HELP_MENU_PROCEDURES_FORMATOUTPUT[0]), 
+  sizeof(HELP_MENU_PROCEDURES_INPUT)/sizeof(HELP_MENU_PROCEDURES_INPUT[0]),               sizeof(HELP_MENU_PROCEDURES_PORTS)/sizeof(HELP_MENU_PROCEDURES_PORTS[0]),
+  sizeof(HELP_MENU_PROCEDURES_SYSINTERFACE)/sizeof(HELP_MENU_PROCEDURES_SYSINTERFACE[0]), sizeof(HELP_MENU_PROCEDURES_INVARIANTS)/sizeof(HELP_MENU_PROCEDURES_INVARIANTS[0]), 
+  sizeof(HELP_MENU_PROCEDURES_CONTROLFLOW)/sizeof(HELP_MENU_PROCEDURES_CONTROLFLOW[0]),   sizeof(HELP_MENU_PROCEDURES_CPS)/sizeof(HELP_MENU_PROCEDURES_CPS[0]),
+  sizeof(HELP_MENU_PROCEDURES_SYNTAX)/sizeof(HELP_MENU_PROCEDURES_SYNTAX[0]),             sizeof(HELP_MENU_PROCEDURES_JSON)/sizeof(HELP_MENU_PROCEDURES_JSON[0]), 
+  sizeof(HELP_MENU_PROCEDURES_GENSYM)/sizeof(HELP_MENU_PROCEDURES_GENSYM[0]),             sizeof(HELP_MENU_PROCEDURES_COMPOSEBINDID)/sizeof(HELP_MENU_PROCEDURES_COMPOSEBINDID[0]), 
+};
+
+/******************************************************************************
+* HELP DB ENTRIES
+******************************************************************************/
 
 static constexpr const char* EMPTY_ENTRY[4] = {"","","",""};
 
 
 static constexpr const char* HELP_ENTRIES[][4] = { // {{name, classification, signatures, description}, ...}
 
-
 /******************************************************************************
 * LITERAL OBJECT DESCRIPTIONS @NEW-SECTION
 ******************************************************************************/
-
 
 {
 "nil",
@@ -2164,10 +2490,12 @@ Possible return value as a SYMBOL by Heist Scheme embedded in C++ when
 "Procedure",
 R"(
 (help <query-symbol-or-string>)
+(help)
 )",
 R"(
-The obligatory meta entry! Launches this querying mechanism to 
-search for the description of a specific Heist Scheme feature.
+The obligatory meta entry! Launches this querying mechanism to either:
+  0. Search for the description of a specific Heist Scheme feature
+  1. Launch the interactive "help" menu (call "help" w/o args)
 )",
 
 
@@ -9788,7 +10116,7 @@ Bound to the mathematical constant cos(1).
 "Variable (Number)",
 R"()",
 R"(
-Bound to the mathematical constant gamma(1/2).
+Bound to the mathematical constant Gamma(1/2).
 )",
 
 
@@ -9800,7 +10128,7 @@ Bound to the mathematical constant gamma(1/2).
 "Variable (Number)",
 R"()",
 R"(
-Bound to the mathematical constant gamma(1/3).
+Bound to the mathematical constant Gamma(1/3).
 )",
 
 
@@ -9812,7 +10140,7 @@ Bound to the mathematical constant gamma(1/3).
 "Variable (Number)",
 R"()",
 R"(
-Bound to the mathematical constant gamma(2/3).
+Bound to the mathematical constant Gamma(2/3).
 )",
 
 

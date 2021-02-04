@@ -1689,7 +1689,8 @@ Other primitives of this nature include:<br>
 
 ------------------------
 ## Help:
-0. __Query a Heist Scheme Feature__: `(help <query-string-or-symbol>)`
+0. __Query a Heist Scheme Feature__: `(help <optional-query-string-or-symbol>)`
+   * Nullary invocation (w/o arguments) launches the interactive help menu!
 
 
 
