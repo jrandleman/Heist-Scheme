@@ -44,7 +44,8 @@ static constexpr const char* HELP_MENU_CONSTANTS[] = {
 };
 
 static constexpr const char* HELP_MENU_TOPICS[] = { 
-  "comments", "cps", "sequence", "coroutine", 
+  "summary",     "macro-system", "conventions", "notation", 
+  "namespacing", "comments",     "cps",
 };
 
 static constexpr const char* HELP_MENU_DOCUMENTATION[] = { 
@@ -838,6 +839,117 @@ Note that the "-infix" cmd-line flag defines the following:
   |    1  | ->                               | Left  | lambda                                 |
   |    0  | = <- **= *= /= %= //= mod= += -= | Right | define, set!, set! ** * / % // mod + - |
   ^-------^----------------------------------^-------^----------------------------------------^
+)",
+
+/******************************************************************************
+* INTRO TOPICS DESCRIPTION @NEW-SECTION
+******************************************************************************/
+
+
+}, {
+"macro-system",
+"Topic",
+R"()",
+R"(
+One of Scheme's most powerful features is its flexible run-time macro system!
+
+0. Metaprogramming advantages:
+   *) Code is data (parentheses construct an Abstract Syntax Tree)
+      => Hence Macro System enables direct manipulation of the AST
+      => Quotation (quote) Converts Code to Data, Eval (eval) Converts Data to Code
+      => Reader (read) takes input and parses it into a quoted list of symbolic data
+         -> Hence read and eval may be combined for a custom repl!
+
+1. For those in the know:
+   *) While R5RS+ Scheme supports hygienic macros, R4RS (Heist Scheme's base) makes this optional.
+   *) Unhygienic macros were selected after experimenting with CL, Clojure, & Scheme, finding:
+      => Hygiene's pros are easier to emulate w/o it than non-hygiene's pros are to emulate with hygiene
+      => Forsaking hygiene enables more extensive control when meta-programming
+
+2. Macros are identical to procedures, except for 3 key features:
+   *) They expand into new code that will be run in the current scope, rather than
+      processing a computation in a new scope (that of their definition, as with procedures)
+      => Built-in syntax-hash mechanism makes avoiding namespace conflicts trivial!
+      => Macro argument names are automatically hashed to become unique symbols!
+   *) They do not evaluate their arguments (unlike procedures)
+      => Hence macros can accept, and expand into, arbitrary code and data patterns!
+   *) They do NOT have a recursive expansion limit (as does procedural non-tail-recursion)
+      => Hence recursive expansions MAY cause a segmentation fault if they infinitely expand
+         -> NOTE: Such is an indication of a USER error however, and NOT an interpreter error!
+)",
+
+
+
+
+
+}, {
+"summary",
+"Topic",
+R"()",
+R"(
+Heist is loosely/dynamically typed & properly tail-recursive, 
+and may be embedded in C++17!
+
+Heist reserves the "heist:" symbol prefix for internal use!
+
+Heist limits non-tail recursion to depth of 1000 by default, but 
+this may be altered via the "set-max-recursion-depth!" primitive.
+
+See more in the other "topics" entries of the '(help)' menu!
+)",
+
+
+
+
+
+}, {
+"conventions",
+"Topic",
+R"()",
+R"(
+Common Conventions:
+  0. '?' suffix denotes a predicate procedure
+  1. '!' suffix denotes a mutative (non-purely-functional) procedure
+  2. '(', '[', & '{' are interchangeable (as are ')', ']', & '}')
+     *) Note: {} can also force precedence with infix operators!
+  3. 'procedure' is said instead of 'function'
+  4. '#it' refers to the REPL's last evaluated expression
+)",
+
+
+
+
+
+}, {
+"notation",
+"Topic",
+R"()",
+R"(
+Function (or "procedure") calls are denoted by parens:
+  *) in C++:          myFunc(0,'a',"hello")
+  *) in Heist Scheme: (myFunc 0 #\a "hello")
+
+Nearly every character (except '.') can be used in a variable name!
+  *) Unless, of course, the combination could be interpreted as a
+     primitive data type (ie '1000' is an invalid variable name)
+  *) Hence can do things like name a factorial function '!' as if it were a primitive!
+  *) This excludes '.' though, given it denotes property access for objects
+)",
+
+
+
+
+
+}, {
+"namespacing",
+"Topic",
+R"()",
+R"(
+Key Notes on Namespacing in Heist:
+  0. Heist is a Lisp 1: variables & procedures share a single namespace.
+  1. "core-syntax" is evaluated first & MUST be matched (unlike runtime macros from "define-syntax").
+  3. Runtime macros & variables are in different namespaces.
+     *) Hence if a runtime macro's pattern doesn't match, it gets treated as an attempted procedure call!
 )",
 
 
@@ -10189,7 +10301,7 @@ Numeric object designated to represent Not-A-Number.
 
 }, {
 "sequence",
-"Topic",
+"Topic | Object (Reference Semantics)",
 R"()",
 R"(
 Term for family of objects: <list> | <vector> | <string>
@@ -10260,7 +10372,7 @@ Term for family of objects: <list> | <vector> | <string>
 
 }, {
 "coroutine",
-"Topic",
+"Topic | Class Prototype",
 R"()",
 R"(
 Class-prototype for objects generated by "define-coroutine". 
