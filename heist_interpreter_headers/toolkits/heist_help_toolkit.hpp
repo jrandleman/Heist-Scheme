@@ -88,19 +88,19 @@
 // fl-min
 // fl-max
 // fl-epsilon
-// *min-infix-precedence
-// *max-infix-precedence
+// *min-infix-precedence*
+// *max-infix-precedence*
 // stream-null
-// *null-environment
-// *local-environment
-// *global-environment
-// *argc
-// *argv
-// *heist-platform
-// *heist-exact-platform
-// *heist-dirname
-// *exit-success
-// *exit-failure
+// *null-environment*
+// *local-environment*
+// *global-environment*
+// *argc*
+// *argv*
+// *heist-platform*
+// *heist-exact-platform*
+// *heist-dirname*
+// *exit-success*
+// *exit-failure*
 
 // ===================== PRIMITIVE FUNCTION DESCRIPTIONS =====================
 
