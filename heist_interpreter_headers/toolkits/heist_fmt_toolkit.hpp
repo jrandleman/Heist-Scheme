@@ -8,8 +8,8 @@
 // 1) https://www.lihaoyi.com/post/BuildyourownCommandLinewithANSIescapecodes.html
 // 2) http://www.climagic.org/mirrors/VT100_Escape_Codes.html
 
-#ifndef HEIST_FMT_TOOLKIT_
-#define HEIST_FMT_TOOLKIT_
+#ifndef HEIST_FMT_TOOLKIT_HPP_
+#define HEIST_FMT_TOOLKIT_HPP_
 
 data prm_generate_ANSI_fmt_string(const char* name, const scm_list& args, const char* ansi_str){
   if(!args.empty()) THROW_ERR('\''<<name<<" doesn't take any args!\n     ("<<name<<')'<<FCN_ERR(name,args));

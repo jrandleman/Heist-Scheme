@@ -215,11 +215,12 @@ namespace heist {
     expand_reader_macro(input,i,after_macro_idx+1,macro_idx);
   }
 
-  void expand_around_char_literal(scm_string& input, size_type& i, const size_type& macro_idx, size_type after_macro_idx)noexcept{
+  void expand_around_char_literal(scm_string& input, size_type& i, const size_type& macro_idx, size_type after_macro_idx) {
     after_macro_idx += 3;
     const size_type n = input.size();
     while(after_macro_idx < n && !IS_END_OF_WORD(input[after_macro_idx],input[after_macro_idx+1])) 
       ++after_macro_idx;
+    if(after_macro_idx > n) throw READER_ERROR::quoted_incomplete_char; // Improper '#\ quotation of incomplete char
     expand_reader_macro(input,i,after_macro_idx,macro_idx);
   }
 
@@ -245,7 +246,7 @@ namespace heist {
 
 
   // Returns whether expanded around a literal -- READER MACRO EXPANSION MAIN DISPATCH
-  bool expand_around_literal(scm_string& input, size_type& i, const size_type& macro_idx, size_type after_macro_idx)noexcept{
+  bool expand_around_literal(scm_string& input, size_type& i, const size_type& macro_idx, size_type after_macro_idx) {
     // expanding around string literal
     if(input[after_macro_idx] == '"') {
       expand_around_string_literal(input,i,macro_idx,after_macro_idx);

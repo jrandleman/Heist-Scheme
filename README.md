@@ -73,6 +73,7 @@
    - [Infix!](#Infix--Infixr), [Infixr!](#Infix--Infixr), [Unfix!](#Unfix)
 8. [Heist Primitive Variables](#Heist-Primitive-Variables)
 9. [Heist Primitive Procedures](#Heist-Primitive-Procedures)
+   - [Help](#Help)
    - [Build System Information](#Build-System-Information)
    - [OOP Reflection Primitives](#OOP-Reflection-Primitives)
      * [Object Primitives](#Object-Primitives)
@@ -1685,6 +1686,12 @@ Other primitives of this nature include:<br>
 * IE `(map even?)` is equivalent to `(lambda (x . xs) (apply map (cons even? (cons x xs))))`
 
 
+## Help:
+0. __Query a Heist Scheme Feature__: `(help <query-string-or-symbol>)`
+
+
+
+------------------------
 ## Build System Information:
 0. __License__: `(license)`
 
@@ -1693,6 +1700,8 @@ Other primitives of this nature include:<br>
 2. __Shell Alias__: `(shell-alias)`
 
 
+
+------------------------
 ## OOP Reflection Primitives:
 ### Object Primitives:
 0. __Functional Property Access__: `(.. <object> <property-symbol-1> ...)`

@@ -5827,6 +5827,29 @@ namespace heist {
   }
 
   /******************************************************************************
+  * QUERY HELP DB FOR INFO ON HEIST SCHEME AS A LANGUAGE
+  ******************************************************************************/
+
+  #include "toolkits/heist_help_toolkit.hpp"
+
+  data primitive_HELP(scm_list& args) {
+    if(args.size() != 1)
+      THROW_ERR("'help didn't recieve a query symbol!"
+        "\n     (help <query-symbol-or-string>)" << FCN_ERR("help",args));
+    // Search for the query passed as a symbol | string
+    if(args[0].is_type(types::sym))
+      help::query_datum(args[0].sym);
+    else if(args[0].is_type(types::str))
+      help::query_datum(*args[0].str);
+    // Query data about the object passed based on its type
+    else if(data_is_stream_pair(args[0]))
+      help::query_datum("stream");
+    else
+      help::query_datum(args[0].type_name());
+    return G::VOID_DATA_OBJECT;
+  }
+
+  /******************************************************************************
   * REGISTRY OF PRIMITIVES ALSO REQUIRING AN ENVIRONMENT (TO APPLY A PROCEDURE)
   ******************************************************************************/
 
@@ -6479,6 +6502,8 @@ namespace heist {
 
     std::make_pair(primitive_STRING_TO_ASCII_ART,"string->ascii-art"),
     std::make_pair(primitive_STRING_TO_SPACE_ART,"string->space-art"),
+
+    std::make_pair(primitive_HELP, "help"),
   };
 
   frame_vals primitive_procedure_objects()noexcept{

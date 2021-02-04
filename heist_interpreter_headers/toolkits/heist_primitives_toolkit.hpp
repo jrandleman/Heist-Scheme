@@ -3089,9 +3089,9 @@ namespace heist {
 
   // Reader error code enumeration
   enum class READER_ERROR {
-    early_end_paren,    incomplete_string,     incomplete_expression, 
-    incomplete_comment, quoted_end_of_buffer,  quoted_end_of_expression,
-    quoted_space, 
+    early_end_paren,    incomplete_string,      incomplete_expression, 
+    incomplete_comment, quoted_end_of_buffer,   quoted_end_of_expression,
+    quoted_space,       quoted_incomplete_char, 
   };
 
 
@@ -3160,6 +3160,20 @@ namespace heist {
         fputs("---------------------------------------------------------------------\n", outs);
         fprintf(outs, "EXPRESSION:\n%s\n", input.c_str());
         fputs("----------------------------------------------------------------------\n", outs);
+      }
+    } else if(read_error == READER_ERROR::quoted_incomplete_char) {
+      if(G::USING_ANSI_ESCAPE_SEQUENCES) {
+        fputs("\n\x1b[1m\x1b[31m-----------\x1b[0m\x1b[1m---------------------------------------------\x1b[0m\n", outs);
+        fputs("\x1b[1m\x1b[31mREAD ERROR:\x1b[0m\x1b[1m Reader Macro Around An Incomplete Character!\x1b[0m\n", outs);
+        fputs("\x1b[1m\x1b[31m-----------\x1b[0m\x1b[1m---------------------------------------------\x1b[0m\n", outs);
+        fprintf(outs, "\x1b[1m\x1b[31mEXPRESSION:\x1b[0m\x1b[1m\n%s\x1b[0m\n", input.c_str());
+        fputs("\x1b[1m--------------------------------------------------------\x1b[0m\n", outs);
+      } else {
+        fputs("\n--------------------------------------------------------\n", outs);
+        fputs("READ ERROR: Reader Macro Around An Incomplete Character!\n", outs);
+        fputs("--------------------------------------------------------\n", outs);
+        fprintf(outs, "EXPRESSION:\n%s\n", input.c_str());
+        fputs("--------------------------------------------------------\n", outs);
       }
     }
   }
