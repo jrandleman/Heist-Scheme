@@ -5189,10 +5189,10 @@ Confirm all left <string>s are greater than or equal to right <string>s.
 
 
 }, {
-"strin-cig=?",
+"string-ci=?",
 "Procedure",
 R"(
-(strin-cig=? <string1> <string2> ...)
+(string-ci=? <string1> <string2> ...)
 )",
 R"(
 String equality (case-insensitive!).
@@ -5203,10 +5203,10 @@ String equality (case-insensitive!).
 
 
 }, {
-"strin-cig<?",
+"string-ci<?",
 "Procedure",
 R"(
-(strin-cig<? <string1> <string2> ...)
+(string-ci<? <string1> <string2> ...)
 )",
 R"(
 Confirm all left <string>s are less than right <string>s (case-insensitive!).
@@ -5217,10 +5217,10 @@ Confirm all left <string>s are less than right <string>s (case-insensitive!).
 
 
 }, {
-"strin-cig>?",
+"string-ci>?",
 "Procedure",
 R"(
-(strin-cig>? <string1> <string2> ...)
+(string-ci>? <string1> <string2> ...)
 )",
 R"(
 Confirm all left <string>s are greater than right <string>s (case-insensitive!).

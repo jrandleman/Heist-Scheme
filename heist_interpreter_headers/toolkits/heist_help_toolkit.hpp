@@ -225,32 +225,46 @@ namespace help::logic {
       "scdddar","scddddr","scaar...scddddr","caar","cadr","cdar","cddr","caaar","caadr","cadar","caddr","cdaar","cdadr","cddar","cdddr","caaaar","caaadr",
       "caadar","caaddr","cadaar","cadadr","caddar","cadddr","cdaaar","cdaadr","cdadar","cdaddr","cddaar","cddadr","cdddar","cddddr","caar...cddddr"
     };
+    // Store possible matches by decreasing substring match length
+    std::vector<std::pair<size_type,scm_string>> match_map;
     // Continuously try finding possible mismatches of decreasing minimum substring match lengths (until a match is found)
     for(; minimum_substring_length_match > 0; --minimum_substring_length_match) {
       // Match against official entry names
-      for(const auto& entry : G::HELP_ENTRIES)
-        if(longestCommonSubstring(query, entry[0], strlen(entry[0])) >= minimum_substring_length_match)
-          possible_matches.push_back(entry[0]);
+      for(const auto& entry : G::HELP_ENTRIES) {
+        auto match_length = longestCommonSubstring(query, entry[0], strlen(entry[0]));
+        if(match_length >= minimum_substring_length_match)
+          match_map.push_back(std::make_pair(match_length,entry[0]));
+      }
       // Match against entry name aliases from <prepare_entry>
       for(const auto& alias : ALTERNATIVE_HELP_QUERY_NAMES) {
-        if(longestCommonSubstring(query, alias, strlen(alias)) >= minimum_substring_length_match) {
+        auto match_length = longestCommonSubstring(query, alias, strlen(alias));
+        if(match_length >= minimum_substring_length_match) {
           // get alias's offical entry name
           scm_string s(alias);
           prepare_query(s);
-          // only add alias if not already in the list of possible mismatches
+          // only keep unique matches
           bool found = false;
-          for(const auto& pm : possible_matches)
-            if(pm == s) { found = true; break; }
-          if(!found) possible_matches.push_back(std::move(s));
+          for(size_type i = 0, n = match_map.size(); i < n; ++i) {
+            if(match_map[i].second == s) {
+              found = true;
+              if(match_length > match_map[i].first) match_map[i].first = match_length; // better match length
+              break;
+            }
+          }
+          if(!found) match_map.push_back(std::make_pair(match_length,std::move(s)));
         }
       }
       // break loop if found possible mismatches
-      if(!possible_matches.empty()) break;
+      if(!match_map.empty()) break;
     }
     // print results & output prompt to get a new entry
-    if(possible_matches.empty()) {
+    if(match_map.empty()) {
       printf("\nNo matches found, enter a new query!\n  => NOTE: Type \"quit\" to quit!\n\n");
     } else {
+      // sort possible matches by decreasing substring match length
+      std::sort(match_map.rbegin(),match_map.rend());
+      for(auto& p : match_map) possible_matches.push_back(std::move(p.second));
+      // output possible matches
       printf("\nNo matches found! Did you mean:\n");
       for(size_type i = 0, n = possible_matches.size(); i < n; ++i) {
         if(i < 10) printf("   %zu) %s\n", i, possible_matches[i].c_str());
@@ -435,7 +449,7 @@ namespace help {
     }
   }
 
-  void launch_interactive_menu() {
+  void launch_interactive_menu()noexcept{
     puts("\nWelcome to Heist Scheme's help menu!\n\n"
          "Enter a query/language-feature in order to get more details about it.\n"
          "Enter \"quit\" to quit.\n\n"
