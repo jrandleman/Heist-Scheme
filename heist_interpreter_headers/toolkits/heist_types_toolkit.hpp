@@ -736,12 +736,10 @@ namespace heist {
        o1->method_values.size() != o2->method_values.size()) return false;
     for(size_type i = 0, n = o1->member_names.size(); i < n; ++i)
       if(o1->member_names[i] != o2->member_names[i]) return false;
-    for(size_type i = 0, n = o1->method_names.size(); i < n; ++i)
+    for(size_type i = 0, n = o1->method_names.size(); i < n; ++i) // methods ONLY compared by name
       if(o1->method_names[i] != o2->method_names[i]) return false;
     for(size_type i = 0, n = o1->member_values.size(); i < n; ++i)
       if(!(o1->member_values[i].*same_as)(o2->member_values[i])) return false;
-    for(size_type i = 0, n = o1->method_values.size(); i < n; ++i)
-      if(!(o1->method_values[i].*same_as)(o2->method_values[i])) return false;
     return true;
   }
 
