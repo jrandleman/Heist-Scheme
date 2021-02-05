@@ -7970,9 +7970,10 @@ Returns a new, formatted string!
      %,n = number with commas (only for bigints)
      %En = %en = number (coerced to exact)
      %In = %in = number (coerced to inexact)
-     %#n = number (in base <#>, from 2 to 36)
+     %#rn = %#Rn = number (in base <#> from 2 to 36)
+     %#n = number (left-padded with 0s to a width of <#> characters)
      %.#n = number (with <#> digits of precision)
-     -> IE "%+e2.5n": 5 digits of precision & mk exact in binary w/ sign
+     -> IE "%+e2r.5n": 5 digits of precision & mk exact in binary w/ sign
      -> NOTE: case of 'n' in "%n" denotes case of base >= 11 letters
      ----------------------------------------------------------------------
      %$ = display real finite as a dollar value
@@ -8016,9 +8017,10 @@ Display the formatted string!
      %,n = number with commas (only for bigints)
      %En = %en = number (coerced to exact)
      %In = %in = number (coerced to inexact)
-     %#n = number (in base <#>, from 2 to 36)
+     %#rn = %#Rn = number (in base <#> from 2 to 36)
+     %#n = number (left-padded with 0s to a width of <#> characters)
      %.#n = number (with <#> digits of precision)
-     -> IE "%+e2.5n": 5 digits of precision & mk exact in binary w/ sign
+     -> IE "%+e2r.5n": 5 digits of precision & mk exact in binary w/ sign
      -> NOTE: case of 'n' in "%n" denotes case of base >= 11 letters
      ----------------------------------------------------------------------
      %$ = display real finite as a dollar value
@@ -8062,9 +8064,10 @@ Write the formatted string!
      %,n = number with commas (only for bigints)
      %En = %en = number (coerced to exact)
      %In = %in = number (coerced to inexact)
-     %#n = number (in base <#>, from 2 to 36)
+     %#rn = %#Rn = number (in base <#> from 2 to 36)
+     %#n = number (left-padded with 0s to a width of <#> characters)
      %.#n = number (with <#> digits of precision)
-     -> IE "%+e2.5n": 5 digits of precision & mk exact in binary w/ sign
+     -> IE "%+e2r.5n": 5 digits of precision & mk exact in binary w/ sign
      -> NOTE: case of 'n' in "%n" denotes case of base >= 11 letters
      ----------------------------------------------------------------------
      %$ = display real finite as a dollar value
@@ -8109,9 +8112,10 @@ Pretty-print the formatted string!
      %,n = number with commas (only for bigints)
      %En = %en = number (coerced to exact)
      %In = %in = number (coerced to inexact)
-     %#n = number (in base <#>, from 2 to 36)
+     %#rn = %#Rn = number (in base <#> from 2 to 36)
+     %#n = number (left-padded with 0s to a width of <#> characters)
      %.#n = number (with <#> digits of precision)
-     -> IE "%+e2.5n": 5 digits of precision & mk exact in binary w/ sign
+     -> IE "%+e2r.5n": 5 digits of precision & mk exact in binary w/ sign
      -> NOTE: case of 'n' in "%n" denotes case of base >= 11 letters
      ----------------------------------------------------------------------
      %$ = display real finite as a dollar value

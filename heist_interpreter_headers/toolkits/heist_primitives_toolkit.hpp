@@ -3417,6 +3417,7 @@ namespace heist {
     exactness_t exactness = exactness_t::dflt;
     int precision  = -1;    // -1 denotes 'default'
     int base       = 10;    // base : [2,36]
+    int padded_0s  = 0;     // total 0's to pad left with
     bool show_sign = false; // show sign even if positive
     bool upcase    = true;  // capitalize base 11+ strings
     bool commas    = false; // print using commas iff bigint
@@ -3473,6 +3474,10 @@ namespace heist {
 
   bool is_sprintf_inexact(char c)noexcept{
     return c == 'i' || c == 'I';
+  }
+
+  bool is_sprintf_radix(char c)noexcept{
+    return c == 'r' || c == 'R';
   }
 
   bool is_potential_detailed_number(char c)noexcept{
@@ -3605,13 +3610,24 @@ namespace heist {
             continue;
           }
           // parse base
-          if(isdigit(input[i])) {
+          if(isdigit(input[i]) && (is_sprintf_radix(input[i+1]) || (isdigit(input[i+1]) && is_sprintf_radix(input[i+2])))) {
             int base = extract_up_to_2_digits(input[i],input[i+1],i);
             if(base < 2 || base > 36)
               THROW_ERR('\''<<name<<" invalid number base: " << base
                 << "\n     -> Must be in range of [2,36]!" << format 
                 << FCN_ERR(name,args));
             num_token.base = base;
+            ++i; // mv past 'r'/'R'
+            if(input[i] == 'n' || input[i] == 'N') {
+              if(input[i] == 'n') num_token.upcase = false;
+              tokens.push_back(num_token), input = input.substr(i+1), i = 0;
+              continue;
+            }
+          }
+          // parse 0 padding
+          if(isdigit(input[i])) {
+            int padded_0s = extract_up_to_2_digits(input[i],input[i+1],i);
+            num_token.padded_0s = padded_0s;
             if(input[i] == 'n' || input[i] == 'N') {
               if(input[i] == 'n') num_token.upcase = false;
               tokens.push_back(num_token), input = input.substr(i+1), i = 0;
@@ -3624,8 +3640,6 @@ namespace heist {
             if(!isdigit(input[i])) 
               throw_invalid_sprintf_precision(input[i]-'0');
             int prec = extract_up_to_2_digits(input[i],input[i+1],i);
-            if(prec < 1 || prec > 99) 
-              throw_invalid_sprintf_precision(prec);
             num_token.precision = prec;
           }
           // finalize number parsing
@@ -3731,6 +3745,15 @@ namespace heist {
           if(tokens[i-1].base >= 11 && !tokens[i-1].upcase) num_str = lowercase_str(num.str(tokens[i-1].base));
           else if(tokens[i-1].base != 10)                   num_str = num.str(tokens[i-1].base);
           else                                              num_str = num.str();
+          // pad 0s
+          if((size_type)tokens[i-1].padded_0s > (num_str.size() - (num_str[0] == '-'))) {
+            if(num_str[0] == '-') {
+              num_str.erase(0,1);
+              num_str = '-' + scm_string(tokens[i-1].padded_0s - num_str.size(), '0') + num_str;
+            } else {
+              num_str = scm_string(tokens[i-1].padded_0s - num_str.size(), '0') + num_str;
+            }
+          }
           // insert commas
           if(should_insert_commas(tokens[i-1],num)) insert_num_commas(num_str);
           formatted += num_str;
