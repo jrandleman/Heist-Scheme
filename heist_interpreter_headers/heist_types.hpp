@@ -665,7 +665,6 @@ namespace heist {
     }
 
     scm_string write() const { // machine-readable string
-
       switch(type) {
         case types::par: return cio_list_str<&data::write>(*this);
         case types::vec: return cio_vect_str<&data::write>(vec);
