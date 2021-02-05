@@ -7975,6 +7975,7 @@ Returns a new, formatted string!
      %.#n = number (with <#> digits of precision)
      -> IE "%+e2r.5n": 5 digits of precision & mk exact in binary w/ sign
      -> NOTE: case of 'n' in "%n" denotes case of base >= 11 letters
+     -> NOTE: 0-padding & precision MUST be of 2 digits or less!
      ----------------------------------------------------------------------
      %$ = display real finite as a dollar value
      ----------------------------------------------------------------------
@@ -8022,6 +8023,7 @@ Display the formatted string!
      %.#n = number (with <#> digits of precision)
      -> IE "%+e2r.5n": 5 digits of precision & mk exact in binary w/ sign
      -> NOTE: case of 'n' in "%n" denotes case of base >= 11 letters
+     -> NOTE: 0-padding & precision MUST be of 2 digits or less!
      ----------------------------------------------------------------------
      %$ = display real finite as a dollar value
      ----------------------------------------------------------------------
@@ -8069,6 +8071,7 @@ Write the formatted string!
      %.#n = number (with <#> digits of precision)
      -> IE "%+e2r.5n": 5 digits of precision & mk exact in binary w/ sign
      -> NOTE: case of 'n' in "%n" denotes case of base >= 11 letters
+     -> NOTE: 0-padding & precision MUST be of 2 digits or less!
      ----------------------------------------------------------------------
      %$ = display real finite as a dollar value
      ----------------------------------------------------------------------
@@ -8117,6 +8120,7 @@ Pretty-print the formatted string!
      %.#n = number (with <#> digits of precision)
      -> IE "%+e2r.5n": 5 digits of precision & mk exact in binary w/ sign
      -> NOTE: case of 'n' in "%n" denotes case of base >= 11 letters
+     -> NOTE: 0-padding & precision MUST be of 2 digits or less!
      ----------------------------------------------------------------------
      %$ = display real finite as a dollar value
      ----------------------------------------------------------------------

@@ -4382,6 +4382,7 @@ namespace heist {
     "\n        %.#n = number (with <#> digits of precision)"\
     "\n        -> IE \"%+e2r.5n\": 5 digits of precision & mk exact in binary w/ sign"\
     "\n        -> NOTE: case of 'n' in \"%n\" denotes case of base >= 11 letters"\
+    "\n        -> NOTE: 0-padding & precision MUST be of 2 digits or less!"\
     "\n        ----------------------------------------------------------------------"\
     "\n        %$ = display real finite as a dollar value"\
     "\n        ----------------------------------------------------------------------"\
