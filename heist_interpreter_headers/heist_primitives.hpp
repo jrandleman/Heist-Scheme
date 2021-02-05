@@ -4385,7 +4385,10 @@ namespace heist {
     "\n        %$ = display real finite as a dollar value"\
     "\n        ----------------------------------------------------------------------"\
     "\n        %s = display string"\
+    "\n        %#s = display string & pad left with # spaces"\
+    "\n        %-#s = display string & pad right with # spaces"\
     "\n        %ws = write string"\
+    "\n        -> NOTE: padding MUST be of 3 digits or less (ie from -999 to 999)"\
     "\n        ----------------------------------------------------------------------"\
     "\n        %c = display char"\
     "\n        %wc = write char"\

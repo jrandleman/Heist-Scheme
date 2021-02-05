@@ -2664,7 +2664,10 @@ Other primitives of this nature include:<br>
    %$ = display real finite as a dollar value
    ----------------------------------------------------------------------
    %s = display string
+   %#s = display string & pad left with # spaces
+   %-#s = display string & pad right with # spaces
    %ws = write string
+   -> NOTE: padding MUST be of 3 digits or less (ie from -999 to 999)
    ----------------------------------------------------------------------
    %c = display char
    %wc = write char

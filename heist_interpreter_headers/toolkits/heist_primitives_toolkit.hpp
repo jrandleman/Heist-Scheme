@@ -3410,6 +3410,8 @@ namespace heist {
   struct sprintf_token_t { 
     enum class token_t {a, wa, pa, dollar, s, ws, c, wc, b, wb, n};
     token_t token = token_t::a;
+    // invariants for more string detail
+    int padding = 0; // negative = right, positive = left [ UP TO 3 DIGITS ]
     // invariants for more number detail
     enum class exactness_t {exact, inexact, dflt};
     exactness_t exactness = exactness_t::dflt;
@@ -3437,6 +3439,32 @@ namespace heist {
       ++i;
     }
     return val;
+  }
+
+  bool is_string_token(const scm_string& input, size_type i)noexcept{
+    if(input[i+1] == 's')    return true;
+    if(input[i+1] == '-') ++i; // mv past possible '-' for padding
+    if(!isdigit(input[i+1])) return false;
+    if(input[i+2] == 's')    return true;
+    if(!isdigit(input[i+2])) return false;
+    if(input[i+3] == 's')    return true;
+    if(!isdigit(input[i+3])) return false;
+    return input[i+4] == 's';
+  }
+
+  int parse_string_padding(const scm_string& input, size_type i)noexcept{
+    if(input[i+1] == 's') return 0;
+    int padding_direction = 1 - (2 * (input[i+1] == '-'));
+    if(input[i+1] == '-') ++i;
+    if(isdigit(input[i+2])) {
+      if(isdigit(input[i+3])) {
+        return padding_direction * ((100 * (input[i+1] - '0')) + (10 * (input[i+2] - '0')) + (input[i+3] - '0'));
+      } else {
+        return padding_direction * ((10 * (input[i+1] - '0')) + (input[i+2] - '0'));
+      }
+    } else {
+      return padding_direction * (input[i+1] - '0');
+    }
   }
 
   bool is_sprintf_exact(char c)noexcept{
@@ -3520,8 +3548,10 @@ namespace heist {
           tokens.push_back(sprintf_token_t::token_t::a), input = input.substr(i+2), i = 0;
         } else if(next_ch == '$') {
           tokens.push_back(sprintf_token_t::token_t::dollar), input = input.substr(i+2), i = 0;
-        } else if(next_ch == 's') {
-          tokens.push_back(sprintf_token_t::token_t::s), input = input.substr(i+2), i = 0;
+        } else if(is_string_token(input,i)) {
+          sprintf_token_t str_token(sprintf_token_t::token_t::s);
+          str_token.padding = parse_string_padding(input,i);
+          tokens.push_back(str_token), input = input.substr(input.find('s',i)+1), i = 0;
         } else if(next_ch == 'c') {
           tokens.push_back(sprintf_token_t::token_t::c), input = input.substr(i+2), i = 0;
         } else if(next_ch == 'b') {
@@ -3635,7 +3665,8 @@ namespace heist {
       THROW_ERR("-:- FATAL INTERPRETER ERROR -:- IMPROPER SPRINTF TOKEN PARSING -:-"
         "\n     => !!! NUMBER OF TOKENS != TOTAL-SPLIT-STRINGS - 1 !!!"
         "\n     => Please send your code to jrandleman@scu.edu to fix the interpreter's bug!");
-    scm_string formatted(split_str[0]), num_str;
+    scm_string formatted(split_str[0]), num_str, str_str;
+    size_type padding_amount = 0;
     for(size_type i = 1, n = split_str.size(); i < n; ++i) {
       switch(tokens[i-1].token) {
         case sprintf_token_t::token_t::a:  formatted += args[i].display(); break;
@@ -3646,7 +3677,21 @@ namespace heist {
           formatted += generate_dollar_value_string(args[i].num); break;
         case sprintf_token_t::token_t::s:  
           if(!args[i].is_type(types::str)) THROW_BAD_FORMAT_ARG("string");
-          formatted += args[i].display(); break;
+          // apply padding as needed
+          str_str = args[i].display();
+          padding_amount = (size_type)std::abs(tokens[i-1].padding);
+          if(str_str.size() < padding_amount) {
+            padding_amount -= str_str.size();
+            if(tokens[i-1].padding < 0) { // pad right
+              formatted += str_str + scm_string(padding_amount, ' ');
+            } else {                      // pad left
+              formatted += scm_string(padding_amount, ' ') + str_str;
+            }
+          } else {
+            padding_amount = 0;
+            formatted += str_str;
+          }
+          break;
         case sprintf_token_t::token_t::ws: 
           if(!args[i].is_type(types::str)) THROW_BAD_FORMAT_ARG("string");
           formatted += args[i].write(); break;
