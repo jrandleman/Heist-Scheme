@@ -30,6 +30,51 @@ namespace heist {
   using size_type  = std::size_t;
 
   /******************************************************************************
+  * INFIX TABLE TYPE ALIASES
+  ******************************************************************************/
+
+  using infix_op_t    = std::pair<bool,std::string>; // {left-assoc?, symbol}
+  using infix_level_t = std::vector<infix_op_t>;
+
+  /******************************************************************************
+  * GLOBAL PROCESS-INDEPENDANT GLOBAL INVARIANTS
+  ******************************************************************************/
+
+  namespace GLOBALS {
+
+    /******************************************************************************
+    * EXIT SUCCESS CODE TO RETURN
+    ******************************************************************************/
+
+    int HEIST_EXIT_CODE = 0;
+
+    /******************************************************************************
+    * ARGV REGISTRY OF STRINGS
+    ******************************************************************************/
+
+    std::vector<tgc_ptr<scm_string>> ARGV;
+
+    /******************************************************************************
+    * GLOBAL PORT REGISTRY
+    ******************************************************************************/
+
+    std::vector<FILE*> PORT_REGISTRY({stdin,stdout});
+
+    /******************************************************************************
+    * STACK TRACE
+    ******************************************************************************/
+
+    std::vector<scm_string> STACK_TRACE;
+
+    /******************************************************************************
+    * MAX VALUE FOR SIZE_TYPE
+    ******************************************************************************/
+
+    constexpr const auto MAX_SIZE_TYPE = std::numeric_limits<size_type>::max();
+
+  } // End of namespace GLOBALS
+
+  /******************************************************************************
   * PREMADE SYMBOLIC CONSTANTS
   ******************************************************************************/
 
@@ -96,157 +141,6 @@ namespace heist {
   } // End namespace symconst
 
   /******************************************************************************
-  * GLOBAL VARIABLES (ALWAYS IN samespace G)
-  ******************************************************************************/
-
-  namespace G {
-
-    /******************************************************************************
-    * MAX NUMBER OF RECURSIVE CALLS
-    ******************************************************************************/
-
-    size_type MAX_RECURSION_DEPTH = 1000; // see set-max-recursion-depth! primitive
-
-    /******************************************************************************
-    * PRETTY-PRINTER'S MAX COLUMN WIDTH
-    ******************************************************************************/
-
-    size_type PPRINT_MAX_COLUMN_WIDTH = 80; // see set-pprint-column-width! prim
-
-    /******************************************************************************
-    * WHETHER TO USE ANSI ESCAPE SEQUENCES TO FORMAT OUTPUT
-    ******************************************************************************/
-
-    bool USING_ANSI_ESCAPE_SEQUENCES = true; // see set-nansi! primitive
-
-    /******************************************************************************
-    * WHETHER SYMBOLS ARE CASE-SENSITIVE
-    ******************************************************************************/
-
-    bool USING_CASE_SENSITIVE_SYMBOLS = true; // see set-ci! primitive
-
-    /******************************************************************************
-    * WHETHER "INLINE" MODE IS ACTIVE
-    ******************************************************************************/
-
-    bool USING_INLINE_INVOCATIONS = false; // see inline cps-load cps-eval prim's
-
-    /******************************************************************************
-    * WHETHER "-cps" COMMAND LINE FLAG WAS PASSED
-    ******************************************************************************/
-
-    bool USING_CPS_CMD_LINE_FLAG = false;
-
-    /******************************************************************************
-    * WHETHER TRACING ALL FUNCTION CALLS (DEBUGGING HELPER)
-    ******************************************************************************/
-
-    bool TRACING_ALL_FUNCTION_CALLS = false; // see set-dynamic-call-trace!
-
-    /******************************************************************************
-    * NAME OF CURRENT TRACED FUNCTION (EMPTY = NO TRACE)
-    ******************************************************************************/
-
-    scm_string TRACED_FUNCTION_NAME = ""; // see trace primitive
-
-    /******************************************************************************
-    * REPL PROMPT VARIABLES
-    ******************************************************************************/
-
-    scm_string REPL_PROMPT = "> "; // see set-repl-prompt! primitive
-    scm_string REPL_TAB    = "  ";
-
-    /******************************************************************************
-    * REPL FORMATTING TRACKER VARIABLES
-    ******************************************************************************/
-
-    bool LAST_PRINTED_NEWLINE_TO_STDOUT = false;
-    bool LAST_PRINTED_TO_STDOUT         = false;
-
-    /******************************************************************************
-    * EXIT SUCCESS CODE TO RETURN
-    ******************************************************************************/
-
-    int HEIST_EXIT_CODE = 0;
-
-    /******************************************************************************
-    * ARGV REGISTRY OF STRINGS
-    ******************************************************************************/
-
-    std::vector<tgc_ptr<scm_string>> ARGV;
-
-    /******************************************************************************
-    * CURRENT DEFAULT INPUT & OUTPUT PORTS + THE GLOBAL PORT REGISTRY
-    ******************************************************************************/
-
-    FILE* CURRENT_INPUT_PORT  = stdin;
-    FILE* CURRENT_OUTPUT_PORT = stdout;
-
-    std::vector<FILE*> PORT_REGISTRY({stdin,stdout});
-
-    /******************************************************************************
-    * GENSYM UNIQUE HASHING KEYS
-    ******************************************************************************/
-
-    size_type GENSYM_HASH_IDX_1 = 0, GENSYM_HASH_IDX_2 = 0;
-
-    /******************************************************************************
-    * THE GLOBAL MACRO LABEL REGISTRY & MACRO/CPS HASH INDICES
-    ******************************************************************************/
-
-    std::vector<scm_string> MACRO_LABEL_REGISTRY; // optimizes procedure analysis
-
-    size_type MACRO_HASH_IDX_1 = 0, MACRO_HASH_IDX_2 = 0;
-
-    size_type CPS_HASH_IDX_1 = 0, CPS_HASH_IDX_2 = 0;
-
-    /******************************************************************************
-    * THE GLOBAL REGISTRY OF ANALYSIS-TIME GLOBAL MACRO LABELS
-    ******************************************************************************/
-
-    std::vector<scm_string> ANALYSIS_TIME_MACRO_LABEL_REGISTRY;
-
-    /******************************************************************************
-    * THE GLOBAL REGISTRY OF READER MACROS
-    ******************************************************************************/
-
-    std::vector<scm_string> SHORTHAND_READER_MACRO_REGISTRY({"`@",",@","`","\\",",","'"});
-    std::vector<scm_string> LONGHAND_READER_MACRO_REGISTRY({"syntax-hash","unquote-splicing","quasiquote",symconst::reader_lambda,"unquote","quote"});
-
-    /******************************************************************************
-    * THE GLOBAL REGISTRY OF READER ALIASES
-    ******************************************************************************/
-
-    std::vector<scm_string> SHORTHAND_READER_ALIAS_REGISTRY, LONGHAND_READER_ALIAS_REGISTRY;
-
-    /******************************************************************************
-    * STACK TRACE
-    ******************************************************************************/
-
-    std::vector<scm_string> STACK_TRACE;
-
-    bool TRACE_ARGS = false;
-
-    size_type TRACE_LIMIT = 16;
-
-    /******************************************************************************
-    * INFIX SYMBOL READER TABLE
-    ******************************************************************************/
-
-    using infix_op_t    = std::pair<bool,std::string>; // {left-assoc?, symbol}
-    using infix_level_t = std::vector<infix_op_t>;
-
-    std::map<long long,infix_level_t> INFIX_TABLE;
-
-    /******************************************************************************
-    * MAX VALUE FOR SIZE_TYPE
-    ******************************************************************************/
-
-    constexpr const auto MAX_SIZE_TYPE = std::numeric_limits<size_type>::max();
-
-  } // End of namespace G
-
-  /******************************************************************************
   * ENVIRONMENT DATA STRUCTURE TYPE ALIASES
   ******************************************************************************/
 
@@ -291,12 +185,6 @@ namespace heist {
 
   using prm_ptr_t = struct data(*)(scm_list&);          // primitive procedure ptr
   using exe_fcn_t = std::function<scm_list(env_type&)>; // fcn execution procedure
-
-  /******************************************************************************
-  * GLOBAL ENVIRONMENT POINTER
-  ******************************************************************************/
-
-  namespace G { env_type GLOBAL_ENVIRONMENT_POINTER = nullptr; }
 
   /******************************************************************************
   * DATA PRINTING HELPER FUNCTION PROTOTYPES
@@ -382,8 +270,8 @@ namespace heist {
     ~iport()                          noexcept = default;
     iport& operator=(const iport& ip) noexcept = default;
     iport& operator=(iport&& ip)      noexcept = default;
-    bool is_open() const noexcept {return G::PORT_REGISTRY[port_idx] != nullptr;}
-    FILE*& port()  const noexcept {return G::PORT_REGISTRY[port_idx];}
+    bool is_open() const noexcept {return GLOBALS::PORT_REGISTRY[port_idx] != nullptr;}
+    FILE*& port()  const noexcept {return GLOBALS::PORT_REGISTRY[port_idx];}
   };
 
   // output port struct (differentiates from 'iport')
@@ -395,8 +283,8 @@ namespace heist {
     ~oport()                          noexcept = default;
     oport& operator=(const oport& ip) noexcept = default;
     oport& operator=(oport&& ip)      noexcept = default;
-    bool is_open() const noexcept {return G::PORT_REGISTRY[port_idx] != nullptr;}
-    FILE*& port()  const noexcept {return G::PORT_REGISTRY[port_idx];}
+    bool is_open() const noexcept {return GLOBALS::PORT_REGISTRY[port_idx] != nullptr;}
+    FILE*& port()  const noexcept {return GLOBALS::PORT_REGISTRY[port_idx];}
   };
 
   // macro data structure
@@ -1006,6 +894,152 @@ namespace heist {
   cls_type make_cls(const class_prototype& c)           noexcept{return cls_type(c);}
   obj_type make_obj(const object_type& o)               noexcept{return obj_type(o);}
   obj_type make_obj(object_type&& o)                    noexcept{return obj_type(std::move(o));}
+
+  /******************************************************************************
+  * GLOBAL PROCESS-DEPENDANT MUTABLE GLOBAL INVARIANTS
+  ******************************************************************************/
+
+  struct process_invariants_t {
+
+    /******************************************************************************
+    * MAX NUMBER OF RECURSIVE CALLS
+    ******************************************************************************/
+
+    size_type MAX_RECURSION_DEPTH = 1000; // see set-max-recursion-depth! primitive
+
+    /******************************************************************************
+    * PRETTY-PRINTER'S MAX COLUMN WIDTH
+    ******************************************************************************/
+
+    size_type PPRINT_MAX_COLUMN_WIDTH = 80; // see set-pprint-column-width! prim
+
+    /******************************************************************************
+    * WHETHER TO USE ANSI ESCAPE SEQUENCES TO FORMAT OUTPUT
+    ******************************************************************************/
+
+    bool USING_ANSI_ESCAPE_SEQUENCES = true; // see set-nansi! primitive
+
+    /******************************************************************************
+    * WHETHER SYMBOLS ARE CASE-SENSITIVE
+    ******************************************************************************/
+
+    bool USING_CASE_SENSITIVE_SYMBOLS = true; // see set-ci! primitive
+
+    /******************************************************************************
+    * WHETHER "INLINE" MODE IS ACTIVE
+    ******************************************************************************/
+
+    bool USING_INLINE_INVOCATIONS = false; // see inline cps-load cps-eval prim's
+
+    /******************************************************************************
+    * WHETHER "-cps" COMMAND LINE FLAG WAS PASSED
+    ******************************************************************************/
+
+    bool USING_CPS_CMD_LINE_FLAG = false;
+
+    /******************************************************************************
+    * WHETHER TRACING ALL FUNCTION CALLS (DEBUGGING HELPER)
+    ******************************************************************************/
+
+    bool TRACING_ALL_FUNCTION_CALLS = false; // see set-dynamic-call-trace!
+
+    /******************************************************************************
+    * NAME OF CURRENT TRACED FUNCTION (EMPTY = NO TRACE)
+    ******************************************************************************/
+
+    scm_string TRACED_FUNCTION_NAME = ""; // see trace primitive
+
+    /******************************************************************************
+    * REPL PROMPT VARIABLES
+    ******************************************************************************/
+
+    scm_string REPL_PROMPT = "> "; // see set-repl-prompt! primitive
+    scm_string REPL_TAB    = "  ";
+
+    /******************************************************************************
+    * REPL FORMATTING TRACKER VARIABLES
+    ******************************************************************************/
+
+    bool LAST_PRINTED_NEWLINE_TO_STDOUT = false;
+    bool LAST_PRINTED_TO_STDOUT         = false;
+
+    /******************************************************************************
+    * CURRENT DEFAULT INPUT & OUTPUT PORTS
+    ******************************************************************************/
+
+    FILE* CURRENT_INPUT_PORT  = stdin;
+    FILE* CURRENT_OUTPUT_PORT = stdout;
+
+    /******************************************************************************
+    * GENSYM UNIQUE HASHING KEYS
+    ******************************************************************************/
+
+    size_type GENSYM_HASH_IDX_1 = 0, GENSYM_HASH_IDX_2 = 0;
+
+    /******************************************************************************
+    * THE GLOBAL MACRO LABEL REGISTRY & MACRO/CPS HASH INDICES
+    ******************************************************************************/
+
+    std::vector<scm_string> MACRO_LABEL_REGISTRY; // optimizes procedure analysis
+
+    size_type MACRO_HASH_IDX_1 = 0, MACRO_HASH_IDX_2 = 0;
+
+    size_type CPS_HASH_IDX_1 = 0, CPS_HASH_IDX_2 = 0;
+
+    /******************************************************************************
+    * THE GLOBAL REGISTRY OF ANALYSIS-TIME GLOBAL MACRO LABELS
+    ******************************************************************************/
+
+    std::vector<scm_string> ANALYSIS_TIME_MACRO_LABEL_REGISTRY;
+
+    /******************************************************************************
+    * THE GLOBAL REGISTRY OF READER MACROS
+    ******************************************************************************/
+
+    std::vector<scm_string> SHORTHAND_READER_MACRO_REGISTRY = std::vector<scm_string>({"`@",",@","`","\\",",","'"});
+    std::vector<scm_string> LONGHAND_READER_MACRO_REGISTRY = std::vector<scm_string>({
+      "syntax-hash","unquote-splicing","quasiquote",symconst::reader_lambda,"unquote","quote"
+    });
+
+    /******************************************************************************
+    * THE GLOBAL REGISTRY OF READER ALIASES
+    ******************************************************************************/
+
+    std::vector<scm_string> SHORTHAND_READER_ALIAS_REGISTRY, LONGHAND_READER_ALIAS_REGISTRY;
+
+    /******************************************************************************
+    * STACK TRACE MODIFIERS
+    ******************************************************************************/
+
+    bool TRACE_ARGS = false;
+
+    size_type TRACE_LIMIT = 16;
+
+    /******************************************************************************
+    * INFIX SYMBOL READER TABLE
+    ******************************************************************************/
+
+    std::map<long long,infix_level_t> INFIX_TABLE;
+
+    /******************************************************************************
+    * GLOBAL ENVIRONMENT POINTER
+    ******************************************************************************/
+
+    env_type GLOBAL_ENVIRONMENT_POINTER = nullptr;
+
+    /******************************************************************************
+    * GLOBAL "JUMP!" PRIMITIVE ARGUMENT STORAGE
+    ******************************************************************************/
+
+    data JUMP_GLOBAL_PRIMITIVE_ARGUMENT; // see catch-jump & jump!
+
+  }; // End of struct process_invariants_t
+
+  /******************************************************************************
+  * CURRENT PROCESS INVARIANTS SET
+  ******************************************************************************/
+
+  process_invariants_t G;
 
 } // End of namespace heist
 

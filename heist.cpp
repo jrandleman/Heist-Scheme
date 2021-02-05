@@ -534,7 +534,7 @@ namespace heist {
 
   scm_list if_alternative(scm_list& exp)noexcept{
     if(exp.size() == 4) return scm_list_cast(exp[3]); // if has an <alternative>
-    return G::VOID_DATA_EXPRESSION; // w/o <alternative> return VOID
+    return GLOBALS::VOID_DATA_EXPRESSION; // w/o <alternative> return VOID
   }
 
   scm_list make_if(const data& predicate, const scm_list& consequent, 
@@ -606,7 +606,7 @@ namespace heist {
   void recursive_and_expansion_constructor(const scm_node& start,const scm_node& end,scm_list& expanded_and)noexcept{
     expanded_and[0] = symconst::if_t;
     expanded_and[1] = *start;
-    expanded_and[3] = G::FALSE_DATA_BOOLEAN;
+    expanded_and[3] = GLOBALS::FALSE_DATA_BOOLEAN;
     if(start+2 != end) {
       expanded_and[2] = scm_list(4);
       recursive_and_expansion_constructor(start+1,end,expanded_and[2].exp);
@@ -639,8 +639,8 @@ namespace heist {
     const size_type n = and_exp.size();
     // (and) = #t
     if(n == 1 || data_is_the_SENTINEL_VAL(and_exp[1])) {
-      if(cps_block) return generate_unary_cps_value_expansion(G::TRUE_DATA_BOOLEAN,tail_call);
-      return [](env_type&){return scm_list(1,G::TRUE_DATA_BOOLEAN);};
+      if(cps_block) return generate_unary_cps_value_expansion(GLOBALS::TRUE_DATA_BOOLEAN,tail_call);
+      return [](env_type&){return scm_list(1,GLOBALS::TRUE_DATA_BOOLEAN);};
     }
     // (and <obj>) = <obj>
     if(n == 2) {
@@ -661,8 +661,8 @@ namespace heist {
     const size_type n = or_exp.size();
     // (or) = #f
     if(n == 1 || data_is_the_SENTINEL_VAL(or_exp[1])) {
-      if(cps_block) return generate_unary_cps_value_expansion(G::FALSE_DATA_BOOLEAN,tail_call);
-      return [](env_type&){return scm_list(1,G::FALSE_DATA_BOOLEAN);};
+      if(cps_block) return generate_unary_cps_value_expansion(GLOBALS::FALSE_DATA_BOOLEAN,tail_call);
+      return [](env_type&){return scm_list(1,GLOBALS::FALSE_DATA_BOOLEAN);};
     }
     // (or <obj>) = <obj>
     if(n == 2) {
@@ -687,7 +687,7 @@ namespace heist {
   //   sequentially invokes each expression's exec proc
   exe_fcn_t analyze_sequence(scm_list&& exps,const bool tail_call=false,const bool cps_block=false){ // used for 'begin' & lambda bodies
     if(exps.empty() || (exps.size()==1 && data_is_the_SENTINEL_VAL(exps[0])))
-      return [](env_type&){return G::VOID_DATA_EXPRESSION;}; // void data
+      return [](env_type&){return GLOBALS::VOID_DATA_EXPRESSION;}; // void data
     const size_type n = exps.size();
     // If begin only has 1 expression, return exec proc of expression
     if(exps.size() == 1) return scm_analyze(scm_list_cast(exps[0]),tail_call,cps_block);
@@ -735,7 +735,7 @@ namespace heist {
     if(!symbol_is_property_chain_access(exp[1].sym))
       return [var=std::move(var),value_proc=std::move(value_proc)](env_type& env){
         set_variable_value(var,data_cast(value_proc(env)),env);
-        return G::VOID_DATA_EXPRESSION; // return is undefined
+        return GLOBALS::VOID_DATA_EXPRESSION; // return is undefined
       };
     scm_list set_call(2);
     set_call[0] = convert_member_access_to_setter(exp[1].sym);
@@ -772,7 +772,7 @@ namespace heist {
     auto value_proc = scm_analyze(definition_value(exp),false,cps_block);
     return [var=std::move(var),value_proc=std::move(value_proc)](env_type& env){
       define_variable(var,data_cast(value_proc(env)),env);
-      return G::VOID_DATA_EXPRESSION; // return is undefined
+      return GLOBALS::VOID_DATA_EXPRESSION; // return is undefined
     };
   }
 
@@ -945,7 +945,7 @@ namespace heist {
     
     // If quoting an empty expression, return the empty list
     if(quoted_data.exp.empty())
-      return [](env_type&){return G::EMPTY_LIST_EXPRESSION;};
+      return [](env_type&){return GLOBALS::EMPTY_LIST_EXPRESSION;};
     
     // Confirm whether appending last item. 
     //   => NOTE: also rm's (.) if so, hence this must be done 
@@ -1588,7 +1588,7 @@ namespace heist {
       else define_custom_prototype_fn_constructor(exp[1].sym,env,ctor_proc);
       // define the class predicate
       define_class_prototype_predicate(exp[1].sym,env); // exp[1].sym == class_name
-      return G::VOID_DATA_EXPRESSION;
+      return GLOBALS::VOID_DATA_EXPRESSION;
     };
   }
 
@@ -1625,7 +1625,7 @@ namespace heist {
       std::copy(exp[1].exp.begin()+1,exp[1].exp.end(),return_exps.begin()+1);
       return_exe = scm_analyze(std::move(return_exps));
     } else {
-      return_exe = [](env_type&){return G::VOID_DATA_EXPRESSION;};
+      return_exe = [](env_type&){return GLOBALS::VOID_DATA_EXPRESSION;};
     }
     // has no body
     if(exp.size() == 2) {
@@ -1882,7 +1882,7 @@ namespace heist {
     // If quoting an empty expression, return the empty list
     if(quoted_data.exp.empty()) {
       if(cps_block) return [](env_type&){return generate_fundamental_form_cps(symconst::emptylist);};
-      return [](env_type&){return G::EMPTY_LIST_EXPRESSION;};
+      return [](env_type&){return GLOBALS::EMPTY_LIST_EXPRESSION;};
     }
 
     // If quasiquoted an unquote, unpack its data
@@ -1945,7 +1945,7 @@ namespace heist {
 
   void remove_preexisting_operators_from_table(const scm_list& exp, const int symbol_offset)noexcept{
     const size_type n = exp.size();
-    for(auto& prec_level : G::INFIX_TABLE)
+    for(auto& prec_level : G.INFIX_TABLE)
       for(size_type i = 0; i < prec_level.second.size(); ++i)
         for(size_type j = symbol_offset; j < n; ++j)
           if(prec_level.second[i].second == exp[j].sym) {
@@ -1965,29 +1965,29 @@ namespace heist {
     remove_preexisting_operators_from_table(exp,2);
     long long level = exp[1].num.extract_inexact();
     for(size_type i = 2, n = exp.size(); i < n; ++i)
-      G::INFIX_TABLE[level].push_back(std::make_pair(is_left_assoc,exp[i].sym));
-    return [](env_type&){return G::VOID_DATA_EXPRESSION;};
+      G.INFIX_TABLE[level].push_back(std::make_pair(is_left_assoc,exp[i].sym));
+    return [](env_type&){return GLOBALS::VOID_DATA_EXPRESSION;};
   }
 
   // returns either #f or the precedence level of the symbols
   exe_fcn_t seek_infix_operators(scm_list& exp,bool is_left_assoc)noexcept{
     const size_type n = exp.size();
-    for(const auto& prec_level : G::INFIX_TABLE) {
+    for(const auto& prec_level : G.INFIX_TABLE) {
       bool found = false;
       for(size_type j = 1; j < n; ++j) {
         if(std::find(prec_level.second.begin(),prec_level.second.end(),std::make_pair(is_left_assoc,exp[j].sym)) != prec_level.second.end()) {
           if(j == 1) {
             found = true;
           } else if(!found) {
-            return [](env_type&){return scm_list(1,G::FALSE_DATA_BOOLEAN);};
+            return [](env_type&){return scm_list(1,GLOBALS::FALSE_DATA_BOOLEAN);};
           }
         } else if(found) {
-          return [](env_type&){return scm_list(1,G::FALSE_DATA_BOOLEAN);};
+          return [](env_type&){return scm_list(1,GLOBALS::FALSE_DATA_BOOLEAN);};
         }
       }
       if(found) return [idx=prec_level.first](env_type&){return scm_list(1,num_type(idx));};
     }
-    return [](env_type&){return scm_list(1,G::FALSE_DATA_BOOLEAN);};
+    return [](env_type&){return scm_list(1,GLOBALS::FALSE_DATA_BOOLEAN);};
   }
 
   exe_fcn_t analyze_infix(scm_list& exp){
@@ -2012,7 +2012,7 @@ namespace heist {
         THROW_ERR("'unfix! argument #"<<i+1<<", "<<PROFILE(exp[i])<< ", isn't a symbol!"
           "\n     (unfix! <symbol> ...)"<<EXP_ERR(exp));
     remove_preexisting_operators_from_table(exp,1);
-    return [](env_type&){return G::VOID_DATA_EXPRESSION;};
+    return [](env_type&){return GLOBALS::VOID_DATA_EXPRESSION;};
   }
 
   /******************************************************************************
@@ -2398,11 +2398,11 @@ namespace heist {
   // Generate a unique hashed variant of a cps identifier name
   // NOTE: Max Unique Hashes = (expt 18446744073709551615 18446744073709551615)
   scm_string generate_unique_cps_hash()noexcept{
-    if(G::CPS_HASH_IDX_1 != G::MAX_SIZE_TYPE)
+    if(G.CPS_HASH_IDX_1 != GLOBALS::MAX_SIZE_TYPE)
       return symconst::continuation
-        + std::to_string(G::CPS_HASH_IDX_2) + '_' + std::to_string(G::CPS_HASH_IDX_1++);
+        + std::to_string(G.CPS_HASH_IDX_2) + '_' + std::to_string(G.CPS_HASH_IDX_1++);
     return symconst::continuation
-      + std::to_string(++G::CPS_HASH_IDX_2) + '_' + std::to_string(G::CPS_HASH_IDX_1++);
+      + std::to_string(++G.CPS_HASH_IDX_2) + '_' + std::to_string(G.CPS_HASH_IDX_1++);
   }
 
 
@@ -2482,7 +2482,7 @@ namespace heist {
     cps_defn[1] = scm_list(1,generate_unique_cps_hash()); // topmost continuation "k"
     cps_defn[2] = scm_list(2);
 
-    cps_defn[2].exp[1] = G::FALSE_DATA_BOOLEAN; // initially bind defined symbol to #f
+    cps_defn[2].exp[1] = GLOBALS::FALSE_DATA_BOOLEAN; // initially bind defined symbol to #f
     cps_defn[2].exp[0] = scm_list(3);
     cps_defn[2].exp[0].exp[0] = symconst::lambda;
     cps_defn[2].exp[0].exp[1] = scm_list(1,defn_exp[1]); // defined symbol as an argument
@@ -2874,7 +2874,7 @@ namespace heist {
         cps_defn[0] = symconst::lambda;
         cps_defn[1] = scm_list(1,generate_unique_cps_hash()); // topmost continuation "k"
         cps_defn[2] = scm_list(2);
-        cps_defn[2].exp[1] = G::FALSE_DATA_BOOLEAN; // initially bind defined symbol to #f
+        cps_defn[2].exp[1] = GLOBALS::FALSE_DATA_BOOLEAN; // initially bind defined symbol to #f
         cps_defn[2].exp[0] = scm_list(3);
         cps_defn[2].exp[0].exp[0] = symconst::lambda;
         cps_defn[2].exp[0].exp[1] = scm_list(1,code.exp[1]); // defined symbol as an argument, and bind via set! (below)
@@ -2945,7 +2945,7 @@ namespace heist {
       THROW_ERR("'using-cps? expects 0 args: (using-cps?)"<<EXP_ERR(exp));
   return_cps_block_status:
     return [cps_block=cps_block](env_type&){
-      return scm_list(1,boolean(cps_block||G::USING_CPS_CMD_LINE_FLAG));
+      return scm_list(1,boolean(cps_block||G.USING_CPS_CMD_LINE_FLAG));
     };
   }
 
@@ -3295,7 +3295,7 @@ namespace heist {
       IDX_1 = IDX_2 = 0;
       return "";
     } else {
-      if(IDX_1 != G::MAX_SIZE_TYPE)
+      if(IDX_1 != GLOBALS::MAX_SIZE_TYPE)
         return id_name + '-' + std::to_string(IDX_2) + '-' + std::to_string(IDX_1++);
       return id_name + '-' + std::to_string(++IDX_2) + '-' + std::to_string(IDX_1++);
     }
@@ -3311,11 +3311,11 @@ namespace heist {
   }
 
 
-  // Get idx of <id_name> in <MACRO_EXPANSION_TREES>. Returns <G::MAX_SIZE_TYPE> if not found.
+  // Get idx of <id_name> in <MACRO_EXPANSION_TREES>. Returns <GLOBALS::MAX_SIZE_TYPE> if not found.
   size_type find_macro_identifier_leaf_index(const MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES,const sym_type& id_name)noexcept{
     for(size_type i = 0, n = MACRO_EXPANSION_TREES.size(); i < n; ++i)
       if(MACRO_EXPANSION_TREES[i].id_name == id_name) return i;
-    return G::MAX_SIZE_TYPE;
+    return GLOBALS::MAX_SIZE_TYPE;
   }
 
 
@@ -3327,7 +3327,7 @@ namespace heist {
         tag_and_expand_identifiers_while_wrenching_up_children(expansion_No,expansions[i].exp,MACRO_EXPANSION_TREES);
       } else if(is_symbolic_macro_identifier(expansions[i])) {
         auto val_idx = find_macro_identifier_leaf_index(MACRO_EXPANSION_TREES,expansions[i].sym);
-        if(val_idx == G::MAX_SIZE_TYPE) continue; // symbol != variadic macro identifier
+        if(val_idx == GLOBALS::MAX_SIZE_TYPE) continue; // symbol != variadic macro identifier
         // Splice in level-1 (non-nested) ... value
         if(MACRO_EXPANSION_TREES[val_idx].is_leaf()) {
           expansions[i] = MACRO_EXPANSION_TREES[val_idx].values[expansion_No];
@@ -3348,9 +3348,9 @@ namespace heist {
                                                         const scm_list& expanded_exp, const scm_list& args,
                                                         const sym_type& name,         const size_type& result, 
                                                         const MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES){
-    if(total_expansions == G::MAX_SIZE_TYPE) {
+    if(total_expansions == GLOBALS::MAX_SIZE_TYPE) {
       total_expansions = result;
-    } else if(total_expansions != result && result != G::MAX_SIZE_TYPE) {
+    } else if(total_expansions != result && result != GLOBALS::MAX_SIZE_TYPE) {
       THROW_ERR("'syntax-rules Different variadic identifiers can't expand in the same template expression!"
         "\n     Length 1 = " << total_expansions << ", Length 2 = " << result << 
         "\n     In subexpression: [ " << exp << " ]"
@@ -3363,7 +3363,7 @@ namespace heist {
   // Returns the length that the identifiers match (throw error if any are off)
   size_type verify_all_identifiers_have_same_variadic_length(const scm_list& args, const sym_type& name, const scm_list& exp, 
                                                              const scm_list& expanded_exp, const MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES){
-    size_type total_expansions = G::MAX_SIZE_TYPE;
+    size_type total_expansions = GLOBALS::MAX_SIZE_TYPE;
     for(auto& elt : exp) {
       if(elt.is_type(types::exp)) {
         confirm_identifier_variadic_length_is_consistent(total_expansions,exp,expanded_exp,args,name,
@@ -3371,7 +3371,7 @@ namespace heist {
           MACRO_EXPANSION_TREES);
       } else if(is_symbolic_macro_identifier(elt)) {
         auto val_idx = find_macro_identifier_leaf_index(MACRO_EXPANSION_TREES,elt.sym);
-        if(val_idx == G::MAX_SIZE_TYPE) continue; // symbol != variadic macro identifier
+        if(val_idx == GLOBALS::MAX_SIZE_TYPE) continue; // symbol != variadic macro identifier
         confirm_identifier_variadic_length_is_consistent(total_expansions,exp,expanded_exp,args,name,
           MACRO_EXPANSION_TREES[val_idx].is_leaf() ? MACRO_EXPANSION_TREES[val_idx].values.size() : 
                                                      MACRO_EXPANSION_TREES[val_idx].children.size(),
@@ -3391,7 +3391,7 @@ namespace heist {
         // Expand variadic symbolic identifer immediately (no ctoring of any expression)
         if(is_symbolic_macro_identifier(expanded_exp[i])) {
           auto val_idx = find_macro_identifier_leaf_index(MACRO_EXPANSION_TREES,expanded_exp[i].sym);
-          if(val_idx == G::MAX_SIZE_TYPE) continue; // symbol != variadic macro identifier
+          if(val_idx == GLOBALS::MAX_SIZE_TYPE) continue; // symbol != variadic macro identifier
           // confirm expanding into a non-nested variadic identifier
           if(!MACRO_EXPANSION_TREES[val_idx].is_leaf())
             THROW_ERR("'syntax-rules Misplaced \"...\" after improper non-nested variadic identifier [ " 
@@ -3407,7 +3407,7 @@ namespace heist {
           // verify ... follows an expression using the same # of expansion values per identifier
           size_type total_expansions = verify_all_identifiers_have_same_variadic_length(args,name,expanded_exp[i].exp,
                                                                                         expanded_exp,MACRO_EXPANSION_TREES);
-          if(total_expansions == G::MAX_SIZE_TYPE)
+          if(total_expansions == GLOBALS::MAX_SIZE_TYPE)
             THROW_ERR("'syntax-rules Misplaced \"...\" after non-variadic subexpression [ " 
               << expanded_exp[i].exp << " ]\n     in [ " << expanded_exp << " ]" << FCN_ERR(name,args));
           scm_list expansions(total_expansions,expanded_exp[i].exp);
@@ -3444,10 +3444,10 @@ namespace heist {
         // Expand non-variadic identifiers
         auto val_idx = find_macro_identifier_leaf_index(MACRO_EXPANSION_TREES,expanded_exp[i].sym);
         if(i+1 == expanded_exp.size() || !data_is_ellipsis(expanded_exp[i+1])) {
-          if(val_idx != G::MAX_SIZE_TYPE && !MACRO_EXPANSION_TREES[val_idx].is_variadic)
+          if(val_idx != GLOBALS::MAX_SIZE_TYPE && !MACRO_EXPANSION_TREES[val_idx].is_variadic)
             expanded_exp[i] = MACRO_EXPANSION_TREES[val_idx].values[0];
         // Skip past ... if at a variadic identifier (handled in <expand_macro_variadic_identifiers>)
-        } else if(val_idx != G::MAX_SIZE_TYPE && MACRO_EXPANSION_TREES[val_idx].is_variadic) {
+        } else if(val_idx != GLOBALS::MAX_SIZE_TYPE && MACRO_EXPANSION_TREES[val_idx].is_variadic) {
           ++i;
         // Catch non-macro syntax identifiers OR non-variadic syntax identifier followed by ...
         } else {
@@ -3505,13 +3505,13 @@ namespace heist {
   // Generate a unique hashed variant of the given macro arg name for safe expansion
   // NOTE: Max Unique Hashes = (expt 18446744073709551615 18446744073709551615)
   scm_string safe_expansion_hashed_macro_arg(const scm_string& label)noexcept{
-    if(G::MACRO_HASH_IDX_1 != G::MAX_SIZE_TYPE)
+    if(G.MACRO_HASH_IDX_1 != GLOBALS::MAX_SIZE_TYPE)
       return "heist:core:" + label + '-' 
-        + std::to_string(G::MACRO_HASH_IDX_2) + '-' 
-        + std::to_string(G::MACRO_HASH_IDX_1++);
+        + std::to_string(G.MACRO_HASH_IDX_2) + '-' 
+        + std::to_string(G.MACRO_HASH_IDX_1++);
     return "heist:core:" + label + '-' 
-      + std::to_string(++G::MACRO_HASH_IDX_2) + '-' 
-      + std::to_string(G::MACRO_HASH_IDX_1++);
+      + std::to_string(++G.MACRO_HASH_IDX_2) + '-' 
+      + std::to_string(G.MACRO_HASH_IDX_1++);
   }
 
 
@@ -4030,9 +4030,9 @@ namespace heist {
 
 
   void confirm_is_not_core_syntax_label(scm_list& exp) {
-    if(std::find(G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY.begin(),
-                 G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY.end(),exp[1].sym) != 
-       G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY.end()) {
+    if(std::find(G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.begin(),
+                 G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.end(),exp[1].sym) != 
+       G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.end()) {
       THROW_ERR("'define-syntax label \""<<exp[1].sym<<"\" is already 'core-syntax!"
         "\n     (define-syntax <label> <syntax-rules-object>)"<<EXP_ERR(exp));
     }
@@ -4074,17 +4074,17 @@ namespace heist {
             <<" isn't a syntax-rules object:\n     (define-syntax "
               "<label> <syntax-rules-object>)"<<EXP_ERR(exp));
         mac.syn.label = exp[1].sym;     // assign macro label
-        register_symbol_iff_new(G::MACRO_LABEL_REGISTRY,exp[1].sym);
+        register_symbol_iff_new(G.MACRO_LABEL_REGISTRY,exp[1].sym);
         define_syntax_extension(mac.syn,env); // establish in environment
-        return G::VOID_DATA_EXPRESSION;
+        return GLOBALS::VOID_DATA_EXPRESSION;
       };
     }
     if(!core_syntax) confirm_is_not_core_syntax_label(exp);
     exp[2].syn.label = exp[1].sym; // assign macro label
-    register_symbol_iff_new(G::MACRO_LABEL_REGISTRY,exp[1].sym);
+    register_symbol_iff_new(G.MACRO_LABEL_REGISTRY,exp[1].sym);
     return [mac = std::move(exp[2].syn)](env_type& env){
       define_syntax_extension(mac,env); // establish in environment
-      return G::VOID_DATA_EXPRESSION;
+      return GLOBALS::VOID_DATA_EXPRESSION;
     };
   }
 
@@ -4107,10 +4107,10 @@ namespace heist {
     auto core_proc = analyze_define_syntax(exp,cps_block,true);
     return [core_proc=std::move(core_proc),core_syntax_name=std::move(core_syntax_name)](env_type&){
       // Register the core-syntax label
-      register_symbol_iff_new(G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY,core_syntax_name);
+      register_symbol_iff_new(G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY,core_syntax_name);
       // Trigger the definition at runtime
-      core_proc(G::GLOBAL_ENVIRONMENT_POINTER);
-      return G::VOID_DATA_EXPRESSION;
+      core_proc(G.GLOBAL_ENVIRONMENT_POINTER);
+      return GLOBALS::VOID_DATA_EXPRESSION;
     };
   }
 
@@ -4125,20 +4125,20 @@ namespace heist {
     auto call_signature = procedure_call_signature(procedure.printable_procedure_name(),arguments);
     const char* in_tail_call = tail_call ? "#t" : "#f";
     const char* using_callce = callceing ? "#t" : "#f";
-    const char* using_inline = G::USING_INLINE_INVOCATIONS ? "#t" : "#f";
+    const char* using_inline = G.USING_INLINE_INVOCATIONS ? "#t" : "#f";
     // Generate colors for truth-values (Green=#t, Red=#f) of Call States
     const auto tail_c_color = tail_call ? AFMT_32 : AFMT_31;
     const auto callce_color = callceing ? AFMT_32 : AFMT_31;
-    const auto inline_color = G::USING_INLINE_INVOCATIONS ? AFMT_32 : AFMT_31;
+    const auto inline_color = G.USING_INLINE_INVOCATIONS ? AFMT_32 : AFMT_31;
     // Output Trace Data
-    fprintf(G::CURRENT_OUTPUT_PORT,
+    fprintf(G.CURRENT_OUTPUT_PORT,
             "%s%s#<CALL-TRACE>%s Tail-Call: %s%s%s, Call/ce: %s%s%s, Inline: %s%s%s %s]=>%s %s%s\n",
             afmt(AFMT_01), afmt(AFMT_35), afmt(AFMT_01), 
             afmt(tail_c_color), in_tail_call, afmt(AFMT_01), 
             afmt(callce_color), using_callce, afmt(AFMT_01), 
             afmt(inline_color), using_inline, afmt(AFMT_01), 
             afmt(AFMT_35), afmt(AFMT_01), call_signature.c_str(), afmt(AFMT_0));
-    fflush(G::CURRENT_OUTPUT_PORT);
+    fflush(G.CURRENT_OUTPUT_PORT);
   }
 
 
@@ -4150,10 +4150,10 @@ namespace heist {
       if(recursive_depth && tail_call) --recursive_depth;
     }
     for(size_type i = 0; i <= recursive_depth; ++i) {
-      if(i & 1) fputc(' ',G::CURRENT_OUTPUT_PORT);
-      else      fputc('|',G::CURRENT_OUTPUT_PORT);
+      if(i & 1) fputc(' ',G.CURRENT_OUTPUT_PORT);
+      else      fputc('|',G.CURRENT_OUTPUT_PORT);
     }
-    fflush(G::CURRENT_OUTPUT_PORT);
+    fflush(G.CURRENT_OUTPUT_PORT);
   }
 
 
@@ -4161,21 +4161,21 @@ namespace heist {
   void output_call_trace_invocation(const scm_fcn& procedure, const scm_list& arguments,const bool tail_call=false)noexcept{
     auto call_signature = procedure_call_signature(procedure.printable_procedure_name(),arguments);
     print_call_trace_depth_indentation(procedure,tail_call);
-    fprintf(G::CURRENT_OUTPUT_PORT, "%s\n", call_signature.c_str());
-    fflush(G::CURRENT_OUTPUT_PORT);
+    fprintf(G.CURRENT_OUTPUT_PORT, "%s\n", call_signature.c_str());
+    fflush(G.CURRENT_OUTPUT_PORT);
   }
 
 
   // Print the current recursive depth as indentation, and the result string
   void output_call_trace_result(const scm_fcn& procedure, const data& result)noexcept{
     print_call_trace_depth_indentation(procedure);
-    fprintf(G::CURRENT_OUTPUT_PORT, "%s\n", result.noexcept_write().c_str());
-    fflush(G::CURRENT_OUTPUT_PORT);
+    fprintf(G.CURRENT_OUTPUT_PORT, "%s\n", result.noexcept_write().c_str());
+    fflush(G.CURRENT_OUTPUT_PORT);
   }
 
 
   bool tracing_procedure(const scm_string& name)noexcept{
-    return !G::TRACED_FUNCTION_NAME.empty() && G::TRACED_FUNCTION_NAME == name;
+    return !G.TRACED_FUNCTION_NAME.empty() && G.TRACED_FUNCTION_NAME == name;
   }
 
   /******************************************************************************
@@ -4305,11 +4305,11 @@ namespace heist {
 
   // -- STACK TRACE REGISTRATION
   void register_call_in_stack_trace(scm_fcn& procedure,scm_list& arguments)noexcept{
-    if(!G::TRACE_LIMIT) return;
-    if(G::TRACE_ARGS) 
-      G::STACK_TRACE.push_back(procedure_call_signature(procedure.printable_procedure_name(),arguments));
+    if(!G.TRACE_LIMIT) return;
+    if(G.TRACE_ARGS) 
+      GLOBALS::STACK_TRACE.push_back(procedure_call_signature(procedure.printable_procedure_name(),arguments));
     else
-      G::STACK_TRACE.push_back(procedure.printable_procedure_name());
+      GLOBALS::STACK_TRACE.push_back(procedure.printable_procedure_name());
   }
 
   // -- OPERATOR EVALUATION
@@ -4340,7 +4340,7 @@ namespace heist {
     }
     auto result = scm_list_cast(proc.fcn.prm(args));
     // clear call from stack
-    if(!G::STACK_TRACE.empty()) G::STACK_TRACE.pop_back();
+    if(!GLOBALS::STACK_TRACE.empty()) GLOBALS::STACK_TRACE.pop_back();
     if(!tracing_proc) return result;
     // Output result's trace as needed
     output_call_trace_result(proc.fcn,data_cast(result));
@@ -4360,10 +4360,10 @@ namespace heist {
       goto tail_call_recur;
     }
     // clear calls from stack trace (kept tail calls in trace for debuggability)
-    if(count >= G::STACK_TRACE.size())
-      G::STACK_TRACE.clear();
+    if(count >= GLOBALS::STACK_TRACE.size())
+      GLOBALS::STACK_TRACE.clear();
     else
-      G::STACK_TRACE.erase(G::STACK_TRACE.end()-count,G::STACK_TRACE.end());
+      GLOBALS::STACK_TRACE.erase(GLOBALS::STACK_TRACE.end()-count,GLOBALS::STACK_TRACE.end());
     return result;
   }
 
@@ -4378,7 +4378,7 @@ namespace heist {
     // save call to stack trace output
     register_call_in_stack_trace(procedure.fcn,arguments);
     // output debugger call trace as needed
-    if(G::TRACING_ALL_FUNCTION_CALLS)
+    if(G.TRACING_ALL_FUNCTION_CALLS)
       output_debug_call_trace(procedure.fcn,arguments,tail_call,callceing);
     // execute primitive procedure directly
     if(procedure.fcn.is_primitive())
@@ -4387,10 +4387,10 @@ namespace heist {
     exe_fcn_t fcn_body;
     auto extended_env = procedure.fcn.get_extended_environment(arguments,fcn_body);
     // determine whether to inline call
-    const bool inline_call = !G::USING_INLINE_INVOCATIONS && procedure.fcn.is_inline_invocation();
-    if(inline_call) G::USING_INLINE_INVOCATIONS = true;
+    const bool inline_call = !G.USING_INLINE_INVOCATIONS && procedure.fcn.is_inline_invocation();
+    if(inline_call) G.USING_INLINE_INVOCATIONS = true;
     // splice in current env for dynamic scope as needed
-    if(callceing || G::USING_INLINE_INVOCATIONS)
+    if(callceing || G.USING_INLINE_INVOCATIONS)
       extended_env->insert(extended_env->begin()+1, env->begin(), env->end());
     // add the 'self' object iff applying a method
     if(procedure.fcn.self) {
@@ -4399,10 +4399,10 @@ namespace heist {
     }
     // confirm max recursive depth hasn't been exceeded
     auto& recursive_depth = procedure.fcn.recursive_depth();
-    if(recursive_depth > G::MAX_RECURSION_DEPTH) {
-      if(inline_call) G::USING_INLINE_INVOCATIONS = false;
+    if(recursive_depth > G.MAX_RECURSION_DEPTH) {
+      if(inline_call) G.USING_INLINE_INVOCATIONS = false;
       recursive_depth = 0;
-      THROW_ERR("Maximum recursion depth of "<<G::MAX_RECURSION_DEPTH<<" exceeded!"
+      THROW_ERR("Maximum recursion depth of "<<G.MAX_RECURSION_DEPTH<<" exceeded!"
         << FCN_ERR(procedure.fcn.printable_procedure_name(), arguments));
     }
     // output tracing information as needed
@@ -4410,7 +4410,7 @@ namespace heist {
     if(tracing_proc) output_call_trace_invocation(procedure.fcn,arguments,tail_call);
     // store application data & return such back up to the last call if in a tail call
     if(tail_call) {
-      if(inline_call) G::USING_INLINE_INVOCATIONS = false;
+      if(inline_call) G.USING_INLINE_INVOCATIONS = false;
       scm_list tail_call_signature(2); // {tail-call-tag, proc-body, extended-env}
       tail_call_signature[0] = symconst::tail_call;
       tail_call_signature[1] = scm_fcn(extended_env,fcn_body);
@@ -4421,7 +4421,7 @@ namespace heist {
     --recursive_depth;
     // output result's trace as needed
     if(tracing_proc) output_call_trace_result(procedure.fcn,data_cast(result));
-    if(inline_call) G::USING_INLINE_INVOCATIONS = false;
+    if(inline_call) G.USING_INLINE_INVOCATIONS = false;
     return result;
   }
 
@@ -4514,8 +4514,8 @@ namespace heist {
     // Save name of invoking entity (iff a symbol) to check for a possible macro
     sym_type op_name = exp[0].is_type(types::sym) ? exp[0].sym : "";
     // If possible analysis-time macro, expand and return analysis of the expansion
-    if(application_is_a_potential_macro(op_name,G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY)) {
-      if(scm_list expanded; expand_macro_if_in_env(op_name, arg_exps, G::GLOBAL_ENVIRONMENT_POINTER, expanded)) {
+    if(application_is_a_potential_macro(op_name,G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY)) {
+      if(scm_list expanded; expand_macro_if_in_env(op_name, arg_exps, G.GLOBAL_ENVIRONMENT_POINTER, expanded)) {
         return scm_analyze(generate_fundamental_form_cps(expanded),tail_call,true);
       } else {
         THROW_ERR("'core-syntax expression (label \"" << op_name 
@@ -4569,8 +4569,8 @@ namespace heist {
     // Save name of invoking entity (iff a symbol) to check for a possible macro
     sym_type op_name = exp[0].is_type(types::sym) ? exp[0].sym : "";
     // If possible analysis-time macro, expand and return analysis of the expansion
-    if(application_is_a_potential_macro(op_name,G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY)) {
-      if(scm_list expanded; expand_macro_if_in_env(op_name, arg_exps, G::GLOBAL_ENVIRONMENT_POINTER, expanded)) {
+    if(application_is_a_potential_macro(op_name,G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY)) {
+      if(scm_list expanded; expand_macro_if_in_env(op_name, arg_exps, G.GLOBAL_ENVIRONMENT_POINTER, expanded)) {
         return scm_analyze(std::move(expanded),tail_call,cps_block);
       } else {
         THROW_ERR("'core-syntax expression (label \"" << op_name 
@@ -4578,7 +4578,7 @@ namespace heist {
       }
     }
     // If _NOT_ a possible macro, analyze the applicator's args ahead of time
-    if(!application_is_a_potential_macro(op_name,G::MACRO_LABEL_REGISTRY)) {
+    if(!application_is_a_potential_macro(op_name,G.MACRO_LABEL_REGISTRY)) {
       std::vector<exe_fcn_t> arg_procs(arg_exps.size());
       for(size_type i = 0, n = arg_exps.size(); i < n; ++i)
         arg_procs[i] = scm_analyze(scm_list_cast(arg_exps[i]),false,cps_block);
@@ -4662,32 +4662,32 @@ namespace heist {
   ******************************************************************************/
 
   void set_default_global_environment() {
-    G::GLOBAL_ENVIRONMENT_POINTER = make_env();
-    G::GLOBAL_ENVIRONMENT_POINTER = extend_environment(
+    G.GLOBAL_ENVIRONMENT_POINTER = make_env();
+    G.GLOBAL_ENVIRONMENT_POINTER = extend_environment(
       primitive_procedure_names(),
       primitive_procedure_objects(),
-      G::GLOBAL_ENVIRONMENT_POINTER
+      G.GLOBAL_ENVIRONMENT_POINTER
     );
-    define_variable(symconst::true_t,        G::TRUE_DATA_BOOLEAN,                 G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable(symconst::false_t,       G::FALSE_DATA_BOOLEAN,                G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("*heist-dirname*",       make_str(HEIST_DIRECTORY_FILE_PATH),  G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("fl-precision",          num_type(num_type::INEXACT_PRECISION),G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("fl-max",                num_type(num_type::INEXACT_MAX),      G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("fl-min",                num_type(num_type::INEXACT_MIN),      G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("fl-epsilon",            num_type(num_type::INEXACT_EPSILON),  G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("*max-infix-precedence*",num_type(LLONG_MAX),                  G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("*min-infix-precedence*",num_type(LLONG_MIN),                  G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("*heist-platform*",      HEIST_PLATFORM,                       G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("*heist-exact-platform*",HEIST_EXACT_PLATFORM,                 G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("stream-null",           symconst::emptylist,                  G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable(symconst::exit_success,  num_type(0),                          G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable(symconst::exit_failure,  num_type(1),                          G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable(symconst::null_env,      symconst::null_env,                   G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable(symconst::local_env,     symconst::local_env,                  G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable(symconst::global_env,    symconst::global_env,                 G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable(symconst::sentinel_arg,  symconst::sentinel_arg,               G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("*argv*", primitive_LIST_to_CONS_constructor(G::ARGV.begin(),G::ARGV.end()), G::GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("*argc*", num_type(G::ARGV.size()),                                          G::GLOBAL_ENVIRONMENT_POINTER);
+    define_variable(symconst::true_t,        GLOBALS::TRUE_DATA_BOOLEAN,           G.GLOBAL_ENVIRONMENT_POINTER);
+    define_variable(symconst::false_t,       GLOBALS::FALSE_DATA_BOOLEAN,          G.GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("*heist-dirname*",       make_str(HEIST_DIRECTORY_FILE_PATH),  G.GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("fl-precision",          num_type(num_type::INEXACT_PRECISION),G.GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("fl-max",                num_type(num_type::INEXACT_MAX),      G.GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("fl-min",                num_type(num_type::INEXACT_MIN),      G.GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("fl-epsilon",            num_type(num_type::INEXACT_EPSILON),  G.GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("*max-infix-precedence*",num_type(LLONG_MAX),                  G.GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("*min-infix-precedence*",num_type(LLONG_MIN),                  G.GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("*heist-platform*",      HEIST_PLATFORM,                       G.GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("*heist-exact-platform*",HEIST_EXACT_PLATFORM,                 G.GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("stream-null",           symconst::emptylist,                  G.GLOBAL_ENVIRONMENT_POINTER);
+    define_variable(symconst::exit_success,  num_type(0),                          G.GLOBAL_ENVIRONMENT_POINTER);
+    define_variable(symconst::exit_failure,  num_type(1),                          G.GLOBAL_ENVIRONMENT_POINTER);
+    define_variable(symconst::null_env,      symconst::null_env,                   G.GLOBAL_ENVIRONMENT_POINTER);
+    define_variable(symconst::local_env,     symconst::local_env,                  G.GLOBAL_ENVIRONMENT_POINTER);
+    define_variable(symconst::global_env,    symconst::global_env,                 G.GLOBAL_ENVIRONMENT_POINTER);
+    define_variable(symconst::sentinel_arg,  symconst::sentinel_arg,               G.GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("*argv*", primitive_LIST_to_CONS_constructor(GLOBALS::ARGV.begin(),GLOBALS::ARGV.end()), G.GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("*argc*", num_type(GLOBALS::ARGV.size()),                                    G.GLOBAL_ENVIRONMENT_POINTER);
     evaluate_primitives_written_in_heist_scheme();
   }
 
@@ -4696,12 +4696,12 @@ namespace heist {
   ******************************************************************************/
 
   void close_port_registry()noexcept{
-    for(size_type i = 2, n = G::PORT_REGISTRY.size(); i < n; ++i)
-      if(G::PORT_REGISTRY[i] && 
-         G::PORT_REGISTRY[i]!=stdout && G::PORT_REGISTRY[i]!=stderr &&
-         G::PORT_REGISTRY[i]!=stdin){
-        fclose(G::PORT_REGISTRY[i]);
-        G::PORT_REGISTRY[i] = nullptr;
+    for(size_type i = 2, n = GLOBALS::PORT_REGISTRY.size(); i < n; ++i)
+      if(GLOBALS::PORT_REGISTRY[i] && 
+         GLOBALS::PORT_REGISTRY[i]!=stdout && GLOBALS::PORT_REGISTRY[i]!=stderr &&
+         GLOBALS::PORT_REGISTRY[i]!=stdin){
+        fclose(GLOBALS::PORT_REGISTRY[i]);
+        GLOBALS::PORT_REGISTRY[i] = nullptr;
       }
   }
 
@@ -4709,8 +4709,8 @@ namespace heist {
   * REPL DRIVER LOOP
   ******************************************************************************/
 
-  void announce_input(FILE* outs)noexcept{fputs(G::REPL_PROMPT.c_str(), outs);}
-  void indent_input(FILE* outs)  noexcept{fputs(G::REPL_TAB.c_str(), outs);}
+  void announce_input(FILE* outs)noexcept{fputs(G.REPL_PROMPT.c_str(), outs);}
+  void indent_input(FILE* outs)  noexcept{fputs(G.REPL_TAB.c_str(), outs);}
 
 
   // Read & parse user expressions
@@ -4760,13 +4760,13 @@ namespace heist {
 #ifndef HEIST_CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
 #ifndef HEIST_INTERPRETING_COMPILED_AST // @ONLY-INTERPRETER
 void print_repl_newline(const bool& printed_data)noexcept{ // after printing data
-  if(printed_data || (!heist::G::LAST_PRINTED_NEWLINE_TO_STDOUT && heist::G::LAST_PRINTED_TO_STDOUT))
+  if(printed_data || (!heist::G.LAST_PRINTED_NEWLINE_TO_STDOUT && heist::G.LAST_PRINTED_TO_STDOUT))
     putchar('\n');
-  heist::G::LAST_PRINTED_NEWLINE_TO_STDOUT = heist::G::LAST_PRINTED_TO_STDOUT = false;
+  heist::G.LAST_PRINTED_NEWLINE_TO_STDOUT = heist::G.LAST_PRINTED_TO_STDOUT = false;
 }
 
 void print_repl_newline()noexcept{ // after printing an error
-  putchar('\n'), heist::G::LAST_PRINTED_NEWLINE_TO_STDOUT=heist::G::LAST_PRINTED_TO_STDOUT=false;
+  putchar('\n'), heist::G.LAST_PRINTED_NEWLINE_TO_STDOUT=heist::G.LAST_PRINTED_TO_STDOUT=false;
 }
 
 void account_for_whether_printed_data(const heist::scm_list& val,bool& printed_data)noexcept{
@@ -4819,27 +4819,27 @@ int driver_loop() {
   for(;;) {
     heist::announce_input(stdout);
     auto AST = heist::read_user_input(stdout,stdin); // AST = Abstract Syntax Tree
-    if(heist::G::USING_CPS_CMD_LINE_FLAG) cpsify_inputs(AST);
+    if(heist::G.USING_CPS_CMD_LINE_FLAG) cpsify_inputs(AST);
     // Eval each expression given
     for(const auto& input : AST) {
       try {
-        auto value = heist::scm_eval(repl_tag_expression(input),heist::G::GLOBAL_ENVIRONMENT_POINTER);
+        auto value = heist::scm_eval(repl_tag_expression(input),heist::G.GLOBAL_ENVIRONMENT_POINTER);
         account_for_whether_printed_data(value,printed_data);
         user_print(stdout, value);
         print_repl_newline(printed_data);
       } catch(const heist::SCM_EXCEPT& eval_throw) {
         if(eval_throw == heist::SCM_EXCEPT::EXIT) { 
-          if(!heist::G::HEIST_EXIT_CODE) {
+          if(!heist::GLOBALS::HEIST_EXIT_CODE) {
             puts("Adios!"); 
           } else {
-            PRINT_ERR("HEIST SCHEME REPL TERMINATION: EXIT FAILURE (" << heist::G::HEIST_EXIT_CODE << ")!");
+            PRINT_ERR("HEIST SCHEME REPL TERMINATION: EXIT FAILURE (" << heist::GLOBALS::HEIST_EXIT_CODE << ")!");
             puts("");
           }
-          return heist::G::HEIST_EXIT_CODE; 
+          return heist::GLOBALS::HEIST_EXIT_CODE; 
         }
         if(eval_throw == heist::SCM_EXCEPT::JUMP)
           PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
-            << PROFILE(heist::G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
+            << PROFILE(heist::G.JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
         print_repl_newline();
       } catch(...) {
         PRINT_ERR("Uncaught C++ Exception Detected! -:- BUG ALERT -:-"
@@ -4858,7 +4858,7 @@ int driver_loop() {
 ******************************************************************************/
 
 void POPULATE_ARGV_REGISTRY(int argc,int& i,char* argv[])noexcept{
-  while(i < argc) heist::G::ARGV.push_back(heist::str_type(argv[i++]));
+  while(i < argc) heist::GLOBALS::ARGV.push_back(heist::str_type(argv[i++]));
 }
 
 
@@ -4873,8 +4873,8 @@ bool confirm_valid_non_negative_integer(const char* name, int& i, int argc, char
     return false;
   }
   auto float_num = num.to_inexact();
-  if(float_num < 0 || float_num > heist::G::MAX_SIZE_TYPE) {
-    fprintf(stderr,"\n> \"%s\" integer was out of range: [0, %zu]!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n",name,heist::G::MAX_SIZE_TYPE);
+  if(float_num < 0 || float_num > heist::GLOBALS::MAX_SIZE_TYPE) {
+    fprintf(stderr,"\n> \"%s\" integer was out of range: [0, %zu]!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n",name,heist::GLOBALS::MAX_SIZE_TYPE);
     return false;
   }
   result = heist::size_type(float_num.extract_inexact());
@@ -4897,7 +4897,7 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
   // Parse input arguments
   for(int i = 1; i < argc; ++i) {
     if(std::string cmd_flag(argv[i]); cmd_flag == "-ci") {
-      heist::G::USING_CASE_SENSITIVE_SYMBOLS = false;
+      heist::G.USING_CASE_SENSITIVE_SYMBOLS = false;
     } else if(cmd_flag == "--version") {
       immediate_exit = true;
       puts("Heist Scheme Version 7.0\nTarget: " HEIST_EXACT_PLATFORM "\nInstalledDir: " HEIST_DIRECTORY_FILE_PATH);
@@ -4911,13 +4911,13 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
     } else if(cmd_flag == "-dynamic-call-trace") {
       trace_calls = true;
     } else if(cmd_flag == "-trace-args") {
-      heist::G::TRACE_ARGS = true;
+      heist::G.TRACE_ARGS = true;
     } else if(cmd_flag == "-nansi") {
-      heist::G::USING_ANSI_ESCAPE_SEQUENCES = false;
+      heist::G.USING_ANSI_ESCAPE_SEQUENCES = false;
     } else if(cmd_flag == "-cps") {
-      heist::G::USING_CPS_CMD_LINE_FLAG = true;
+      heist::G.USING_CPS_CMD_LINE_FLAG = true;
     } else if(cmd_flag == "-trace-limit") {
-      if(!confirm_valid_non_negative_integer("-trace-limit",i,argc,argv,heist::G::TRACE_LIMIT))
+      if(!confirm_valid_non_negative_integer("-trace-limit",i,argc,argv,heist::G.TRACE_LIMIT))
         return false;
     } else if(cmd_flag == "-l") {
       if(i == argc-1) {
@@ -4961,14 +4961,14 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
 
 int load_script(const char* filename){
   // Load the script & immediately exit
-  heist::scm_list load_args(2 + heist::G::USING_CPS_CMD_LINE_FLAG);
+  heist::scm_list load_args(2 + heist::G.USING_CPS_CMD_LINE_FLAG);
   load_args[0] = heist::make_str(filename);
-  load_args[1 + heist::G::USING_CPS_CMD_LINE_FLAG] = heist::G::GLOBAL_ENVIRONMENT_POINTER;
+  load_args[1 + heist::G.USING_CPS_CMD_LINE_FLAG] = heist::G.GLOBAL_ENVIRONMENT_POINTER;
   // Bind "id" as the topmost continuation if "-cps" was passed
-  if(heist::G::USING_CPS_CMD_LINE_FLAG)
+  if(heist::G.USING_CPS_CMD_LINE_FLAG)
     load_args[1] = heist::scm_fcn("id",(heist::prm_ptr_t)[](heist::scm_list& args){return args[0];});
   try {
-    if(heist::G::USING_CPS_CMD_LINE_FLAG)
+    if(heist::G.USING_CPS_CMD_LINE_FLAG)
       heist::primitive_CPS_LOAD(load_args);
     else
       heist::primitive_LOAD(load_args);
@@ -4976,10 +4976,10 @@ int load_script(const char* filename){
     /* warn about uncaught <jump!> */
     if(eval_throw == heist::SCM_EXCEPT::JUMP)
       PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
-        << PROFILE(heist::G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
+        << PROFILE(heist::G.JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
     /* catch <exit> signal */
     if(eval_throw == heist::SCM_EXCEPT::EXIT) 
-      return heist::G::HEIST_EXIT_CODE;
+      return heist::GLOBALS::HEIST_EXIT_CODE;
     /* catch errors already output to stdout */ 
     putchar('\n');
     return 1;
@@ -5006,7 +5006,7 @@ int compile_script(char* argv[], const int& compile_pos, std::string& compile_as
   compile_args[0] = heist::make_str(argv[compile_pos]);
   compile_args[1] = heist::make_str(compile_as);
   try {
-    if(heist::G::USING_CPS_CMD_LINE_FLAG)
+    if(heist::G.USING_CPS_CMD_LINE_FLAG)
       heist::primitive_CPS_COMPILE(compile_args);
     else
       heist::primitive_COMPILE(compile_args);
@@ -5014,10 +5014,10 @@ int compile_script(char* argv[], const int& compile_pos, std::string& compile_as
     /* warn about uncaught <jump!> */
     if(eval_throw == heist::SCM_EXCEPT::JUMP)
       PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
-        << PROFILE(heist::G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
+        << PROFILE(heist::G.JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
     /* catch <exit> signal */
     if(eval_throw == heist::SCM_EXCEPT::EXIT) 
-      return heist::G::HEIST_EXIT_CODE;
+      return heist::GLOBALS::HEIST_EXIT_CODE;
     /* catch errors already output to stdout */ 
     putchar('\n');
     return 1;
@@ -5041,14 +5041,14 @@ int compile_script(char* argv[], const int& compile_pos, std::string& compile_as
 ******************************************************************************/
 
 int load_scripts(const std::vector<const char*>& LOADED_FILES) {
-  bool old_cps_val = heist::G::USING_CPS_CMD_LINE_FLAG;
-  heist::G::USING_CPS_CMD_LINE_FLAG = false;
+  bool old_cps_val = heist::G.USING_CPS_CMD_LINE_FLAG;
+  heist::G.USING_CPS_CMD_LINE_FLAG = false;
   for(auto filename : LOADED_FILES)
     if(int result = load_script(filename); result) {
       heist::close_port_registry();
       return result;
     }
-  heist::G::USING_CPS_CMD_LINE_FLAG = old_cps_val;
+  heist::G.USING_CPS_CMD_LINE_FLAG = old_cps_val;
   return 0;
 }
 
@@ -5066,12 +5066,12 @@ int main(int argc, char* argv[]) {
     immediate_exit,trace_calls,LOADED_FILES)) return 1;
   // "--version" & "--help" trigger an immediate exit
   if(immediate_exit) return 0;
-  // Set up the environment (allocates & fills G::GLOBAL_ENVIRONMENT_POINTER)
+  // Set up the environment (allocates & fills G.GLOBAL_ENVIRONMENT_POINTER)
   heist::set_default_global_environment();
   // Reset Stack Trace to ONLY Show User Invocations
-  heist::G::STACK_TRACE.clear();
+  heist::GLOBALS::STACK_TRACE.clear();
   // Trace All Subsequent Calls (as needed)
-  if(trace_calls) heist::G::TRACING_ALL_FUNCTION_CALLS = true;
+  if(trace_calls) heist::G.TRACING_ALL_FUNCTION_CALLS = true;
   // Load Files (as needed)
   if(!LOADED_FILES.empty()) 
     if(int result = load_scripts(LOADED_FILES); result) return result;
@@ -5098,16 +5098,16 @@ int main(int argc, char* argv[]) {
 #else // @ONLY-COMPILER
 int interpret_premade_AST_code(){
   heist::set_default_global_environment();
-  heist::G::STACK_TRACE.clear();
+  heist::GLOBALS::STACK_TRACE.clear();
   POPULATE_HEIST_PRECOMPILED_READ_AST_EXPS();
   for(const auto& input : HEIST_PRECOMPILED_READ_AST_EXPS) {
     try {
-      heist::scm_eval(heist::scm_list_cast(input),heist::G::GLOBAL_ENVIRONMENT_POINTER);
+      heist::scm_eval(heist::scm_list_cast(input),heist::G.GLOBAL_ENVIRONMENT_POINTER);
     } catch(const heist::SCM_EXCEPT& eval_throw) {
-      if(eval_throw == heist::SCM_EXCEPT::EXIT) return heist::G::HEIST_EXIT_CODE;
+      if(eval_throw == heist::SCM_EXCEPT::EXIT) return heist::GLOBALS::HEIST_EXIT_CODE;
       if(eval_throw == heist::SCM_EXCEPT::JUMP)
         PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
-          << PROFILE(heist::G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
+          << PROFILE(heist::G.JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
     } catch(...) {
       PRINT_ERR("Uncaught C++ Exception Detected! -:- BUG ALERT -:-"
            "\n     Triggered By: " << input << 

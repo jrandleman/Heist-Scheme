@@ -189,10 +189,10 @@ namespace heist {
   }
 
   size_type is_expandable_reader_macro(const scm_string& input, const size_type i)noexcept{
-    for(size_type j = 0, n = G::SHORTHAND_READER_MACRO_REGISTRY.size(); j < n; ++j)
-      if(input_begins_with_prefix(G::SHORTHAND_READER_MACRO_REGISTRY[j],input,i))
+    for(size_type j = 0, n = G.SHORTHAND_READER_MACRO_REGISTRY.size(); j < n; ++j)
+      if(input_begins_with_prefix(G.SHORTHAND_READER_MACRO_REGISTRY[j],input,i))
         return j;
-    return G::MAX_SIZE_TYPE;
+    return GLOBALS::MAX_SIZE_TYPE;
   }
 
   void check_for_improper_reader_macro_use(char c) {
@@ -205,9 +205,9 @@ namespace heist {
   // Reader macro expansion helpers
   void expand_reader_macro(scm_string& input, size_type& i, size_type after_macro_idx, const size_type& macro_idx)noexcept{
     input.insert(after_macro_idx,")"); // insert quote after string literal
-    input.erase(i,G::SHORTHAND_READER_MACRO_REGISTRY[macro_idx].size()); // erase shorthand
-    input.insert(i,'(' + G::LONGHAND_READER_MACRO_REGISTRY[macro_idx] + ' '); // add longhand
-    i += 1 + G::LONGHAND_READER_MACRO_REGISTRY[macro_idx].size(); // mv past longhand
+    input.erase(i,G.SHORTHAND_READER_MACRO_REGISTRY[macro_idx].size()); // erase shorthand
+    input.insert(i,'(' + G.LONGHAND_READER_MACRO_REGISTRY[macro_idx] + ' '); // add longhand
+    i += 1 + G.LONGHAND_READER_MACRO_REGISTRY[macro_idx].size(); // mv past longhand
   }
 
   void expand_around_string_literal(scm_string& input, size_type& i, const size_type& macro_idx, size_type after_macro_idx)noexcept{
@@ -279,12 +279,12 @@ namespace heist {
 
   // Returns length of nested reader macros AFTER the current reader macro (0 if none)
   size_type is_nested_reader_macro(const scm_string& input, const size_type& i, const size_type& macro_idx)noexcept{
-    size_type after_macro_idx = i + G::SHORTHAND_READER_MACRO_REGISTRY[macro_idx].size();
+    size_type after_macro_idx = i + G.SHORTHAND_READER_MACRO_REGISTRY[macro_idx].size();
     size_type nested_macro_idx = is_expandable_reader_macro(input,after_macro_idx);
-    if(nested_macro_idx == G::MAX_SIZE_TYPE) return 0; // reader macro not found
-    size_type nested_macro_length = G::SHORTHAND_READER_MACRO_REGISTRY[nested_macro_idx].size();
-    while((nested_macro_idx = is_expandable_reader_macro(input,after_macro_idx+nested_macro_length)) != G::MAX_SIZE_TYPE)
-      nested_macro_length += G::SHORTHAND_READER_MACRO_REGISTRY[nested_macro_idx].size();
+    if(nested_macro_idx == GLOBALS::MAX_SIZE_TYPE) return 0; // reader macro not found
+    size_type nested_macro_length = G.SHORTHAND_READER_MACRO_REGISTRY[nested_macro_idx].size();
+    while((nested_macro_idx = is_expandable_reader_macro(input,after_macro_idx+nested_macro_length)) != GLOBALS::MAX_SIZE_TYPE)
+      nested_macro_length += G.SHORTHAND_READER_MACRO_REGISTRY[nested_macro_idx].size();
     return nested_macro_length;
   }
 
@@ -303,9 +303,9 @@ namespace heist {
       }
       // Determine if at a reader macro/quote
       size_type macro_idx = is_expandable_reader_macro(input,i);
-      if(macro_idx == G::MAX_SIZE_TYPE) continue; // reader macro not found
+      if(macro_idx == GLOBALS::MAX_SIZE_TYPE) continue; // reader macro not found
       // Confirm proper reader macro use
-      size_type after_macro_idx = i + G::SHORTHAND_READER_MACRO_REGISTRY[macro_idx].size();
+      size_type after_macro_idx = i + G.SHORTHAND_READER_MACRO_REGISTRY[macro_idx].size();
       check_for_improper_reader_macro_use(input[after_macro_idx]);
       size_type nested_macro_length = 0;
       // Expand around char/string/expression literal
@@ -373,13 +373,13 @@ namespace heist {
   ******************************************************************************/
 
   void expand_reader_aliases(exp_type& ast)noexcept{
-    if(G::SHORTHAND_READER_ALIAS_REGISTRY.empty()) return;
+    if(G.SHORTHAND_READER_ALIAS_REGISTRY.empty()) return;
     size_type idx = 0;
     for(size_type i = 0, n = ast.size(); i < n; ++i) {
       if(ast[i].is_type(types::exp))
         expand_reader_aliases(ast[i].exp);
       else if(ast[i].is_type(types::sym) && symbol_is_reader_alias(ast[i].sym,idx))
-        ast[i].sym = G::LONGHAND_READER_ALIAS_REGISTRY[idx];
+        ast[i].sym = G.LONGHAND_READER_ALIAS_REGISTRY[idx];
     }
   }
 
@@ -458,24 +458,24 @@ namespace heist {
     i -= 2;
   }
 
-  bool is_infixr_op_in_level(const sym_type& sym, const G::infix_level_t& level)noexcept{
+  bool is_infixr_op_in_level(const sym_type& sym, const infix_level_t& level)noexcept{
     for(const auto& op : level) if(!op.first && op.second == sym) return true;
     return false;
   }
 
-  size_type get_last_infixr_op_idx(const exp_type& ast, size_type i, const G::infix_level_t& level)noexcept{
+  size_type get_last_infixr_op_idx(const exp_type& ast, size_type i, const infix_level_t& level)noexcept{
     for(size_type n = ast.size(); i+1 < n && ast[i].is_type(types::sym) && is_infixr_op_in_level(ast[i].sym,level); i += 2);
     return i - 2;
   }
 
-  void convert_right_assoc_infix_expr(exp_type& ast, size_type& i, const G::infix_level_t& level)noexcept{
+  void convert_right_assoc_infix_expr(exp_type& ast, size_type& i, const infix_level_t& level)noexcept{
     size_type last_idx = get_last_infixr_op_idx(ast,i,level);
     while(last_idx != i)
       convert_left_assoc_infix_expr(ast,last_idx);
     convert_left_assoc_infix_expr(ast,i);
   }
 
-  void convert_expr_if_infix(exp_type& ast, size_type& i, const G::infix_level_t& level)noexcept{
+  void convert_expr_if_infix(exp_type& ast, size_type& i, const infix_level_t& level)noexcept{
     for(const auto& op : level)
       if(ast[i].sym == op.second) {
         if(op.first) convert_left_assoc_infix_expr(ast,i);
@@ -484,7 +484,7 @@ namespace heist {
       }
   }
 
-  void convert_infix_level_ops_to_prefix_notation(exp_type& ast, const G::infix_level_t& level)noexcept{
+  void convert_infix_level_ops_to_prefix_notation(exp_type& ast, const infix_level_t& level)noexcept{
     for(size_type i = 0; i < ast.size(); ++i) {
       if(ast[i].is_type(types::exp)) {
         convert_infix_level_ops_to_prefix_notation(ast[i].exp,level);
@@ -514,7 +514,7 @@ namespace heist {
 
   void convert_infix_to_prefix(exp_type& ast)noexcept{
     // expand in descending order (higher precedence first)
-    for(auto iter = G::INFIX_TABLE.rbegin(), end = G::INFIX_TABLE.rend(); iter != end; ++iter)
+    for(auto iter = G.INFIX_TABLE.rbegin(), end = G.INFIX_TABLE.rend(); iter != end; ++iter)
       convert_infix_level_ops_to_prefix_notation(ast,iter->second);
     strip_INFIX_ESC_prefix_and_INF_PRECEDENCE_tag(ast); // #!<symbol> => <symbol>
   }
@@ -673,7 +673,7 @@ namespace heist {
   bool prepare_string_for_AST_generation(scm_string& input) {
     if(input.empty() || !confirm_valid_scm_expression(input)) return false;
     strip_comments_and_redundant_whitespace(input);
-    if(!G::USING_CASE_SENSITIVE_SYMBOLS) render_input_cAsE_iNsEnSiTiVe(input);
+    if(!G.USING_CASE_SENSITIVE_SYMBOLS) render_input_cAsE_iNsEnSiTiVe(input);
     expand_inf_precedence_scoping(input);   //  "{" => "(heist:core:inf-precedence "
     expand_vector_and_hmap_literals(input); // #(<exp>) => (vector-literal <exp>), $(<exp>) => (hmap-literal <exp>)
     expand_reader_macro_shorthands(input);  // '<exp>   => (quote <exp>)

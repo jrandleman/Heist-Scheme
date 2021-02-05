@@ -9,7 +9,7 @@
 //           having an entry in the GC. Once ref = 0, the entry is 
 //           rm'd from the GC. GC is freed upon exit via a global dtor.
 namespace heist {
-  namespace G {
+  namespace GLOBALS {
     // Avoid <atexit> (may limit capacity to 32 fcns) via a global object dtor
     struct tgc_atexit_t {
       std::vector<void(*)(void)> ATEXIT_FUNCTIONS;
@@ -47,7 +47,7 @@ namespace heist {
       if(!TGC_CAP) { // register the GC's freeing of members
         TGC_CAP = INIT_TGC_CAPACITY;
         TYPED_GARBAGE_COLLECTOR = new TGC_ENTRY [TGC_CAP];
-        G::tgc_atexit(FREE_TYPED_GARBAGE_COLLECTOR);
+        GLOBALS::tgc_atexit(FREE_TYPED_GARBAGE_COLLECTOR);
       } else if(TGC_LEN == TGC_CAP) {
         TGC_CAP *= TGC_CAPACITY_SCALAR;
         TGC_ENTRY* tmp = TYPED_GARBAGE_COLLECTOR;

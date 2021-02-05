@@ -21,6 +21,32 @@ namespace heist {
   bool        data_is_proper_list     (const data& d)noexcept;
 
   /******************************************************************************
+  * GLOBAL PROCESS-INDEPENDANT INVARIANTS DEPENDING ON "data"/"prm" TYPE DEFNS
+  ******************************************************************************/
+
+  namespace GLOBALS {
+
+    /******************************************************************************
+    * INTERNAL COMMON CONSTANT VALUES
+    ******************************************************************************/
+
+    const auto FALSE_DATA_BOOLEAN    = data(boolean(false));
+    const auto TRUE_DATA_BOOLEAN     = data(boolean(true));
+    const auto VOID_DATA_OBJECT      = data(types::dne);
+    const auto VOID_DATA_EXPRESSION  = scm_list(1,VOID_DATA_OBJECT);
+    const auto EMPTY_LIST_EXPRESSION = scm_list(1,symconst::emptylist);
+
+    /******************************************************************************
+    * REGISTRY OF PRIMITIVES ALSO REQUIRING AN ENVIRONMENT (TO APPLY A PROCEDURE)
+    ******************************************************************************/
+
+    #ifdef HEIST_CPP_INTEROP_HPP_ // @EMBEDDED-IN-C++
+      std::vector<prm_ptr_t> USER_DEFINED_PRIMITIVES_REQUIRING_ENV;
+    #endif
+
+  } // End of namespace GLOBALS
+
+  /******************************************************************************
   * ANSI ESCAPE SEQUENCE FORMATS & MACRO
   ******************************************************************************/
 
@@ -41,31 +67,13 @@ namespace heist {
     "\x1b[32m", 
   };
 
-  #define afmt(ansi_esc) heist::ansi_formats[heist::G::USING_ANSI_ESCAPE_SEQUENCES*ansi_esc]
+  #define afmt(ansi_esc) heist::ansi_formats[heist::G.USING_ANSI_ESCAPE_SEQUENCES*ansi_esc]
 
   /******************************************************************************
   * ERROR HANDLING CODE ENUMERATIONS
   ******************************************************************************/
 
   enum class SCM_EXCEPT {EXIT, EVAL, READ, JUMP};
-
-  /******************************************************************************
-  * GLOBAL "JUMP!" PRIMITIVE ARGUMENT STORAGE
-  ******************************************************************************/
-
-  namespace G { data JUMP_GLOBAL_PRIMITIVE_ARGUMENT; } // see catch-jump & jump!
-
-  /******************************************************************************
-  * INTERNAL COMMON CONSTANT VALUES
-  ******************************************************************************/
-
-  namespace G {
-    const auto FALSE_DATA_BOOLEAN    = data(boolean(false));
-    const auto TRUE_DATA_BOOLEAN     = data(boolean(true));
-    const auto VOID_DATA_OBJECT      = data(types::dne);
-    const auto VOID_DATA_EXPRESSION  = scm_list(1,VOID_DATA_OBJECT);
-    const auto EMPTY_LIST_EXPRESSION = scm_list(1,symconst::emptylist);
-  } // End of namespace G
 
   /******************************************************************************
   * ERROR HANDLING PRINTER MACROS
@@ -145,15 +153,15 @@ namespace heist {
   ******************************************************************************/
 
   scm_string stack_trace_str(const scm_string& tab) noexcept {
-    if(G::STACK_TRACE.empty() || !G::TRACE_LIMIT) return "";
+    if(GLOBALS::STACK_TRACE.empty() || !G.TRACE_LIMIT) return "";
     scm_string trace(afmt(heist::AFMT_01));
     trace += afmt(heist::AFMT_35);
     trace += tab + ">> Stack Trace:";
     trace += afmt(heist::AFMT_01);
-    auto end = G::STACK_TRACE.size() < G::TRACE_LIMIT ? G::STACK_TRACE.rend() : G::STACK_TRACE.rbegin() + G::TRACE_LIMIT;
-    for(auto iter = G::STACK_TRACE.rbegin(); iter != end; ++iter)
+    auto end = GLOBALS::STACK_TRACE.size() < G.TRACE_LIMIT ? GLOBALS::STACK_TRACE.rend() : GLOBALS::STACK_TRACE.rbegin() + G.TRACE_LIMIT;
+    for(auto iter = GLOBALS::STACK_TRACE.rbegin(); iter != end; ++iter)
       trace += "\n   " + tab + *iter;
-    G::STACK_TRACE.clear();
+    GLOBALS::STACK_TRACE.clear();
     return (trace + afmt(heist::AFMT_0)) + '\n';
   }
 
@@ -454,7 +462,7 @@ namespace heist {
                                                  scm_string& buffer, char* tabs)noexcept{
     tabs[2*depth+1] = 0; // shorten tabs to account for specialized printing
     for(size_type col_length = 2*depth, i = 0, n = list_as_strs.size(); i < n; ++i) {
-      if(i && list_as_strs[i].output_len + col_length > G::PPRINT_MAX_COLUMN_WIDTH) {
+      if(i && list_as_strs[i].output_len + col_length > G.PPRINT_MAX_COLUMN_WIDTH) {
         buffer += '\n';
         buffer += tabs;
         col_length = 2*depth;
@@ -473,7 +481,7 @@ namespace heist {
   void pretty_print_pprint_data(const pprint_data& list_as_strs, const size_type& len,
                                 const size_type& depth, scm_string& buffer)noexcept{
     // Print as is if possible
-    if(len + 2*depth <= G::PPRINT_MAX_COLUMN_WIDTH || len < 2) {
+    if(len + 2*depth <= G.PPRINT_MAX_COLUMN_WIDTH || len < 2) {
       print_pprint_data_as_is(list_as_strs,buffer);
       return;
     }
@@ -496,7 +504,7 @@ namespace heist {
     } else {
       buffer += std::move(list_as_strs[0].datum_str) + ' ';
       // If 2nd elt printable on the current line (another special case)
-      if(list_as_strs[1].output_len + list_as_strs[0].output_len + 2*depth < G::PPRINT_MAX_COLUMN_WIDTH){
+      if(list_as_strs[1].output_len + list_as_strs[0].output_len + 2*depth < G.PPRINT_MAX_COLUMN_WIDTH){
         i = 2;
         if(list_as_strs[1].is_exp)
           print_pprint_data_as_is(list_as_strs[1].exp,buffer);
@@ -527,7 +535,7 @@ namespace heist {
     if(!data_is_proper_list(d)) return d.write();
     // Else check if pair as string is of valid length
     auto as_string = d.write();
-    if(as_string.size() <= G::PPRINT_MAX_COLUMN_WIDTH)
+    if(as_string.size() <= G.PPRINT_MAX_COLUMN_WIDTH)
       return as_string;
     // Otherwise get list as string-ified objects
     pprint_data list_as_strs;
@@ -543,8 +551,8 @@ namespace heist {
   * OBJECT PRINTING HELPER (CHECKS IF OBJECT HAS A display write pprint MEMBER)
   ******************************************************************************/
 
-  scm_list execute_application(data&,scm_list&,env_type& env=G::GLOBAL_ENVIRONMENT_POINTER,const bool tail_call=false,const bool inlined=false);
-  scm_list execute_application(data&&,scm_list&,env_type& env=G::GLOBAL_ENVIRONMENT_POINTER,const bool tail_call=false,const bool inlined=false);
+  scm_list execute_application(data&,scm_list&,env_type& env=G.GLOBAL_ENVIRONMENT_POINTER,const bool tail_call=false,const bool inlined=false);
+  scm_list execute_application(data&&,scm_list&,env_type& env=G.GLOBAL_ENVIRONMENT_POINTER,const bool tail_call=false,const bool inlined=false);
   data     extend_method_env_with_SELF_object(obj_type& calling_obj, scm_fcn& procedure)noexcept;
   data     data_cast(const scm_list& l)noexcept;
   data     data_cast(scm_list&& l)noexcept;

@@ -462,7 +462,7 @@ namespace heist {
     new_log[2].exp[0] = "log";
     new_log[2].exp[1] = "num";
     new_log[2].exp[2] = args[0];
-    return data_cast(scm_eval(std::move(new_log),G::GLOBAL_ENVIRONMENT_POINTER));
+    return data_cast(scm_eval(std::move(new_log),G.GLOBAL_ENVIRONMENT_POINTER));
   }
 
   /******************************************************************************
@@ -666,8 +666,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("=",primitive_EQ,args);
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
       if(args[i].num != args[i+1].num) 
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive ">" procedure:
@@ -676,8 +676,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL(">",primitive_GT,args);
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
       if(args[i].num <= args[i+1].num) 
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "<" procedure:
@@ -686,8 +686,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("<",primitive_LT,args);
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
       if(args[i].num >= args[i+1].num) 
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive ">=" procedure:
@@ -696,8 +696,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL(">=",primitive_GTE,args);
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
       if(args[i].num < args[i+1].num) 
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "<=" procedure:
@@ -706,8 +706,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("<=",primitive_LTE,args);
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
       if(args[i].num > args[i+1].num) 
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   /******************************************************************************
@@ -720,8 +720,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("eq?",primitive_EQP,args);
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
       if(!args[i].eq(args[i+1])) 
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "eqv?" procedure:
@@ -730,8 +730,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("eqv?",primitive_EQVP,args);
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
       if(!args[i].eqv(args[i+1])) 
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "equal?" procedure:
@@ -740,8 +740,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("equal?",primitive_EQUALP,args);
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
       if(!args[i].equal(args[i+1])) 
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "not" procedure:
@@ -773,8 +773,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char=?",primitive_CHAR_EQ,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(args[i].chr != args[i+1].chr)
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "char<?" procedure:
@@ -783,8 +783,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char<?",primitive_CHAR_LT,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(args[i].chr >= args[i+1].chr)
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "char>?" procedure:
@@ -793,8 +793,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char>?",primitive_CHAR_GT,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(args[i].chr <= args[i+1].chr)
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "char<=?" procedure:
@@ -803,8 +803,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char<=?",primitive_CHAR_LTE,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(args[i].chr > args[i+1].chr)
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "char>=?" procedure:
@@ -813,8 +813,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char>=?",primitive_CHAR_GTE,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(args[i].chr < args[i+1].chr)
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "char-ci=?" procedure:
@@ -823,8 +823,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char-ci=?",primitive_CHAR_CI_EQ,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(scm_numeric::mklower(args[i].chr) != scm_numeric::mklower(args[i+1].chr))
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "char-ci<?" procedure:
@@ -833,8 +833,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char-ci<?",primitive_CHAR_CI_LT,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(scm_numeric::mklower(args[i].chr) >= scm_numeric::mklower(args[i+1].chr))
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "char-ci>?" procedure:
@@ -843,8 +843,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char-ci>?",primitive_CHAR_CI_GT,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(scm_numeric::mklower(args[i].chr) <= scm_numeric::mklower(args[i+1].chr))
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "char-ci<=?" procedure:
@@ -853,8 +853,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char-ci<=?",primitive_CHAR_CI_LTE,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(scm_numeric::mklower(args[i].chr) > scm_numeric::mklower(args[i+1].chr))
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "char-ci>=?" procedure:
@@ -863,8 +863,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char-ci>=?",primitive_CHAR_CI_GTE,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(scm_numeric::mklower(args[i].chr) < scm_numeric::mklower(args[i+1].chr))
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // --------------
@@ -963,7 +963,7 @@ namespace heist {
     if(args.empty() || args.size() > 2 || !primitive_is_valid_size(args[0]))
       THROW_ERR("'make-string didn't receive a proper positive integer size!"
         "\n     (make-string <size> <optional-fill-char>)"
-        "\n     <size> range: (0," << G::MAX_SIZE_TYPE << ']'
+        "\n     <size> range: (0," << GLOBALS::MAX_SIZE_TYPE << ']'
         << FCN_ERR("make-string", args));
     if(args.size()==2 && !args[1].is_type(types::chr))
       THROW_ERR("'make-string received a non-character fill value:"
@@ -978,7 +978,7 @@ namespace heist {
   // primitive "string" procedure:
   data primitive_STRING(scm_list& args) {
     if(args.empty()) return make_str("");
-    if(auto i = confirm_only_args_of_type(args, types::chr, types::str); i != G::MAX_SIZE_TYPE)
+    if(auto i = confirm_only_args_of_type(args, types::chr, types::str); i != GLOBALS::MAX_SIZE_TYPE)
       THROW_ERR("'string arg #" << i+1 << ", " << PROFILE(args[i]) 
         << ", isn't a character or string:\n     (string <char-or-string1> <char2-or-string> ...)"
         << FCN_ERR("string", args));
@@ -1168,7 +1168,7 @@ namespace heist {
     scm_string tmp(*args[0].str);
     *args[0].str = *args[1].str;
     *args[1].str = tmp;
-    return G::VOID_DATA_OBJECT;
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   // primitive "string-push!" procedure:
@@ -1187,7 +1187,7 @@ namespace heist {
       THROW_ERR("'string-push! 2nd arg "<<PROFILE(args[1])<<" isn't a character:" 
         << format << FCN_ERR("string-push!", args));
     args[0].str->push_back(char(args[1].chr));
-    return G::VOID_DATA_OBJECT;
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   // primitive "string-empty?" procedure:
@@ -1214,8 +1214,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string=?",primitive_STRING_EQP,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(*args[i].str != *args[i+1].str)
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "string<?" procedure:
@@ -1224,8 +1224,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string<?",primitive_STRING_LT,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(*args[i].str >= *args[i+1].str)
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "string>?" procedure:
@@ -1234,8 +1234,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string>?",primitive_STRING_GT,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(*args[i].str <= *args[i+1].str)
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "string<=?" procedure:
@@ -1244,8 +1244,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string<=?",primitive_STRING_LTE,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(*args[i].str > *args[i+1].str)
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "string>=?" procedure:
@@ -1254,8 +1254,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string>=?",primitive_STRING_GTE,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(*args[i].str < *args[i+1].str)
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "string-ci=?" procedure:
@@ -1264,8 +1264,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-ci=?",primitive_STRING_CI_EQ,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(lowercase_str(*args[i].str) != lowercase_str(*args[i+1].str))
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "string-ci<?" procedure:
@@ -1274,8 +1274,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-ci<?",primitive_STRING_CI_LT,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(lowercase_str(*args[i].str) >= lowercase_str(*args[i+1].str))
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "string-ci>?" procedure:
@@ -1284,8 +1284,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-ci>?",primitive_STRING_CI_GT,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(lowercase_str(*args[i].str) <= lowercase_str(*args[i+1].str))
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "string-ci<=?" procedure:
@@ -1294,8 +1294,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-ci<=?",primitive_STRING_CI_LTE,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(lowercase_str(*args[i].str) > lowercase_str(*args[i+1].str))
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "string-ci>=?" procedure:
@@ -1304,8 +1304,8 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-ci>=?",primitive_STRING_CI_GTE,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
       if(lowercase_str(*args[i].str) < lowercase_str(*args[i+1].str))
-        return G::FALSE_DATA_BOOLEAN;
-    return G::TRUE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   /******************************************************************************
@@ -1317,7 +1317,7 @@ namespace heist {
       THROW_ERR("'symbol-append received incorrect # of args!"
         "\n     (symbol-append <symbol-1> ... <symbol-N>)" 
         << FCN_ERR("symbol-append", args));
-    if(auto idx=confirm_only_args_of_type(args,types::sym);idx!=G::MAX_SIZE_TYPE)
+    if(auto idx=confirm_only_args_of_type(args,types::sym);idx!=GLOBALS::MAX_SIZE_TYPE)
       THROW_ERR("'symbol-append arg #" << idx+1 << ' ' << PROFILE(args[idx])
         <<" isn't a symbol!\n     (symbol-append <symbol-1> ... <symbol-N>)" 
         << FCN_ERR("symbol-append", args));
@@ -1369,7 +1369,7 @@ namespace heist {
       THROW_ERR("'hmap received uneven # of args!"<<format<<FCN_ERR("hmap",args));
     scm_map hmap;
     // verify all keys are hashable
-    for(size_type i = args.size()-2; i != G::MAX_SIZE_TYPE-1; i -= 2) {
+    for(size_type i = args.size()-2; i != GLOBALS::MAX_SIZE_TYPE-1; i -= 2) {
       if(!scm_map::hashable(args[i]))
         THROW_ERR("'hmap key " << PROFILE(args[i]) << " isn't hashable!"
           << format << FCN_ERR("hmap", args));
@@ -1427,7 +1427,7 @@ namespace heist {
     if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("hmap-set!",primitive_HMAP_SET_BANG,args);
     hmap_confirm_ternary_map_key_val("hmap-set!","\n     (hmap-set! <hash-map> <key> <value>)",args);
     (*args[0].map)[args[1]] = args[2];
-    return G::VOID_DATA_OBJECT;
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   // primitive "hmap-delete!":
@@ -1468,7 +1468,7 @@ namespace heist {
       for(const auto& keyval : args[i].map->val)
         if(!args[0].map->val.count(keyval.first))
           args[0].map->val[keyval.first] = keyval.second;
-    return G::VOID_DATA_OBJECT;
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   // primitive "hmap-for-each", "hmap-for-each-key", "hmap-for-each-val", "hmap-map!"
@@ -1486,7 +1486,7 @@ namespace heist {
       for(i = 0; i < n; ++i) {\
         __VA_ARGS__;\
       }\
-      return G::VOID_DATA_OBJECT;\
+      return GLOBALS::VOID_DATA_OBJECT;\
     }
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_FOR_EACH_KEY,"hmap-for-each-key",
@@ -1621,7 +1621,7 @@ namespace heist {
       THROW_ERR("'set-car!'s 1st arg "<<PROFILE(args[0])<<" isn't a pair:"
         "\n     (set-car! <pair> <obj>)" << FCN_ERR("set-car!", args));
     args[0].par->first = args[1];
-    return G::VOID_DATA_OBJECT;
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   // primitive "set-cdr!" procedure:
@@ -1634,7 +1634,7 @@ namespace heist {
       THROW_ERR("'set-cdr!'s 1st arg "<<PROFILE(args[0])<<" isn't a pair:"
         "\n     (set-cdr! <pair> <obj>)" << FCN_ERR("set-cdr!", args));
     args[0].par->second = args[1];
-    return G::VOID_DATA_OBJECT;
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   // primitive "pair-swap!" procedure:
@@ -1653,7 +1653,7 @@ namespace heist {
     scm_pair tmp(*args[0].par);
     *args[0].par = *args[1].par;
     *args[1].par = tmp;
-    return G::VOID_DATA_OBJECT;
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   // ---------------------
@@ -1927,7 +1927,7 @@ namespace heist {
     if(!primitive_is_valid_size(args[0]))
       THROW_ERR("'make-list didn't receive a proper positive integer size!"
         "\n     (make-list <size> <fill-value>)"
-        "\n     <size> range: (0," << G::MAX_SIZE_TYPE << ']' << FCN_ERR("make-list", args));
+        "\n     <size> range: (0," << GLOBALS::MAX_SIZE_TYPE << ']' << FCN_ERR("make-list", args));
     // mk a list w/ n copies of the given <fill-value>
     size_type n = (size_type)args[0].num.extract_inexact();
     if(!n) return data(symconst::emptylist);
@@ -1954,10 +1954,10 @@ namespace heist {
     confirm_given_one_arg(args,"circular-list?");
     // if not pair, GUARENTEED not a circular list
     if(!args[0].is_type(types::par))
-      return G::FALSE_DATA_BOOLEAN;
+      return GLOBALS::FALSE_DATA_BOOLEAN;
     if(primitive_list_is_acyclic_and_null_terminated(args[0]) == list_status::cyclic)
-      return G::TRUE_DATA_BOOLEAN;
-    return G::FALSE_DATA_BOOLEAN;
+      return GLOBALS::TRUE_DATA_BOOLEAN;
+    return GLOBALS::FALSE_DATA_BOOLEAN;
   }
 
   // primitive "list*?" procedure:
@@ -1965,10 +1965,10 @@ namespace heist {
     confirm_given_one_arg(args, "list*?");
     // if not pair, GUARENTEED not a dotted list
     if(!args[0].is_type(types::par))
-      return G::FALSE_DATA_BOOLEAN;
+      return GLOBALS::FALSE_DATA_BOOLEAN;
     if(primitive_list_is_acyclic_and_null_terminated(args[0]) == list_status::no_null)
-      return G::TRUE_DATA_BOOLEAN;
-    return G::FALSE_DATA_BOOLEAN;
+      return GLOBALS::TRUE_DATA_BOOLEAN;
+    return GLOBALS::FALSE_DATA_BOOLEAN;
   }
 
   // primitive "list?" procedure:
@@ -1976,8 +1976,8 @@ namespace heist {
   data primitive_LISTP(scm_list& args) {
     confirm_given_one_arg(args,"list?");
     if(data_is_proper_list(args[0]))
-      return G::TRUE_DATA_BOOLEAN;
-    return G::FALSE_DATA_BOOLEAN;
+      return GLOBALS::TRUE_DATA_BOOLEAN;
+    return GLOBALS::FALSE_DATA_BOOLEAN;
   }
 
   // primitive "alist?" procedure:
@@ -1985,7 +1985,7 @@ namespace heist {
     confirm_given_one_arg(args, "alist?");
     // if not pair, GUARENTEED not an association list
     if(!args[0].is_type(types::par))
-      return G::FALSE_DATA_BOOLEAN;
+      return GLOBALS::FALSE_DATA_BOOLEAN;
     // valid association lists are finite, terminate with '(), and only contain other pairs
     return boolean(
             (primitive_list_is_acyclic_and_null_terminated(args[0]) == list_status::ok) && 
@@ -2092,7 +2092,7 @@ namespace heist {
     if(args.empty() || args.size() > 2 || !primitive_is_valid_size(args[0]))
       THROW_ERR("'make-vector didn't receive a proper positive integer size!"
         "\n     (make-vector <size> <optional-fill-value>)"
-        "\n     <size> range: (0," << G::MAX_SIZE_TYPE << ']' << FCN_ERR("make-vector", args));
+        "\n     <size> range: (0," << GLOBALS::MAX_SIZE_TYPE << ']' << FCN_ERR("make-vector", args));
     // mk a vector w/ the the given reserve size
     size_type n = (size_type)args[0].num.extract_inexact();
     data vect(make_vec(scm_list(n)));
@@ -2108,7 +2108,7 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("vector-push!",primitive_VECTOR_PUSH_BANG,args);
     primitive_confirm_valid_vector_arg(args, 2, "vector-push!", "\n     (vector-push! <vector> <obj>)");
     args[0].vec->push_back(args[1]);
-    return G::VOID_DATA_OBJECT;
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   // primitive "vector-iota" procedure:
@@ -2131,12 +2131,12 @@ namespace heist {
     if(!primitive_is_valid_size(args[1]))
       THROW_ERR("'vector-grow didn't receive a proper positive integer size!"
         "\n     (vector-grow <vector> <size>)"
-        "\n     <size> range: (0," << G::MAX_SIZE_TYPE << ']' << FCN_ERR("vector-grow", args));
+        "\n     <size> range: (0," << GLOBALS::MAX_SIZE_TYPE << ']' << FCN_ERR("vector-grow", args));
     if(args[1].num < args[0].vec->size())
       THROW_ERR("'vector-grow "<<args[1].num.str()<<" is too small to expand "
         << args[0] << " of size " << args[0].vec->size() << " with!"
         "\n     (vector-grow <vector> <size>)"
-        "\n     <size> range: (0," << G::MAX_SIZE_TYPE << ']' << FCN_ERR("vector-grow", args));
+        "\n     <size> range: (0," << GLOBALS::MAX_SIZE_TYPE << ']' << FCN_ERR("vector-grow", args));
     if(args[1].num == args[0].vec->size())
       return args[0]; // nothing to expand
     scm_list expanded_vec((size_type)args[1].num.extract_inexact());
@@ -2186,7 +2186,7 @@ namespace heist {
     scm_list tmp(*args[0].vec);
     *args[0].vec = *args[1].vec;
     *args[1].vec = tmp;
-    return G::VOID_DATA_OBJECT;
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   // primitive "vector-binary-search" procedure:
@@ -2207,7 +2207,7 @@ namespace heist {
         << format << FCN_ERR("vector-binary-search", args));
     auto proc = validate_and_extract_callable(args[2], "vector-binary-search", format, args);
     // Perform binary search
-    if(args[0].vec->empty()) return G::FALSE_DATA_BOOLEAN;
+    if(args[0].vec->empty()) return GLOBALS::FALSE_DATA_BOOLEAN;
     const auto& vec   = *args[0].vec;
     const auto& value = args[1];
     size_type high    = vec.size()-1, 
@@ -2226,11 +2226,11 @@ namespace heist {
       if(cmp_result.num.is_neg())
         low = mid + 1;
       else {
-        if(!mid) return G::FALSE_DATA_BOOLEAN;
+        if(!mid) return GLOBALS::FALSE_DATA_BOOLEAN;
         high = mid - 1;
       }
     }
-    return G::FALSE_DATA_BOOLEAN;
+    return GLOBALS::FALSE_DATA_BOOLEAN;
   }
 
   // primitive "vector-get-all-combinations" procedure:
@@ -2265,7 +2265,7 @@ namespace heist {
     if(args[0].is_type(types::str)) return make_str("");
     THROW_ERR("'empty given arg "<<PROFILE(args[0])<<" isn't a proper sequence!" 
         "\n     (empty <sequence>)" SEQUENCE_DESCRIPTION << FCN_ERR("empty",args));
-    return G::VOID_DATA_OBJECT; // never used due to the throw above
+    return GLOBALS::VOID_DATA_OBJECT; // never used due to the throw above
   }
 
   // primitive "length" procedure:
@@ -2281,7 +2281,7 @@ namespace heist {
     confirm_given_one_sequence_arg(args, "length+");
     if(args[0].is_type(types::par) &&
       primitive_list_is_acyclic_and_null_terminated(args[0]) == list_status::cyclic){
-      return G::FALSE_DATA_BOOLEAN;
+      return GLOBALS::FALSE_DATA_BOOLEAN;
     }
     return primitive_compute_seq_length(args,"length+",
       "\n     (length+ <sequence>)" SEQUENCE_DESCRIPTION);
@@ -2313,7 +2313,7 @@ namespace heist {
       case heist_sequence::str:
         return primitive_reverse_bang_STATIC_SEQUENCE_logic(args[0], &data::str);
       case heist_sequence::nul:
-        return G::VOID_DATA_OBJECT;
+        return GLOBALS::VOID_DATA_OBJECT;
       default:
         return primitive_list_reverse_bang_logic(args[0]);
     }
@@ -2420,16 +2420,16 @@ namespace heist {
       case heist_sequence::vec:
         *args[1].vec = *primitive_STATIC_SEQUENCE_MAP_template(procedure, args, "map!",
           format, types::vec, "vector", &data::vec).vec;
-        return G::VOID_DATA_OBJECT;
+        return GLOBALS::VOID_DATA_OBJECT;
       case heist_sequence::str:
         *args[1].str = *primitive_STATIC_SEQUENCE_MAP_template(procedure, args, "map!",
           format, types::str, "string", &data::str).str;
-        return G::VOID_DATA_OBJECT;
+        return GLOBALS::VOID_DATA_OBJECT;
       default:
         scm_list list_heads(args.begin()+1, args.end());
         primitive_confirm_proper_same_sized_lists(list_heads,"map!",format,1,args);
         primitive_MAP_BANG_list_constructor(list_heads, procedure);
-        return G::VOID_DATA_OBJECT;
+        return GLOBALS::VOID_DATA_OBJECT;
     }
   }
 
@@ -2551,19 +2551,19 @@ namespace heist {
           << format << VALID_SEQUENCE_INDEX_RANGE << FCN_ERR("set-index!",args));
       case heist_sequence::vec:
         args[0].vec->operator[](primitive_get_if_valid_vector_idx(args,"set-index!",format)) = args[2];
-        return G::VOID_DATA_OBJECT;
+        return GLOBALS::VOID_DATA_OBJECT;
       case heist_sequence::str:
         if(!args[2].is_type(types::chr))
           THROW_ERR("'set-index! <string> for "<<PROFILE(args[0])<<" received non-character set-value\n     " 
             << PROFILE(args[2]) << '!' << format << VALID_SEQUENCE_INDEX_RANGE << FCN_ERR("set-index!",args));
         args[0].str->operator[](primitive_get_if_valid_string_idx(args,"set-index!",format)) = args[2].chr;
-        return G::VOID_DATA_OBJECT;
+        return GLOBALS::VOID_DATA_OBJECT;
       default:
         if(!primitive_is_valid_index(args[1])) 
           THROW_ERR("'set-index! <list> 2nd arg " << PROFILE(args[1]) << " is an invalid <index>:"
             << format << VALID_SEQUENCE_INDEX_RANGE << FCN_ERR("set-index!",args));
         primitive_list_set_index_applicator(args[0],(size_type)args[1].num.extract_inexact(),format,args);
-        return G::VOID_DATA_OBJECT;
+        return GLOBALS::VOID_DATA_OBJECT;
     }
   }
 
@@ -2583,14 +2583,14 @@ namespace heist {
       case heist_sequence::vec:
         std::swap(args[0].vec->operator[](primitive_get_if_valid_vector_idx(args,"swap-indices!",format)), 
                   args[0].vec->operator[](primitive_get_if_valid_vector_idx(args,"swap-indices!",format,2)));
-        return G::VOID_DATA_OBJECT;
+        return GLOBALS::VOID_DATA_OBJECT;
       case heist_sequence::str:
         std::swap(args[0].str->operator[](primitive_get_if_valid_string_idx(args,"swap-indices!",format)), 
                   args[0].str->operator[](primitive_get_if_valid_string_idx(args,"swap-indices!",format,2)));
-        return G::VOID_DATA_OBJECT;
+        return GLOBALS::VOID_DATA_OBJECT;
       default:
         primitive_list_swap_indices_logic(args,format);
-        return G::VOID_DATA_OBJECT;
+        return GLOBALS::VOID_DATA_OBJECT;
     }
   }
 
@@ -2814,7 +2814,7 @@ namespace heist {
     auto procedure = validate_and_extract_callable(args[0], "skip", format, args);
     switch(is_proper_sequence(args[1],args,"skip",format)) {
       case heist_sequence::nul: 
-        return G::FALSE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
       case heist_sequence::vec:
         return prm_search_STATIC_SEQUENCE_from_left<is_false_scm_condition>(procedure,args,&data::vec);
       case heist_sequence::str:
@@ -2856,7 +2856,7 @@ namespace heist {
     auto procedure = validate_and_extract_callable(args[0], "index", format, args);
     switch(is_proper_sequence(args[1],args,"index",format)) {
       case heist_sequence::nul:
-        return G::FALSE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
       case heist_sequence::vec:
         return prm_search_STATIC_SEQUENCE_from_left<is_true_scm_condition>(procedure,args,&data::vec);
       case heist_sequence::str:
@@ -2978,7 +2978,7 @@ namespace heist {
     auto procedure = validate_and_extract_callable(args[0], "any", format, args);
     switch(is_proper_sequence(args[1],args,"any",format)) {
       case heist_sequence::nul:
-        return G::FALSE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
       case heist_sequence::vec:
         return primitive_STATIC_SEQUENCE_any_logic<types::vec>(procedure,args,&data::vec,"vector",format);
       case heist_sequence::str:
@@ -2999,7 +2999,7 @@ namespace heist {
     auto procedure = validate_and_extract_callable(args[0], "every", format, args);
     switch(is_proper_sequence(args[1],args,"every",format)) {
       case heist_sequence::nul:
-        return G::FALSE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
       case heist_sequence::vec:
         return primitive_STATIC_SEQUENCE_every_logic<types::vec>(procedure,args,&data::vec,"vector",format);
       case heist_sequence::str:
@@ -3129,7 +3129,7 @@ namespace heist {
     // confirm has a valid argument signature
     primitive_confirm_sortable_sequence(args, "sort!", format);
     // return if sorting the empty list (already sorted)
-    if(args[1].is_type(types::sym)) return G::VOID_DATA_OBJECT;
+    if(args[1].is_type(types::sym)) return GLOBALS::VOID_DATA_OBJECT;
     // set the sequence to its sorted variant
     return mutatable_assign_scm_sequence(args[1],
       primitive_sort_sequence(args,"sort!",format));
@@ -3142,7 +3142,7 @@ namespace heist {
     primitive_confirm_sortable_sequence(args, "sorted?", 
       "\n     (sorted? <predicate> <sequence>)" SEQUENCE_DESCRIPTION);
     // return if sorting the empty list
-    if(args[1].is_type(types::sym)) return G::TRUE_DATA_BOOLEAN;
+    if(args[1].is_type(types::sym)) return GLOBALS::TRUE_DATA_BOOLEAN;
     // unpack the sequence
     scm_list sequence;
     cast_scheme_sequence_to_ast(args[1],sequence);
@@ -3153,10 +3153,10 @@ namespace heist {
         scm_list args_list(2);
         args_list[0] = sequence[i], args_list[1] = sequence[i+1];
         if(is_false_scm_condition(procedure,args_list))
-          return G::FALSE_DATA_BOOLEAN;
+          return GLOBALS::FALSE_DATA_BOOLEAN;
       }
     }
-    return G::TRUE_DATA_BOOLEAN;
+    return GLOBALS::TRUE_DATA_BOOLEAN;
   }
 
   // primitive "merge" procedure:
@@ -3215,7 +3215,7 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "void" procedure:
-  data primitive_VOID(scm_list&)noexcept{return G::VOID_DATA_OBJECT;}
+  data primitive_VOID(scm_list&)noexcept{return GLOBALS::VOID_DATA_OBJECT;}
 
   // primitive "void?" procedure:
   data primitive_VOIDP(scm_list& args) { 
@@ -3428,54 +3428,54 @@ namespace heist {
     if(args.size() == 1) args.push_back(symconst::local_env);
     // use the initial/local environment if passed *null-environment* or
     //   *local-environment* as a 2nd arg
-    auto original_global_env = G::GLOBAL_ENVIRONMENT_POINTER;
-    auto env = G::GLOBAL_ENVIRONMENT_POINTER;
+    auto original_global_env = G.GLOBAL_ENVIRONMENT_POINTER;
+    auto env = G.GLOBAL_ENVIRONMENT_POINTER;
     bool must_reset_global_env = false;
     prm_EVAL_confirm_correct_number_of_args(args,must_reset_global_env,local_env,env,
                                                    original_global_env,"eval",format);
     // if arg is self-evaluating, return arg
     if(prm_EVAL_data_is_self_evaluating(args[0])) {
-      if(must_reset_global_env) G::GLOBAL_ENVIRONMENT_POINTER = original_global_env;
+      if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
       return args[0];
     }
     // if arg is a symbol, eval the symbol
     if(args[0].is_type(types::sym)) {
       // confirm arg is not '()
       if(args[0].sym == symconst::emptylist) {
-        if(must_reset_global_env) G::GLOBAL_ENVIRONMENT_POINTER = original_global_env;
+        if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
         THROW_ERR("'eval can't evaluate '() (nil to eval):" << format << FCN_ERR("eval", args));
       }
       try {
         auto result = data_cast(scm_eval(scm_list(1, args[0]),env));
-        if(must_reset_global_env) G::GLOBAL_ENVIRONMENT_POINTER = original_global_env;
+        if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
         return result;
       } catch(const SCM_EXCEPT& eval_throw) {
-        if(must_reset_global_env) G::GLOBAL_ENVIRONMENT_POINTER = original_global_env;
+        if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
         throw eval_throw;
       }
-      return G::VOID_DATA_OBJECT;
+      return GLOBALS::VOID_DATA_OBJECT;
     }
     // else confirm arg is a proper list
     if(!args[0].is_type(types::par)) {
-      if(must_reset_global_env) G::GLOBAL_ENVIRONMENT_POINTER = original_global_env;
+      if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
       THROW_ERR("'eval didn't receive an evaluable expression:\n     "<<PROFILE(args[0])
         << format << FCN_ERR("eval", args));
     }
     if(!data_is_proper_list(args[0])) {
-      if(must_reset_global_env) G::GLOBAL_ENVIRONMENT_POINTER = original_global_env;
+      if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
       THROW_ERR("'eval received an improper list: "<<PROFILE(args[0])
         << format << FCN_ERR("eval", args));
     }
     // eval list contents
     try {
       auto result = data_cast(scm_eval(prm_EVAL_convert_list_to_AST(args[0]),env));
-      if(must_reset_global_env) G::GLOBAL_ENVIRONMENT_POINTER = original_global_env;
+      if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
       return result;
     } catch(const SCM_EXCEPT& eval_throw) {
-      if(must_reset_global_env) G::GLOBAL_ENVIRONMENT_POINTER = original_global_env;
+      if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
       throw eval_throw;
     }
-    return G::VOID_DATA_OBJECT;
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   /******************************************************************************
@@ -3504,7 +3504,7 @@ namespace heist {
     // use the initial/global environment if passed *null-environment* or
     //   *global-environment* as a 2nd arg
     bool must_reset_global_env = false;
-    auto original_global_env = G::GLOBAL_ENVIRONMENT_POINTER;
+    auto original_global_env = G.GLOBAL_ENVIRONMENT_POINTER;
     auto env = local_env;
     prm_CPS_EVAL_confirm_correct_number_of_args(args,must_reset_global_env,env,
                                                   original_global_env,"cps-eval",format);
@@ -3512,7 +3512,7 @@ namespace heist {
     if(must_reset_global_env) prm_set_procedure_INLINE_INVOCATION(continuation_procedure,false);
     // if arg is self-evaluating, return arg
     if(prm_EVAL_data_is_self_evaluating(args[0])) {
-      if(must_reset_global_env) G::GLOBAL_ENVIRONMENT_POINTER = original_global_env;
+      if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
       scm_list cps_eval_args(1,continuation);
       return data_cast(execute_application(data_cast(scm_analyze(generate_fundamental_form_cps(args[0]),false,true)(env)),cps_eval_args,env));
     }
@@ -3520,29 +3520,29 @@ namespace heist {
     if(args[0].is_type(types::sym)) {
       // confirm arg is not '()
       if(args[0].sym == symconst::emptylist) {
-        if(must_reset_global_env) G::GLOBAL_ENVIRONMENT_POINTER = original_global_env;
+        if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
         THROW_ERR("'cps-eval can't evaluate '() (nil to eval):"
           << format << FCN_ERR("cps-eval", args));
       }
       try {
         scm_list cps_eval_args(1,continuation);
         auto result = data_cast(execute_application(data_cast(scm_analyze(generate_fundamental_form_cps(args[0]),false,true)(env)),cps_eval_args,env));
-        if(must_reset_global_env) G::GLOBAL_ENVIRONMENT_POINTER = original_global_env;
+        if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
         return result;
       } catch(const SCM_EXCEPT& eval_throw) {
-        if(must_reset_global_env) G::GLOBAL_ENVIRONMENT_POINTER = original_global_env;
+        if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
         throw eval_throw;
       }
-      return G::VOID_DATA_OBJECT;
+      return GLOBALS::VOID_DATA_OBJECT;
     }
     // else confirm arg is a proper list
     if(!args[0].is_type(types::par)) {
-      if(must_reset_global_env) G::GLOBAL_ENVIRONMENT_POINTER = original_global_env;
+      if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
       THROW_ERR("'cps-eval didn't receive an evaluable expression:\n     "<<PROFILE(args[0])
         << format << FCN_ERR("cps-eval", args));
     }
     if(!data_is_proper_list(args[0])) {
-      if(must_reset_global_env) G::GLOBAL_ENVIRONMENT_POINTER = original_global_env;
+      if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
       THROW_ERR("'cps-eval received an improper list: "<<PROFILE(args[0])
         << format << FCN_ERR("cps-eval", args));
     }
@@ -3551,13 +3551,13 @@ namespace heist {
       auto result = data_cast(
         execute_application(data_cast(scm_analyze(generate_fundamental_form_cps(
           prm_EVAL_convert_list_to_AST(args[0])),false,true)(env)),cps_eval_args,env));
-      if(must_reset_global_env) G::GLOBAL_ENVIRONMENT_POINTER = original_global_env;
+      if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
       return result;
     } catch(const SCM_EXCEPT& eval_throw) {
-      if(must_reset_global_env) G::GLOBAL_ENVIRONMENT_POINTER = original_global_env;
+      if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
       throw eval_throw;
     }
-    return G::VOID_DATA_OBJECT;
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   /******************************************************************************
@@ -3583,7 +3583,7 @@ namespace heist {
     scm_list args_list;
     shallow_unpack_list_into_exp(args[1], args_list);
     if(args_list.empty()) args_list.push_back(symconst::sentinel_arg);
-    return data_cast(execute_callable(args[0],args_list,G::GLOBAL_ENVIRONMENT_POINTER,tail_call));
+    return data_cast(execute_callable(args[0],args_list,G.GLOBAL_ENVIRONMENT_POINTER,tail_call));
   }
 
   /******************************************************************************
@@ -3910,7 +3910,7 @@ namespace heist {
     // Apply the procedure on each elt of each stream
     auto procedure(validate_and_extract_callable(args[0], "stream-for-each", format, args));
     primitive_STREAM_FOR_EACH_applicator(stream_heads, procedure);
-    return G::VOID_DATA_OBJECT;
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   // primitive "stream-ref" procedure:
@@ -4138,7 +4138,7 @@ namespace heist {
     if(!args[0].is_type(types::str) || 
         (args.size() == 2 && 
           (!args[1].is_type(types::num) || !args[1].num.is_integer()))) 
-      return G::FALSE_DATA_BOOLEAN;
+      return GLOBALS::FALSE_DATA_BOOLEAN;
     // given a radix
     if(args.size() == 2) {
       size_type radix = args[1].num.round().extract_inexact();
@@ -4149,7 +4149,7 @@ namespace heist {
       char exactness_prefix = parse_exactness_numeric_prefix(*args[0].str);
       if(radix != 10) {
         auto num = exactness_prefix ? num_type(args[0].str->substr(2), radix) : num_type(*args[0].str, radix);
-        if(num.is_nan()) return G::FALSE_DATA_BOOLEAN; // invalid conversion
+        if(num.is_nan()) return GLOBALS::FALSE_DATA_BOOLEAN; // invalid conversion
         switch(exactness_prefix) {
           case 'e': return num.to_exact();
           case 'i': return num.to_inexact();
@@ -4162,20 +4162,20 @@ namespace heist {
       return data(num_type(*args[0].str));
     num_type num;
     if(convert_string_to_scm_number(*args[0].str,num)) return num;
-    return G::FALSE_DATA_BOOLEAN; // invalid conversion
+    return GLOBALS::FALSE_DATA_BOOLEAN; // invalid conversion
   }
 
   // primitive "symbol->string" procedure:
   data primitive_COERCE_SYMBOL_TO_STRING(scm_list& args) {
     confirm_given_one_arg(args,"symbol->string","<symbol>");
-    if(!args[0].is_type(types::sym)) return G::FALSE_DATA_BOOLEAN;
+    if(!args[0].is_type(types::sym)) return GLOBALS::FALSE_DATA_BOOLEAN;
     return make_str(convert_symbol_to_string(args[0].sym));
   }
 
   // primitive "string->symbol" procedure:
   data primitive_COERCE_STRING_TO_SYMBOL(scm_list& args) {
     confirm_given_one_arg(args,"string->symbol","<string>");
-    if(!args[0].is_type(types::str)) return G::FALSE_DATA_BOOLEAN;
+    if(!args[0].is_type(types::str)) return GLOBALS::FALSE_DATA_BOOLEAN;
     return data(convert_string_to_symbol(*args[0].str)); 
   }
 
@@ -4260,7 +4260,7 @@ namespace heist {
   ******************************************************************************/
 
   data primitive_PPRINT(scm_list& args) {
-    FILE* outs = G::CURRENT_OUTPUT_PORT;
+    FILE* outs = G.CURRENT_OUTPUT_PORT;
     bool is_port = confirm_valid_output_args(args, outs, 1, "pretty-print", 
                     "\n     (pretty-print <obj> <optional-open-output-port-or-string>)");
     if(!args[0].is_type(types::dne)) {
@@ -4271,12 +4271,12 @@ namespace heist {
         return make_str(*args[1].str + args[0].pprint());
       }
     }
-    G::LAST_PRINTED_TO_STDOUT = (outs == stdout && is_port);
-    return G::VOID_DATA_OBJECT;
+    G.LAST_PRINTED_TO_STDOUT = (outs == stdout && is_port);
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   data primitive_WRITE(scm_list& args) {
-    FILE* outs = G::CURRENT_OUTPUT_PORT;
+    FILE* outs = G.CURRENT_OUTPUT_PORT;
     bool is_port = confirm_valid_output_args(args, outs, 1, "write", 
                     "\n     (write <obj> <optional-open-output-port-or-string>)");
     if(!args[0].is_type(types::dne)) {
@@ -4287,26 +4287,26 @@ namespace heist {
         return make_str(*args[1].str + args[0].write());
       }
     }
-    G::LAST_PRINTED_TO_STDOUT = (outs == stdout && is_port);
-    return G::VOID_DATA_OBJECT;
+    G.LAST_PRINTED_TO_STDOUT = (outs == stdout && is_port);
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   data primitive_NEWLINE(scm_list& args) {
-    FILE* outs = G::CURRENT_OUTPUT_PORT;
+    FILE* outs = G.CURRENT_OUTPUT_PORT;
     bool is_port = confirm_valid_output_args(args, outs, 0, "newline", 
                     "\n     (newline <optional-open-output-port-or-string>)");
     if(is_port) {
       fputc('\n', outs);
       fflush(outs);
-      G::LAST_PRINTED_NEWLINE_TO_STDOUT = G::LAST_PRINTED_TO_STDOUT = (outs == stdout);
+      G.LAST_PRINTED_NEWLINE_TO_STDOUT = G.LAST_PRINTED_TO_STDOUT = (outs == stdout);
     } else {
       return make_str(*args[0].str + '\n');
     }
-    return G::VOID_DATA_OBJECT;
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   data primitive_DISPLAY(scm_list& args) {
-    FILE* outs = G::CURRENT_OUTPUT_PORT;
+    FILE* outs = G.CURRENT_OUTPUT_PORT;
     bool is_port = confirm_valid_output_args(args, outs, 1, "display", 
                     "\n     (display <obj> <optional-open-output-port-or-string>)");
     if(is_port)
@@ -4315,7 +4315,7 @@ namespace heist {
   }
 
   data primitive_WRITE_CHAR(scm_list& args) {
-    FILE* outs = G::CURRENT_OUTPUT_PORT;
+    FILE* outs = G.CURRENT_OUTPUT_PORT;
     bool is_port = confirm_valid_output_args(args, outs, 1, "write-char", 
                     "\n     (write-char <char> <optional-open-output-port-or-string>)");
     // confirm given a character
@@ -4326,11 +4326,11 @@ namespace heist {
     if(is_port) {
       fputc(args[0].chr, outs);
       fflush(outs);
-      G::LAST_PRINTED_TO_STDOUT = (outs == stdout);
+      G.LAST_PRINTED_TO_STDOUT = (outs == stdout);
     } else {
       return make_str(*args[1].str + char(args[0].chr));
     }
-    return G::VOID_DATA_OBJECT;
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   /******************************************************************************
@@ -4451,8 +4451,8 @@ namespace heist {
 
   data primitive_READ(scm_list& args) {
     // Confirm either given an open input port or string or no args
-    FILE* outs = G::CURRENT_OUTPUT_PORT, *ins = G::CURRENT_INPUT_PORT;
-    bool reading_stdin = (G::CURRENT_INPUT_PORT == stdin), reading_string = false;
+    FILE* outs = G.CURRENT_OUTPUT_PORT, *ins = G.CURRENT_INPUT_PORT;
+    bool reading_stdin = (G.CURRENT_INPUT_PORT == stdin), reading_string = false;
     if(!confirm_valid_input_args_and_non_EOF(args, ins, "read", reading_stdin, reading_string)) 
       return chr_type(EOF);
     if(reading_string)
@@ -4462,8 +4462,8 @@ namespace heist {
 
   data primitive_READ_STRING(scm_list& args) {
     // return string w/ next valid scheme expression, if successfully parsed one
-    FILE* outs = G::CURRENT_OUTPUT_PORT, *ins = G::CURRENT_INPUT_PORT;
-    bool reading_stdin = (G::CURRENT_INPUT_PORT == stdin), reading_string = false;
+    FILE* outs = G.CURRENT_OUTPUT_PORT, *ins = G.CURRENT_INPUT_PORT;
+    bool reading_stdin = (G.CURRENT_INPUT_PORT == stdin), reading_string = false;
     if(!confirm_valid_input_args_and_non_EOF(args, ins, "read-string", reading_stdin, reading_string)) 
       return make_str("");
     if(reading_string)
@@ -4473,8 +4473,8 @@ namespace heist {
 
   data primitive_READ_LINE(scm_list& args) {
     // Confirm either given an open input port or no args
-    FILE* outs = G::CURRENT_OUTPUT_PORT, *ins = G::CURRENT_INPUT_PORT;
-    bool reading_stdin = (G::CURRENT_INPUT_PORT == stdin), reading_string = false;
+    FILE* outs = G.CURRENT_OUTPUT_PORT, *ins = G.CURRENT_INPUT_PORT;
+    bool reading_stdin = (G.CURRENT_INPUT_PORT == stdin), reading_string = false;
     if(!confirm_valid_input_args_and_non_EOF(args, ins, "read-line", reading_stdin, reading_string)) 
       return make_str("");
     // Read a line of input into a string
@@ -4492,8 +4492,8 @@ namespace heist {
 
   data primitive_READ_CHAR(scm_list& args) {
     // Confirm either given an open input port or no args
-    FILE* outs = G::CURRENT_OUTPUT_PORT, *ins = G::CURRENT_INPUT_PORT;
-    bool reading_stdin = (G::CURRENT_INPUT_PORT == stdin), reading_string = false;
+    FILE* outs = G.CURRENT_OUTPUT_PORT, *ins = G.CURRENT_INPUT_PORT;
+    bool reading_stdin = (G.CURRENT_INPUT_PORT == stdin), reading_string = false;
     if(!confirm_valid_input_args_and_non_EOF(args, ins, "read-char", reading_stdin, reading_string)) 
       return chr_type(EOF);
     // Read a char from a string as needed
@@ -4513,8 +4513,8 @@ namespace heist {
 
   data primitive_PEEK_CHAR(scm_list& args) {
     // Confirm either given an open input port or no args
-    FILE* outs = G::CURRENT_OUTPUT_PORT, *ins = G::CURRENT_INPUT_PORT;
-    bool reading_stdin = (G::CURRENT_INPUT_PORT == stdin), reading_string = false;
+    FILE* outs = G.CURRENT_OUTPUT_PORT, *ins = G.CURRENT_INPUT_PORT;
+    bool reading_stdin = (G.CURRENT_INPUT_PORT == stdin), reading_string = false;
     if(!confirm_valid_input_args_and_non_EOF(args, ins, "peek-char", reading_stdin, reading_string)) 
       return chr_type(EOF);
   // Peek a char from a string as needed
@@ -4540,14 +4540,14 @@ namespace heist {
 
   data primitive_CHAR_READYP(scm_list& args) {
     // Confirm either given an open input port or no args
-    FILE* ins = G::CURRENT_INPUT_PORT;
-    bool reading_stdin = (G::CURRENT_INPUT_PORT == stdin), reading_string = false;
+    FILE* ins = G.CURRENT_INPUT_PORT;
+    bool reading_stdin = (G.CURRENT_INPUT_PORT == stdin), reading_string = false;
     if(!confirm_valid_input_args_and_non_EOF(args, ins, "char-ready?", reading_stdin, reading_string)) 
-      return G::FALSE_DATA_BOOLEAN;
+      return GLOBALS::FALSE_DATA_BOOLEAN;
     // Empty strings trigger EOF above, hence will always have a character ready here
-    if(reading_string) return G::TRUE_DATA_BOOLEAN;
+    if(reading_string) return GLOBALS::TRUE_DATA_BOOLEAN;
     // Stdin is always flushed, hence a char will never be waiting in its buffer
-    if(reading_stdin)  return G::FALSE_DATA_BOOLEAN;
+    if(reading_stdin)  return GLOBALS::FALSE_DATA_BOOLEAN;
     // Peek the non-stdin port for a non-EOF character
     int ch = getc(ins);
     ungetc(ch, ins);
@@ -4557,8 +4557,8 @@ namespace heist {
   // slurp a port's contents into a string
   data primitive_SLURP_PORT(scm_list& args){
     // confirm given a filename string & slurp file if so
-    FILE* ins = G::CURRENT_INPUT_PORT;
-    bool reading_stdin = (G::CURRENT_INPUT_PORT == stdin), reading_string = false;
+    FILE* ins = G.CURRENT_INPUT_PORT;
+    bool reading_stdin = (G.CURRENT_INPUT_PORT == stdin), reading_string = false;
     if(!confirm_valid_input_args_and_non_EOF(args, ins, "slurp-port", reading_stdin, reading_string)) 
       return make_str("");
     if(reading_string) return make_str(*args[0].str);
@@ -4631,16 +4631,16 @@ namespace heist {
   // retrieve the current default input & output ports
   data primitive_CURRENT_INPUT_PORT(scm_list& args){
     confirm_no_args_given(args,"current-input-port");
-    for(size_type i = 0, n = G::PORT_REGISTRY.size(); i < n; ++i)
-      if(G::CURRENT_INPUT_PORT == G::PORT_REGISTRY[i]) 
+    for(size_type i = 0, n = GLOBALS::PORT_REGISTRY.size(); i < n; ++i)
+      if(G.CURRENT_INPUT_PORT == GLOBALS::PORT_REGISTRY[i]) 
         return iport(i);
     return iport();
   }
 
   data primitive_CURRENT_OUTPUT_PORT(scm_list& args){
     confirm_no_args_given(args,"current-output-port");
-    for(size_type i = 0, n = G::PORT_REGISTRY.size(); i < n; ++i)
-      if(G::CURRENT_OUTPUT_PORT == G::PORT_REGISTRY[i]) 
+    for(size_type i = 0, n = GLOBALS::PORT_REGISTRY.size(); i < n; ++i)
+      if(G.CURRENT_OUTPUT_PORT == GLOBALS::PORT_REGISTRY[i]) 
         return oport(i);
     return oport();
   }
@@ -4672,7 +4672,7 @@ namespace heist {
               args,
               "with-input-from-file",
               "\n     (with-input-from-file <filename-string> <nullary-callable>)",
-              G::CURRENT_INPUT_PORT,
+              G.CURRENT_INPUT_PORT,
               confirm_valid_input_file);
   }
   data primitive_WITH_OUTPUT_TO_FILE(scm_list& args){
@@ -4681,7 +4681,7 @@ namespace heist {
               args,
               "with-output-to-file",
               "\n     (with-output-to-file <filename-string> <nullary-callable>)",
-              G::CURRENT_OUTPUT_PORT,
+              G.CURRENT_OUTPUT_PORT,
               confirm_valid_output_file);
   }
 
@@ -4689,34 +4689,34 @@ namespace heist {
   data primitive_OPEN_INPUT_FILE(scm_list& args){
     // confirm given a filename string
     confirm_given_one_arg(args,"open-input-file","<filename-string>");
-    G::PORT_REGISTRY.push_back(confirm_valid_input_file(args[0],"open-input-file",
+    GLOBALS::PORT_REGISTRY.push_back(confirm_valid_input_file(args[0],"open-input-file",
       "\n     (open-input-file <filename-string>)",args));
-    return iport(G::PORT_REGISTRY.size()-1);
+    return iport(GLOBALS::PORT_REGISTRY.size()-1);
   }
 
   data primitive_OPEN_OUTPUT_FILE(scm_list& args){ // open iff filename dne
     // confirm given a filename string
     confirm_given_one_arg(args,"open-output-file","<filename-string>");
-    G::PORT_REGISTRY.push_back(confirm_valid_output_file(args[0],"open-output-file",
+    GLOBALS::PORT_REGISTRY.push_back(confirm_valid_output_file(args[0],"open-output-file",
       "\n     (open-output-file <filename-string>)",args));
-    return oport(G::PORT_REGISTRY.size()-1);
+    return oport(GLOBALS::PORT_REGISTRY.size()-1);
   }
 
   data primitive_OPEN_OUTPUT_FILE_PLUS(scm_list& args){ // open via "append"
     // confirm given a filename string
     confirm_given_one_arg(args,"open-output-file+","<filename-string>");
-    G::PORT_REGISTRY.push_back(confirm_valid_output_append_file(args[0],"open-output-file+",
+    GLOBALS::PORT_REGISTRY.push_back(confirm_valid_output_append_file(args[0],"open-output-file+",
       "\n     (open-output-file+ <filename-string>)",args));
-    return oport(G::PORT_REGISTRY.size()-1);
+    return oport(GLOBALS::PORT_REGISTRY.size()-1);
   }
 
   data primitive_OPEN_OUTPUT_FILE_BANG(scm_list& args){ // deletes if exists, and opens anew
     // confirm given a filename string, & rm file if exists
     confirm_given_one_string_arg(args, "open-output-file!", "\n     (open-output-file! <filename-string>)");
     std::remove(args[0].str->c_str());
-    G::PORT_REGISTRY.push_back(confirm_valid_output_file(args[0],"open-output-file!",
+    GLOBALS::PORT_REGISTRY.push_back(confirm_valid_output_file(args[0],"open-output-file!",
       "\n     (open-output-file! <filename-string>)",args));
-    return oport(G::PORT_REGISTRY.size()-1);
+    return oport(GLOBALS::PORT_REGISTRY.size()-1);
   }
 
   // close input or output port
@@ -4739,7 +4739,7 @@ namespace heist {
       fclose(args[0].fop.port());
       args[0].fop.port() = nullptr;
     }
-    return G::VOID_DATA_OBJECT;
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   /******************************************************************************
@@ -4759,20 +4759,20 @@ namespace heist {
     // Set *local-environment* evaluation as default
     if(args.size() == 1) args.push_back(symconst::local_env);
     // determine which environment to load <filename-string> wrt to
-    auto env = G::GLOBAL_ENVIRONMENT_POINTER;
+    auto env = G.GLOBAL_ENVIRONMENT_POINTER;
     if(args.size()==2 && args[1].is_type(types::sym)) {
       if(args[1].sym == symconst::null_env) {
-        // Reset "G::GLOBAL_ENVIRONMENT_POINTER" to its default state
+        // Reset "G.GLOBAL_ENVIRONMENT_POINTER" to its default state
         set_default_global_environment(), args.pop_back();
         try {
-          primitive_LOAD_interpret_file_contents(args,G::GLOBAL_ENVIRONMENT_POINTER,format);
+          primitive_LOAD_interpret_file_contents(args,G.GLOBAL_ENVIRONMENT_POINTER,format);
         } catch(const SCM_EXCEPT& eval_throw) {
-          G::GLOBAL_ENVIRONMENT_POINTER = env;
+          G.GLOBAL_ENVIRONMENT_POINTER = env;
           throw eval_throw;
         }
-        // Reset G::GLOBAL_ENVIRONMENT_POINTER to its original bindings
-        G::GLOBAL_ENVIRONMENT_POINTER = env; 
-        return G::VOID_DATA_OBJECT;
+        // Reset G.GLOBAL_ENVIRONMENT_POINTER to its original bindings
+        G.GLOBAL_ENVIRONMENT_POINTER = env; 
+        return GLOBALS::VOID_DATA_OBJECT;
       } else if(args[1].sym == symconst::local_env) {
         env = local_env, args.pop_back();
       } else if(args[1].sym == symconst::global_env) {
@@ -4783,7 +4783,7 @@ namespace heist {
       }
     }
     primitive_LOAD_interpret_file_contents(args,env,format);
-    return G::VOID_DATA_OBJECT;
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   // Load a script into the global environment, convert it to CPS, and pass it to the given continuation
@@ -4810,23 +4810,23 @@ namespace heist {
       if(args[1].sym == symconst::null_env) {
         // Reset "inline"ing of the continuation, no need in *null-environment*
         prm_set_procedure_INLINE_INVOCATION(continuation_procedure,false);
-        // Reset "G::GLOBAL_ENVIRONMENT_POINTER" to its default state
+        // Reset "G.GLOBAL_ENVIRONMENT_POINTER" to its default state
         set_default_global_environment(), args.pop_back();
         try {
           scm_list cps_load_arg(1,continuation);
           // pass the continuation to the loaded file
           auto result = data_cast(execute_application(
-            data_cast(primitive_CPS_LOAD_interpret_file_contents(args,G::GLOBAL_ENVIRONMENT_POINTER,format)),
-            cps_load_arg,G::GLOBAL_ENVIRONMENT_POINTER));
-          // Reset G::GLOBAL_ENVIRONMENT_POINTER to its original bindings
-          G::GLOBAL_ENVIRONMENT_POINTER = env;
+            data_cast(primitive_CPS_LOAD_interpret_file_contents(args,G.GLOBAL_ENVIRONMENT_POINTER,format)),
+            cps_load_arg,G.GLOBAL_ENVIRONMENT_POINTER));
+          // Reset G.GLOBAL_ENVIRONMENT_POINTER to its original bindings
+          G.GLOBAL_ENVIRONMENT_POINTER = env;
           return result;
         } catch(const SCM_EXCEPT& eval_throw) {
-          G::GLOBAL_ENVIRONMENT_POINTER = env;
+          G.GLOBAL_ENVIRONMENT_POINTER = env;
           throw eval_throw;
         }
       } else if(args[1].sym == symconst::global_env) {
-        env = G::GLOBAL_ENVIRONMENT_POINTER; args.pop_back();
+        env = G.GLOBAL_ENVIRONMENT_POINTER; args.pop_back();
       } else if(args[1].sym == symconst::local_env) {
         args.pop_back(); // *local-environment* is default
       } else {
@@ -4861,9 +4861,9 @@ namespace heist {
       THROW_ERR("'system "<<PROFILE(args[0])<<" isn't a string!"
         "\n     (system <optional-system-call-string>)"<<FCN_ERR("system",args));
     // return false if CAN'T use 'system'
-    if(!std::system(nullptr)) return G::FALSE_DATA_BOOLEAN;
+    if(!std::system(nullptr)) return GLOBALS::FALSE_DATA_BOOLEAN;
     // return true if just checking whether may use the system (no args given)
-    if(args.empty()) return G::TRUE_DATA_BOOLEAN;
+    if(args.empty()) return GLOBALS::TRUE_DATA_BOOLEAN;
     return num_type(std::system(args[0].str->c_str()));
   }
 
@@ -4887,7 +4887,7 @@ namespace heist {
         if(var == var_list[j] && !val_list[j].is_type(types::undefined))
           return make_str(val_list[j].write());
     }
-    return G::FALSE_DATA_BOOLEAN;
+    return GLOBALS::FALSE_DATA_BOOLEAN;
   }
 
   // Returns a string of Heist Scheme's command-line args & their descriptions
@@ -4953,44 +4953,44 @@ namespace heist {
   // Returns whether ANSI escapes sequences were disabled prior this call
   data primitive_SET_NANSI(scm_list& args) {
     return primitive_TOGGLE_DISPLAY_SETTING(args, "set-nansi!", 
-                                            G::USING_ANSI_ESCAPE_SEQUENCES);
+                                            G.USING_ANSI_ESCAPE_SEQUENCES);
   }
 
   data primitive_NANSIP(scm_list& args) {
     confirm_no_args_given(args,"nansi?");
-    return boolean(!G::USING_ANSI_ESCAPE_SEQUENCES);
+    return boolean(!G.USING_ANSI_ESCAPE_SEQUENCES);
   }
 
   // Defaults to enabling case-sensitivity, if not given a boolean.
   // Returns whether case-sensitivity was active prior this call
   data primitive_SET_CI(scm_list& args) {
     return primitive_TOGGLE_DISPLAY_SETTING(args, "set-ci!", 
-                                            G::USING_CASE_SENSITIVE_SYMBOLS);
+                                            G.USING_CASE_SENSITIVE_SYMBOLS);
   }
 
   data primitive_CIP(scm_list& args) {
     confirm_no_args_given(args,"ci?");
-    return boolean(!G::USING_CASE_SENSITIVE_SYMBOLS);
+    return boolean(!G.USING_CASE_SENSITIVE_SYMBOLS);
   }
 
   data primitive_SET_PPRINT_COLUMN_WIDTH_BANG(scm_list& args) {
     return primitive_TOGGLE_NUMERIC_SETTING(args,"set-pprint-column-width!",
-                                            G::PPRINT_MAX_COLUMN_WIDTH);
+                                            G.PPRINT_MAX_COLUMN_WIDTH);
   }
 
   data primitive_PPRINT_COLUMN_WIDTH(scm_list& args) {
     confirm_no_args_given(args,"pprint-column-width");
-    return num_type(G::PPRINT_MAX_COLUMN_WIDTH);
+    return num_type(G.PPRINT_MAX_COLUMN_WIDTH);
   }
 
   data primitive_SET_MAX_RECURSION_DEPTH_BANG(scm_list& args) {
     return primitive_TOGGLE_NUMERIC_SETTING(args,"set-max-recursion-depth!",
-                                            G::MAX_RECURSION_DEPTH);
+                                            G.MAX_RECURSION_DEPTH);
   }
 
   data primitive_MAX_RECURSION_DEPTH(scm_list& args) {
     confirm_no_args_given(args,"max-recursion-depth");
-    return num_type(G::MAX_RECURSION_DEPTH);
+    return num_type(G.MAX_RECURSION_DEPTH);
   }
 
   // Changes the REPL's line-by-line prompt from the default "> "
@@ -4999,40 +4999,40 @@ namespace heist {
     if(!args[0].is_type(types::str))
       THROW_ERR("'set-repl-prompt! "<<PROFILE(args[0])<<" isn't a string:"
         "\n     (set-repl-prompt! <prompt-string>)" << FCN_ERR("set-repl-prompt!",args));
-    scm_string old_prompt = G::REPL_PROMPT;
+    scm_string old_prompt = G.REPL_PROMPT;
     if(args[0].str->empty()) {
-      G::REPL_PROMPT = G::REPL_TAB = "";
+      G.REPL_PROMPT = G.REPL_TAB = "";
       return make_str(old_prompt);
     }
-    G::REPL_PROMPT = *args[0].str;
-    G::REPL_TAB = scm_string(G::REPL_PROMPT.size(), ' ');
+    G.REPL_PROMPT = *args[0].str;
+    G.REPL_TAB = scm_string(G.REPL_PROMPT.size(), ' ');
     return make_str(old_prompt);
   }
 
   data primitive_REPL_PROMPT(scm_list& args) {
     confirm_no_args_given(args,"repl-prompt");
-    return make_str(G::REPL_PROMPT);
+    return make_str(G.REPL_PROMPT);
   }
 
   // Toggles Dynamic Procedure Call Tracing (returns the previous state prior toggle)
   data primitive_SET_DYNAMIC_CALL_TRACE_BANG(scm_list& args) {
     return primitive_TOGGLE_BOOLEAN_SETTING(args,"set-dynamic-call-trace!",
-                                            G::TRACING_ALL_FUNCTION_CALLS);
+                                            G.TRACING_ALL_FUNCTION_CALLS);
   }
 
   data primitive_DYNAMIC_CALL_TRACEP(scm_list& args) {
     confirm_no_args_given(args,"dynamic-call-trace?");
-    return boolean(G::TRACING_ALL_FUNCTION_CALLS);
+    return boolean(G.TRACING_ALL_FUNCTION_CALLS);
   }
 
   // Toggles Procedure Argument Call Tracing (returns the previous state prior toggle)
   data primitive_SET_TRACE_ARGS_BANG(scm_list& args) {
-    return primitive_TOGGLE_BOOLEAN_SETTING(args,"set-trace-args!",G::TRACE_ARGS);
+    return primitive_TOGGLE_BOOLEAN_SETTING(args,"set-trace-args!",G.TRACE_ARGS);
   }
 
   data primitive_TRACE_ARGSP(scm_list& args) {
     confirm_no_args_given(args,"trace-args?");
-    return boolean(G::TRACE_ARGS);
+    return boolean(G.TRACE_ARGS);
   }
 
   data primitive_SET_DOT_BANG(scm_list& args) {
@@ -5073,7 +5073,7 @@ namespace heist {
         "\n     (exit <optional-integer-exit-code>)"
         "\n     => <optional-integer-exit-code> bounds: [" 
         << MIN_INT << ", " << MAX_INT <<']' << FCN_ERR("exit",args));
-    G::HEIST_EXIT_CODE = (int)args[0].num.extract_inexact();
+    GLOBALS::HEIST_EXIT_CODE = (int)args[0].num.extract_inexact();
     throw SCM_EXCEPT::EXIT;
     return data();
   }
@@ -5114,13 +5114,13 @@ namespace heist {
       "\n     (inline <callable> <arg1> ... <argN>)", args);
     scm_list inline_args(args.begin()+1,args.end());
     if(inline_args.empty()) inline_args.push_back(symconst::sentinel_arg);
-    G::USING_INLINE_INVOCATIONS = true;
+    G.USING_INLINE_INVOCATIONS = true;
     try {
       auto result = data_cast(execute_callable(args[0],inline_args,env));
-      G::USING_INLINE_INVOCATIONS = false;
+      G.USING_INLINE_INVOCATIONS = false;
       return result;
     } catch(const SCM_EXCEPT& call_ce_error) {
-      G::USING_INLINE_INVOCATIONS = false;
+      G.USING_INLINE_INVOCATIONS = false;
       throw call_ce_error;
     }
   }
@@ -5130,9 +5130,9 @@ namespace heist {
       THROW_ERR("'jump! received incorrect # of args!"
         "\n     (jump! <optional-arg>)" << FCN_ERR("jump!",args));
     if(args.size() == 1)
-      G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT = args[0];
+      G.JUMP_GLOBAL_PRIMITIVE_ARGUMENT = args[0];
     else
-      G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT = G::VOID_DATA_OBJECT;
+      G.JUMP_GLOBAL_PRIMITIVE_ARGUMENT = GLOBALS::VOID_DATA_OBJECT;
     throw SCM_EXCEPT::JUMP;
     return data();
   }
@@ -5145,13 +5145,13 @@ namespace heist {
       "\n     (catch-jump <callable> <arg1> ... <argN>)", args);
     scm_list catch_jump_args(args.begin()+1,args.end());
     if(catch_jump_args.empty()) catch_jump_args.push_back(symconst::sentinel_arg);
-    const bool inline_status = G::USING_INLINE_INVOCATIONS;
+    const bool inline_status = G.USING_INLINE_INVOCATIONS;
     try {
       return data_cast(execute_callable(args[0],catch_jump_args));
     } catch(const SCM_EXCEPT& jump_error) {
-      G::USING_INLINE_INVOCATIONS = inline_status;
+      G.USING_INLINE_INVOCATIONS = inline_status;
       if(jump_error == SCM_EXCEPT::JUMP)
-        return G::JUMP_GLOBAL_PRIMITIVE_ARGUMENT;
+        return G.JUMP_GLOBAL_PRIMITIVE_ARGUMENT;
       throw jump_error;
     }
     return data();
@@ -5182,9 +5182,9 @@ namespace heist {
     scm_list trace_args(args.begin()+1,args.end());
     if(trace_args.empty()) trace_args.push_back(symconst::sentinel_arg);
     // Set name of the function to trace
-    G::TRACED_FUNCTION_NAME = args[0].fcn.name;
+    G.TRACED_FUNCTION_NAME = args[0].fcn.name;
     auto result = data_cast(execute_application(args[0],trace_args));
-    G::TRACED_FUNCTION_NAME = "";
+    G.TRACED_FUNCTION_NAME = "";
     return result;
   }
 
@@ -5229,10 +5229,10 @@ namespace heist {
     if(args.size() != 1 || !args[0].is_type(types::sym))
       THROW_ERR("'core-syntax? didn't receive 1 symbolic arg!"
         "\n     (core-syntax? <symbol>)" << FCN_ERR("core-syntax?",args));
-    for(const auto& core_syntax_label : G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY)
+    for(const auto& core_syntax_label : G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY)
       if(core_syntax_label == args[0].sym)
-        return G::TRUE_DATA_BOOLEAN;
-    return G::FALSE_DATA_BOOLEAN;
+        return GLOBALS::TRUE_DATA_BOOLEAN;
+    return GLOBALS::FALSE_DATA_BOOLEAN;
   }
 
 
@@ -5243,9 +5243,9 @@ namespace heist {
       THROW_ERR("'runtime-syntax? didn't receive 1 symbolic arg!"
         "\n     (runtime-syntax? <symbol>)" << FCN_ERR("runtime-syntax?",args));
     // Confirm not core-syntax
-    for(const auto& core_syntax_label : G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY)
+    for(const auto& core_syntax_label : G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY)
       if(core_syntax_label == args[0].sym)
-        return G::FALSE_DATA_BOOLEAN;
+        return GLOBALS::FALSE_DATA_BOOLEAN;
     // Search for macro in the environment
     const auto& label = args[0].sym;
     for(size_type i = 0, total_frames = env->size(); i < total_frames; ++i){
@@ -5254,9 +5254,9 @@ namespace heist {
       // Search Variable-Value List Pair In Frame
       for(size_type j = 0, total_macs = mac_list.size(); j < total_macs; ++j)
         if(label == mac_list[j].label)
-          return G::TRUE_DATA_BOOLEAN;
+          return GLOBALS::TRUE_DATA_BOOLEAN;
     }
-    return G::FALSE_DATA_BOOLEAN;
+    return GLOBALS::FALSE_DATA_BOOLEAN;
   }
 
 
@@ -5266,10 +5266,10 @@ namespace heist {
         "\n     => Must be a string to avoid expansion by the reader if IS syntax!"
         "\n     (reader-syntax? <string>)" << FCN_ERR("reader-syntax?",args));
     auto& sought_shorthand = *args[0].str;
-    for(const auto& reader_syntax_label : G::SHORTHAND_READER_MACRO_REGISTRY)
+    for(const auto& reader_syntax_label : G.SHORTHAND_READER_MACRO_REGISTRY)
       if(reader_syntax_label == sought_shorthand)
-        return G::TRUE_DATA_BOOLEAN;
-    return G::FALSE_DATA_BOOLEAN;
+        return GLOBALS::TRUE_DATA_BOOLEAN;
+    return GLOBALS::FALSE_DATA_BOOLEAN;
   }
 
 
@@ -5279,10 +5279,10 @@ namespace heist {
         "\n     => Must be a string to avoid expansion by the reader if IS syntax!"
         "\n     (reader-alias? <string>)" << FCN_ERR("reader-alias?",args));
     auto& sought_shorthand = *args[0].str;
-    for(const auto& reader_syntax_label : G::SHORTHAND_READER_ALIAS_REGISTRY)
+    for(const auto& reader_syntax_label : G.SHORTHAND_READER_ALIAS_REGISTRY)
       if(reader_syntax_label == sought_shorthand)
-        return G::TRUE_DATA_BOOLEAN;
-    return G::FALSE_DATA_BOOLEAN;
+        return GLOBALS::TRUE_DATA_BOOLEAN;
+    return GLOBALS::FALSE_DATA_BOOLEAN;
   }
 
   /******************************************************************************
@@ -5294,21 +5294,21 @@ namespace heist {
       "\n     (set-core-syntax! <old-name-symbol> <optional-new-name-symbol>)" 
       "\n     => LEAVING OUT <new-name-symbol> DELETES <old-name-symbol>");
     // Modify the registry
-    size_type i = 0, n = G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY.size();
+    size_type i = 0, n = G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.size();
     for(; i < n; ++i)
-      if(G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY[i] == args[0].sym) {
+      if(G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY[i] == args[0].sym) {
         if(args.size() == 1) // Rm from registry
-          G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY.erase(G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY.begin()+i);
+          G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.erase(G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.begin()+i);
         else                 // Change name in registry
-          G::ANALYSIS_TIME_MACRO_LABEL_REGISTRY[i] = args[1].sym;
+          G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY[i] = args[1].sym;
         break;
       }
-    if(i == n) return G::FALSE_DATA_BOOLEAN; // not found
+    if(i == n) return GLOBALS::FALSE_DATA_BOOLEAN; // not found
     // Delete core syntax as needed
     if(args.size() == 1)
-      return delete_macro_from_env(args[0].sym,G::GLOBAL_ENVIRONMENT_POINTER);
+      return delete_macro_from_env(args[0].sym,G.GLOBAL_ENVIRONMENT_POINTER);
     // Relabel core syntax as needed
-    return relabel_macro_in_env(args[0].sym,args[1].sym,G::GLOBAL_ENVIRONMENT_POINTER);
+    return relabel_macro_in_env(args[0].sym,args[1].sym,G.GLOBAL_ENVIRONMENT_POINTER);
   }
 
 
@@ -5324,7 +5324,7 @@ namespace heist {
       return delete_macro_from_env(args[0].sym,env);
     // Relabel core syntax as needed
     auto result = relabel_macro_in_env(args[0].sym,args[1].sym,env);
-    if(result.bol.val) G::MACRO_LABEL_REGISTRY.push_back(args[1].sym); // if found, add to cumulative registry
+    if(result.bol.val) G.MACRO_LABEL_REGISTRY.push_back(args[1].sym); // if found, add to cumulative registry
     return result;
   }
 
@@ -5342,16 +5342,16 @@ namespace heist {
     if(args.size() == 1) return delete_reader_macro(*args[0].str);
     // Define/Redefine Reader Macro
     register_reader_macro(*args[0].str,*args[1].str);
-    return G::VOID_DATA_OBJECT;
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   data primitive_READER_SYNTAX_LIST(scm_list& args) {
     confirm_no_args_given(args,"reader-syntax-list");
     scm_list pairs;
-    for(size_type i = 0, n = G::SHORTHAND_READER_MACRO_REGISTRY.size(); i < n; ++i) {
+    for(size_type i = 0, n = G.SHORTHAND_READER_MACRO_REGISTRY.size(); i < n; ++i) {
       pairs.push_back(make_par());
-      pairs[i].par->first = make_str(G::SHORTHAND_READER_MACRO_REGISTRY[i]);
-      pairs[i].par->second = make_str(G::LONGHAND_READER_MACRO_REGISTRY[i]);
+      pairs[i].par->first = make_str(G.SHORTHAND_READER_MACRO_REGISTRY[i]);
+      pairs[i].par->second = make_str(G.LONGHAND_READER_MACRO_REGISTRY[i]);
     }
     return primitive_LIST_to_CONS_constructor(pairs.begin(),pairs.end());
   }
@@ -5359,10 +5359,10 @@ namespace heist {
   data primitive_READER_ALIAS_LIST(scm_list& args) {
     confirm_no_args_given(args,"reader-alias-list");
     scm_list pairs;
-    for(size_type i = 0, n = G::SHORTHAND_READER_ALIAS_REGISTRY.size(); i < n; ++i) {
+    for(size_type i = 0, n = G.SHORTHAND_READER_ALIAS_REGISTRY.size(); i < n; ++i) {
       pairs.push_back(make_par());
-      pairs[i].par->first = make_str(G::SHORTHAND_READER_ALIAS_REGISTRY[i]);
-      pairs[i].par->second = make_str(G::LONGHAND_READER_ALIAS_REGISTRY[i]);
+      pairs[i].par->first = make_str(G.SHORTHAND_READER_ALIAS_REGISTRY[i]);
+      pairs[i].par->second = make_str(G.LONGHAND_READER_ALIAS_REGISTRY[i]);
     }
     return primitive_LIST_to_CONS_constructor(pairs.begin(),pairs.end());
   }
@@ -5392,23 +5392,23 @@ namespace heist {
     if(args.size() != 1 || !args[0].is_type(types::str))
       THROW_ERR("'json->scm didn't receive 1 string arg!" 
         "\n     (json->scm <string>)" << FCN_ERR("json->scm", args));
-    if(args[0].str->empty()) return G::VOID_DATA_OBJECT;
+    if(args[0].str->empty()) return GLOBALS::VOID_DATA_OBJECT;
     scm_string input = *args[0].str;
     try { // Try parsing the converted json expression, & throw an error as needed
       scm_list abstract_syntax_tree;
       // Return AST if successfully parsed an expression
       parse_input_exp(heist_json_parser::convert_json_to_scm(*args[0].str,input),abstract_syntax_tree);
-      if(abstract_syntax_tree.empty()) return G::VOID_DATA_OBJECT;
-      return data_cast(scm_eval(scm_list_cast(abstract_syntax_tree[0]),G::GLOBAL_ENVIRONMENT_POINTER));
+      if(abstract_syntax_tree.empty()) return GLOBALS::VOID_DATA_OBJECT;
+      return data_cast(scm_eval(scm_list_cast(abstract_syntax_tree[0]),G.GLOBAL_ENVIRONMENT_POINTER));
     } catch(const READER_ERROR& read_error) {
       heist_json_parser::print_json_reader_error_alert();
       if(is_non_repl_reader_error(read_error))
-           alert_non_repl_reader_error(G::CURRENT_OUTPUT_PORT,read_error,input);
-      else alert_reader_error(G::CURRENT_OUTPUT_PORT,read_error,input);
+           alert_non_repl_reader_error(G.CURRENT_OUTPUT_PORT,read_error,input);
+      else alert_reader_error(G.CURRENT_OUTPUT_PORT,read_error,input);
       throw SCM_EXCEPT::READ;
     } catch(const size_type& read_error_index) {
       heist_json_parser::print_json_reader_error_alert();
-      alert_reader_error(G::CURRENT_OUTPUT_PORT,read_error_index,input);
+      alert_reader_error(G.CURRENT_OUTPUT_PORT,read_error_index,input);
       throw SCM_EXCEPT::READ;
     }
   }
@@ -5430,7 +5430,7 @@ namespace heist {
     if(args.size() == 2) {
       if(!primitive_is_valid_index(args[1]))
         THROW_ERR("'scm->json 2nd arg " << PROFILE(args[0]) << " isn't a valid indent width!" << format 
-          << "\n     <optional-indent-width> := [0, " << G::MAX_SIZE_TYPE << ']' << FCN_ERR("scm->json",args));
+          << "\n     <optional-indent-width> := [0, " << GLOBALS::MAX_SIZE_TYPE << ']' << FCN_ERR("scm->json",args));
       indent_width = (size_type)args[1].num.extract_inexact();
     }
     return make_str(heist_json_generator::format_scm_as_json(args[0],indent_width,args,format));
@@ -5514,7 +5514,7 @@ namespace heist {
     if(!set_new_object_member_value(args[0].obj->proto,args[0].obj,args[1].sym,args[2]))
       THROW_ERR("'heist:core:oo:set-member! 2nd member-name arg "<<PROFILE(args[1])
         <<" isn't a member of "<<PROFILE(args[0])<<'!'<<format<<FCN_ERR("heist:core:oo:set-member!",args));
-    return G::VOID_DATA_OBJECT;
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
 
@@ -5528,7 +5528,7 @@ namespace heist {
     if(!args[1].is_type(types::cls))
       THROW_ERR("'heist:core:oo:compare-classes 2nd arg "<<PROFILE(args[1])<<" isn't a class-prototype!"
         <<format<<FCN_ERR("heist:core:oo:compare-classes",args));
-    if(!args[0].is_type(types::obj)) return G::FALSE_DATA_BOOLEAN;
+    if(!args[0].is_type(types::obj)) return GLOBALS::FALSE_DATA_BOOLEAN;
     return boolean(args[0].obj->proto == args[1].cls);
   }
 
@@ -5575,7 +5575,7 @@ namespace heist {
     for(size_type i = 0, n = args[0].obj->member_names.size(); i < n; ++i) {
       if(args[0].obj->member_names[i] == args[1].sym) {
         args[0].obj->member_values[i] = args[2];
-        return G::VOID_DATA_OBJECT;
+        return GLOBALS::VOID_DATA_OBJECT;
       }
     }
     // Confirm Member doesn't already exist as a local method
@@ -5591,7 +5591,7 @@ namespace heist {
     // add the new member name & assign it the given value
     args[0].obj->member_names.push_back(args[1].sym);
     args[0].obj->member_values.push_back(args[2]);
-    return G::VOID_DATA_OBJECT;
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
 
@@ -5605,7 +5605,7 @@ namespace heist {
     for(size_type i = 0, n = args[0].obj->method_names.size(); i < n; ++i) {
       if(args[0].obj->method_names[i] == args[1].sym) {
         args[0].obj->method_values[i] = args[2];
-        return G::VOID_DATA_OBJECT;
+        return GLOBALS::VOID_DATA_OBJECT;
       }
     }
     // Confirm Member doesn't already exist as a local method
@@ -5619,7 +5619,7 @@ namespace heist {
     // add the new method name & assign it the given value
     args[0].obj->method_names.push_back(args[1].sym);
     args[0].obj->method_values.push_back(args[2]);
-    return G::VOID_DATA_OBJECT;
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   /******************************************************************************
@@ -5694,7 +5694,7 @@ namespace heist {
     if(args.size() == 2) {
       if(!primitive_is_valid_index(args[1]))
         THROW_ERR("'object->json 2nd arg " << PROFILE(args[1]) << " isn't a valid indent width!" << format 
-          << "\n     <optional-indent-width> := [0, " << G::MAX_SIZE_TYPE << ']' << FCN_ERR("object->json",args));
+          << "\n     <optional-indent-width> := [0, " << GLOBALS::MAX_SIZE_TYPE << ']' << FCN_ERR("object->json",args));
       indent_width = (size_type)args[1].num.extract_inexact();
     }
     auto val = prm_convert_OBJ_HMAP_into_valid_JSON_ALIST_datum(prm_recursively_convert_OBJ_to_HMAP<true>(args[0]));
@@ -5728,7 +5728,7 @@ namespace heist {
 
   data primitive_PROTO_SUPER(scm_list& args) {
     confirm_given_unary_class_prototype_arg(args,"proto-super");
-    if(!args[0].cls->inherited) return G::FALSE_DATA_BOOLEAN;
+    if(!args[0].cls->inherited) return GLOBALS::FALSE_DATA_BOOLEAN;
     return args[0].cls->inherited;
   }
 
@@ -5743,7 +5743,7 @@ namespace heist {
     define_setter_method_for_member(*args[0].cls,args[0].cls->defn_env,args[1].sym);
     args[0].cls->member_names.push_back(args[1].sym);
     args[0].cls->member_values.push_back(args[2]);
-    return G::VOID_DATA_OBJECT;
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   data primitive_PROTO_ADD_METHOD_BANG(scm_list& args) {
@@ -5757,7 +5757,7 @@ namespace heist {
     // Define the new method
     args[0].cls->method_names.push_back(args[1].sym);
     args[0].cls->method_values.push_back(procedure);
-    return G::VOID_DATA_OBJECT;
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   /******************************************************************************
@@ -5807,7 +5807,7 @@ namespace heist {
       THROW_ERR("'string->space-art didn't receive 1 string arg!"
         "\n     (string->space-art <string>)\n     => <nansi> must be inactive!" 
         << FCN_ERR("string->space-art",args));
-    if(!G::USING_ANSI_ESCAPE_SEQUENCES)
+    if(!G.USING_ANSI_ESCAPE_SEQUENCES)
       THROW_ERR("'string->space-art can't be used with <nansi> active!"
         "\n     (string->space-art <string>)\n     => <nansi> must be inactive!" 
         << FCN_ERR("string->space-art",args));
@@ -5828,7 +5828,7 @@ namespace heist {
     scm_list heist_scheme_prim_defns;
     parse_input_exp(std::move(heist_prim_exp), heist_scheme_prim_defns);
     for(auto& primitive_scm_prim_defn : heist_scheme_prim_defns)
-      scm_eval(std::move(primitive_scm_prim_defn.exp),G::GLOBAL_ENVIRONMENT_POINTER);
+      scm_eval(std::move(primitive_scm_prim_defn.exp),G.GLOBAL_ENVIRONMENT_POINTER);
   }
 
   /******************************************************************************
@@ -5855,7 +5855,7 @@ namespace heist {
       else
         help::query_datum(args[0].type_name());
     }
-    return G::VOID_DATA_OBJECT;
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   /******************************************************************************
@@ -5877,11 +5877,10 @@ namespace heist {
     return false;
   }
 #else // @EMBEDDED-IN-C++
-  namespace G { std::vector<prm_ptr_t> USER_DEFINED_PRIMITIVES_REQUIRING_ENV; }
   bool primitive_requires_environment(const prm_ptr_t& prm)noexcept{
     for(const auto& p : PRIMITIVES_REQUIRING_CURRENT_ENVIRONMENT)
       if(p == prm) return true;
-    for(const auto& p : G::USER_DEFINED_PRIMITIVES_REQUIRING_ENV)
+    for(const auto& p : GLOBALS::USER_DEFINED_PRIMITIVES_REQUIRING_ENV)
       if(p == prm) return true;
     return false;
   }

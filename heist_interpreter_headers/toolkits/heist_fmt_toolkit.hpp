@@ -13,7 +13,7 @@
 
 data prm_generate_ANSI_fmt_string(const char* name, const scm_list& args, const char* ansi_str){
   if(!args.empty()) THROW_ERR('\''<<name<<" doesn't take any args!\n     ("<<name<<')'<<FCN_ERR(name,args));
-  if(G::USING_ANSI_ESCAPE_SEQUENCES) return make_str(ansi_str);
+  if(G.USING_ANSI_ESCAPE_SEQUENCES) return make_str(ansi_str);
   return make_str("");
 }
 

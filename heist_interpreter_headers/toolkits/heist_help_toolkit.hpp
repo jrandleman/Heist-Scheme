@@ -14,7 +14,7 @@
 * HELP DB DATA MATRIX
 ******************************************************************************/
 
-namespace G {
+namespace GLOBALS {
   // defines menu options lists
   // defines <HELP_ENTRIES> matrix of entries:
   //    entry ::= {name, classification, signatures, description}
@@ -230,7 +230,7 @@ namespace help::logic {
     // Continuously try finding possible mismatches of decreasing minimum substring match lengths (until a match is found)
     for(; minimum_substring_length_match > 0; --minimum_substring_length_match) {
       // Match against official entry names
-      for(const auto& entry : G::HELP_ENTRIES) {
+      for(const auto& entry : GLOBALS::HELP_ENTRIES) {
         auto match_length = longestCommonSubstring(query, entry[0], strlen(entry[0]));
         if(match_length >= minimum_substring_length_match)
           match_map.push_back(std::make_pair(match_length,entry[0]));
@@ -306,18 +306,18 @@ namespace help::logic {
   }
 
 
-  // Returns G::EMPTY_ENTRY if no match
+  // Returns GLOBALS::EMPTY_ENTRY if no match
   auto get_entry(sym_type& query)noexcept{
     prepare_query(query);
-    for(const auto& entry : G::HELP_ENTRIES)
+    for(const auto& entry : GLOBALS::HELP_ENTRIES)
       if(entry[0] == query) 
         return entry;
-    return G::EMPTY_ENTRY;
+    return GLOBALS::EMPTY_ENTRY;
   }
 
 
   // Print the single entry instance
-  // PRECONDITION: entry != G::EMPTY_ENTRY
+  // PRECONDITION: entry != GLOBALS::EMPTY_ENTRY
   void print_entry(const char *const *const entry)noexcept{
     puts("\n==================================================================================");
     printf("Name: %s\n", entry[0]);
@@ -402,18 +402,18 @@ namespace help::menu {
 
   bool driver_loop_query_datum(sym_type&& query)noexcept{
     const auto entry = logic::get_entry(query); // also prepares "query" for any comparison
-    if(entry != G::EMPTY_ENTRY) {
+    if(entry != GLOBALS::EMPTY_ENTRY) {
       logic::print_entry(entry);
     } else {
-      for(size_type i = 0, n = sizeof(G::HELP_MENU)/sizeof(G::HELP_MENU[0]); i < n; ++i) {
-        if(query == G::HELP_MENU[i]) {
-          menu::display_submenu(G::HELP_MENU_SUBMENUS[i],G::HELP_MENU_SUBMENUS_LENGTH[i]);
+      for(size_type i = 0, n = sizeof(GLOBALS::HELP_MENU)/sizeof(GLOBALS::HELP_MENU[0]); i < n; ++i) {
+        if(query == GLOBALS::HELP_MENU[i]) {
+          menu::display_submenu(GLOBALS::HELP_MENU_SUBMENUS[i],GLOBALS::HELP_MENU_SUBMENUS_LENGTH[i]);
           return false;
         }
       }
-      for(size_type i = 1, m = sizeof(G::HELP_MENU_PROCEDURES)/sizeof(G::HELP_MENU_PROCEDURES[0]); i < m; ++i) { // i=1 to skip "help"
-        if(query == G::HELP_MENU_PROCEDURES[i]) {
-          menu::display_submenu(G::HELP_MENU_PROCEDURES_SUBMENU[i],G::HELP_MENU_PROCEDURES_SUBMENU_LENGTH[i]);
+      for(size_type i = 1, m = sizeof(GLOBALS::HELP_MENU_PROCEDURES)/sizeof(GLOBALS::HELP_MENU_PROCEDURES[0]); i < m; ++i) { // i=1 to skip "help"
+        if(query == GLOBALS::HELP_MENU_PROCEDURES[i]) {
+          menu::display_submenu(GLOBALS::HELP_MENU_PROCEDURES_SUBMENU[i],GLOBALS::HELP_MENU_PROCEDURES_SUBMENU_LENGTH[i]);
           return false;
         }
       }
@@ -441,7 +441,7 @@ namespace help::menu {
 namespace help {
   void query_datum(sym_type query)noexcept{
     const auto entry = logic::get_entry(query);
-    if(entry != G::EMPTY_ENTRY) {
+    if(entry != GLOBALS::EMPTY_ENTRY) {
       logic::print_entry(entry);
     } else {
       auto new_query = logic::retry_help_query(query);
