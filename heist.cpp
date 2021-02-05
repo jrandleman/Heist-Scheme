@@ -16,7 +16,7 @@
  *             -> faster compile-time than -O3, smaller binary, & close runtime
  *
  * ON COMPILE TIME:
- *   0. Full -O3 compilation takes about 60s. Be patient. Compilation
+ *   0. Full -O3 compilation takes about 70s. Be patient. Compilation
  *      time has been traded for FAST runtime.
  *   1. -Os compilation takes about 40s. Generated binary is smaller than
  *      -O3's (as expected) & its runtime is nearly as fast
@@ -1269,7 +1269,7 @@ namespace heist {
   // -- OPTIONAL ARG CONVERSION
   // converts inline methods using opt args to a defmethod expr
   // converts inline ctor using opt args to use its <fn> syntax
-  void convert_opt_args_method_or_ctor_to_fn_expr(const sym_type& ctor_name, scm_list& exp)noexcept{
+  void convert_opt_args_method_or_ctor_to_fn_expr(const sym_type& ctor_name, scm_list& exp) {
     sym_type name = exp[0].exp[0].sym;
     scm_list inline_method_as_lambda(exp.size()+1);
     inline_method_as_lambda[0] = symconst::lambda;
