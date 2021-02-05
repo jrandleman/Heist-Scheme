@@ -589,18 +589,17 @@
         (new-coroutine (vector #f #f (lambda () (catch-jump (scm->cps body ...) id))))))))
 
 
-;; Convert a coroutine iterator into a generator thunk!
+;; Convert a coroutine object into a generator thunk!
 ;; Returns the final value & stops iterating once coroutine finished
-(define (coroutine->generator coroutine-instance)
-  (let ((co-iter coroutine-instance))
-    (lambda ()
-      (if (coroutine? co-iter)
-          (begin 
-            (set! co-iter (co-iter.next)) 
-            (if (coroutine? co-iter)
-                co-iter.value
-                co-iter))
-          'coroutine-complete)))) ; finished iterating!
+(define (coroutine->generator coroutine-object)
+  (lambda ()
+    (if (coroutine? coroutine-object)
+        (begin 
+          (set! coroutine-object (coroutine-object.next)) 
+          (if (coroutine? coroutine-object)
+              coroutine-object.value
+              coroutine-object))
+        'coroutine-complete))) ; finished iterating!
 
 ;; =============================================
 ;; =========== TAU BETA PI ASCII ART ===========
