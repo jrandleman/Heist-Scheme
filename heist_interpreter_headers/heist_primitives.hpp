@@ -4377,7 +4377,7 @@ namespace heist {
     "\n        %,n = number with commas (only for bigints)"\
     "\n        %En = %en = number (coerced to exact)"\
     "\n        %In = %in = number (coerced to inexact)"\
-    "\n        %#n = number (in base <#>)"\
+    "\n        %#n = number (in base <#>, from 2 to 36)"\
     "\n        %.#n = number (with <#> digits of precision)"\
     "\n        -> IE \"%+e2.5n\": 5 digits of precision & mk exact in binary w/ sign"\
     "\n        -> NOTE: case of 'n' in \"%n\" denotes case of base >= 11 letters"\

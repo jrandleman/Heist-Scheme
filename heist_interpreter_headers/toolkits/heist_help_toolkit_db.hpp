@@ -7970,7 +7970,7 @@ Returns a new, formatted string!
      %,n = number with commas (only for bigints)
      %En = %en = number (coerced to exact)
      %In = %in = number (coerced to inexact)
-     %#n = number (in base <#>)
+     %#n = number (in base <#>, from 2 to 36)
      %.#n = number (with <#> digits of precision)
      -> IE "%+e2.5n": 5 digits of precision & mk exact in binary w/ sign
      -> NOTE: case of 'n' in "%n" denotes case of base >= 11 letters
@@ -8016,7 +8016,7 @@ Display the formatted string!
      %,n = number with commas (only for bigints)
      %En = %en = number (coerced to exact)
      %In = %in = number (coerced to inexact)
-     %#n = number (in base <#>)
+     %#n = number (in base <#>, from 2 to 36)
      %.#n = number (with <#> digits of precision)
      -> IE "%+e2.5n": 5 digits of precision & mk exact in binary w/ sign
      -> NOTE: case of 'n' in "%n" denotes case of base >= 11 letters
@@ -8062,7 +8062,7 @@ Write the formatted string!
      %,n = number with commas (only for bigints)
      %En = %en = number (coerced to exact)
      %In = %in = number (coerced to inexact)
-     %#n = number (in base <#>)
+     %#n = number (in base <#>, from 2 to 36)
      %.#n = number (with <#> digits of precision)
      -> IE "%+e2.5n": 5 digits of precision & mk exact in binary w/ sign
      -> NOTE: case of 'n' in "%n" denotes case of base >= 11 letters
@@ -8109,7 +8109,7 @@ Pretty-print the formatted string!
      %,n = number with commas (only for bigints)
      %En = %en = number (coerced to exact)
      %In = %in = number (coerced to inexact)
-     %#n = number (in base <#>)
+     %#n = number (in base <#>, from 2 to 36)
      %.#n = number (with <#> digits of precision)
      -> IE "%+e2.5n": 5 digits of precision & mk exact in binary w/ sign
      -> NOTE: case of 'n' in "%n" denotes case of base >= 11 letters
