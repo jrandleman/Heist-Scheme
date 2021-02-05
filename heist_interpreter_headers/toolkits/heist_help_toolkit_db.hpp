@@ -7737,7 +7737,7 @@ R"(
 (vector->string <vector>)
 )",
 R"(
-Vector to string coercion.
+Vector to string coercion (vector MUST only contain characters!).
 )",
 
 
@@ -7765,7 +7765,7 @@ R"(
 (list->string <list>)
 )",
 R"(
-List to string coercion.
+List to string coercion (list MUST only contain characters!).
 )",
 
 
