@@ -2878,10 +2878,10 @@ Other primitives of this nature include:<br>
 ------------------------
 ## Control Flow Procedures:
 0. __Exit__: `(exit <optional-integer-exit-code>)`
-   * Note: `<optional-integer-exit-code>` defaults to `*exit-success*`
+   * Note: `<optional-integer-exit-code>` defaults to [`*exit-success*`](#Heist-Primitive-Variables)
    * If triggered while embedded in C++ ([`heist_cpp_interop.hpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/heist_cpp_interop.hpp)), eval'd code<br>
-     returns either `*exit-success*` or `*exit-failure*` as a SYMBOL!
-   * If triggered in `*null-environment*`, evaluation returns the given code immediately!
+     returns either [`*exit-success*`](#Heist-Primitive-Variables) or [`*exit-failure*`](#Heist-Primitive-Variables) as a SYMBOL!
+   * If triggered in [`*null-environment*`](#Heist-Primitive-Variables), evaluation returns the given code immediately!
 
 1. __Trigger Error__: `(error <errorful-obj-symbol> <error-string> <optional-errorful-objs>)`
 
