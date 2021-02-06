@@ -2005,8 +2005,20 @@ Other primitives of this nature include:<br>
      ```
 
 1. __Equivalency (structural comparisons)__: `(eqv? <obj1> <obj2> ...)`
+   * Generally:
+     ```scheme
+     (eqv? <item> <item>)                ; #t
+     (eqv? <item> (shallow-copy <item>)) ; #t
+     (eqv? <item> (copy <item>))         ; #f
+     ```
 
 2. __Deep Equality (recursive comparisons)__: `(equal? <obj1> <obj2> ...)`
+   * Generally:
+     ```scheme
+     (equal? <item> <item>)                ; #t
+     (equal? <item> (shallow-copy <item>)) ; #t
+     (equal? <item> (copy <item>))         ; #t
+     ```
 
 3. __Boolean Not__: `(not <obj>)`
 
