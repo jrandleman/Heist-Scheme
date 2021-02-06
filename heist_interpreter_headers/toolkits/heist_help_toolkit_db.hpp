@@ -266,10 +266,10 @@ static constexpr const char* HELP_MENU_PROCEDURES_SYSINTERFACE[] = {
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_INVARIANTS[] = {
-  "set-nansi!",               "nansi?",              "set-ci!",                  "ci?", 
-  "set-pprint-column-width!", "pprint-column-width", "set-max-recursion-depth!", "max-recursion-depth", 
-  "set-repl-prompt!",         "repl-prompt",         "set-dynamic-call-trace!",  "dynamic-call-trace?", 
-  "set-trace-args!",          "trace-args?",         "set-dot!",                 "dot", 
+  "set-nansi!",          "nansi?",                   "ci?",                 "set-pprint-column-width!", 
+  "pprint-column-width", "set-max-recursion-depth!", "max-recursion-depth", "set-repl-prompt!",
+  "repl-prompt",         "set-dynamic-call-trace!",  "dynamic-call-trace?", "set-trace-args!",
+  "trace-args?",         "set-dot!",                 "dot", 
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_CONTROLFLOW[] = {
@@ -9133,23 +9133,6 @@ Confirm ANSI codes are NOT in use.
 
 
 }, {
-"set-ci!",
-"Procedure",
-R"(
-(set-ci! <boolean>)
-)",
-R"(
-Disable case sensitivity. 
-  *) Check status via "ci?".
-  *) Returns the last value that served this role!
-  *) NOTE: Case-insensitivity implemented by having reader lowercase all input.
-)",
-
-
-
-
-
-}, {
 "ci?",
 "Procedure",
 R"(
@@ -9157,7 +9140,6 @@ R"(
 )",
 R"(
 Confirm case sensitivity is INACTIVE. 
-  *) Set status via "set-ci!".
   *) NOTE: Case-insensitivity implemented by having reader lowercase all input.
 )",
 

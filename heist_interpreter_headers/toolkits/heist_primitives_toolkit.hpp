@@ -3052,10 +3052,14 @@ namespace heist {
       if(isspace(ch)||ch == '('||ch == ')'||ch == '['||ch == ']'||ch == '{'||ch == '}'||
         ch == '`'||ch == '\''||ch == '"'||ch == ','||ch == ';'||ch == '\\'){
         char str[32];
-        snprintf(str, 32, "\\x%X:", unsigned(ch));
+        snprintf(str, 32, "\\x%x:", unsigned(ch));
         symbol_str += str;
       } else {
-        symbol_str += ch;
+        if(G.USING_CASE_SENSITIVE_SYMBOLS) {
+          symbol_str += ch;
+        } else {
+          symbol_str += scm_numeric::mklower(ch);
+        }
       }
     }
     return symbol_str;
@@ -4661,16 +4665,6 @@ namespace heist {
   /******************************************************************************
   * INTERPRETER GLOBAL-SETTING MANIPULATION PRIMITIVE HELPER
   ******************************************************************************/
-
-  data primitive_TOGGLE_DISPLAY_SETTING(scm_list& args, const char* name, bool& setting){
-    if(args.size() > 1)
-      THROW_ERR('\'' << name << " received incorrect # of args:\n     ("
-        << name << " <optional-bool>)" << FCN_ERR(name,args));
-    bool original_setting_status = !setting;
-    setting = false;
-    if(!args.empty()) setting = !is_true(args);
-    return boolean(original_setting_status);
-  }
 
   data primitive_TOGGLE_BOOLEAN_SETTING(scm_list& args, const char* name, bool& setting){
     if(args.size() > 1)

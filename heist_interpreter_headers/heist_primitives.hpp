@@ -5006,20 +5006,18 @@ namespace heist {
   // Defaults to disabling ANSI escape sequences, if not given a boolean.
   // Returns whether ANSI escapes sequences were disabled prior this call
   data primitive_SET_NANSI(scm_list& args) {
-    return primitive_TOGGLE_DISPLAY_SETTING(args, "set-nansi!", 
-                                            G.USING_ANSI_ESCAPE_SEQUENCES);
+    if(args.size() > 1)
+      THROW_ERR("'set-nansi! received incorrect # of args:"
+        "\n     (set-nansi! <optional-bool>)" << FCN_ERR("set-nansi!",args));
+    bool original_setting_status = !G.USING_ANSI_ESCAPE_SEQUENCES;
+    G.USING_ANSI_ESCAPE_SEQUENCES = false;
+    if(!args.empty()) G.USING_ANSI_ESCAPE_SEQUENCES = !is_true(args);
+    return boolean(original_setting_status);
   }
 
   data primitive_NANSIP(scm_list& args) {
     confirm_no_args_given(args,"nansi?");
     return boolean(!G.USING_ANSI_ESCAPE_SEQUENCES);
-  }
-
-  // Defaults to enabling case-sensitivity, if not given a boolean.
-  // Returns whether case-sensitivity was active prior this call
-  data primitive_SET_CI(scm_list& args) {
-    return primitive_TOGGLE_DISPLAY_SETTING(args, "set-ci!", 
-                                            G.USING_CASE_SENSITIVE_SYMBOLS);
   }
 
   data primitive_CIP(scm_list& args) {
@@ -6457,7 +6455,6 @@ namespace heist {
 
     std::make_pair(primitive_SET_NANSI,                    "set-nansi!"),
     std::make_pair(primitive_NANSIP,                       "nansi?"),
-    std::make_pair(primitive_SET_CI,                       "set-ci!"),
     std::make_pair(primitive_CIP,                          "ci?"),
     std::make_pair(primitive_SET_PPRINT_COLUMN_WIDTH_BANG, "set-pprint-column-width!"),
     std::make_pair(primitive_PPRINT_COLUMN_WIDTH,          "pprint-column-width"),

@@ -932,7 +932,7 @@ namespace heist {
     * WHETHER SYMBOLS ARE CASE-SENSITIVE
     ******************************************************************************/
 
-    bool USING_CASE_SENSITIVE_SYMBOLS = true; // see set-ci! primitive
+    bool USING_CASE_SENSITIVE_SYMBOLS = true; // see (ci?) primitive
 
     /******************************************************************************
     * WHETHER "INLINE" MODE IS ACTIVE
