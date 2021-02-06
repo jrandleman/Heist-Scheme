@@ -601,6 +601,15 @@
               coroutine-object))
         'coroutine-complete))) ; finished iterating!
 
+;; =================================
+;; =========== UNIVERSES ===========
+;; =================================
+
+(defclass universe ()
+  (universe:private:env '())
+  ((eval datum)
+    (heist:core:universe:eval datum self)))
+
 ;; =============================================
 ;; =========== TAU BETA PI ASCII ART ===========
 ;; =============================================

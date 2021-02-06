@@ -129,6 +129,7 @@
    - [Syntax Procedures](#Syntax-Procedures)
    - [Infix Analysis](#Infix-Analysis)
    - [JSON Interop](#JSON-Interop)
+   - [Universes](#Universes)
 10. [Heist Mathematical Flonum Constants](#Heist-Mathematical-Flonum-Constants)
 11. [Heist Minimalist REPL Example](#Heist-Minimalist-REPL-Example)
 
@@ -3015,6 +3016,19 @@ Other primitives of this nature include:<br>
 
 3. __JSON Datum Predicate__: `(json-datum? <obj>)`
    * Effectively returns whether `(scm->json <obj>)` would throw an error or not
+
+
+
+------------------------
+## Universes:
+0. __Create Universe__: `(new-universe)`
+   * Returns a `universe` [object](#defclass), initialized with Heist's default bindings,<br>
+     which enables evaluation in a persistent sandboxed environment
+
+1. __Universe Predicate__: `(universe? <obj>)`
+
+2. __Method to Evaluate in Universe__: `(<universe-object>.eval <datum>)`
+   * Evaluates `<datum>` in the `<universe-object>`'s sandboxed environment
 
 
 

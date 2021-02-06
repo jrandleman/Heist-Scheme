@@ -2616,7 +2616,7 @@ namespace heist {
       }
       deep_unpack_list_into_exp(curr_pair.par->second, args_list); 
     } else if(!primitive_IS_THE_EMPTY_LIST(curr_pair)) {
-      args_list.push_back(symconst::dot);
+      args_list.push_back(G.dot);
       args_list.push_back(curr_pair);
     }
   }
@@ -5750,6 +5750,24 @@ namespace heist {
       }
     THROW_ERR("'cycle-coroutines! 'coroutine object " << d
       << " is missing the \"next\" method!" << format); 
+  }
+
+  /******************************************************************************
+  * UNIVERSE EVALUATION
+  ******************************************************************************/
+
+  cls_type prm_get_universe_class_prototype(scm_list& args, const char* format) {
+    auto& [var_list, val_list, mac_list] = *G.GLOBAL_ENVIRONMENT_POINTER->operator[](0);
+    for(size_type i = 0, total_vars = var_list.size(); i < total_vars; ++i)
+      if("universe" == var_list[i]) {
+        if(!val_list[i].is_type(types::cls))
+          THROW_ERR("'heist:core:universe:eval 'universe symbol isn't bound to a class prototype!"
+            << format << FCN_ERR("heist:core:universe:eval",args)); 
+        return val_list[i].cls;
+      }
+    THROW_ERR("'heist:core:universe:eval 'universe symbol isn't bound to a class prototype!"
+      << format << FCN_ERR("heist:core:universe:eval",args)); 
+    return nullptr; // never triggered
   }
 } // End of namespace heist
 #endif

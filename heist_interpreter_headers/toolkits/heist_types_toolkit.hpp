@@ -681,6 +681,7 @@ namespace heist {
       case types::fcn: return v1.fcn == v2.fcn;
       case types::del: return v1.del == v2.del;
       case types::env: return v1.env == v2.env;
+      case types::prc: return v1.prc == v2.prc;
       case types::fip: return v1.fip.port_idx == v2.fip.port_idx;
       case types::fop: return v1.fop.port_idx == v2.fop.port_idx;
       case types::syn: return prm_compare_SNTXs<same_as>(v1.syn, v2.syn);

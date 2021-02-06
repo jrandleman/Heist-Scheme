@@ -5093,15 +5093,15 @@ namespace heist {
     if(args.size() != 1 || !args[0].is_type(types::chr))
       THROW_ERR("'set-dot! didn't receive 1 character!"
         "\n     (set-dot! <char>)" << FCN_ERR("set-dot!",args));
-    data original_dot = symconst::dot[0];
-    symconst::dot[0] = args[0].chr;
+    data original_dot = G.dot[0];
+    G.dot[0] = args[0].chr;
     return original_dot;
   }
 
   data primitive_DOT(scm_list& args) {
     if(!args.empty())
       THROW_ERR("'dot doesn't accept any args: (dot)" << FCN_ERR("dot",args));
-    return data(symconst::dot[0]);
+    return data(G.dot[0]);
   }
 
   /******************************************************************************
@@ -5913,6 +5913,63 @@ namespace heist {
   }
 
   /******************************************************************************
+  * UNIVERSE EVALUATION PRIMITIVE
+  ******************************************************************************/
+
+  data primitive_HEIST_CORE_UNIVERSE_EVAL(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (heist:core:universe:eval <datum> <universe-object>)";
+    if(args.size() != 2)
+      THROW_ERR("'heist:core:universe:eval not given 2 args!"
+        << format << FCN_ERR("heist:core:universe:eval",args));
+    if(!args[1].is_type(types::obj) || args[1].obj->proto != prm_get_universe_class_prototype(args,format))
+      THROW_ERR("'heist:core:universe:eval 2nd arg " << PROFILE(args[1])
+        << " isn't a <universe> object!" << format << FCN_ERR("heist:core:universe:eval",args));
+    for(size_type i = 0, n = args[1].obj->member_names.size(); i < n; ++i) {
+      if(args[1].obj->member_names[i] == "universe:private:env") {
+        // Create new environment as needed
+        if(!args[1].obj->member_values[i].is_type(types::prc)) {
+          auto old_invariants = reset_process_invariant_state();
+          args[1].obj->member_values[i] = prc_type(G);
+          set_process_invariant_state(std::move(old_invariants));
+        }
+        // Save current universe & set to the given universe
+        auto old_invariants = std::move(G);
+        G = std::move(*args[1].obj->member_values[i].prc);
+        try {
+          // eval in new universe
+          scm_list eval_args(3);
+          eval_args[0] = args[0];
+          eval_args[1] = symconst::global_env;
+          eval_args[2] = G.GLOBAL_ENVIRONMENT_POINTER; // ignored
+          auto result = primitive_EVAL(eval_args);
+          // reset to old universe
+          *args[1].obj->member_values[i].prc = std::move(G);
+          G = std::move(old_invariants);
+          return result;
+        } catch(const SCM_EXCEPT& eval_throw) {
+          // reset to old universe
+          *args[1].obj->member_values[i].prc = std::move(G);
+          G = std::move(old_invariants);
+          // sandboxed exit
+          if(eval_throw == SCM_EXCEPT::EXIT) 
+            return num_type(GLOBALS::HEIST_EXIT_CODE);
+          // display where error occurred
+          fprintf(stderr, "\n  %s>> Universe Exception:%s\n     Universe: \"%s\"\n     Expression: %s\n%s", 
+            afmt(AFMT_135), afmt(AFMT_01), args[1].obj->member_values[i].noexcept_write().c_str(), 
+            args[0].noexcept_write().c_str(), afmt(AFMT_0));
+          throw eval_throw;
+        }
+      }
+    }
+    // The below is never triggered if user doesn't alter source-code/access private variables
+    THROW_ERR("'heist:core:universe:eval <universe> object " << PROFILE(args[1]) 
+      << " missing its \"universe:private:env\" member!"
+      << format << FCN_ERR("heist:core:universe:eval",args));
+    return data(); // NEVER TRIGGERED
+  }
+
+  /******************************************************************************
   * REGISTRY OF PRIMITIVES ALSO REQUIRING AN ENVIRONMENT (TO APPLY A PROCEDURE)
   ******************************************************************************/
 
@@ -6566,6 +6623,8 @@ namespace heist {
     std::make_pair(primitive_STRING_TO_SPACE_ART,"string->space-art"),
 
     std::make_pair(primitive_HELP, "help"),
+
+    std::make_pair(primitive_HEIST_CORE_UNIVERSE_EVAL, "heist:core:universe:eval"),
   };
 
   frame_vals primitive_procedure_objects()noexcept{

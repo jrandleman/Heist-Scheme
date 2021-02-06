@@ -183,6 +183,8 @@ namespace help::logic {
       query = "license";
     else if(query == "associative-list" || query == "association-list") 
       query = "alist";
+    else if(query == "universes" || query == "new-universe" || query == "universe?" || query == "universe-eval") 
+      query = "universe";
     else if(is_scar_scdr_composition(query) || query == "scaar...scddddr")
       query = "scaar ... scddddr";
     else if(is_car_cdr_composition(query) || query == "caar...cddddr")
@@ -220,10 +222,11 @@ namespace help::logic {
       "heist-exact-platform","exact-platform","heist-dirname","exit-success","exit-failure","o","e","pi","phi","euler","+inf","inf","inf.0",
       "-inf","-nan.0","nan.0","nan","+nan","-nan","seq","coro","expr","sym","str","hash-map","hashmap","heist-interop","heist-cpp-interop",
       "heist-c++-interop","cpp-interop","c++-interop","heist-cpp","heist-c++","heist_cpp_interop","interop","readme","install","license.md",
-      "associative-list","association-list","scaar","scadr","scdar","scddr","scaaar","scaadr","scadar","scaddr","scdaar","scdadr","scddar","scdddr",
-      "scaaaar","scaaadr","scaadar","scaaddr","scadaar","scadadr","scaddar","scadddr","scdaaar","scdaadr","scdadar","scdaddr","scddaar","scddadr",
-      "scdddar","scddddr","scaar...scddddr","caar","cadr","cdar","cddr","caaar","caadr","cadar","caddr","cdaar","cdadr","cddar","cdddr","caaaar","caaadr",
-      "caadar","caaddr","cadaar","cadadr","caddar","cadddr","cdaaar","cdaadr","cdadar","cdaddr","cddaar","cddadr","cdddar","cddddr","caar...cddddr"
+      "associative-list","association-list","universes","new-universe","universe?","universe-eval","scaar","scadr","scdar","scddr","scaaar","scaadr",
+      "scadar","scaddr","scdaar","scdadr","scddar","scdddr","scaaaar","scaaadr","scaadar","scaaddr","scadaar","scadadr","scaddar","scadddr","scdaaar",
+      "scdaadr","scdadar","scdaddr","scddaar","scddadr","scdddar","scddddr","scaar...scddddr","caar","cadr","cdar","cddr","caaar","caadr","cadar","caddr",
+      "cdaar","cdadr","cddar","cdddr","caaaar","caaadr","caadar","caaddr","cadaar","cadadr","caddar","cadddr","cdaaar","cdaadr","cdadar","cdaddr","cddaar",
+      "cddadr","cdddar","cddddr","caar...cddddr"
     };
     // Store possible matches by decreasing substring match length
     std::vector<std::pair<size_type,scm_string>> match_map;
