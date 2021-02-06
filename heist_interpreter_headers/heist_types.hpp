@@ -1037,12 +1037,6 @@ namespace heist {
     env_type GLOBAL_ENVIRONMENT_POINTER = nullptr;
 
     /******************************************************************************
-    * GLOBAL "JUMP!" PRIMITIVE ARGUMENT STORAGE
-    ******************************************************************************/
-
-    data JUMP_GLOBAL_PRIMITIVE_ARGUMENT; // see catch-jump & jump!
-
-    /******************************************************************************
     * DOT CHARACTER FOR VARIADIC & PAIR-LITERAL DENOTATION
     ******************************************************************************/
 
@@ -1057,6 +1051,12 @@ namespace heist {
   process_invariants_t G;
 
 } // End of namespace heist
+
+/******************************************************************************
+* GLOBAL "JUMP!" PRIMITIVE ARGUMENT STORAGE
+******************************************************************************/
+
+namespace heist::GLOBALS { data JUMP_GLOBAL_PRIMITIVE_ARGUMENT; } // see catch-jump & jump!
 
 /******************************************************************************
 * PRINTING/EQUALITY/DEEP-COPYING HELPER FUNCTIONS

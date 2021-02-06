@@ -31,7 +31,7 @@ namespace heist {
         } catch(const SCM_EXCEPT& eval_throw) {
           if(eval_throw == heist::SCM_EXCEPT::JUMP) {
             PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
-              << PROFILE(heist::G.JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
+              << PROFILE(heist::GLOBALS::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
           } else if(eval_throw == heist::SCM_EXCEPT::EXIT) {
             if(heist::GLOBALS::HEIST_EXIT_CODE)
               return data(heist::symconst::exit_failure);
@@ -94,7 +94,7 @@ namespace heist {
     } catch(const SCM_EXCEPT& eval_throw) {
       if(eval_throw == heist::SCM_EXCEPT::JUMP) {
         PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
-          << PROFILE(heist::G.JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
+          << PROFILE(heist::GLOBALS::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
       } else if(eval_throw == heist::SCM_EXCEPT::EXIT) {
         if(heist::GLOBALS::HEIST_EXIT_CODE)
           return data(heist::symconst::exit_failure);
@@ -114,7 +114,7 @@ namespace heist {
     } catch(const SCM_EXCEPT& eval_throw) {
       if(eval_throw == heist::SCM_EXCEPT::JUMP) {
         PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
-          << PROFILE(heist::G.JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
+          << PROFILE(heist::GLOBALS::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
       } else if(eval_throw == heist::SCM_EXCEPT::EXIT) {
         if(heist::GLOBALS::HEIST_EXIT_CODE)
           return data(heist::symconst::exit_failure);

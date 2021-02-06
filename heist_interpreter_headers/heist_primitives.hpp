@@ -5184,9 +5184,9 @@ namespace heist {
       THROW_ERR("'jump! received incorrect # of args!"
         "\n     (jump! <optional-arg>)" << FCN_ERR("jump!",args));
     if(args.size() == 1)
-      G.JUMP_GLOBAL_PRIMITIVE_ARGUMENT = args[0];
+      GLOBALS::JUMP_GLOBAL_PRIMITIVE_ARGUMENT = args[0];
     else
-      G.JUMP_GLOBAL_PRIMITIVE_ARGUMENT = GLOBALS::VOID_DATA_OBJECT;
+      GLOBALS::JUMP_GLOBAL_PRIMITIVE_ARGUMENT = GLOBALS::VOID_DATA_OBJECT;
     throw SCM_EXCEPT::JUMP;
     return data();
   }
@@ -5205,7 +5205,7 @@ namespace heist {
     } catch(const SCM_EXCEPT& jump_error) {
       G.USING_INLINE_INVOCATIONS = inline_status;
       if(jump_error == SCM_EXCEPT::JUMP)
-        return G.JUMP_GLOBAL_PRIMITIVE_ARGUMENT;
+        return GLOBALS::JUMP_GLOBAL_PRIMITIVE_ARGUMENT;
       throw jump_error;
     }
     return data();

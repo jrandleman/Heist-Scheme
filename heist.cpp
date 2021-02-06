@@ -4839,7 +4839,7 @@ int driver_loop() {
         }
         if(eval_throw == heist::SCM_EXCEPT::JUMP)
           PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
-            << PROFILE(heist::G.JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
+            << PROFILE(heist::GLOBALS::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
         print_repl_newline();
       } catch(...) {
         PRINT_ERR("Uncaught C++ Exception Detected! -:- BUG ALERT -:-"
@@ -4976,7 +4976,7 @@ int load_script(const char* filename){
     /* warn about uncaught <jump!> */
     if(eval_throw == heist::SCM_EXCEPT::JUMP)
       PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
-        << PROFILE(heist::G.JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
+        << PROFILE(heist::GLOBALS::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
     /* catch <exit> signal */
     if(eval_throw == heist::SCM_EXCEPT::EXIT) 
       return heist::GLOBALS::HEIST_EXIT_CODE;
@@ -5014,7 +5014,7 @@ int compile_script(char* argv[], const int& compile_pos, std::string& compile_as
     /* warn about uncaught <jump!> */
     if(eval_throw == heist::SCM_EXCEPT::JUMP)
       PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
-        << PROFILE(heist::G.JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
+        << PROFILE(heist::GLOBALS::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
     /* catch <exit> signal */
     if(eval_throw == heist::SCM_EXCEPT::EXIT) 
       return heist::GLOBALS::HEIST_EXIT_CODE;
@@ -5107,7 +5107,7 @@ int interpret_premade_AST_code(){
       if(eval_throw == heist::SCM_EXCEPT::EXIT) return heist::GLOBALS::HEIST_EXIT_CODE;
       if(eval_throw == heist::SCM_EXCEPT::JUMP)
         PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
-          << PROFILE(heist::G.JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
+          << PROFILE(heist::GLOBALS::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
     } catch(...) {
       PRINT_ERR("Uncaught C++ Exception Detected! -:- BUG ALERT -:-"
            "\n     Triggered By: " << input << 
