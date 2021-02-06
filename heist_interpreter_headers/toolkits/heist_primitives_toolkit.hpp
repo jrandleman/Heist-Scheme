@@ -3055,7 +3055,7 @@ namespace heist {
         snprintf(str, 32, "\\x%x:", unsigned(ch));
         symbol_str += str;
       } else {
-        if(G.USING_CASE_SENSITIVE_SYMBOLS) {
+        if(GLOBALS::USING_CASE_SENSITIVE_SYMBOLS) {
           symbol_str += ch;
         } else {
           symbol_str += scm_numeric::mklower(ch);

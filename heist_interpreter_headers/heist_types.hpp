@@ -49,6 +49,12 @@ namespace heist {
     int HEIST_EXIT_CODE = 0;
 
     /******************************************************************************
+    * WHETHER SYMBOLS ARE CASE-SENSITIVE
+    ******************************************************************************/
+
+    bool USING_CASE_SENSITIVE_SYMBOLS = true; // see (ci?) primitive
+
+    /******************************************************************************
     * ARGV REGISTRY OF STRINGS
     ******************************************************************************/
 
@@ -929,12 +935,6 @@ namespace heist {
     bool USING_ANSI_ESCAPE_SEQUENCES = true; // see set-nansi! primitive
 
     /******************************************************************************
-    * WHETHER SYMBOLS ARE CASE-SENSITIVE
-    ******************************************************************************/
-
-    bool USING_CASE_SENSITIVE_SYMBOLS = true; // see (ci?) primitive
-
-    /******************************************************************************
     * WHETHER "INLINE" MODE IS ACTIVE
     ******************************************************************************/
 
@@ -1051,12 +1051,6 @@ namespace heist {
   process_invariants_t G;
 
 } // End of namespace heist
-
-/******************************************************************************
-* GLOBAL "JUMP!" PRIMITIVE ARGUMENT STORAGE
-******************************************************************************/
-
-namespace heist::GLOBALS { data JUMP_GLOBAL_PRIMITIVE_ARGUMENT; } // see catch-jump & jump!
 
 /******************************************************************************
 * PRINTING/EQUALITY/DEEP-COPYING HELPER FUNCTIONS

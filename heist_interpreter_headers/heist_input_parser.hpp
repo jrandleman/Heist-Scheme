@@ -673,7 +673,7 @@ namespace heist {
   bool prepare_string_for_AST_generation(scm_string& input) {
     if(input.empty() || !confirm_valid_scm_expression(input)) return false;
     strip_comments_and_redundant_whitespace(input);
-    if(!G.USING_CASE_SENSITIVE_SYMBOLS) render_input_cAsE_iNsEnSiTiVe(input);
+    if(!GLOBALS::USING_CASE_SENSITIVE_SYMBOLS) render_input_cAsE_iNsEnSiTiVe(input);
     expand_inf_precedence_scoping(input);   //  "{" => "(heist:core:inf-precedence "
     expand_vector_and_hmap_literals(input); // #(<exp>) => (vector-literal <exp>), $(<exp>) => (hmap-literal <exp>)
     expand_reader_macro_shorthands(input);  // '<exp>   => (quote <exp>)

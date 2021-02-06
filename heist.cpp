@@ -4897,7 +4897,7 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
   // Parse input arguments
   for(int i = 1; i < argc; ++i) {
     if(std::string cmd_flag(argv[i]); cmd_flag == "-ci") {
-      heist::G.USING_CASE_SENSITIVE_SYMBOLS = false;
+      heist::GLOBALS::USING_CASE_SENSITIVE_SYMBOLS = false;
     } else if(cmd_flag == "--version") {
       immediate_exit = true;
       puts("Heist Scheme Version 7.0\nTarget: " HEIST_EXACT_PLATFORM "\nInstalledDir: " HEIST_DIRECTORY_FILE_PATH);

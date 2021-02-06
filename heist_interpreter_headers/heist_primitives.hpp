@@ -5022,7 +5022,7 @@ namespace heist {
 
   data primitive_CIP(scm_list& args) {
     confirm_no_args_given(args,"ci?");
-    return boolean(!G.USING_CASE_SENSITIVE_SYMBOLS);
+    return boolean(!GLOBALS::USING_CASE_SENSITIVE_SYMBOLS);
   }
 
   data primitive_SET_PPRINT_COLUMN_WIDTH_BANG(scm_list& args) {

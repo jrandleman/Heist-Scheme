@@ -37,6 +37,12 @@ namespace heist {
     const auto EMPTY_LIST_EXPRESSION = scm_list(1,symconst::emptylist);
 
     /******************************************************************************
+    * GLOBAL "JUMP!" PRIMITIVE ARGUMENT STORAGE
+    ******************************************************************************/
+
+    data JUMP_GLOBAL_PRIMITIVE_ARGUMENT; // see catch-jump & jump!
+
+    /******************************************************************************
     * REGISTRY OF PRIMITIVES ALSO REQUIRING AN ENVIRONMENT (TO APPLY A PROCEDURE)
     ******************************************************************************/
 
