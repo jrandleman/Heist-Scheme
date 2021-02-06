@@ -2447,7 +2447,10 @@ Resolves to itself as a symbol.
 
 "*null-environment*" says to eval the argument in a sandboxed environment,
 using only the default Heist bindings without affecting the memory of the 
-current process.
+current process. 
+
+Sandboxes effect of "exit" to just exit the current evaluation process without 
+also exiting the calling environment (which would terminate the entire program).
 
 Other possible flags include "*local-environment*" & "*global-environment*"!
 )",
@@ -9357,6 +9360,8 @@ Exit the current Heist session with <optional-integer-exit-code> as its status.
   *) <optional-integer-exit-code> defaults to *exit-success*
   *) If triggered while embedded in C++ (heist_cpp_interop.hpp), eval'd code
      returns either *exit-success* or *exit-failure* as a SYMBOL!
+  *) If triggered in *null-environment*, evaluation sandboxes exit & returns 
+     the given code immediately!
 )",
 
 

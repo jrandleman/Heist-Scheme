@@ -2881,6 +2881,7 @@ Other primitives of this nature include:<br>
    * Note: `<optional-integer-exit-code>` defaults to `*exit-success*`
    * If triggered while embedded in C++ ([`heist_cpp_interop.hpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/heist_cpp_interop.hpp)), eval'd code<br>
      returns either `*exit-success*` or `*exit-failure*` as a SYMBOL!
+   * If triggered in `*null-environment*`, evaluation returns the given code immediately!
 
 1. __Trigger Error__: `(error <errorful-obj-symbol> <error-string> <optional-errorful-objs>)`
 
