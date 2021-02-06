@@ -4687,7 +4687,7 @@ namespace heist {
     define_variable(symconst::global_env,    symconst::global_env,                 G.GLOBAL_ENVIRONMENT_POINTER);
     define_variable(symconst::sentinel_arg,  symconst::sentinel_arg,               G.GLOBAL_ENVIRONMENT_POINTER);
     define_variable("*argv*", primitive_LIST_to_CONS_constructor(GLOBALS::ARGV.begin(),GLOBALS::ARGV.end()), G.GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("*argc*", num_type(GLOBALS::ARGV.size()),                                    G.GLOBAL_ENVIRONMENT_POINTER);
+    define_variable("*argc*", num_type(GLOBALS::ARGV.size()),                                                G.GLOBAL_ENVIRONMENT_POINTER);
     evaluate_primitives_written_in_heist_scheme();
   }
 

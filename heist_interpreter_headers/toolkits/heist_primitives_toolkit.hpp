@@ -60,6 +60,24 @@ namespace heist {
   constexpr bool IS_CLOSE_PAREN(const char& c) noexcept;
 
   /******************************************************************************
+  * GLOBAL PROCESS INVARIANTS RESET & SET ABSTRACTIONS
+  ******************************************************************************/
+
+  // Saves the current <G> value, then resets it to its default values.
+  process_invariants_t reset_process_invariant_state() {
+    process_invariants_t tmp(std::move(G));
+    G = process_invariants_t();
+    set_default_global_environment();
+    return tmp;
+  }
+
+
+  // Sets the <G> value to the given invariants set.
+  void set_process_invariant_state(process_invariants_t&& invariants) {
+    G = std::move(invariants);
+  }
+
+  /******************************************************************************
   * PRIMITIVE ARGUMENT ANALYSIS HELPERS
   ******************************************************************************/
 
@@ -2606,13 +2624,10 @@ namespace heist {
 
   // [ EVAL ] Confirms correct # of args given
   void prm_EVAL_confirm_correct_number_of_args(scm_list& args, bool& must_reset_global_env, 
-                          env_type& local_env, env_type& env, env_type& original_global_env, 
-                                                      const char* name, const char* format){
+                          env_type& local_env, env_type& env, const char* name, const char* format){
     if(args.size()==2 && args[1].is_type(types::sym)) {
       if(args[1].sym == symconst::null_env) {
-        must_reset_global_env = true;
-        set_default_global_environment(), args.pop_back();
-        env = G.GLOBAL_ENVIRONMENT_POINTER;
+        must_reset_global_env = true, args.pop_back();
       } else if(args[1].sym == symconst::local_env) {
         env = local_env, args.pop_back();
       } else if(args[1].sym == symconst::global_env) {
@@ -2623,22 +2638,17 @@ namespace heist {
       }
     }
     // confirm the correct # of arguments were passed
-    if(args.size() != 1) {
-      if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
+    if(args.size() != 1)
       THROW_ERR('\''<<name<<" received incorrect # of arguments:" << format << FCN_ERR(name, args));
-    }
   }
 
 
   // [ CPS-EVAL ] Confirms correct # of args given
   void prm_CPS_EVAL_confirm_correct_number_of_args(scm_list& args, bool& must_reset_global_env, 
-                                                   env_type& env, env_type& original_global_env, 
-                                                         const char* name, const char* format){
+                                                   env_type& env, const char* name, const char* format){
     if(args.size()==2 && args[1].is_type(types::sym)) {
       if(args[1].sym == symconst::null_env) {
-        must_reset_global_env = true;
-        set_default_global_environment(), args.pop_back();
-        env = G.GLOBAL_ENVIRONMENT_POINTER;
+        must_reset_global_env = true, args.pop_back();
       } else if(args[1].sym == symconst::global_env) {
         env = G.GLOBAL_ENVIRONMENT_POINTER, args.pop_back();
       } else if(args[1].sym == symconst::local_env) {
@@ -2649,10 +2659,8 @@ namespace heist {
       }
     }
     // confirm the correct # of arguments were passed
-    if(args.size() != 1) {
-      if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
+    if(args.size() != 1)
       THROW_ERR('\''<<name<<" received incorrect # of arguments:" << format << FCN_ERR(name, args));
-    }
   }
 
 

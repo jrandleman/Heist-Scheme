@@ -3428,52 +3428,69 @@ namespace heist {
     if(args.size() == 1) args.push_back(symconst::local_env);
     // use the initial/local environment if passed *null-environment* or
     //   *local-environment* as a 2nd arg
-    auto original_global_env = G.GLOBAL_ENVIRONMENT_POINTER;
     auto env = G.GLOBAL_ENVIRONMENT_POINTER;
     bool must_reset_global_env = false;
-    prm_EVAL_confirm_correct_number_of_args(args,must_reset_global_env,local_env,env,
-                                                   original_global_env,"eval",format);
+    prm_EVAL_confirm_correct_number_of_args(args,must_reset_global_env,local_env,env,"eval",format);
+
+
     // if arg is self-evaluating, return arg
-    if(prm_EVAL_data_is_self_evaluating(args[0])) {
-      if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
-      return args[0];
-    }
+    if(prm_EVAL_data_is_self_evaluating(args[0])) return args[0];
+
+
     // if arg is a symbol, eval the symbol
     if(args[0].is_type(types::sym)) {
       // confirm arg is not '()
-      if(args[0].sym == symconst::emptylist) {
-        if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
+      if(args[0].sym == symconst::emptylist)
         THROW_ERR("'eval can't evaluate '() (nil to eval):" << format << FCN_ERR("eval", args));
-      }
-      try {
-        auto result = data_cast(scm_eval(scm_list(1, args[0]),env));
-        if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
-        return result;
-      } catch(const SCM_EXCEPT& eval_throw) {
-        if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
-        throw eval_throw;
+      // if using *local-environment* or *global-environment*
+      if(!must_reset_global_env) {
+        try {
+          return data_cast(scm_eval(scm_list(1, args[0]),env));
+        } catch(const SCM_EXCEPT& eval_throw) {
+          throw eval_throw;
+        }
+      // if using *null-environment*
+      } else {
+        auto old_invariants = reset_process_invariant_state();
+        try {
+          auto result = data_cast(scm_eval(scm_list(1, args[0]),G.GLOBAL_ENVIRONMENT_POINTER));
+          set_process_invariant_state(std::move(old_invariants));
+          return result;
+        } catch(const SCM_EXCEPT& eval_throw) {
+          set_process_invariant_state(std::move(old_invariants));
+          throw eval_throw;
+        }
       }
       return GLOBALS::VOID_DATA_OBJECT;
     }
+
+
     // else confirm arg is a proper list
-    if(!args[0].is_type(types::par)) {
-      if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
+    if(!args[0].is_type(types::par))
       THROW_ERR("'eval didn't receive an evaluable expression:\n     "<<PROFILE(args[0])
         << format << FCN_ERR("eval", args));
-    }
-    if(!data_is_proper_list(args[0])) {
-      if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
+    if(!data_is_proper_list(args[0]))
       THROW_ERR("'eval received an improper list: "<<PROFILE(args[0])
         << format << FCN_ERR("eval", args));
-    }
     // eval list contents
-    try {
-      auto result = data_cast(scm_eval(prm_EVAL_convert_list_to_AST(args[0]),env));
-      if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
-      return result;
-    } catch(const SCM_EXCEPT& eval_throw) {
-      if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
-      throw eval_throw;
+    // if using *local-environment* or *global-environment*
+    if(!must_reset_global_env) {
+      try {
+        return data_cast(scm_eval(prm_EVAL_convert_list_to_AST(args[0]),env));
+      } catch(const SCM_EXCEPT& eval_throw) {
+        throw eval_throw;
+      }
+    // if using *null-environment*
+    } else {
+      auto old_invariants = reset_process_invariant_state();
+      try {
+        auto result = data_cast(scm_eval(prm_EVAL_convert_list_to_AST(args[0]),G.GLOBAL_ENVIRONMENT_POINTER));
+        set_process_invariant_state(std::move(old_invariants));
+        return result;
+      } catch(const SCM_EXCEPT& eval_throw) {
+        set_process_invariant_state(std::move(old_invariants));
+        throw eval_throw;
+      }
     }
     return GLOBALS::VOID_DATA_OBJECT;
   }
@@ -3504,58 +3521,81 @@ namespace heist {
     // use the initial/global environment if passed *null-environment* or
     //   *global-environment* as a 2nd arg
     bool must_reset_global_env = false;
-    auto original_global_env = G.GLOBAL_ENVIRONMENT_POINTER;
     auto env = local_env;
-    prm_CPS_EVAL_confirm_correct_number_of_args(args,must_reset_global_env,env,
-                                                  original_global_env,"cps-eval",format);
+    prm_CPS_EVAL_confirm_correct_number_of_args(args,must_reset_global_env,env,"cps-eval",format);
     // Reset "inline"ing of the continuation if EVALing in the *null-environment*
     if(must_reset_global_env) prm_set_procedure_INLINE_INVOCATION(continuation_procedure,false);
+
+
     // if arg is self-evaluating, return arg
     if(prm_EVAL_data_is_self_evaluating(args[0])) {
-      if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
       scm_list cps_eval_args(1,continuation);
       return data_cast(execute_application(data_cast(scm_analyze(generate_fundamental_form_cps(args[0]),false,true)(env)),cps_eval_args,env));
     }
+
+
     // if arg is a symbol, cps-eval the symbol
     if(args[0].is_type(types::sym)) {
       // confirm arg is not '()
-      if(args[0].sym == symconst::emptylist) {
-        if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
+      if(args[0].sym == symconst::emptylist)
         THROW_ERR("'cps-eval can't evaluate '() (nil to eval):"
           << format << FCN_ERR("cps-eval", args));
-      }
-      try {
-        scm_list cps_eval_args(1,continuation);
-        auto result = data_cast(execute_application(data_cast(scm_analyze(generate_fundamental_form_cps(args[0]),false,true)(env)),cps_eval_args,env));
-        if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
-        return result;
-      } catch(const SCM_EXCEPT& eval_throw) {
-        if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
-        throw eval_throw;
+      // if using *local-environment* or *global-environment*
+      if(!must_reset_global_env) {
+        try {
+          scm_list cps_eval_args(1,continuation);
+          return data_cast(execute_application(data_cast(scm_analyze(generate_fundamental_form_cps(args[0]),false,true)(env)),cps_eval_args,env));
+        } catch(const SCM_EXCEPT& eval_throw) {
+          throw eval_throw;
+        }
+      // if using *null-environment*
+      } else {
+        auto old_invariants = reset_process_invariant_state();
+        try {
+          scm_list cps_eval_args(1,continuation);
+          auto result = data_cast(execute_application(data_cast(scm_analyze(generate_fundamental_form_cps(args[0]),false,true)(G.GLOBAL_ENVIRONMENT_POINTER)),
+                                                      cps_eval_args, G.GLOBAL_ENVIRONMENT_POINTER));
+          set_process_invariant_state(std::move(old_invariants));
+          return result;
+        } catch(const SCM_EXCEPT& eval_throw) {
+          set_process_invariant_state(std::move(old_invariants));
+          throw eval_throw;
+        }
       }
       return GLOBALS::VOID_DATA_OBJECT;
     }
+
+
     // else confirm arg is a proper list
-    if(!args[0].is_type(types::par)) {
-      if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
+    if(!args[0].is_type(types::par))
       THROW_ERR("'cps-eval didn't receive an evaluable expression:\n     "<<PROFILE(args[0])
         << format << FCN_ERR("cps-eval", args));
-    }
-    if(!data_is_proper_list(args[0])) {
-      if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
+    if(!data_is_proper_list(args[0]))
       THROW_ERR("'cps-eval received an improper list: "<<PROFILE(args[0])
         << format << FCN_ERR("cps-eval", args));
-    }
-    try {
-      scm_list cps_eval_args(1,continuation);
-      auto result = data_cast(
-        execute_application(data_cast(scm_analyze(generate_fundamental_form_cps(
-          prm_EVAL_convert_list_to_AST(args[0])),false,true)(env)),cps_eval_args,env));
-      if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
-      return result;
-    } catch(const SCM_EXCEPT& eval_throw) {
-      if(must_reset_global_env) G.GLOBAL_ENVIRONMENT_POINTER = original_global_env;
-      throw eval_throw;
+    // if using *local-environment* or *global-environment*
+    if(!must_reset_global_env) {
+      try {
+        scm_list cps_eval_args(1,continuation);
+        return data_cast(execute_application(data_cast(scm_analyze(generate_fundamental_form_cps(
+                prm_EVAL_convert_list_to_AST(args[0])),false,true)(env)),cps_eval_args,env));
+      } catch(const SCM_EXCEPT& eval_throw) {
+        throw eval_throw;
+      }
+    // if using *null-environment*
+    } else {
+      auto old_invariants = reset_process_invariant_state();
+      try {
+        scm_list cps_eval_args(1,continuation);
+        auto result = data_cast(
+          execute_application(data_cast(scm_analyze(generate_fundamental_form_cps(
+            prm_EVAL_convert_list_to_AST(args[0])),false,true)(G.GLOBAL_ENVIRONMENT_POINTER)),cps_eval_args,G.GLOBAL_ENVIRONMENT_POINTER));
+        set_process_invariant_state(std::move(old_invariants));
+        return result;
+      } catch(const SCM_EXCEPT& eval_throw) {
+        set_process_invariant_state(std::move(old_invariants));
+        throw eval_throw;
+      }
     }
     return GLOBALS::VOID_DATA_OBJECT;
   }
@@ -4762,16 +4802,17 @@ namespace heist {
     auto env = G.GLOBAL_ENVIRONMENT_POINTER;
     if(args.size()==2 && args[1].is_type(types::sym)) {
       if(args[1].sym == symconst::null_env) {
-        // Reset "G.GLOBAL_ENVIRONMENT_POINTER" to its default state
-        set_default_global_environment(), args.pop_back();
+        // Reset interpreter invariants to their default states
+        auto old_invariants = reset_process_invariant_state();
+        args.pop_back();
         try {
           primitive_LOAD_interpret_file_contents(args,G.GLOBAL_ENVIRONMENT_POINTER,format);
         } catch(const SCM_EXCEPT& eval_throw) {
-          G.GLOBAL_ENVIRONMENT_POINTER = env;
+          set_process_invariant_state(std::move(old_invariants));
           throw eval_throw;
         }
-        // Reset G.GLOBAL_ENVIRONMENT_POINTER to its original bindings
-        G.GLOBAL_ENVIRONMENT_POINTER = env; 
+        // Reset interpreter invariants to their previous bindings
+        set_process_invariant_state(std::move(old_invariants));
         return GLOBALS::VOID_DATA_OBJECT;
       } else if(args[1].sym == symconst::local_env) {
         env = local_env, args.pop_back();
@@ -4810,19 +4851,20 @@ namespace heist {
       if(args[1].sym == symconst::null_env) {
         // Reset "inline"ing of the continuation, no need in *null-environment*
         prm_set_procedure_INLINE_INVOCATION(continuation_procedure,false);
-        // Reset "G.GLOBAL_ENVIRONMENT_POINTER" to its default state
-        set_default_global_environment(), args.pop_back();
+        // Reset interpreter invariants to their default states
+        auto old_invariants = reset_process_invariant_state();
+        args.pop_back();
         try {
           scm_list cps_load_arg(1,continuation);
           // pass the continuation to the loaded file
           auto result = data_cast(execute_application(
             data_cast(primitive_CPS_LOAD_interpret_file_contents(args,G.GLOBAL_ENVIRONMENT_POINTER,format)),
             cps_load_arg,G.GLOBAL_ENVIRONMENT_POINTER));
-          // Reset G.GLOBAL_ENVIRONMENT_POINTER to its original bindings
-          G.GLOBAL_ENVIRONMENT_POINTER = env;
+          // Reset interpreter invariants to their previous states
+          set_process_invariant_state(std::move(old_invariants));
           return result;
         } catch(const SCM_EXCEPT& eval_throw) {
-          G.GLOBAL_ENVIRONMENT_POINTER = env;
+          set_process_invariant_state(std::move(old_invariants));
           throw eval_throw;
         }
       } else if(args[1].sym == symconst::global_env) {
