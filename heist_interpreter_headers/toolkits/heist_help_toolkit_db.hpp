@@ -4453,6 +4453,11 @@ Shallow equality (pointer comparisons)!
            (let ((s "hello")) (eq? s s)) ; #t ; same object pointer
            (eq? '(1) '(1))               ; #f ; different object pointers
            (let ((s '(1))) (eq? s s))    ; #t ; same object pointer
+
+Generally: 
+  (eq? <item> <item>)                ; #t
+  (eq? <item> (shallow-copy <item>)) ; #f
+  (eq? <item> (copy <item>))         ; #f
 )",
 
 
@@ -4466,7 +4471,7 @@ R"(
 (eqv? <obj1> <obj2> ...)
 )",
 R"(
-Equivalency comparison ("eq?" but compares strings by value)!
+Equivalency (structural comparisons, uses "eq?" for structure components)!
   *) Unlike "=", ALSO accounts for exactness in numbers!
   *) I.E.: (eqv? 1.0 1)                   ; #f ; mismatched exactness
            (eqv? 1.0 1.0)                 ; #t ; numbers use value semantics
@@ -4474,6 +4479,11 @@ Equivalency comparison ("eq?" but compares strings by value)!
            (let ((s "hello")) (eqv? s s)) ; #t ; same object pointer
            (eqv? '(1) '(1))               ; #f ; different object pointers
            (let ((s '(1))) (eqv? s s))    ; #t ; same object pointer
+
+Generally: 
+  (eqv? <item> <item>)                ; #t
+  (eqv? <item> (shallow-copy <item>)) ; #t
+  (eqv? <item> (copy <item>))         ; #f
 )",
 
 
@@ -4495,6 +4505,11 @@ Recursive "deep" equality: recursively compares container components!
            (let ((s "hello")) (equal? s s)) ; #t ; same object pointer
            (equal? '(1) '(1))               ; #t ; container recursive value comparison
            (let ((s '(1))) (equal? s s))    ; #t ; same object pointer
+
+Generally: 
+  (equal? <item> <item>)                ; #t
+  (equal? <item> (shallow-copy <item>)) ; #t
+  (equal? <item> (copy <item>))         ; #t
 )",
 
 
