@@ -1997,7 +1997,7 @@ Other primitives of this nature include:<br>
 ------------------------
 ## Equality Predicates:
 0. __Shallow Equality (pointer comparisons)__: `(eq? <obj1> <obj2> ...)`
-   * _Generally:_
+   * Generally:
      ```scheme
      (eq? <item> <item>)                ; #t
      (eq? <item> (shallow-copy <item>)) ; #f
@@ -2005,8 +2005,8 @@ Other primitives of this nature include:<br>
      ```
 
 1. __Equivalency (structural comparisons)__: `(eqv? <obj1> <obj2> ...)`
-   * _Compares items in containers using `eq?`!_
-   * _Generally:_
+   * Compares items in containers using `eq?`
+   * Generally:
      ```scheme
      (eqv? <item> <item>)                ; #t
      (eqv? <item> (shallow-copy <item>)) ; #t
@@ -2014,7 +2014,7 @@ Other primitives of this nature include:<br>
      ```
 
 2. __Deep Equality (recursive comparisons)__: `(equal? <obj1> <obj2> ...)`
-   * _Generally:_
+   * Generally:
      ```scheme
      (equal? <item> <item>)                ; #t
      (equal? <item> (shallow-copy <item>)) ; #t
