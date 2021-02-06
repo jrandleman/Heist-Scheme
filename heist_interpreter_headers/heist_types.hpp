@@ -648,7 +648,13 @@ namespace heist {
       if(type == types::obj   && prm_DYNAMIC_OBJeq(obj,d,"eqv?",result)) return result;
       if(d.type == types::obj && prm_DYNAMIC_OBJeq(d.obj,*this,"eqv?",result)) return result;
       if(type != d.type) return false;
-      return prm_compare_atomic_values<&data::equal>(*this,d,type);
+      switch(type) {
+        case types::par: return prm_compare_PAIRs<&data::eq>(par,d.par);
+        case types::vec: return prm_compare_VECTs<&data::eq>(vec,d.vec);
+        case types::map: return prm_compare_HMAPs<&data::eq>(map,d.map);
+        case types::obj: return prm_compare_OBJs <&data::eq>(obj,d.obj);
+        default: return prm_compare_atomic_values<&data::equal>(*this,d,type);
+      }
     }
 
     bool eq(const data& d) const { // eq?

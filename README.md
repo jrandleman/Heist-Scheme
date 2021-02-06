@@ -1997,10 +1997,16 @@ Other primitives of this nature include:<br>
 ------------------------
 ## Equality Predicates:
 0. __Shallow Equality (pointer comparisons)__: `(eq? <obj1> <obj2> ...)`
+   * Generally:
+     ```scheme
+     (eq? <item> <item>)                ; #t
+     (eq? <item> (shallow-copy <item>)) ; #f
+     (eq? <item> (copy <item>))         ; #f
+     ```
 
-1. __Equivalency Comparison (non-container value comparisons)__: `(eqv? <obj1> <obj2> ...)`
+1. __Equivalency (structural comparisons)__: `(eqv? <obj1> <obj2> ...)`
 
-2. __Deep Equality (traverse continainers)__: `(equal? <obj1> <obj2> ...)`
+2. __Deep Equality (recursive comparisons)__: `(equal? <obj1> <obj2> ...)`
 
 3. __Boolean Not__: `(not <obj>)`
 
