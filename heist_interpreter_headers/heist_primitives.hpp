@@ -3458,6 +3458,8 @@ namespace heist {
           return result;
         } catch(const SCM_EXCEPT& eval_throw) {
           set_process_invariant_state(std::move(old_invariants));
+          if(eval_throw == SCM_EXCEPT::EXIT) 
+            return num_type(GLOBALS::HEIST_EXIT_CODE);
           throw eval_throw;
         }
       }
@@ -3489,6 +3491,8 @@ namespace heist {
         return result;
       } catch(const SCM_EXCEPT& eval_throw) {
         set_process_invariant_state(std::move(old_invariants));
+        if(eval_throw == SCM_EXCEPT::EXIT) 
+          return num_type(GLOBALS::HEIST_EXIT_CODE);
         throw eval_throw;
       }
     }
@@ -3559,6 +3563,8 @@ namespace heist {
           return result;
         } catch(const SCM_EXCEPT& eval_throw) {
           set_process_invariant_state(std::move(old_invariants));
+          if(eval_throw == SCM_EXCEPT::EXIT) 
+            return num_type(GLOBALS::HEIST_EXIT_CODE);
           throw eval_throw;
         }
       }
@@ -3594,6 +3600,8 @@ namespace heist {
         return result;
       } catch(const SCM_EXCEPT& eval_throw) {
         set_process_invariant_state(std::move(old_invariants));
+        if(eval_throw == SCM_EXCEPT::EXIT) 
+          return num_type(GLOBALS::HEIST_EXIT_CODE);
         throw eval_throw;
       }
     }
@@ -4809,6 +4817,8 @@ namespace heist {
           primitive_LOAD_interpret_file_contents(args,G.GLOBAL_ENVIRONMENT_POINTER,format);
         } catch(const SCM_EXCEPT& eval_throw) {
           set_process_invariant_state(std::move(old_invariants));
+          if(eval_throw == SCM_EXCEPT::EXIT) 
+            return num_type(GLOBALS::HEIST_EXIT_CODE);
           throw eval_throw;
         }
         // Reset interpreter invariants to their previous bindings
@@ -4865,6 +4875,8 @@ namespace heist {
           return result;
         } catch(const SCM_EXCEPT& eval_throw) {
           set_process_invariant_state(std::move(old_invariants));
+          if(eval_throw == SCM_EXCEPT::EXIT) 
+            return num_type(GLOBALS::HEIST_EXIT_CODE);
           throw eval_throw;
         }
       } else if(args[1].sym == symconst::global_env) {
