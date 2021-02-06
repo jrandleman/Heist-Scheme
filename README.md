@@ -3023,12 +3023,12 @@ Other primitives of this nature include:<br>
 ## Universes:
 0. __Create Universe__: `(new-universe)`
    * Returns a `universe` [object](#defclass), initialized with Heist's default bindings,<br>
-     which enables evaluation in a persistent sandboxed environment
+     which enables evaluation in a persistent sandboxed environment!
 
 1. __Universe Predicate__: `(universe? <obj>)`
 
 2. __Method to Evaluate in Universe__: `(<universe-object>.eval <datum>)`
-   * Evaluates `<datum>` in the `<universe-object>`'s sandboxed environment
+   * Evaluates `<datum>` in the `<universe-object>`'s sandboxed environment!
 
 
 
