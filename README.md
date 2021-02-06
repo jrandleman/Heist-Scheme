@@ -2005,6 +2005,7 @@ Other primitives of this nature include:<br>
      ```
 
 1. __Equivalency (structural comparisons)__: `(eqv? <obj1> <obj2> ...)`
+   * Compares items in containers using `eq?`!
    * Generally:
      ```scheme
      (eqv? <item> <item>)                ; #t
