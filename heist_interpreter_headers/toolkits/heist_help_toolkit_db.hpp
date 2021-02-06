@@ -725,6 +725,9 @@ Analyze prototypes via the "proto-name" "proto-members" "proto-methods" &
 NOTE: "coroutine" is a class prototype under the hood, and "define-coroutine"
       simply serves to manipute the coro body & use it generate a coroutine
       object, which is then passed back to the user to control coro execution!
+
+NOTE: "universe" is also a class prototype under the hood, though it leverages
+      a reserved primitive in order to achieve its sandboxing of environments.
 )",
 
 
