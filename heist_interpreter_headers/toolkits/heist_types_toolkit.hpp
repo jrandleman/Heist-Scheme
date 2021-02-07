@@ -287,23 +287,17 @@ namespace heist {
   * EXPRESSION PRINTING HELPER FUNCTIONS
   ******************************************************************************/
 
-  // Confirm whether 'args' are the EVALUATED sentinel-value representation
-  //   or is an otherwise empty expression
-  bool no_args_given(const scm_list& args)noexcept{
-    return args.empty() || (args.size()==1 && 
-           args[0].is_type(types::sym) && 
-           args[0].sym == symconst::sentinel_arg);
-  }
-
-
   // Confirm whether 'd' is the AST's sentinel-value representation
   //   => NOTE: "sentinel-value" = quoted sentinel-arg
   bool data_is_the_SENTINEL_VAL(const data& d)noexcept{
-    return d.is_type(types::exp) && d.exp.size() == 2 && 
-           d.exp[0].is_type(types::sym) && 
-           d.exp[0].sym == symconst::quote && 
-           d.exp[1].is_type(types::sym) && 
-           d.exp[1].sym == symconst::sentinel_arg;
+    return d.is_type(types::sym) && d.sym == symconst::sentinel_arg;
+  }
+
+
+  // Confirm whether 'args' are the EVALUATED sentinel-value representation
+  //   or is an otherwise empty expression
+  bool no_args_given(const scm_list& args)noexcept{
+    return args.empty() || (args.size()==1 && data_is_the_SENTINEL_VAL(args[0]));
   }
 
 

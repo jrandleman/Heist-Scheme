@@ -177,9 +177,7 @@ namespace heist {
     // if at an argless application (ie a single entity in an expression)
     if(d.is_type(types::exp) && d.exp.size()==1) {
       scm_list argless_app(2); // add sentinel-arg to argless application
-      argless_app[0] = d.exp[0], argless_app[1] = scm_list(2);
-      argless_app[1].exp[0] = symconst::quote;
-      argless_app[1].exp[1] = symconst::sentinel_arg;
+      argless_app[0] = d.exp[0], argless_app[1] = symconst::sentinel_arg;
       return argless_app;
     }
     if(d.is_type(types::exp)) return d.exp;
@@ -2940,13 +2938,11 @@ namespace heist {
 
   // Return whether in a <scm->cps> block or the <-cps> flag is active
   exe_fcn_t analyze_using_cpsp(scm_list& exp,const bool cps_block) {
-    if(exp.size() == 1) goto return_cps_block_status;
-    if(exp.size() != 2 || !data_is_the_SENTINEL_VAL(exp[1]))
-      THROW_ERR("'using-cps? expects 0 args: (using-cps?)"<<EXP_ERR(exp));
-  return_cps_block_status:
-    return [cps_block=cps_block](env_type&){
-      return scm_list(1,boolean(cps_block||G.USING_CPS_CMD_LINE_FLAG));
-    };
+    if(exp.size() == 1 || (exp.size() == 2 && data_is_the_SENTINEL_VAL(exp[1])))
+      return [cps_block=cps_block](env_type&){
+        return scm_list(1,boolean(cps_block||G.USING_CPS_CMD_LINE_FLAG));
+      };
+    THROW_ERR("'using-cps? expects 0 args: (using-cps?)"<<EXP_ERR(exp));
   }
 
   /******************************************************************************
@@ -3069,8 +3065,7 @@ namespace heist {
 
   // Confirm whether 'pattern' is argless but was given 'args' (or vise versa)
   bool incompatible_void_arg_use(const scm_list& pattern, const scm_list& args)noexcept{
-    bool pattern_is_argless = pattern.size() == 2 && pattern[1].is_type(types::sym) && 
-                              pattern[1].sym == symconst::sentinel_arg;
+    bool pattern_is_argless = pattern.size() == 2 && data_is_the_SENTINEL_VAL(pattern[1]);
     bool args_is_argless    = args.size()==1 && data_is_the_SENTINEL_VAL(args[0]);
     return pattern_is_argless ^ args_is_argless;
   }
@@ -4323,7 +4318,7 @@ namespace heist {
   // -- APPLYING PRIMITIVE PROCEDURES
   scm_list apply_primitive_procedure(data& proc,scm_list& args,env_type& env,const bool tail_call){
     // Rm "sentinel-arg" value from args (if present from an argless application)
-    if(args.size()==1 && args[0].is_type(types::sym) && args[0].sym == symconst::sentinel_arg)
+    if(args.size()==1 && data_is_the_SENTINEL_VAL(args[0]))
       args.pop_back();
     // Output tracing information as needed
     auto tracing_proc = tracing_procedure(proc.fcn.name);
@@ -4507,10 +4502,8 @@ namespace heist {
   exe_fcn_t analyze_CPS_block_application_of_non_CPS_proc(scm_list& exp,const bool tail_call){
     auto arg_exps = operands(exp);
     // Add sentinel value as needed (signals possible empty macro application)
-    if(arg_exps.empty()) {
-      arg_exps.push_back(scm_list(2));
-      arg_exps[0].exp[0] = symconst::quote, arg_exps[0].exp[1] = symconst::sentinel_arg;
-    }
+    if(arg_exps.empty())
+      arg_exps.push_back(symconst::sentinel_arg);
     // Save name of invoking entity (iff a symbol) to check for a possible macro
     sym_type op_name = exp[0].is_type(types::sym) ? exp[0].sym : "";
     // If possible analysis-time macro, expand and return analysis of the expansion
