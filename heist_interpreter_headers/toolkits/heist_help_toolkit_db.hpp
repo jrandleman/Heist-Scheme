@@ -150,14 +150,15 @@ static constexpr const char* HELP_MENU_PROCEDURES_CHARS[] = {
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_STRINGS[] = {
-  "string",           "make-string",       "string-unfold",   "string-unfold-right", 
-  "string-pad",       "string-pad-right",  "string-trim",     "string-trim-right", 
-  "string-trim-both", "string-replace",    "string-contains", "string-contains-right", 
-  "string-join",      "string-split",      "string-swap!",    "string-push!", 
-  "string-empty?",    "string-copy!",      "string=?",        "string<?", 
-  "string>?",         "string<=?",         "string>=?",       "string-ci=?", 
-  "string-ci<?",      "string-ci>?",       "string-ci<=?",    "string-ci>=?", 
-  "regex-replace",    "regex-replace-all", "regex-match",     "regex-split", 
+  "string",           "make-string",       "string-unfold",     "string-unfold-right", 
+  "string-pad",       "string-pad-right",  "string-trim",       "string-trim-right", 
+  "string-trim-both", "string-replace",    "string-contains",   "string-contains-right", 
+  "string-join",      "string-split",      "string-swap!",      "string-push!", 
+  "string-pop!",      "string-empty?",     "string-copy!",      "string=?",
+  "string<?",         "string>?",          "string<=?",         "string>=?",
+  "string-ci=?",      "string-ci<?",       "string-ci>?",       "string-ci<=?",
+  "string-ci>=?",     "regex-replace",     "regex-replace-all", "regex-match",
+  "regex-split", 
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_PAIRS[] = {
@@ -171,9 +172,10 @@ static constexpr const char* HELP_MENU_PROCEDURES_PAIRS[] = {
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_VECTORS[] = {
-  "vector",        "make-vector",         "vector-push!",         "vector-iota", 
-  "vector-unfold", "vector-unfold-right", "vector-grow",          "vector-empty?", 
-  "vector-copy!",  "vector-swap!",        "vector-binary-search", "vector-get-all-combinations", 
+  "vector",                      "make-vector",   "vector-push!",        "vector-pop!", 
+  "vector-iota",                 "vector-unfold", "vector-unfold-right", "vector-grow",
+  "vector-empty?",               "vector-copy!",  "vector-swap!",        "vector-binary-search", 
+  "vector-get-all-combinations", 
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_HMAPS[] = {
@@ -5111,6 +5113,20 @@ Mutate <string> by pushing <char> to its end.
 
 
 }, {
+"string-pop!",
+"Procedure",
+R"(
+(string-pop! <string>)
+)",
+R"(
+Mutate <string> by popping its last character.
+)",
+
+
+
+
+
+}, {
 "string-empty?",
 "Procedure",
 R"(
@@ -5772,6 +5788,20 @@ R"(
 )",
 R"(
 Mutatate <vector> by pushing <obj> to its end.
+)",
+
+
+
+
+
+}, {
+"vector-pop!",
+"Procedure",
+R"(
+(vector-pop! <vector>)
+)",
+R"(
+Mutatate <vector> by popping its last value.
 )",
 
 

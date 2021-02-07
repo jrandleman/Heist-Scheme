@@ -2140,9 +2140,11 @@ Other primitives of this nature include:<br>
 
 15. __Mutating Push Character to String__: `(string-push! <string> <char>)`
 
-16. __Confirm String is Empty__: `(string-empty? <string>)`
+16. __Mutating Pop Character from String__: `(string-pop! <string>)`
 
-17. __Copy String__: Copy `<source-string>` to `<target-string>` from `<target-start-idx>`
+17. __Confirm String is Empty__: `(string-empty? <string>)`
+
+18. __Copy String__: Copy `<source-string>` to `<target-string>` from `<target-start-idx>`
     * `(string-copy! <target-string> <target-start-idx> <source-string>)`
 
 
@@ -2262,36 +2264,38 @@ Other primitives of this nature include:<br>
 
 2. __Mutating Push Object to Vector__: `(vector-push! <vector> <obj>)`
 
-3. __Generate Numeric Vector__: Generate `<count>` objects, from `<start>` & incrementing w/ `<step>`
+3. __Mutating Pop Object from Vector__: `(vector-pop! <vector>)`
+
+4. __Generate Numeric Vector__: Generate `<count>` objects, from `<start>` & incrementing w/ `<step>`
    * `<optional-start-number>` defaults to `0`
    * `<optional-step-number>` defaults to `1`
    * `(vector-iota <count> <optional-start-number> <optional-step-number>)`
 
-4. __Unfold__: Form a vector by mapping & incrementing seed, until `<break-condition>` is true
+5. __Unfold__: Form a vector by mapping & incrementing seed, until `<break-condition>` is true
    * _Note: **map** via `<map-callable>`, **increment** via `<successor-callable>`_
    * `(vector-unfold <break-condition> <map-callable> <successor-callable> <seed>)`
 
-5. __Unfold Right__: Form a vector by mapping right & incrementing seed, until `<break-condition>` is true
+6. __Unfold Right__: Form a vector by mapping right & incrementing seed, until `<break-condition>` is true
    * _Note: **map** via `<map-callable>`, **increment** via `<successor-callable>`_
    * `(vector-unfold-right <break-condition> <map-callable> <successor-callable> <seed>)`
 
-6. __Grow a Vector__: Generate a new vector w/ same elts and new size
+7. __Grow a Vector__: Generate a new vector w/ same elts and new size
    * `(vector-grow <vector> <size>)`
 
-7. __Empty Vector Predicate__: `(vector-empty? <vector>)`
+8. __Empty Vector Predicate__: `(vector-empty? <vector>)`
 
-8. __Copy Vector__: Copy `<source-vector>` to `<target-vector>` from `<target-start-idx>`
+9. __Copy Vector__: Copy `<source-vector>` to `<target-vector>` from `<target-start-idx>`
    * `(vector-copy! <target-vector> <target-start-idx> <source-vector>)`
 
-9. __Swap Vector Pointers__: `(vector-swap! <vector1> <vector2>)`
+10. __Swap Vector Pointers__: `(vector-swap! <vector1> <vector2>)`
 
-10. __Vector Binary Search__: `(vector-binary-search <vector> <value> <3-way-comparison>)`
+11. __Vector Binary Search__: `(vector-binary-search <vector> <value> <3-way-comparison>)`
     * _Suppose values a & b:_
       - a < b: `(<3-way-comparison> a b)` < 0
       - a = b: `(<3-way-comparison> a b)` = 0
       - a > b: `(<3-way-comparison> a b)` > 0
 
-11. __Get All Combinations__: `(vector-get-all-combinations <vector>)`
+12. __Get All Combinations__: `(vector-get-all-combinations <vector>)`
 
 
 

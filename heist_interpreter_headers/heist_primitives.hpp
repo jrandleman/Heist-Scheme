@@ -1190,6 +1190,17 @@ namespace heist {
     return GLOBALS::VOID_DATA_OBJECT;
   }
 
+  // primitive "string-pop!" procedure:
+  data primitive_STRING_POP_BANG(scm_list& args) {
+    primitive_confirm_valid_string_arg(args, 1, "string-pop!", "\n     (string-pop! <string>)");
+    if(args[0].str->empty())
+      THROW_ERR("'string-pop! can't pop chars from an empty string!"
+        "\n     (string-pop! <string>)" << FCN_ERR("string-pop!",args));
+    data last_item = chr_type(*args[0].str->rbegin());
+    args[0].str->pop_back();
+    return last_item;
+  }
+
   // primitive "string-empty?" procedure:
   data primitive_STRING_EMPTYP(scm_list& args) {
     primitive_confirm_valid_string_arg(args, 1, "string-empty?", "\n     (string-empty? <string>)");
@@ -2109,6 +2120,17 @@ namespace heist {
     primitive_confirm_valid_vector_arg(args, 2, "vector-push!", "\n     (vector-push! <vector> <obj>)");
     args[0].vec->push_back(args[1]);
     return GLOBALS::VOID_DATA_OBJECT;
+  }
+
+  // primitive "vector-pop!" procedure:
+  data primitive_VECTOR_POP_BANG(scm_list& args) {
+    primitive_confirm_valid_vector_arg(args, 1, "vector-pop!", "\n     (vector-pop! <vector>)");
+    if(args[0].vec->empty())
+      THROW_ERR("'vector-pop! can't pop items from an empty vector!"
+        "\n     (vector-pop! <vector>)" << FCN_ERR("vector-pop!",args));
+    data last_item = *args[0].vec->rbegin();
+    args[0].vec->pop_back();
+    return last_item;
   }
 
   // primitive "vector-iota" procedure:
@@ -6137,6 +6159,7 @@ namespace heist {
     std::make_pair(primitive_STRING_SPLIT,          "string-split"),
     std::make_pair(primitive_STRING_SWAP_BANG,      "string-swap!"),
     std::make_pair(primitive_STRING_PUSH_BANG,      "string-push!"),
+    std::make_pair(primitive_STRING_POP_BANG,       "string-pop!"),
     std::make_pair(primitive_STRING_EMPTYP,         "string-empty?"),
     std::make_pair(primitive_STRING_COPY_BANG,      "string-copy!"),
 
@@ -6238,6 +6261,7 @@ namespace heist {
     std::make_pair(primitive_VECTOR,                      "vector"),
     std::make_pair(primitive_MAKE_VECTOR,                 "make-vector"),
     std::make_pair(primitive_VECTOR_PUSH_BANG,            "vector-push!"),
+    std::make_pair(primitive_VECTOR_POP_BANG,             "vector-pop!"),
     std::make_pair(primitive_VECTOR_IOTA,                 "vector-iota"),
     std::make_pair(primitive_VECTOR_EMPTYP,               "vector-empty?"),
     std::make_pair(primitive_VECTOR_GROW,                 "vector-grow"),
