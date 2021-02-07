@@ -96,6 +96,10 @@ namespace help::logic {
       query = "command-line";
     else if(query == "-cps" || query == "continuation-passing-style" || query == "continuation" || query == "continuations") 
       query = "cps";
+    else if(query == "call-with-current-continuation") 
+      query = "call/cc";
+    else if(query == "call-with-current-environment") 
+      query = "call/ce";
     else if(query == "comment" || query == "commenting" || query == ";" || query == "#||#" || query == "#|" || query == "|#") 
       query = "comments";
     else if(query == "unquote" || query == "unquote-splicing")
@@ -214,19 +218,19 @@ namespace help::logic {
     static constexpr const char* ALTERNATIVE_HELP_QUERY_NAMES[] = {
       "","null","empty-list","()","'()","nihil","numeric","num","character","bool","&&","||","class","prototype","class-proto","proto",
       "function","fcn","flags","command-line-flags","cmd-line","cmd-line-flags","cmd","-cps","continuation-passing-style","continuation",
-      "continuations","comment","commenting",";","#||#","#|","|#","unquote","unquote-splicing","named-let","nameless-let","macro","define-macro",
-      "let-syntax","letrec-syntax","reader-alias","alias","define-class","define-prototype","define-class-prototype","self","super","anonymous-object",
-      "anon-object","anonymous-obj","anon-obj","make-coroutine","overload","polymorphism","polymorphic","infixr!","infix","infixr","operator",
-      "infix-operator","infixr-operator","true","t","false","min-infix-precedence","min-precedence","max-infix-precedence","max-precedence",
-      "null-environment","null-env","local-environment","local-env","global-environment","global-env","argc","argv","heist-platform","platform",
-      "heist-exact-platform","exact-platform","heist-dirname","exit-success","exit-failure","o","e","pi","phi","euler","+inf","inf","inf.0",
-      "-inf","-nan.0","nan.0","nan","+nan","-nan","seq","coro","expr","sym","str","hash-map","hashmap","heist-interop","heist-cpp-interop",
-      "heist-c++-interop","cpp-interop","c++-interop","heist-cpp","heist-c++","heist_cpp_interop","interop","readme","install","license.md",
-      "associative-list","association-list","universes","new-universe","universe?","universe-eval","scaar","scadr","scdar","scddr","scaaar","scaadr",
-      "scadar","scaddr","scdaar","scdadr","scddar","scdddr","scaaaar","scaaadr","scaadar","scaaddr","scadaar","scadadr","scaddar","scadddr","scdaaar",
-      "scdaadr","scdadar","scdaddr","scddaar","scddadr","scdddar","scddddr","scaar...scddddr","caar","cadr","cdar","cddr","caaar","caadr","cadar","caddr",
-      "cdaar","cdadr","cddar","cdddr","caaaar","caaadr","caadar","caaddr","cadaar","cadadr","caddar","cadddr","cdaaar","cdaadr","cdadar","cdaddr","cddaar",
-      "cddadr","cdddar","cddddr","caar...cddddr"
+      "continuations","call-with-current-continuation","call-with-current-environment","comment","commenting",";","#||#","#|","|#","unquote",
+      "unquote-splicing","named-let","nameless-let","macro","define-macro","let-syntax","letrec-syntax","reader-alias","alias","define-class",
+      "define-prototype","define-class-prototype","self","super","anonymous-object","anon-object","anonymous-obj","anon-obj","make-coroutine",
+      "overload","polymorphism","polymorphic","infixr!","infix","infixr","operator","infix-operator","infixr-operator","true","t","false",
+      "min-infix-precedence","min-precedence","max-infix-precedence","max-precedence","null-environment","null-env","local-environment","local-env",
+      "global-environment","global-env","argc","argv","heist-platform","platform","heist-exact-platform","exact-platform","heist-dirname","exit-success",
+      "exit-failure","o","e","pi","phi","euler","+inf","inf","inf.0","-inf","-nan.0","nan.0","nan","+nan","-nan","seq","coro","expr","sym","str","hash-map",
+      "hashmap","heist-interop","heist-cpp-interop","heist-c++-interop","cpp-interop","c++-interop","heist-cpp","heist-c++","heist_cpp_interop","interop",
+      "readme","install","license.md","associative-list","association-list","universes","new-universe","universe?","universe-eval","scaar","scadr","scdar",
+      "scddr","scaaar","scaadr","scadar","scaddr","scdaar","scdadr","scddar","scdddr","scaaaar","scaaadr","scaadar","scaaddr","scadaar","scadadr","scaddar",
+      "scadddr","scdaaar","scdaadr","scdadar","scdaddr","scddaar","scddadr","scdddar","scddddr","scaar...scddddr","caar","cadr","cdar","cddr","caaar","caadr",
+      "cadar","caddr","cdaar","cdadr","cddar","cdddr","caaaar","caaadr","caadar","caaddr","cadaar","cadadr","caddar","cadddr","cdaaar","cdaadr","cdadar",
+      "cdaddr","cddaar","cddadr","cdddar","cddddr","caar...cddddr"
     };
     // Store possible matches by decreasing substring match length
     std::vector<std::pair<size_type,scm_string>> match_map;

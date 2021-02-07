@@ -9547,7 +9547,7 @@ R"(
 )",
 R"(
 Call <unary-continuation-callable> by passing it the current continuation as a procedure.
-  *) Only valid in CPS contexts!
+  *) Only valid in CPS contexts (query "cps" with "help" for details)!
 )",
 
 
@@ -9563,7 +9563,7 @@ R"(
 R"(
 Bind id as callable's "topmost" continuation.
   *) Designed to pass callables defined in CPS contexts as args to 
-     callables defined out of CPS contexts.
+     callables defined out of CPS contexts (query "cps" with "help" for details).
   *) Hence programs written in and out of CPS contexts may interop!
   *) Use in conjunction with "cps-procedure?" to determine if needed!
   *) BEWARE: primitives are defined OUT of CPS contexts!
