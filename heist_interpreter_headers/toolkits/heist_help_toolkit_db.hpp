@@ -4005,7 +4005,7 @@ R"(
 (round <real>)
 )",
 R"(
-Round <real>:
+Round <real> to the nearest integer:
 
   (round 0.5)  ; 1.0
   (round -0.5) ; -1.0
