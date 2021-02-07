@@ -1863,8 +1863,8 @@ namespace scm_numeric {
     inexact_t integral;
     inexact_t fractional = std::modf(flt_val, &integral);
     switch(ROUNDING_TYPE_ID) { // NOTE: 'trunc' (id=2) just returns the integral as-is
-      case 0: if(fractional != 0 && integral >= 0) integral += 1; break; // ceil
-      case 1: if(fractional != 0 && integral <= 0) integral -= 1; break; // floor
+      case 0: if(fractional != 0 && flt_val >= 0) integral += 1; break; // ceil
+      case 1: if(fractional != 0 && flt_val <= 0) integral -= 1; break; // floor
       case 3: if(std::abs(fractional) >= 0.5)                            // round
                 integral += 1-2*(flt_val<0); // (flt_val < 0) ? -1 : 1;
     }
