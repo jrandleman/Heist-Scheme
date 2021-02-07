@@ -4535,7 +4535,7 @@ namespace heist {
     FILE* outs = G.CURRENT_OUTPUT_PORT, *ins = G.CURRENT_INPUT_PORT;
     bool reading_stdin = (G.CURRENT_INPUT_PORT == stdin), reading_string = false;
     if(!confirm_valid_input_args_and_non_EOF(args, ins, "read-string", reading_stdin, reading_string)) 
-      return make_str("");
+      return chr_type(EOF);
     if(reading_string)
       return make_str(primitive_read_from_string_logic(*args[0].str).write());
     return make_str(primitive_read_from_input_port_logic(outs,ins,reading_stdin).write());
@@ -4546,7 +4546,7 @@ namespace heist {
     FILE* outs = G.CURRENT_OUTPUT_PORT, *ins = G.CURRENT_INPUT_PORT;
     bool reading_stdin = (G.CURRENT_INPUT_PORT == stdin), reading_string = false;
     if(!confirm_valid_input_args_and_non_EOF(args, ins, "read-line", reading_stdin, reading_string)) 
-      return make_str("");
+      return chr_type(EOF);
     // Read a line of input into a string
     if(reading_string) {
       auto line_buffer = args[0].str->substr(0,args[0].str->find('\n'));
