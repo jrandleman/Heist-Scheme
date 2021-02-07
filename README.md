@@ -3051,6 +3051,14 @@ Other primitives of this nature include:<br>
 2. __Method to Evaluate in Universe__: `(<universe-object>.eval <datum>)`
    * Evaluates `<datum>` in the `<universe-object>`'s sandboxed environment!
 
+3. __Method to Store Data in Universe Buffer__: `(<universe-object>.push! <datum>)`
+
+4. __Method to Remove Data from Universe Buffer__: `(<universe-object>.pop!)`
+
+5. __Method to Clear Universe Buffer__: `(<universe-object>.clear!)`
+
+6. __Method to Execute (then clear!) Universe Buffer__: `(<universe-object>.run!)`
+
 
 
 

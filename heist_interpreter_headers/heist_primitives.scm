@@ -607,6 +607,21 @@
 
 (defclass universe ()
   (universe:private:env '())
+  (universe:private:buffer '(begin))
+  ((push! datum)
+    (set! self.universe:private:buffer
+          (cons datum self.universe:private:buffer)))
+  ((pop!)
+    (if (> (length self.universe:private:buffer) 1)
+        (let ((item (car self.universe:private:buffer)))
+          (set! self.universe:private:buffer (cdr self.universe:private:buffer))
+          item)))
+  ((clear!)
+    (set! self.universe:private:buffer '(begin)))
+  ((run!)
+    (define result (self.eval (reverse self.universe:private:buffer)))
+    (set! self.universe:private:buffer '(begin))
+    result)
   ((eval datum)
     (heist:core:universe:eval datum self)))
 
