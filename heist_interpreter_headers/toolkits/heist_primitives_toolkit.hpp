@@ -1309,7 +1309,13 @@ namespace heist {
       step = args[2].num;
     }
     size_type n = (size_type)args[0].num.extract_inexact();
-    if(!n) return symconst::emptylist;
+    if(!n) {
+      if constexpr (MAKING_A_LIST) {
+        return symconst::emptylist;
+      } else {
+        return make_vec(scm_list());
+      }
+    }
     scm_list iota_vals(n);
     for(size_type i = 0; i < n; ++i)
       iota_vals[i] = start + (i * step);
