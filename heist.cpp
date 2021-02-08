@@ -2939,7 +2939,7 @@ namespace heist {
   // Return whether in a <scm->cps> block or the <-cps> flag is active
   exe_fcn_t analyze_using_cpsp(scm_list& exp,const bool cps_block) {
     if(exp.size() == 1 || (exp.size() == 2 && data_is_the_SENTINEL_VAL(exp[1])))
-      return [cps_block=cps_block](env_type&){
+      return [cps_block](env_type&){
         return scm_list(1,boolean(cps_block||G.USING_CPS_CMD_LINE_FLAG));
       };
     THROW_ERR("'using-cps? expects 0 args: (using-cps?)"<<EXP_ERR(exp));
