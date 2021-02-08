@@ -153,7 +153,7 @@ namespace scm_numeric {
 
     // Parity check
     bool is_even() const noexcept;
-    bool is_odd()  const noexcept {return !is_even();}
+    bool is_odd()  const noexcept;
 
     // Rationality check
     bool is_rational() const noexcept;
@@ -1123,8 +1123,8 @@ namespace scm_numeric {
     }
     // -inf^even = +inf, -inf^odd = -inf
     if(is_neg_inf()) {
-      if(pow.is_even()) tmp.set_pinf();
-      else              tmp.set_ninf();
+      if(pow.is_odd()) tmp.set_ninf();
+      else             tmp.set_pinf();
       return tmp;
     }
     // n^1 = n
@@ -1603,10 +1603,16 @@ namespace scm_numeric {
     if(dlen == 1 && denominator[0] == 1) // check if bigint is even
       // return !numerator.empty() && ((*numerator.rbegin() & 1) == 0); 
       return nlen && (numerator[nlen-1] & 1) == 0;
-    inexact_t num = 0;
-    auto coerced = coerce_fraction_to_float(num);
-    if(coerced == status::pinf || coerced == status::ninf) return true;
-    return (coerced == status::success) && (std::fmod(num,2) == 0);
+    return false; // non-integer fractions are never even
+  }
+
+  bool Snum_real::is_odd() const noexcept {
+    if(stat == status::nan || stat != status::success || is_zero()) return false;
+    if(is_float) return std::fmod(float_num+1,2) == 0;
+    if(dlen == 1 && denominator[0] == 1) // check if bigint is odd
+      // return !numerator.empty() && ((*numerator.rbegin() & 1) == 1); 
+      return nlen && (numerator[nlen-1] & 1) == 1;
+    return false; // non-integer fractions are never odd
   }
 
   /******************************************************************************

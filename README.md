@@ -1913,9 +1913,9 @@ Other primitives of this nature include:<br>
 
 
 ### Numeric Predicates:
-0. __Odd Predicate__: `(odd? <real>)`
+0. __Odd Predicate__: `(odd? <integer>)`
 
-1. __Even Predicate__: `(even? <real>)`
+1. __Even Predicate__: `(even? <integer>)`
 
 2. __Positive Predicate__: `(positive? <real>)`, `(not-positive? <real>)`
 

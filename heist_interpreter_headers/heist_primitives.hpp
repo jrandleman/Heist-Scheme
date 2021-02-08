@@ -305,13 +305,19 @@ namespace heist {
 
   // primitive "odd?" procedure
   data primitive_ODDP(scm_list& args) {
-    confirm_unary_real_numeric(args, "odd?", "(odd? <real>)");
+    confirm_unary_real_numeric(args, "odd?", "(odd? <integer>)");
+    if(!args[0].num.is_integer())
+      THROW_ERR("'odd? " << PROFILE(args[0]) << " isn't an integer!" 
+        "\n     (odd? <integer>)" << FCN_ERR("odd?", args));
     return data(boolean(args[0].num.is_odd()));
   }
 
   // primitive "even?" procedure
   data primitive_EVENP(scm_list& args) {
-    confirm_unary_real_numeric(args, "even?", "(even? <real>)");
+    confirm_unary_real_numeric(args, "even?", "(even? <integer>)");
+    if(!args[0].num.is_integer())
+      THROW_ERR("'even? " << PROFILE(args[0]) << " isn't an integer!" 
+        "\n     (even? <integer>)" << FCN_ERR("even?", args));
     return data(boolean(args[0].num.is_even()));
   }
 

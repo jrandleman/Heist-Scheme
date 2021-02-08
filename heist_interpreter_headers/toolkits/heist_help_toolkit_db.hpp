@@ -3739,10 +3739,10 @@ Convert exact <number> to its nearest inexact representation.
 "odd?",
 "Procedure",
 R"(
-(odd? <real>)
+(odd? <integer>)
 )",
 R"(
-Confirm <real> is odd.
+Confirm <integer> is odd.
 )",
 
 
@@ -3753,10 +3753,10 @@ Confirm <real> is odd.
 "even?",
 "Procedure",
 R"(
-(even? <real>)
+(even? <integer>)
 )",
 R"(
-Confirm <real> is even.
+Confirm <integer> is even.
 )",
 
 
