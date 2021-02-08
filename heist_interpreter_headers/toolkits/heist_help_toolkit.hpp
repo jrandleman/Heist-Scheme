@@ -108,6 +108,8 @@ namespace help::logic {
       query = "let";
     else if(query == "macro" || query == "define-macro" || query == "let-syntax" || query == "letrec-syntax") 
       query = "define-syntax";
+    else if(query == "syntax-obj" || query == "syntax-object") 
+      query = "syntax-rules";
     else if(query == "reader-alias" || query == "alias")
       query = "define-reader-alias";
     else if(query == "define-class" || query == "define-prototype" || query == "define-class-prototype" || query == "self" || query == "super") 
@@ -189,6 +191,8 @@ namespace help::logic {
       query = "alist";
     else if(query == "universes" || query == "new-universe" || query == "universe?" || query == "universe-eval") 
       query = "universe";
+    else if(query == "\\") 
+      query = "lambda";
     else if(is_scar_scdr_composition(query) || query == "scaar...scddddr")
       query = "scaar ... scddddr";
     else if(is_car_cdr_composition(query) || query == "caar...cddddr")
@@ -219,14 +223,14 @@ namespace help::logic {
       "","null","empty-list","()","'()","nihil","numeric","num","character","bool","&&","||","class","prototype","class-proto","proto",
       "function","fcn","flags","command-line-flags","cmd-line","cmd-line-flags","cmd","-cps","continuation-passing-style","continuation",
       "continuations","call-with-current-continuation","call-with-current-environment","comment","commenting",";","#||#","#|","|#","unquote",
-      "unquote-splicing","named-let","nameless-let","macro","define-macro","let-syntax","letrec-syntax","reader-alias","alias","define-class",
-      "define-prototype","define-class-prototype","self","super","anonymous-object","anon-object","anonymous-obj","anon-obj","make-coroutine",
-      "overload","polymorphism","polymorphic","infixr!","infix","infixr","operator","infix-operator","infixr-operator","true","t","false",
+      "unquote-splicing","named-let","nameless-let","macro","define-macro","let-syntax","letrec-syntax","syntax-obj","syntax-object","reader-alias",
+      "alias","define-class","define-prototype","define-class-prototype","self","super","anonymous-object","anon-object","anonymous-obj","anon-obj",
+      "make-coroutine","overload","polymorphism","polymorphic","infixr!","infix","infixr","operator","infix-operator","infixr-operator","true","t","false",
       "min-infix-precedence","min-precedence","max-infix-precedence","max-precedence","null-environment","null-env","local-environment","local-env",
       "global-environment","global-env","argc","argv","heist-platform","platform","heist-exact-platform","exact-platform","heist-dirname","exit-success",
       "exit-failure","o","e","pi","phi","euler","+inf","inf","inf.0","-inf","-nan.0","nan.0","nan","+nan","-nan","seq","coro","expr","sym","str","hash-map",
       "hashmap","heist-interop","heist-cpp-interop","heist-c++-interop","cpp-interop","c++-interop","heist-cpp","heist-c++","heist_cpp_interop","interop",
-      "readme","install","license.md","associative-list","association-list","universes","new-universe","universe?","universe-eval","scaar","scadr","scdar",
+      "readme","install","license.md","associative-list","association-list","universes","new-universe","universe?","universe-eval","\\","scaar","scadr","scdar",
       "scddr","scaaar","scaadr","scadar","scaddr","scdaar","scdadr","scddar","scdddr","scaaaar","scaaadr","scaadar","scaaddr","scadaar","scadadr","scaddar",
       "scadddr","scdaaar","scdaadr","scdadar","scdaddr","scddaar","scddadr","scdddar","scddddr","scaar...scddddr","caar","cadr","cdar","cddr","caaar","caadr",
       "cadar","caddr","cdaar","cdadr","cddar","cdddr","caaaar","caaadr","caadar","caaddr","cadaar","cadadr","caddar","cadddr","cdaaar","cdaadr","cdadar",

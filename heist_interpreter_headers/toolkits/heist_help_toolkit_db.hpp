@@ -1139,6 +1139,8 @@ Create an anonymous multi-arity pattern-matching procedure!
   *) See "defn" for a macro combining "define" & "fn"!
 
 Pass a variadic number of args (0+) by using "." (like "lambda"!)
+  *) The "." char to denote variadics can be changed via "set-dot!"!
+
 Pattern-match against containers by using literal syntax!
   *) Like "syntax-rules", write more restrictive patterns first!
   *) Boolean literals match based on TRUTHINESS rather than type!
@@ -1698,6 +1700,7 @@ R"(
 <syntax-clause> ::= (<pattern> <template>)
 <pattern> ::= (<any-symbol> <expression-to-match-against>)
 <template> ::= <expression-to-expand-into>
+<key> ::= <symbolic-literal>
 )",
 R"(
 Create syntax-objects to be assigned via "core-syntax", "define-syntax", 
