@@ -1354,12 +1354,12 @@ namespace heist {
 
 
   // -- CLASS PROTOTYPE GENERATION HELPERS
-  exe_fcn_t convert_method_to_lambda(scm_list& method_exp) {
+  exe_fcn_t convert_method_to_lambda(scm_list& method_exp,const bool cps_block) {
     scm_list method_lambda(1+method_exp.size());
     method_lambda[0] = symconst::lambda;
     method_lambda[1] = scm_list(method_exp[0].exp.begin()+1,method_exp[0].exp.end());
     std::copy(method_exp.begin()+1,method_exp.end(),method_lambda.begin()+2);
-    return scm_analyze(std::move(method_lambda));
+    return scm_analyze(std::move(method_lambda),false,cps_block);
   }
 
   void evaluate_method_and_member_exec_procs(const scm_list& exp,
@@ -1516,7 +1516,7 @@ namespace heist {
 
   void parse_defclass_expression(scm_list& exp, class_prototype& proto, std::vector<exe_fcn_t>& member_exec_procs, 
                                                                         std::vector<exe_fcn_t>& method_exec_procs, 
-                                                                        scm_list& ctor_proc) {
+                                                                        scm_list& ctor_proc,const bool cps_block) {
     const scm_string ctor_name("make-"+exp[1].sym);
     for(size_type i = 3, n = exp.size(); i < n; ++i) {
       // parse member
@@ -1528,7 +1528,7 @@ namespace heist {
           validate_unique_member_or_method_name(exp,exp[i].exp[0].sym,proto.method_names,"member already defined as a method");
           validate_unique_member_or_method_name(exp,exp[i].exp[0].sym,proto.member_names,"member is already defined");
           proto.member_names.push_back(exp[i].exp[0].sym);
-          member_exec_procs.push_back(scm_analyze(scm_list_cast(exp[i].exp[1])));
+          member_exec_procs.push_back(scm_analyze(scm_list_cast(exp[i].exp[1]),false,cps_block));
         }
       // parse method
       } else { 
@@ -1537,7 +1537,7 @@ namespace heist {
           validate_unique_member_or_method_name(exp,exp[i].exp[1].sym,proto.member_names,"method already defined as a member");
           validate_unique_member_or_method_name(exp,exp[i].exp[1].sym,proto.method_names,"method is already defined");
           proto.method_names.push_back(exp[i].exp[1].sym);
-          method_exec_procs.push_back(scm_analyze(scm_list_cast(exp[i].exp[2])));
+          method_exec_procs.push_back(scm_analyze(scm_list_cast(exp[i].exp[2]),false,cps_block));
         // extract ctor
         } else if(exp[i].exp[0].exp[0].sym == ctor_name) {
           ctor_proc = exp[i].exp;
@@ -1546,7 +1546,7 @@ namespace heist {
           validate_unique_member_or_method_name(exp,exp[i].exp[0].exp[0].sym,proto.member_names,"method already defined as a member");
           validate_unique_member_or_method_name(exp,exp[i].exp[0].exp[0].sym,proto.method_names,"method is already defined");
           proto.method_names.push_back(exp[i].exp[0].exp[0].sym);
-          method_exec_procs.push_back(convert_method_to_lambda(exp[i].exp));
+          method_exec_procs.push_back(convert_method_to_lambda(exp[i].exp,cps_block));
         }
       }
     }
@@ -1554,14 +1554,14 @@ namespace heist {
 
 
   // -- CLASS PROTOTYPE GENERATION MAIN
-  exe_fcn_t analyze_defclass(scm_list& exp) {
+  exe_fcn_t analyze_defclass(scm_list& exp,const bool cps_block=false) {
     validate_defclass(exp);
     class_prototype proto;
     proto.class_name = exp[1].sym;
     // get exec procs for member values & method procedures
     std::vector<exe_fcn_t> member_exec_procs, method_exec_procs;
     scm_list ctor_proc;
-    parse_defclass_expression(exp,proto,member_exec_procs,method_exec_procs,ctor_proc);
+    parse_defclass_expression(exp,proto,member_exec_procs,method_exec_procs,ctor_proc,cps_block);
     return [proto=std::move(proto),member_exec_procs=std::move(member_exec_procs),
             method_exec_procs=std::move(method_exec_procs),exp=std::move(exp),
             ctor_proc=std::move(ctor_proc)](env_type& env)mutable{
@@ -1873,13 +1873,17 @@ namespace heist {
     
     // If quasiquoted data is atomic, return as-is
     if(!quoted_data.is_type(types::exp)) {
-      if(cps_block) return [unquoted_exp=generate_fundamental_form_cps(quoted_data)](env_type&){return unquoted_exp;};
+      if(cps_block) return scm_analyze(generate_fundamental_form_cps(quoted_data),false,cps_block);
       return [unquoted_exp=scm_list(1,quoted_data)](env_type&){return unquoted_exp;};
     }
 
     // If quoting an empty expression, return the empty list
     if(quoted_data.exp.empty()) {
-      if(cps_block) return [](env_type&){return generate_fundamental_form_cps(symconst::emptylist);};
+      if(cps_block) {
+        data quote_expr(scm_list(2));
+        quote_expr.exp[0] = symconst::quote, quote_expr.exp[1] = scm_list();
+        return scm_analyze(generate_fundamental_form_cps(quote_expr),false,cps_block);
+      }
       return [](env_type&){return GLOBALS::EMPTY_LIST_EXPRESSION;};
     }
 
@@ -1888,11 +1892,11 @@ namespace heist {
       data unquoted_data = process_unquoted(quoted_data.exp);
       // If an expression, return the exec proc of the analyzed expression
       if(unquoted_data.is_type(types::exp)) {
-        if(cps_block) scm_analyze(generate_fundamental_form_cps(scm_list_cast(unquoted_data)),false,cps_block);
+        if(cps_block) return scm_analyze(generate_fundamental_form_cps(scm_list_cast(unquoted_data)),false,cps_block);
         return scm_analyze(scm_list_cast(unquoted_data));
       }
       // If an atomic, return the exec proc of its evaluation (in case a variable or some such)
-      if(cps_block) scm_analyze(generate_fundamental_form_cps(unquoted_data),false,cps_block);
+      if(cps_block) return scm_analyze(generate_fundamental_form_cps(unquoted_data),false,cps_block);
       return scm_analyze(scm_list(1,unquoted_data));
     }
 
@@ -4625,7 +4629,7 @@ namespace heist {
     else if(is_lambda(exp))            return analyze_lambda(exp,cps_block);
     else if(is_begin(exp))             return analyze_sequence(begin_actions(exp),tail_call,cps_block);
     else if(is_delay(exp))             return analyze_delay(exp,cps_block);
-    else if(is_defclass(exp))          return analyze_defclass(exp);
+    else if(is_defclass(exp))          return analyze_defclass(exp,cps_block);
     else if(is_fn(exp))                return analyze_fn(exp,cps_block);
     else if(is_scm_cps(exp))           return analyze_scm_cps(exp);
     else if(is_cps_quote(exp))         return analyze_cps_quote(exp,cps_block);
