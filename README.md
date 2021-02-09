@@ -3045,9 +3045,11 @@ Other primitives of this nature include:<br>
 ## CSV Interop:
 0. __Convert CSV String to a List of Lists__: 
    * `(csv->list <string> <optional-delimiter-char>)`
+   * `<optional-delimiter-char>` defaults to `#\,`
 
 1. __Convert CSV String to a Vector of Vectors__: 
    * `(csv->vector <string> <optional-delimiter-char>)`
+   * `<optional-delimiter-char>` defaults to `#\,`
 
 2. __Convert List of Lists to a CSV String__: 
    * `(list->csv <list-of-lists-of-csv-data> <optional-delimiter-char>)`
