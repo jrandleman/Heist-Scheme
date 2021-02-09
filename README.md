@@ -32,7 +32,7 @@
 10. [Expanded String Library](#String-Procedures)
 11. [String I/O](#Output-Procedures)
 12. [Recursive Depth Control](#Interpreter-Invariants-Manipulation)
-13. [A](#Curry)[n](#Heist-Mathematical-Flonum-Constants)[d](#Control-Flow-Procedures) [M](#Gensym)[o](#JSON-Interop)[r](#Define-Coroutine)[e](#System-Interface-Procedures)[!](#Syntax-Procedures)
+13. [A](#Curry)[n](#Heist-Mathematical-Flonum-Constants)[d](#Control-Flow-Procedures) [M](#Gensym--symbol-append)[o](#JSON-Interop)[r](#Define-Coroutine)[e](#System-Interface-Procedures)[!](#Syntax-Procedures)
 
 ------------------------ 
 # Table of Contents
@@ -108,8 +108,8 @@
      * [Set Procedures](#Set-Procedures)
      * [Sorting Procedures](#Sorting-Procedures)
    - [Type Predicates, Undefined, & Void](#Type-Predicates-Undefined--Void)
-   - [Eval/Apply & Symbol-Append](#evalapply--symbol-append)
-   - [Typeof & Copying](#typeof--copying)
+   - [Eval & Apply](#eval--apply)
+   - [Copying](#copying)
    - [Compose, Bind, & Id](#compose-bind--id)
    - [Delay Predicate & Force](#Delay-Predicate--Force)
    - [Type Coercion](#Type-Coercion)
@@ -124,7 +124,7 @@
    - [System Interface Procedures](#System-Interface-Procedures)
    - [Interpreter Invariants Manipulation](#Interpreter-Invariants-Manipulation)
    - [Control Flow Procedures](#Control-Flow-Procedures)
-   - [Gensym](#Gensym)
+   - [Gensym & Symbol-Append](#Gensym--symbol-append)
    - [Scm->Cps Procedures](#Scm-Cps-Procedures)
    - [Syntax Procedures](#Syntax-Procedures)
    - [Infix Analysis](#Infix-Analysis)
@@ -163,9 +163,9 @@
 ## Metaprogramming Advantages:
 * Code is data (parentheses construct an Abstract Syntax Tree)
   - Hence Macro System enables direct manipulation of the AST
-  - Quotation ([`quote`](#Quote)) Converts Code to Data, Eval ([`eval`](#evalapply--symbol-append)) Converts Data to Code
+  - Quotation ([`quote`](#Quote)) Converts Code to Data, Eval ([`eval`](#eval--apply)) Converts Data to Code
   - Reader ([`read`](#Input-Procedures)) takes input and parses it into a quoted list of symbolic data
-    * Hence [`read`](#Input-Procedures) and [`eval`](#evalapply--symbol-append) may be combined for a custom repl!
+    * Hence [`read`](#Input-Procedures) and [`eval`](#eval--apply) may be combined for a custom repl!
 
 ## Notation:
 * Function (or "procedure") calls are denoted by parens:
@@ -384,7 +384,7 @@ may ___only___ be validly used in the scope of a [`scm->cps`](#scm-cps) block __
 Other primitives of this nature include:<br>
 
 0. [`load`](#system-interface-procedures) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-load`](#system-interface-procedures)
-1. [`eval`](#evalapply--symbol-append) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-eval`](#evalapply--symbol-append)
+1. [`eval`](#eval--apply) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-eval`](#eval--apply)
 2. [`compile`](#system-interface-procedures) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-compile`](#system-interface-procedures)
 3. Bind [`id`](#compose-bind--id) as the continuation of a procedure: [`cps->scm`](#scm-cps-procedures)
    * For passing a procedure defined in a [`scm->cps`](#scm-cps) block as an argument to a procedure<br>
@@ -1061,7 +1061,7 @@ Other primitives of this nature include:<br>
 * _**ONLY** valid in `syntax-rules` templates!_
 * _Expander replaces `syntax-hash` expression, and every instance of `<symbol>`,<br>
   with a hashed version of `<symbol>` unique to the expansion instance!_
-  - _Similar to [`gensym`](#Gensym) but specialized for macro expansions!_
+  - _Similar to [`gensym`](#Gensym--symbol-append) but specialized for macro expansions!_
 
 #### Shorthand: ``` `@<symbol> => (syntax-hash <symbol>)```
 
@@ -1121,7 +1121,7 @@ Other primitives of this nature include:<br>
 #### Form: `(core-syntax <label> <syntax-object>)`
 
 #### Analysis-Time Advantanges:
-* Interpreter's [`eval`](#evalapply--symbol-append) seperates expression analysis (declaration) & execution (invocation):
+* Interpreter's [`eval`](#eval--apply) seperates expression analysis (declaration) & execution (invocation):
   - [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax) macros, bound to an environment, dynamically expand at **run-time**
     * _Hence **run-time** macros in a [`lambda`](#lambda) body are re-expanded **upon every invocation!**_
   - [`core-syntax`](#core-syntax) macros, only bound to the **global environment**, expand at **analysis-time**
@@ -1172,7 +1172,7 @@ Other primitives of this nature include:<br>
 
 #### Use: ___Convert Code to CPS & Evaluate the Result!___
 * _Hence returns an unary procedure, accepting the "topmost" continuation!_
-* _Enables use of [`call/cc`](#scm-cps-procedures), [`cps-eval`](#evalapply--symbol-append), [`cps-load`](#system-interface-procedures), & [`cps->scm`](#scm-cps-procedures) primitives!_
+* _Enables use of [`call/cc`](#scm-cps-procedures), [`cps-eval`](#eval--apply), [`cps-load`](#system-interface-procedures), & [`cps->scm`](#scm-cps-procedures) primitives!_
 * _Automatically wraps entire program (& passed [`id`](#compose-bind--id)) if [`-cps`](#Heist-Command-Line-Flags) cmd-line flag used!_
 * _Enables opt-in continuations for their benefits w/o their overhead when unused!_
   - _Optimizes the cps transformation as well for reasonable speed!_
@@ -1181,7 +1181,7 @@ Other primitives of this nature include:<br>
 #### Form: `(scm->cps <exp1> <exp2> ...)`
 
 #### Danger Zone:
-* With CPS, avoid [macros](#define-syntax-let-syntax-letrec-syntax)/[eval](#evalapply--symbol-append) expanding to a [`define`](#define) in the current envrionment!
+* With CPS, avoid [macros](#define-syntax-let-syntax-letrec-syntax)/[eval](#eval--apply) expanding to a [`define`](#define) in the current envrionment!
   - Lazy expansion breaks this functionality (may expand to localized bindings though!)
   - Includes [`defn`](#defn) & [`define-overload`](#Define-Overload) (manually write expansion)
 
@@ -1339,7 +1339,7 @@ Other primitives of this nature include:<br>
    - Generated ctor is either nullary, or accepts a container to initialize member values:
      * container = name-value [`hash-map`](#Hash-Map-Procedures), or value [`list`](#ListPair-Procedures)/[`vector`](#Vector-Procedures)!
    - Default ctor is always available via `new-<class-name>`
-1. Default values from class-prototypes are [`deep-copied`](#typeof--copying) to objects upon construction
+1. Default values from class-prototypes are [`deep-copied`](#copying) to objects upon construction
 2. [Dynamically add properties to prototypes](#Prototype-Primitives), which existing objects get access to!
 
 #### Generated Predicate, Setters, & Property Registration:
@@ -1382,7 +1382,7 @@ Other primitives of this nature include:<br>
 
 #### Value Semantics & Property Access:
 0. Passed by reference (as are [strings](#String-Procedures), [pairs](#ListPair-Procedures), [vectors](#Vector-Procedures), and [hash-maps](#Hash-Map-Procedures))
-   - May be deep-copied via [`copy`](#typeof--copying) & shallow-copied via [`shallow-copy`](#typeof--copying)
+   - May be deep-copied via [`copy`](#copying) & shallow-copied via [`shallow-copy`](#copying)
 1. Traditional OOP Access, Member: `person.name`, Method: `(person.greet <friend's name>)`
    - Functional [`..`](#Object-Primitives) Access: `(.. person 'name)` & `((.. person 'greet) <friend's name>)`
    - [Reader](#Input-Procedures) evals property chains as 1 symbol, which are parsed by the core evaluator!
@@ -1444,7 +1444,7 @@ Other primitives of this nature include:<br>
   - `(yield)` is equivalent to `(yield #f)`, designed for use with [`cycle-coroutines!`](#Coroutine-Handling-Primitives)
 
 #### Special Conditions:
-0. Use [`co-eval`](#Coroutine-Handling-Primitives) instead of [`eval`](#evalapply--symbol-append) in coroutines
+0. Use [`co-eval`](#Coroutine-Handling-Primitives) instead of [`eval`](#eval--apply) in coroutines
 1. Use [`co-load`](#Coroutine-Handling-Primitives) instead of [`load`](#system-interface-procedures) in coroutines
 2. Use [`co-fn`](#Coroutine-Handling-Primitives) to pass local procedures defined in a coroutine to an external procedure
 
@@ -1452,7 +1452,7 @@ Other primitives of this nature include:<br>
 0. Nesting `define-coroutine` instances (or use in [`scm->cps`](#Scm-Cps)) is undefined behavior!
 1. Using [`jump!`](#Control-Flow-Procedures) or [`catch-jump`](#Control-Flow-Procedures) in `define-coroutine` is undefined behavior (used by `yield`)!
 2. The [`id`](#compose-bind--id) procedure is returned if no expressions exist after the last `yield`!
-3. Like [`scm->cps`](#Scm-Cps), avoid [macros](#define-syntax-let-syntax-letrec-syntax)/[eval](#evalapply--symbol-append) expanding to a [`define`](#define) in the current environment!
+3. Like [`scm->cps`](#Scm-Cps), avoid [macros](#define-syntax-let-syntax-letrec-syntax)/[eval](#eval--apply) expanding to a [`define`](#define) in the current environment!
 
 #### Examples:
 ```scheme
@@ -1653,7 +1653,7 @@ Other primitives of this nature include:<br>
 5. __Min & Max Infix Operator Precedences:__ `*min-infix-precedence*`, `*max-infix-precedence*`
    * Bound to `LLONG_MIN` & `LLONG_MAX` from `#include <climits>`
 
-6. __Optional Environment Arg Flags for [`Eval`](#evalapply--symbol-append), [`Load`](#system-interface-procedures), [`Cps-Eval`](#evalapply--symbol-append), [`Cps-Load`](#system-interface-procedures):__
+6. __Optional Environment Arg Flags for [`Eval`](#eval--apply), [`Load`](#system-interface-procedures), [`Cps-Eval`](#eval--apply), [`Cps-Load`](#system-interface-procedures):__
    * Null Environment, all effects are sandboxed: `*null-environment*`
    * Local Environment, using local bindings: `*local-environment*`
    * Global Environment, using global bindings: `*global-environment*`
@@ -1753,7 +1753,7 @@ Other primitives of this nature include:<br>
    * See the example from the [`define-coroutine`](#Define-Coroutine) section!
 
 3. __Eval in Coroutines__: `(co-eval <datum>)`
-   * Alias for [`cps-eval`](#evalapply--symbol-append) (cps-transform occurs when generating coroutines)
+   * Alias for [`cps-eval`](#eval--apply) (cps-transform occurs when generating coroutines)
 
 4. __Load in Coroutines__: `(co-load <filename-string>)`
    * Alias for [`cps-load`](#system-interface-procedures) (cps-transform occurs when generating coroutines)
@@ -2468,75 +2468,77 @@ Other primitives of this nature include:<br>
 
 ------------------------
 ## Type Predicates, Undefined, & Void:
-0. __Generate an Undefined Object__: `(undefined)`
+0. __Get Typename Symbol__: `(typeof <obj>)`
 
-1. __Undefined Predicate__: `(undefined? <obj>)`
+1. __Generate an Undefined Object__: `(undefined)`
 
-2. __Generate a Void Object__: `(void)`
+2. __Undefined Predicate__: `(undefined? <obj>)`
 
-3. __Void Predicate__: `(void? <obj>)`
+3. __Generate a Void Object__: `(void)`
 
-4. __Empty Sequence Predicate__: `(empty? <obj>)`
+4. __Void Predicate__: `(void? <obj>)`
 
-5. __Pair Predicate__: `(pair? <obj>)`
+5. __Empty Sequence Predicate__: `(empty? <obj>)`
 
-6. __Vector Predicate__: `(vector? <obj>)`
+6. __Pair Predicate__: `(pair? <obj>)`
 
-7. __Hash-Map Predicate__: `(hmap? <obj>)`
+7. __Vector Predicate__: `(vector? <obj>)`
 
-8. __Character Predicate__: `(char? <obj>)`
+8. __Hash-Map Predicate__: `(hmap? <obj>)`
 
-9. __Number Predicate__: `(number? <obj>)`
+9. __Character Predicate__: `(char? <obj>)`
 
-10. __Real Predicate__: `(real? <obj>)`
+10. __Number Predicate__: `(number? <obj>)`
 
-11. __Complex Predicate__: `(complex? <obj>)`
+11. __Real Predicate__: `(real? <obj>)`
 
-12. __Rational Number Predicate__: `(rational? <obj>)`
+12. __Complex Predicate__: `(complex? <obj>)`
 
-13. __String Predicate__: `(string? <obj>)`
+13. __Rational Number Predicate__: `(rational? <obj>)`
 
-14. __Symbol Predicate__: `(symbol? <obj>)`
+14. __String Predicate__: `(string? <obj>)`
 
-15. __Boolean Predicate__: `(boolean? <obj>)`
+15. __Symbol Predicate__: `(symbol? <obj>)`
 
-16. __Atom Predicate__: `(atom? <obj>)`
+16. __Boolean Predicate__: `(boolean? <obj>)`
 
-17. __Procedure Predicate__: `(procedure? <obj>)`
+17. __Atom Predicate__: `(atom? <obj>)`
 
-18. __Functor Predicate__: `(functor? <obj>)`
+18. __Procedure Predicate__: `(procedure? <obj>)`
+
+19. __Functor Predicate__: `(functor? <obj>)`
     * _Functor = [object](#Defclass) with a `self->procedure` method defined!_
     * _Functors may be called as if a function!_
 
-17. __Callable Predicate__: `(callable? <obj>)`
+20. __Callable Predicate__: `(callable? <obj>)`
     * _Equivalent to: `(or (procedure? <obj>) (functor? <obj>))`_
 
-19. __Cps-Procedure Predicate__: `(cps-procedure? <obj>)`
+21. __Cps-Procedure Predicate__: `(cps-procedure? <obj>)`
 
-20. __Input-Port Predicate__: `(input-port? <obj>)`
+22. __Input-Port Predicate__: `(input-port? <obj>)`
 
-21. __Output-Port Predicate__: `(output-port? <obj>)`
+23. __Output-Port Predicate__: `(output-port? <obj>)`
 
-22. __Eof-Object Predicate__: `(eof-object? <obj>)`
+24. __Eof-Object Predicate__: `(eof-object? <obj>)`
 
-23. __Stream-Pair Predicate__: `(stream-pair? <obj>)`
+25. __Stream-Pair Predicate__: `(stream-pair? <obj>)`
 
-24. __Empty-Stream Predicate__: `(stream-null? <obj>)`
+26. __Empty-Stream Predicate__: `(stream-null? <obj>)`
 
-25. __Stream Predicate__: `(stream? <obj>)`
+27. __Stream Predicate__: `(stream? <obj>)`
 
-26. __Syntax-Rules Object Predicate__: `(syntax-rules-object? <obj>)`
+28. __Syntax-Rules Object Predicate__: `(syntax-rules-object? <obj>)`
 
-27. __Sequence Predicate__: `(seq? <obj>)`
+29. __Sequence Predicate__: `(seq? <obj>)`
 
-28. __Object Predicate__: `(object? <obj>)`
+30. __Object Predicate__: `(object? <obj>)`
 
-29. __Class Prototype Predicate__: `(class-prototype? <obj>)`
+31. __Class Prototype Predicate__: `(class-prototype? <obj>)`
 
 
 
 ------------------------
-## Eval/Apply & Symbol-Append:
+## Eval & Apply:
 0. __Eval__: Run quoted data as code
    * `(eval <data> <optional-environment>)`
    * _Pass `*null-environment*` to `eval` in an empty environment!_
@@ -2551,18 +2553,14 @@ Other primitives of this nature include:<br>
 
 2. __Apply `<callable>` to List of Args__: `(apply <callable> <argument-list>)`
 
-3. __Append Symbols__: `(symbol-append <symbol-1> ... <symbol-N>)`
-
 
 
 ------------------------
-## Typeof & Copying:
-0. __Get Typename Symbol__: `(typeof <obj>)`
-
-1. __Deep-Copy Datum__: `(copy <obj>)`
+## Copying:
+0. __Deep-Copy Datum__: `(copy <obj>)`
    * Deep-copy vectors, strings, proper/dotted/circular lists, hmaps, & objects!
 
-2. __Shallow-Copy Datum__: `(shallow-copy <obj>)`
+1. __Shallow-Copy Datum__: `(shallow-copy <obj>)`
    * Shallow-copy vectors, strings, proper/dotted/circular lists, hmaps, & objects!
    * Note that this performs _structural_ allocation w/ shallow content copying
      - Hence `copy` and `shallow-copy` are effectively identical for strings!
@@ -2927,7 +2925,7 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
-## Gensym:
+## Gensym & Symbol-Append:
 0. __Generate a Unique Symbol__: `(gensym <optional-instance-#-to-reference>)`
    * `(gensym 1)` refers to the symbol generated by the last `(gensym)` invocation
    * `(gensym 2)` refers to the symbol generated by the 2nd to last `(gensym)` invocation
@@ -2935,6 +2933,8 @@ Other primitives of this nature include:<br>
 
 1. __Generate a Seeded Symbol__: `(sown-gensym <seed>)`
    * `<seed>` = number | symbol | boolean
+
+2. __Append Symbols__: `(symbol-append <symbol-1> ... <symbol-N>)`
 
 
 
