@@ -5302,6 +5302,234 @@ namespace heist {
   }
 
   /******************************************************************************
+  * CSV PARSER PRIMITIVE HELPER FUNCTIONS
+  ******************************************************************************/
+
+  char validate_csv_parsing_args(scm_list& args, const char* name, const char* format) {
+    if(args.empty() || args.size() > 2)
+      THROW_ERR('\''<<name<<" received incorrect # of args!" 
+        << format << FCN_ERR(name,args));
+    if(!args[0].is_type(types::str))
+      THROW_ERR('\''<<name<<" 1st arg " << PROFILE(args[0]) << " isn't a csv string!"
+        << format << FCN_ERR(name,args));
+    if(args.size() == 2) {
+      if(!args[1].is_type(types::chr) || !args[1].chr || args[1].chr == '\n')
+        THROW_ERR('\''<<name<<" 2nd arg " << PROFILE(args[1]) << " isn't a a non-nul/newline character!" 
+          << format << FCN_ERR(name,args));
+      return char(args[1].chr);
+    }
+    return ',';
+  }
+
+
+  template<bool THROWING_ERRORS>
+  bool confirm_proper_LIST_csv_row_values(scm_list& row, const size_type row_number, data iter, const data& d, 
+                                                         const scm_list& args, const char* name, const char* format){
+    size_type count = 1;
+    while(iter.is_type(types::par)) {
+      if(!iter.par->first.is_type(types::str) && !iter.par->first.is_type(types::num)) {
+        if constexpr (THROWING_ERRORS) {
+          THROW_ERR('\''<<name<<" nested list #" << row_number << " item #" << count << ' ' 
+            << PROFILE(iter) << " in list " << PROFILE(d) << " isn't a string or number!" 
+            << format << FCN_ERR(name,args));
+        } else {
+          return false;
+        }
+      }
+      if constexpr (THROWING_ERRORS) row.push_back(iter.par->first); // add csv item
+      ++count;
+      iter = iter.par->second;
+    }
+    return true;
+  }
+
+
+  template<bool THROWING_ERRORS>
+  bool confirm_proper_LIST_csv_datum(std::vector<scm_list>& csv_matrix, const data& d, const scm_list& args, 
+                                                                        const char* name, const char* format){
+    if(!data_is_proper_list(d)) {
+      if constexpr (THROWING_ERRORS) {
+        THROW_ERR('\''<<name<<" item " << PROFILE(d) << " isn't a proper list!" << FCN_ERR(name,args));
+      } else {
+        return false;
+      }
+    }
+    if(d.is_type(types::sym)) return true;
+    auto iter = d;
+    size_type length = GLOBALS::MAX_SIZE_TYPE;
+    size_type count = 1;
+    while(iter.is_type(types::par)) {
+      if(!data_is_proper_list(iter.par->first)) {
+        if constexpr (THROWING_ERRORS) {
+          THROW_ERR('\''<<name<<" nested item #" << count << ' ' << PROFILE(iter.par->first) 
+            << " in list " << PROFILE(d) << " isn't a proper list!" << FCN_ERR(name,args));
+        } else {
+          return false;
+        }
+      }
+      if(length == GLOBALS::MAX_SIZE_TYPE) {
+        length = (size_type)primitive_guarenteed_list_length(iter.par->first).extract_inexact();
+      } else {
+        if((size_type)primitive_guarenteed_list_length(iter.par->first).extract_inexact() != length) {
+          if constexpr (THROWING_ERRORS) {
+            THROW_ERR('\''<<name<<" inner lists in " << PROFILE(d) 
+              << " aren't of the same length!" << FCN_ERR(name,args));
+          } else {
+            return false;
+          }
+        }
+      }
+      scm_list row;
+      if(!confirm_proper_LIST_csv_row_values<THROWING_ERRORS>(row,count,iter.par->first,d,args,name,format)) return false;
+      if constexpr (THROWING_ERRORS) csv_matrix.push_back(std::move(row)); // add csv row
+      ++count;
+      iter = iter.par->second;
+    }
+    return true;
+  }
+
+
+  template<bool THROWING_ERRORS>
+  bool confirm_proper_VECTOR_csv_row_values(scm_list& row, const size_type row_number, const data& v, const data& d, 
+                                                           const scm_list& args, const char* name, const char* format){
+    for(size_type i = 0, n = v.vec->size(); i < n; ++i) {
+      if(!v.vec->operator[](i).is_type(types::str) && !v.vec->operator[](i).is_type(types::num)) {
+        if constexpr (THROWING_ERRORS) {
+          THROW_ERR('\''<<name<<" nested vector #" << row_number << " item #" << i+1 << ' ' 
+            << PROFILE(v) << " in vector " << PROFILE(d) << " isn't a string or number!" 
+            << format << FCN_ERR(name,args));
+        } else {
+          return false;
+        }
+      }
+      if constexpr (THROWING_ERRORS) row.push_back(v.vec->operator[](i)); // add csv item
+    }
+    return true;
+  }
+
+
+  template<bool THROWING_ERRORS>
+  bool confirm_proper_VECTOR_csv_datum(std::vector<scm_list>& csv_matrix, const data& d, const scm_list& args, 
+                                                                          const char* name, const char* format){
+    if(!d.is_type(types::vec)) {
+      if constexpr (THROWING_ERRORS) {
+        THROW_ERR('\''<<name<<" item " << PROFILE(d) << " isn't a vector!" << FCN_ERR(name,args));
+      } else {
+        return false;
+      }
+    }
+    size_type length = GLOBALS::MAX_SIZE_TYPE;
+    for(size_type i = 0, n = d.vec->size(); i < n; ++i) {
+      if(!d.vec->operator[](i).is_type(types::vec)) {
+        if constexpr (THROWING_ERRORS) {
+          THROW_ERR('\''<<name<<" nested item #" << i+1 << ' ' << PROFILE(d.vec->operator[](i)) 
+            << " in list " << PROFILE(d) << " isn't a vector!" << FCN_ERR(name,args));
+        } else {
+          return false;
+        }
+      }
+      if(length == GLOBALS::MAX_SIZE_TYPE) {
+        length = d.vec->operator[](i).vec->size();
+      } else {
+        if(d.vec->operator[](i).vec->size() != length) {
+          if constexpr (THROWING_ERRORS) {
+            THROW_ERR('\''<<name<<" inner vectors in " << PROFILE(d) 
+              << " aren't of the same length!" << FCN_ERR(name,args));
+          } else {
+            return false;
+          }
+        }
+      }
+      scm_list row;
+      if(!confirm_proper_VECTOR_csv_row_values<THROWING_ERRORS>(row,i+1,d.vec->operator[](i),d,args,name,format)) return false;
+      if constexpr (THROWING_ERRORS) csv_matrix.push_back(std::move(row)); // add csv row
+    }
+    return true;
+  }
+
+
+  data generate_csv(const std::vector<scm_list>& csv_matrix, const char delimiter)noexcept{
+    scm_string csv;
+    for(size_type i = 0, n = csv_matrix.size(); i < n; ++i) {
+      for(size_type j = 0, m = csv_matrix[i].size(); j < m; ++j) {
+        if(j+1 < m) {
+          csv += csv_matrix[i][j].write() + delimiter;
+        } else {
+          csv += csv_matrix[i][j].write();
+        }
+      }
+      csv += '\n';
+    }
+    return make_str(csv);
+  }
+
+
+  void print_csv_reader_error_alert(const char* seq_name) {
+    std::cerr << '\n' << afmt(heist::AFMT_131) << "-------" << scm_string(7+strlen(seq_name), '-')
+      << afmt(heist::AFMT_01) << "--------------\n"
+      << afmt(heist::AFMT_131) << "> CSV->" << seq_name
+      << afmt(heist::AFMT_01) << " READER ERROR:" << afmt(heist::AFMT_0);
+  }
+
+
+  data parse_csv(const char* seq_prefix, const char delimiter, const scm_string& csv){
+    // Convert CSV into a Scheme expression to be read & evaluated
+    scm_string scm_expr(seq_prefix);
+    scm_expr += seq_prefix;
+    for(size_type i = 0, n = csv.size(); i < n; ++i) {
+      // end of row
+      if(csv[i] == '\n') {
+        scm_expr += ')';
+        scm_expr += seq_prefix;
+      // skip non-newline whitespace
+      } else if(isspace(csv[i])) {
+        continue;
+      // string literal
+      } else if(is_non_escaped_double_quote(i,csv)) {
+        auto j = i;
+        skip_string_literal(i,csv);
+        while(j <= i) scm_expr += csv[j++];
+      // delimiter
+      } else if(csv[i] == delimiter) {
+        scm_expr += ' ';
+      // general character (presumably part of a numeric)
+      } else {
+        scm_expr += csv[i];
+      }
+    }
+    // Prep CSV-converted scheme expression for evaluation
+    trim_edge_whitespace(scm_expr);
+    const auto seq_n = strlen(seq_prefix)-1;
+    const auto n = scm_expr.size();
+    char prefix[30];
+    strncpy(prefix,seq_prefix,30);
+    prefix[seq_n] = 0; // rm space at the end of the sequence ctor prefix
+    if(n >= seq_n && scm_expr.compare(n-seq_n,seq_n,prefix) == 0)
+      scm_expr.erase(n-seq_n,seq_n);
+    else 
+      scm_expr += ')';
+    scm_expr += ')';
+    // Try parsing the converted csv expression, & throw an error as needed
+    try { 
+      scm_list abstract_syntax_tree;
+      // Return AST if successfully parsed an expression
+      parse_input_exp(scm_string(scm_expr),abstract_syntax_tree);
+      if(abstract_syntax_tree.empty()) return GLOBALS::VOID_DATA_OBJECT;
+      return data_cast(scm_eval(scm_list_cast(abstract_syntax_tree[0]),G.GLOBAL_ENVIRONMENT_POINTER));
+    } catch(const READER_ERROR& read_error) {
+      print_csv_reader_error_alert(seq_prefix[1] == 'v' ? "VECTOR" : "LIST");
+      if(is_non_repl_reader_error(read_error))
+           alert_non_repl_reader_error(G.CURRENT_OUTPUT_PORT,read_error,scm_expr);
+      else alert_reader_error(G.CURRENT_OUTPUT_PORT,read_error,scm_expr);
+      throw SCM_EXCEPT::READ;
+    } catch(const size_type& read_error_index) {
+      print_csv_reader_error_alert(seq_prefix[1] == 'v' ? "VECTOR" : "LIST");
+      alert_reader_error(G.CURRENT_OUTPUT_PORT,read_error_index,scm_expr);
+      throw SCM_EXCEPT::READ;
+    }
+  }
+
+  /******************************************************************************
   * REGEX PRIMITIVE HELPER FUNCTIONS
   ******************************************************************************/
 

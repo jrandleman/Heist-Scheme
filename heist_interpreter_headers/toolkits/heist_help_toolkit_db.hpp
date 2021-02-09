@@ -77,8 +77,8 @@ static constexpr const char* HELP_MENU_PROCEDURES[] = {
   "pairs",           "vectors",     "hmaps",      "sequences",    "predicates",
   "evalapply",       "copying",     "delayforce", "coercion",     "output",
   "formatoutput",    "input",       "ports",      "sysinterface", "invariants",
-  "controlflow",     "cps-helpers", "syntax",     "json",         "gensyms",
-  "compose-bind-id",
+  "controlflow",     "cps-helpers", "syntax",     "json",         "csv",
+  "gensyms",         "compose-bind-id",
 };
 
 static constexpr char** HELP_MENU_SUBMENUS[] = {
@@ -293,6 +293,10 @@ static constexpr const char* HELP_MENU_PROCEDURES_JSON[] = {
   "json->scm", "scm->json", "object->json", "json-datum?", 
 };
 
+static constexpr const char* HELP_MENU_PROCEDURES_CSV[] = {
+  "csv->list", "csv->vector", "list->csv", "vector->csv", "csv-datum?", 
+};
+
 static constexpr const char* HELP_MENU_PROCEDURES_GENSYM[] = {
   "gensym", "sown-gensym", "symbol-append", 
 };
@@ -310,7 +314,7 @@ static constexpr char** HELP_MENU_PROCEDURES_SUBMENU[] = {
   (char**)HELP_MENU_PROCEDURES_DELAY,       (char**)HELP_MENU_PROCEDURES_COERCION,      (char**)HELP_MENU_PROCEDURES_OUTPUT,       (char**)HELP_MENU_PROCEDURES_FORMATOUTPUT, 
   (char**)HELP_MENU_PROCEDURES_INPUT,       (char**)HELP_MENU_PROCEDURES_PORTS,         (char**)HELP_MENU_PROCEDURES_SYSINTERFACE, (char**)HELP_MENU_PROCEDURES_INVARIANTS, 
   (char**)HELP_MENU_PROCEDURES_CONTROLFLOW, (char**)HELP_MENU_PROCEDURES_CPS,           (char**)HELP_MENU_PROCEDURES_SYNTAX,       (char**)HELP_MENU_PROCEDURES_JSON, 
-  (char**)HELP_MENU_PROCEDURES_GENSYM,      (char**)HELP_MENU_PROCEDURES_COMPOSEBINDID, 
+  (char**)HELP_MENU_PROCEDURES_CSV,         (char**)HELP_MENU_PROCEDURES_GENSYM,        (char**)HELP_MENU_PROCEDURES_COMPOSEBINDID, 
 };
 
 static constexpr size_type HELP_MENU_PROCEDURES_SUBMENU_LENGTH[] = {
@@ -329,7 +333,8 @@ static constexpr size_type HELP_MENU_PROCEDURES_SUBMENU_LENGTH[] = {
   sizeof(HELP_MENU_PROCEDURES_SYSINTERFACE)/sizeof(HELP_MENU_PROCEDURES_SYSINTERFACE[0]), sizeof(HELP_MENU_PROCEDURES_INVARIANTS)/sizeof(HELP_MENU_PROCEDURES_INVARIANTS[0]), 
   sizeof(HELP_MENU_PROCEDURES_CONTROLFLOW)/sizeof(HELP_MENU_PROCEDURES_CONTROLFLOW[0]),   sizeof(HELP_MENU_PROCEDURES_CPS)/sizeof(HELP_MENU_PROCEDURES_CPS[0]),
   sizeof(HELP_MENU_PROCEDURES_SYNTAX)/sizeof(HELP_MENU_PROCEDURES_SYNTAX[0]),             sizeof(HELP_MENU_PROCEDURES_JSON)/sizeof(HELP_MENU_PROCEDURES_JSON[0]), 
-  sizeof(HELP_MENU_PROCEDURES_GENSYM)/sizeof(HELP_MENU_PROCEDURES_GENSYM[0]),             sizeof(HELP_MENU_PROCEDURES_COMPOSEBINDID)/sizeof(HELP_MENU_PROCEDURES_COMPOSEBINDID[0]), 
+  sizeof(HELP_MENU_PROCEDURES_CSV)/sizeof(HELP_MENU_PROCEDURES_CSV[0]),                   sizeof(HELP_MENU_PROCEDURES_GENSYM)/sizeof(HELP_MENU_PROCEDURES_GENSYM[0]),
+  sizeof(HELP_MENU_PROCEDURES_COMPOSEBINDID)/sizeof(HELP_MENU_PROCEDURES_COMPOSEBINDID[0]), 
 };
 
 /******************************************************************************
@@ -9829,6 +9834,98 @@ R"(
 R"(
 Return whether <obj> is a valid JSON datum candidate.
   *) Effectively returns whether (scm->json <obj>) would trigger an error or not.
+)",
+
+
+
+
+
+}, {
+"csv->list",
+"Procedure",
+R"(
+(csv->list <string> <optional-delimiter-char>)
+)",
+R"(
+Convert CSV string to a list of lists of numbers/strings.
+  *) <optional-delimiter-char> defaults to #\,
+
+Other CSV procedures include: 
+  "csv->vector", "list->csv", "vector->csv", & "csv-datum?"
+)",
+
+
+
+
+
+}, {
+"csv->vector",
+"Procedure",
+R"(
+(csv->vector <string> <optional-delimiter-char>)
+)",
+R"(
+Convert CSV string to a vector of vectors of numbers/strings.
+  *) <optional-delimiter-char> defaults to #\,
+
+Other CSV procedures include: 
+  "csv->list", "list->csv", "vector->csv", & "csv-datum?"
+)",
+
+
+
+
+
+}, {
+"list->csv",
+"Procedure",
+R"(
+(list->csv <list-of-lists-of-csv-data> <optional-delimiter-char>)
+)",
+R"(
+Convert list of lists of <csv-data> to a CSV string.
+  *) <csv-data> ::= <string> | <number>
+  *) <optional-delimiter-char> defaults to #\,
+
+Other CSV procedures include: 
+  "csv->list", "csv->vector", "vector->csv", & "csv-datum?"
+)",
+
+
+
+
+
+}, {
+"vector->csv",
+"Procedure",
+R"(
+(vector->csv <vector-of-vectors-of-csv-data> <optional-delimiter-char>)
+)",
+R"(
+Convert vector of vectors of <csv-data> to a CSV string.
+  *) <csv-data> ::= <string> | <number>
+  *) <optional-delimiter-char> defaults to #\,
+
+Other CSV procedures include: 
+  "csv->list", "csv->vector", "list->csv", & "csv-datum?"
+)",
+
+
+
+
+
+}, {
+"csv-datum?",
+"Procedure",
+R"(
+(csv-datum? <obj>)
+)",
+R"(
+Return whether <obj> is a valid CSV datum candidate.
+  *) Effectively returns whether "list->csv" or "vector->csv" would trigger an error or not.
+
+Other CSV procedures include: 
+  "csv->vector", "csv->list", "list->csv", & "vector->csv"
 )",
 
 

@@ -129,6 +129,7 @@
    - [Syntax Procedures](#Syntax-Procedures)
    - [Infix Analysis](#Infix-Analysis)
    - [JSON Interop](#JSON-Interop)
+   - [CSV Interop](#CSV-Interop)
    - [Universes](#Universes)
 10. [Heist Mathematical Flonum Constants](#Heist-Mathematical-Flonum-Constants)
 11. [Heist Minimalist REPL Example](#Heist-Minimalist-REPL-Example)
@@ -3037,6 +3038,29 @@ Other primitives of this nature include:<br>
 
 3. __JSON Datum Predicate__: `(json-datum? <obj>)`
    * Effectively returns whether `(scm->json <obj>)` would throw an error or not
+
+
+
+------------------------
+## CSV Interop:
+0. __Convert CSV String to a List of Lists__: 
+   * `(csv->list <string> <optional-delimiter-char>)`
+
+1. __Convert CSV String to a Vector of Vectors__: 
+   * `(csv->vector <string> <optional-delimiter-char>)`
+
+2. __Convert List of Lists to a CSV String__: 
+   * `(list->csv <list-of-lists-of-csv-data> <optional-delimiter-char>)`
+   * `<csv-data>` ::= `<string>` | `<number>`
+   * `<optional-delimiter-char>` defaults to `#\,`
+
+3. __Convert Vector of Vectors to a CSV String__: 
+   * `(vector->csv <vector-of-vectors-of-csv-data> <optional-delimiter-char>)`
+   * `<csv-data>` ::= `<string>` | `<number>`
+   * `<optional-delimiter-char>` defaults to `#\,`
+
+4. __CSV Datum Predicate__: `(csv-datum? <obj>)`
+   * Effectively returns whether `vector->csv` or `list->csv` would throw an error or not
 
 
 

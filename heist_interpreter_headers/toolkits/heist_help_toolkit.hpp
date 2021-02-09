@@ -37,6 +37,19 @@ namespace help::logic {
   }
 
 
+  void strip_whitespace(sym_type& query)noexcept{
+    if(query.empty() || (!isspace(*query.begin()) && !isspace(*query.rbegin()))) return;
+    const auto n = query.size();
+    size_type begin = 0, end = n-1;
+    while(begin < n && isspace(query[begin])) ++begin;
+    while(end && isspace(query[end])) --end;
+    if(!end && isspace(query[end])) 
+      query = "";
+    else
+      query = query.substr(begin,end-begin+1);
+  }
+
+
   bool is_scar_scdr_composition(const sym_type& query)noexcept{
     if(query.size() <= 4 || query[0] != 's' || query[1] != 'c') return false;
     for(unsigned i = 2; i < 6; ++i) {
@@ -54,19 +67,6 @@ namespace help::logic {
       if(query[i+1] == 'r' && !query[i+2]) return true;
     }
     return false;
-  }
-
-
-  void strip_whitespace(sym_type& query)noexcept{
-    if(query.empty() || (!isspace(*query.begin()) && !isspace(*query.rbegin()))) return;
-    const auto n = query.size();
-    size_type begin = 0, end = n-1;
-    while(begin < n && isspace(query[begin])) ++begin;
-    while(end && isspace(query[end])) --end;
-    if(!end && isspace(query[end])) 
-      query = "";
-    else
-      query = query.substr(begin,end-begin+1);
   }
 
 

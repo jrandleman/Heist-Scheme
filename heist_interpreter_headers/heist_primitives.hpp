@@ -5523,6 +5523,83 @@ namespace heist {
   }
 
   /******************************************************************************
+  * CSV PARSING AND GENERATION PRIMITIVES
+  ******************************************************************************/
+
+  data primitive_LIST_TO_CSV(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (list->csv <list-of-lists-of-csv-data> <optional-delimiter-char>)"
+      "\n     <csv-data> ::= <string> | <number>";
+    if(args.empty() || args.size() > 2)
+      THROW_ERR("'list->csv received incorrect # of args!" 
+        << format << FCN_ERR("list->csv",args));
+    char delimiter = ',';
+    if(args.size() == 2) {
+      if(!args[1].is_type(types::chr) || !args[1].chr || args[1].chr == '\n')
+        THROW_ERR("'list->csv 2nd arg " << PROFILE(args[1]) << " isn't a non-nul/newline character!" 
+          << format << FCN_ERR("list->csv",args));
+      delimiter = char(args[1].chr);
+    }
+    if(args[0].is_type(types::sym) && args[0].sym == symconst::emptylist) // given nil
+      return make_str("");
+    std::vector<scm_list> csv_matrix;
+    confirm_proper_LIST_csv_datum<true>(csv_matrix,args[0],args,"list->csv",format);
+    return generate_csv(csv_matrix,delimiter);
+  }
+
+
+  data primitive_VECTOR_TO_CSV(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (vector->csv <vector-of-vectors-of-csv-data> <optional-delimiter-char>)"
+      "\n     <csv-data> ::= <string> | <number>";
+    if(args.empty() || args.size() > 2)
+      THROW_ERR("'vector->csv received incorrect # of args!" 
+        << format << FCN_ERR("vector->csv",args));
+    char delimiter = ',';
+    if(args.size() == 2) {
+      if(!args[1].is_type(types::chr) || !args[1].chr || args[1].chr == '\n')
+        THROW_ERR("'vector->csv 2nd arg " << PROFILE(args[1]) << " isn't a a non-nul/newline character!" 
+          << format << FCN_ERR("vector->csv",args));
+      delimiter = char(args[1].chr);
+    }
+    if(args[0].is_type(types::vec) && args[0].vec->empty()) // empty vector
+      return make_str("");
+    std::vector<scm_list> csv_matrix;
+    confirm_proper_VECTOR_csv_datum<true>(csv_matrix,args[0],args,"vector->csv",format);
+    return generate_csv(csv_matrix,delimiter);
+  }
+
+
+  data primitive_CSV_TO_LIST(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (csv->list <csv-string> <optional-delimiter-char>)"
+      "\n     <csv-data> ::= <string> | <number>";
+    char delimiter = validate_csv_parsing_args(args,"csv->list",format);
+    std::vector<scm_list> csv_matrix;
+    return parse_csv("(list ", delimiter, *args[0].str);
+  }
+
+
+  data primitive_CSV_TO_VECTOR(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (csv->vector <csv-string> <optional-delimiter-char>)"
+      "\n     <csv-data> ::= <string> | <number>";
+    char delimiter = validate_csv_parsing_args(args,"csv->vector",format);
+    std::vector<scm_list> csv_matrix;
+    return parse_csv("(vector ", delimiter, *args[0].str);
+  }
+
+
+  data primitive_CSV_DATUMP(scm_list& args) {
+    static constexpr const char * const format = "\n     (csv-datum? <datum>)";
+    if(args.size() != 1)
+      THROW_ERR("'csv-datum? not given ! arg!" << format << FCN_ERR("csv-datum?",args));
+    std::vector<scm_list> csv_matrix;
+    return boolean(confirm_proper_LIST_csv_datum<false>(csv_matrix,args[0],args,"csv-datum?",format) || 
+                   confirm_proper_VECTOR_csv_datum<false>(csv_matrix,args[0],args,"csv-datum?",format));
+  }
+
+  /******************************************************************************
   * REGEX PRIMITIVES
   ******************************************************************************/
 
@@ -5922,7 +5999,7 @@ namespace heist {
       help::launch_interactive_menu();
     } else {
       if(args.size() != 1)
-        THROW_ERR("'help didn't recieve a query symbol!"
+        THROW_ERR("'help didn't receive a query symbol!"
           "\n     (help <optional-query-symbol-or-string>)" << FCN_ERR("help",args));
       // Search for the query passed as a symbol | string
       if(args[0].is_type(types::sym))
@@ -6530,6 +6607,12 @@ namespace heist {
     std::make_pair(primitive_JSON_TO_SCM, "json->scm"),
     std::make_pair(primitive_SCM_TO_JSON, "scm->json"),
     std::make_pair(primitive_JSON_DATUMP, "json-datum?"),
+
+    std::make_pair(primitive_LIST_TO_CSV,   "list->csv"),
+    std::make_pair(primitive_VECTOR_TO_CSV, "vector->csv"),
+    std::make_pair(primitive_CSV_TO_LIST,   "csv->list"),
+    std::make_pair(primitive_CSV_TO_VECTOR, "csv->vector"),
+    std::make_pair(primitive_CSV_DATUMP,    "csv-datum?"),
 
     std::make_pair(primitive_REGEX_REPLACE,     "regex-replace"),
     std::make_pair(primitive_REGEX_REPLACE_ALL, "regex-replace-all"),
