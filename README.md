@@ -203,11 +203,11 @@
 11. Show These Options: `--help`
 
 ### `-cps` Quirks:
-Wraps scheme code in a [`scm->cps`](#scm-cps) block automatically! Hence:
+Wraps scheme code in a [`scm->cps`](#scm-cps) block automatically, hence:
 
-0. Reader-modifiying operations must be done in a seperate file and linked with `-l`
-   * This includes [`infix!`](#Infix--Infixr), [`infixr!`](#Infix--Infixr), [`unfix!`](#Unfix), [`define-reader-syntax`](#Syntax-Procedures), & [`define-reader-alias`](#Define-Reader-Alias)
-1. Use with the repl wraps every expression in a unique [`scm->cps`](#scm-cps) blocks!
+0. Reader-modifying operations must be done in a seperate file and linked with `-l`!
+   * This includes [`infix!`](#Infix--Infixr), [`infixr!`](#Infix--Infixr), [`unfix!`](#Unfix), [`define-reader-syntax`](#Syntax-Procedures), & [`define-reader-alias`](#Define-Reader-Alias)!
+1. Use with the REPL wraps every expression in a unique [`scm->cps`](#scm-cps) block!
 
 ### `-infix` Operators:
 | Order |                       Operators                      | Assoc |                Effects                 |
