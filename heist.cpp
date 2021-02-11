@@ -782,8 +782,8 @@ namespace heist {
 
   // 'Delay' data struct consists of the delayed expression, its environment, 
   //   whether its already been forced, and the result of forcing it (if forced)
-  scm_list make_delay(const scm_list& exp, env_type& env)noexcept{
-    scm_list del(2); del[0] = symconst::delay, del[1] = make_del(exp,env);
+  scm_list make_delay(const scm_list& exp, env_type& env, bool in_cps)noexcept{
+    scm_list del(2); del[0] = symconst::delay, del[1] = make_del(exp,env,in_cps);
     return del;
   }
 
@@ -799,7 +799,7 @@ namespace heist {
     if(!cps_block) {
       auto delay_list = scm_list_cast(exp[1]);
       return [delay_list=std::move(delay_list)](env_type& env){
-        return make_delay(delay_list,env);
+        return make_delay(delay_list,env,false);
       };
     }
     // Bind delayed CPS expressions to always have 'id as the topmost continuation,
@@ -809,7 +809,7 @@ namespace heist {
     delay_list[0] = generate_fundamental_form_cps(data_cast(scm_list_cast(exp[1])));
     delay_list[1] = "id";
     return [delay_list=std::move(delay_list)](env_type& env){
-      return make_delay(delay_list,env);
+      return make_delay(delay_list,env,true);
     };
   }
 
@@ -2433,10 +2433,10 @@ namespace heist {
 
   // Heist-specific checker to not prefix C++ derived special forms w/ application tag
   bool is_HEIST_cpp_derived_special_form(const sym_type& app)noexcept{
-    return app == symconst::cps_quote || app == symconst::scm_cps      || app == symconst::map_literal ||
-           app == symconst::and_t     || app == symconst::or_t         || app == symconst::delay       || 
-           app == symconst::while_t   || app == symconst::quasiquote   || app == symconst::vec_literal ||
-           app == symconst::unquote   || app == symconst::unquo_splice;
+    return app == symconst::cps_quote  || app == symconst::scm_cps      || app == symconst::map_literal ||
+           app == symconst::and_t      || app == symconst::or_t         || app == symconst::while_t     || 
+           app == symconst::quasiquote || app == symconst::vec_literal  || app == symconst::unquote     || 
+           app == symconst::unquo_splice;
   }
 
 
@@ -2457,6 +2457,7 @@ namespace heist {
            is_tagged_list(d.exp,symconst::syn_rules)  || 
            is_tagged_list(d.exp,symconst::core_syn)   || 
            is_tagged_list(d.exp,symconst::quote)      ||
+           is_tagged_list(d.exp,symconst::delay)      ||
            is_tagged_list(d.exp,symconst::using_cpsp) || 
            is_tagged_list(d.exp,symconst::definedp)   ||
            is_tagged_list(d.exp,symconst::infix)      ||

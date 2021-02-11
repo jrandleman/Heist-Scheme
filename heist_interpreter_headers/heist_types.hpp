@@ -749,22 +749,22 @@ namespace heist {
   struct scm_delay {
     scm_list exp;
     env_type env;
-    bool already_forced;
+    bool already_forced, in_cps;
     data result;
-    scm_delay(const scm_list& delayed_exp = scm_list(), env_type delay_env = nullptr) noexcept
-      : exp(delayed_exp), env(delay_env), already_forced(false), result(boolean(false)) {}
+    scm_delay(const scm_list& delayed_exp = scm_list(), env_type delay_env = nullptr, bool cps = false) noexcept
+      : exp(delayed_exp), env(delay_env), already_forced(false), in_cps(cps), result(boolean(false)) {}
     void operator=(const scm_delay& d) noexcept {
       if(this == &d) return;
-      exp=d.exp, env=d.env, already_forced=d.already_forced, result=d.result;
+      exp=d.exp, in_cps=d.in_cps, env=d.env, already_forced=d.already_forced, result=d.result;
     }
     void operator=(scm_delay&& d) noexcept {
       if(this == &d) return;
-      exp=std::move(d.exp), env=std::move(d.env);
+      exp=std::move(d.exp), in_cps=std::move(d.in_cps), env=std::move(d.env);
       already_forced=std::move(d.already_forced), result=std::move(d.result);
     }
     scm_delay(const scm_delay& d) noexcept {*this = d;}
     scm_delay(scm_delay&& d)      noexcept {*this = std::move(d);}
-    ~scm_delay()                   noexcept {}
+    ~scm_delay()                  noexcept {}
   };
 
   // hash-map structure
@@ -901,20 +901,20 @@ namespace heist {
   * DATA TYPE GC CONSTRUCTORS
   ******************************************************************************/
 
-  frame_ptr make_frame(const frame_t& o)                noexcept{return frame_ptr(o);}
-  frame_ptr make_frame(frame_t&& o)                     noexcept{return frame_ptr(std::move(o));}
-  str_type make_str(const scm_string& o)                noexcept{return str_type(o);}
-  str_type make_str(scm_string&& o)                     noexcept{return str_type(std::move(o));}
-  vec_type make_vec(const scm_list& o)                  noexcept{return vec_type(o);}
-  vec_type make_vec(scm_list&& o)                       noexcept{return vec_type(std::move(o));}
-  del_type make_del(const scm_list& l,const env_type& e)noexcept{return del_type(scm_delay(l,e));}
-  par_type make_par()                                   noexcept{return par_type(scm_pair());}
-  map_type make_map(const scm_map& m)                   noexcept{return map_type(m);}
-  map_type make_map(scm_map&& m)                        noexcept{return map_type(std::move(m));}
-  env_type make_env()                                   noexcept{return env_type(environment());}
-  cls_type make_cls(const class_prototype& c)           noexcept{return cls_type(c);}
-  obj_type make_obj(const object_type& o)               noexcept{return obj_type(o);}
-  obj_type make_obj(object_type&& o)                    noexcept{return obj_type(std::move(o));}
+  frame_ptr make_frame(const frame_t& o)                             noexcept{return frame_ptr(o);}
+  frame_ptr make_frame(frame_t&& o)                                  noexcept{return frame_ptr(std::move(o));}
+  str_type make_str(const scm_string& o)                             noexcept{return str_type(o);}
+  str_type make_str(scm_string&& o)                                  noexcept{return str_type(std::move(o));}
+  vec_type make_vec(const scm_list& o)                               noexcept{return vec_type(o);}
+  vec_type make_vec(scm_list&& o)                                    noexcept{return vec_type(std::move(o));}
+  del_type make_del(const scm_list& l,const env_type& e, bool in_cps)noexcept{return del_type(scm_delay(l,e,in_cps));}
+  par_type make_par()                                                noexcept{return par_type(scm_pair());}
+  map_type make_map(const scm_map& m)                                noexcept{return map_type(m);}
+  map_type make_map(scm_map&& m)                                     noexcept{return map_type(std::move(m));}
+  env_type make_env()                                                noexcept{return env_type(environment());}
+  cls_type make_cls(const class_prototype& c)                        noexcept{return cls_type(c);}
+  obj_type make_obj(const object_type& o)                            noexcept{return obj_type(o);}
+  obj_type make_obj(object_type&& o)                                 noexcept{return obj_type(std::move(o));}
 
   /******************************************************************************
   * GLOBAL PROCESS-DEPENDANT MUTABLE GLOBAL INVARIANTS

@@ -33,7 +33,7 @@ namespace heist {
   data     data_cast(const scm_list& l)noexcept;
   scm_list scm_list_cast(const data& d)noexcept;
   scm_list generate_fundamental_form_cps(const data& code,const bool topmost_call=true);
-  scm_list make_delay(const scm_list& exp, env_type& env)noexcept;
+  scm_list make_delay(const scm_list& exp, env_type& env, bool in_cps = false)noexcept;
   scm_list read_user_input(FILE* outs,FILE* ins,const bool& in_repl=true);
   scm_list execute_application(data&,scm_list&,env_type&,const bool tail_call,const bool inlined);
   scm_list execute_application(data&&,scm_list&,env_type&,const bool tail_call,const bool inlined);
@@ -2716,7 +2716,7 @@ namespace heist {
     auto delay = d.exp[1].del;
     if(!delay->already_forced) {
       delay->already_forced = true;
-      delay->result = data_cast(scm_eval(std::move(delay->exp),delay->env));
+      delay->result = data_cast(scm_analyze(std::move(delay->exp),false,delay->in_cps)(delay->env));
     }
     return delay->result; // Memoize delays, "call by need" evaluation
   }
