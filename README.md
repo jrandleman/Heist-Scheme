@@ -203,7 +203,7 @@
 11. Show These Options: `--help`
 
 ### `-cps` Quirks:
-`-cps` wraps scheme code in a [`scm->cps`](#scm-cps) block! Hence:
+Wraps scheme code in a [`scm->cps`](#scm-cps) block automatically! Hence:
 
 0. Reader-modifiying operations must be done in a seperate file and linked with `-l`
    * This includes [`infix!`](#Infix--Infixr), [`infixr!`](#Infix--Infixr), [`unfix!`](#Unfix), [`define-reader-syntax`](#Syntax-Procedures), & [`define-reader-alias`](#Define-Reader-Alias)
