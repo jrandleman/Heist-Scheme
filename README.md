@@ -43,6 +43,7 @@
    - [Notation](#Notation)
    - [Namespacing](#Namespacing)
 1. [Heist Command-Line Flags](#Heist-Command-Line-Flags)
+   - [`-cps` Quirks](#-cps-quirks)
    - [`-infix` Operators](#-infix-operators)
 2. [Heist Primitive Data Types](#Heist-Primitive-Data-Types)
 3. [Heist Numerics](#Heist-Numerics)
@@ -201,7 +202,13 @@
 10. Interpreter Version: `--version`
 11. Show These Options: `--help`
 
-### `-infix` Operators
+### `-cps` Quirks:
+`-cps` wraps scheme code in a [`scm->cps`](#scm-cps) block! Hence:
+0. Reader-modifiying operations must be done in a seperate file and linked with `-l`
+   * This includes [`infix!`](#Infix--Infixr), [`infixr!`](#Infix--Infixr), [`unfix!`](#Unfix), [`define-reader-syntax`](#Syntax-Procedures), & [`define-reader-alias`](#Define-Reader-Alias)
+1. Use with the repl wraps every expression in a unique [`scm->cps`](#scm-cps) blocks!
+
+### `-infix` Operators:
 | Order |                       Operators                      | Assoc |                Effects                 |
 | :---: | :--------------------------------------------------- | :---: | :------------------------------------- |
 |   10  | `:`                                                  | Right | functional composition                 |
@@ -2963,7 +2970,7 @@ Other primitives of this nature include:<br>
 2. __Runtime-Syntax?__: Determine if a symbol was defined by [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax)
    * `(runtime-syntax? <symbol>)`
 
-3. __Reader-Alias?__: Determine if a symbol was defined by `define-reader-alias`
+3. __Reader-Alias?__: Determine if a symbol was defined by [`define-reader-alias`](#Define-Reader-Alias)
    * `(reader-alias? <string>)`
    * Must be a string to avoid conversion by the reader if **IS** an alias!
 
