@@ -1181,7 +1181,7 @@ Other primitives of this nature include:<br>
 #### Form: `(scm->cps <exp1> <exp2> ...)`
 
 #### Danger Zone:
-* With CPS, avoid [macros](#define-syntax-let-syntax-letrec-syntax)/[eval](#eval--apply) expanding to a [`define`](#define) in the current envrionment!
+* With CPS, avoid [macros](#define-syntax-let-syntax-letrec-syntax)/[eval](#eval--apply)/[load](#system-interface-procedures) expanding to a [`define`](#define) in the current envrionment!
   - Lazy expansion breaks this functionality (may expand to localized bindings though!)
   - Includes [`defn`](#defn) & [`define-overload`](#Define-Overload) (manually write expansion)
 
@@ -1452,7 +1452,7 @@ Other primitives of this nature include:<br>
 0. Nesting `define-coroutine` instances (or use in [`scm->cps`](#Scm-Cps)) is undefined behavior!
 1. Using [`jump!`](#Control-Flow-Procedures) or [`catch-jump`](#Control-Flow-Procedures) in `define-coroutine` is undefined behavior (used by `yield`)!
 2. The [`id`](#compose-bind--id) procedure is returned if no expressions exist after the last `yield`!
-3. Like [`scm->cps`](#Scm-Cps), avoid [macros](#define-syntax-let-syntax-letrec-syntax)/[eval](#eval--apply) expanding to a [`define`](#define) in the current environment!
+3. Like [`scm->cps`](#Scm-Cps), avoid [macros](#define-syntax-let-syntax-letrec-syntax)/[eval](#eval--apply)/[load](#system-interface-procedures) expanding to a [`define`](#define) in the current environment!
 
 #### Examples:
 ```scheme

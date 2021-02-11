@@ -68,7 +68,7 @@ static constexpr const char* HELP_MENU_SPECIALS[] = {
   "scons",            "stream",          "vector-literal", "hmap-literal",        "define-syntax",
   "syntax-rules",     "syntax-hash",     "core-syntax",    "define-reader-alias", "scm->cps",
   "cps-quote",        "using-cps?",      "curry",          "defclass",            "new",
-  "define-coroutine", "define-overload", "infix",          "unfix!",
+  "define-coroutine", "define-overload", "infix!",         "unfix!",
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES[] = { 
@@ -1904,7 +1904,7 @@ Convert code to CPS & evaluate the result!
         version would at -O0
 
 Danger zone:
-  *) With CPS, avoid macros/eval expanding to a "define" in the current envrionment!
+  *) With CPS, avoid macros/eval/load expanding to a "define" in the current envrionment!
      => Lazy expansion breaks this functionality (may expand to localized 
         bindings though!)
      => Includes "defn" & "define-overload" (manually write expansion)
@@ -2147,7 +2147,7 @@ Danger Zone:
   0. Nesting "define-coroutine" instances (or use in "scm->cps") is undefined behavior!
   1. Using "jump!" or "catch-jump" in "define-coroutine" is undefined behavior (used by "yield")!
   2. The "id" procedure is returned if no expressions exist after the last "yield"!
-  3. Like "scm->cps", avoid macros/eval expanding to a "define" in the current environment!
+  3. Like "scm->cps", avoid macros/eval/load expanding to a "define" in the current environment!
 
 Examples:
 
@@ -8987,9 +8987,9 @@ R"(
 R"(
 Load <filename-string> as scheme code in <optional-environment>.
   *) <optional-environment> variants:
-     0. *null-environment*   => cps-eval in an empty environment!
-     1. *local-environment*  => cps-eval in the local environment (default)!
-     2. *global-environment* => cps-eval in the global environment!
+     0. *null-environment*   => load in an empty environment!
+     1. *local-environment*  => load in the local environment (default)!
+     2. *global-environment* => load in the global environment!
 )",
 
 
@@ -9006,9 +9006,9 @@ R"(
 Alternative to "load" in CPS contexts (<continuation> provided by default!). 
 Load <filename-string> as scheme code in <optional-environment>.
   *) <optional-environment> variants:
-     0. *null-environment*   => cps-eval in an empty environment!
-     1. *local-environment*  => cps-eval in the local environment (default)!
-     2. *global-environment* => cps-eval in the global environment!
+     0. *null-environment*   => cps-load in an empty environment!
+     1. *local-environment*  => cps-load in the local environment (default)!
+     2. *global-environment* => cps-load in the global environment!
 )",
 
 
