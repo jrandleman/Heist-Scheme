@@ -204,6 +204,7 @@
 
 ### `-cps` Quirks:
 `-cps` wraps scheme code in a [`scm->cps`](#scm-cps) block! Hence:
+
 0. Reader-modifiying operations must be done in a seperate file and linked with `-l`
    * This includes [`infix!`](#Infix--Infixr), [`infixr!`](#Infix--Infixr), [`unfix!`](#Unfix), [`define-reader-syntax`](#Syntax-Procedures), & [`define-reader-alias`](#Define-Reader-Alias)
 1. Use with the repl wraps every expression in a unique [`scm->cps`](#scm-cps) blocks!
