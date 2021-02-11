@@ -835,7 +835,7 @@ Returns Heist Scheme's cmd-line options as a string:
 Quirks to account for with "-cps":
   *) Wraps scheme code in a "scm->cps" block automatically, hence:
      0. Reader-modifying operations must be done in a seperate file and linked with "-l"!
-        => This includes "infix!", "infixr!", "unfix!", "define-reader-syntax", & "define-reader-alias"!
+        => These include "infix!", "infixr!", "unfix!", "define-reader-syntax", & "define-reader-alias"
      1. Use with the REPL wraps every expression in a unique "scm->cps" block!
 
 Note that the "-infix" cmd-line flag defines the following:
