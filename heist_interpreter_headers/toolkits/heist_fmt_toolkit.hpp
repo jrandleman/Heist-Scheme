@@ -362,10 +362,17 @@ namespace heist_fmt {
           }
         }
         art_buffer += afmt(AFMT_0);
-        if(row == TOTAL_ROWS - 1) 
+        if(row == TOTAL_ROWS - 1) {
           PRIOR_NEWLINE_ANSI_IDX = ANSI_IDX; // store the last ANSI cmd index to invoke after a '\n'
-        else 
+          // add '\n' as needed
+          if(idx < total_idxs) {
+            art_buffer += '\n';
+            if(ALPHA_ART_MATRIX == WHITESPACE_ART_MATRIX)
+              art_buffer += '\n';
+          }
+        } else {
           art_buffer += '\n';
+        }
         newline_or_end = idx; // IMPLICIT "RESET" BEFORE '\n' WRT TO ASCII/WHITESPACE ART PRINTING!
       }
       string_start = newline_or_end;

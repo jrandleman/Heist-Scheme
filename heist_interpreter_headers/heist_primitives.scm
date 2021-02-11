@@ -558,7 +558,7 @@
   (value #f) ; access yielded value
   ((next)    ; continue/start coroutine
     (if self.coroutine:private:cont         ; if started coroutine
-        (self.coroutine:private:cont #f id) ;   ignore #f value, artifact of cps-transform
+        (self.coroutine:private:cont id)    ;   continue execution
         (self.coroutine:private:launch)))   ;   launch coroutine
   (coroutine:private:cont #f)    ; IGNORE: USED INTERNALLY
   (coroutine:private:launch #f)) ; IGNORE: USED INTERNALLY

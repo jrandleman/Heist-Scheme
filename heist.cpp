@@ -995,6 +995,11 @@ namespace heist {
   scm_list lambda_parameters(scm_list& exp)noexcept{return exp[1].exp;}
   scm_list lambda_body(scm_list& exp)      noexcept{return scm_list(exp.begin()+2,exp.end());}
 
+  // Parameters defined as nullary BUT got defined with an implicit continuation after the sentinel arg
+  bool is_nullary_cps_params(scm_list& params)noexcept{
+    return params.size() == 2 && params[0].is_type(types::sym) && params[0].sym == symconst::sentinel_arg;
+  }
+
   // Is a lambda using optional args (gets converted to a <fn>)
   // WARNING: DOES __NOT__ VALIDATE SUCH IS IN PROPER FORM
   bool is_opt_arg_lambda(const scm_list& exp)noexcept{
@@ -1115,6 +1120,9 @@ namespace heist {
     // handle regular lambdas
     confirm_valid_lambda(exp);
     auto vars = lambda_parameters(exp);
+    // erase the misplaced sentinel arg for nullary CPS procedures (CPS-transform artifact)
+    if(is_nullary_cps_params(vars)) vars.erase(vars.begin());
+    // create the lambda
     confirm_valid_procedure_parameters(vars,exp);                      // validate parameters
     if(vars.empty()) vars.push_back(symconst::sentinel_arg);           // add sentinel-arg
     auto body_proc = analyze_sequence(lambda_body(exp),true,cps_block);// analyze body syntax
@@ -1231,6 +1239,8 @@ namespace heist {
     std::vector<exe_fcn_t> bodies(total_matches);
     for(size_type i = 0; i < total_matches; ++i) {
       param_insts[i] = exp[i+1].exp[0].exp;
+      // erase the misplaced sentinel arg for nullary CPS procedures (CPS-transform artifact)
+      if(is_nullary_cps_params(param_insts[i])) param_insts[i].erase(param_insts[i].begin());
       bodies[i] = analyze_sequence(scm_list(exp[i+1].exp.begin()+1,exp[i+1].exp.end()),true,cps_block);
     }
     return [param_insts=std::move(param_insts),bodies=std::move(bodies)](env_type& env){
@@ -1359,7 +1369,13 @@ namespace heist {
     method_lambda[0] = symconst::lambda;
     method_lambda[1] = scm_list(method_exp[0].exp.begin()+1,method_exp[0].exp.end());
     std::copy(method_exp.begin()+1,method_exp.end(),method_lambda.begin()+2);
-    return scm_analyze(std::move(method_lambda),false,cps_block);
+    if(cps_block) {
+      // cps transform will wrap what we need in an extra lambda: (lambda (c) (c <procedure-we-desire>))
+      auto cps_lambda = generate_fundamental_form_cps(method_lambda);
+      return scm_analyze(std::move(cps_lambda[2].exp[1].exp),false,cps_block);
+    } else {
+      return scm_analyze(std::move(method_lambda));
+    }
   }
 
   void evaluate_method_and_member_exec_procs(const scm_list& exp,
@@ -1469,11 +1485,28 @@ namespace heist {
     scm_eval(std::move(dflt_ctor),env);
   }
 
+  // Convert user's custom ctor to be in CPS form as needed
+  scm_list generate_CPS_custom_prototype_constructor(scm_list& custom_ctor) {
+    // convert the body to CPS notation, then unwrap it from the cps-transform generated lambda 
+    // & pop the lambda's continuation to be passed as one of the custom ctor's params instead
+    scm_list custom_body(custom_ctor.size()-1);
+    custom_body[0] = symconst::begin;
+    std::move(custom_ctor.begin()+2,custom_ctor.end(),custom_body.begin()+1);
+    auto custom_body_cps = generate_fundamental_form_cps(custom_body); // (lambda (c) <sought-body>)
+    auto continuation_param = custom_body_cps[1].exp[0];
+    scm_list custom_ctor_cps(3);
+    custom_ctor_cps[0] = std::move(custom_ctor[0]);
+    custom_ctor_cps[1] = std::move(custom_ctor[1]);
+    custom_ctor_cps[1].exp.push_back(std::move(continuation_param));
+    custom_ctor_cps[2] = std::move(custom_body_cps[2]);
+    return custom_ctor_cps;
+  }
+
   // (define (make-<class-name> <... CUSTOM CTOR ARGS HERE ...>)
   //   (define self (heist:core:oo:make-object <class-name>))
   //   <... CUSTOM CTOR BODY HERE ...>
   //   self)
-  void define_custom_prototype_constructor(const scm_string& class_name, env_type& env, scm_list& ctor_proc) {
+  void define_custom_prototype_constructor(const scm_string& class_name, env_type& env, scm_list& ctor_proc,const bool cps_block) {
     scm_list custom_ctor(3+ctor_proc.size());
     custom_ctor[0] = symconst::define;
     custom_ctor[1] = ctor_proc[0].exp;
@@ -1485,7 +1518,11 @@ namespace heist {
     custom_ctor[2].exp[2].exp[1] = class_name;
     std::move(ctor_proc.begin()+1,ctor_proc.end(),custom_ctor.begin()+3);
     *custom_ctor.rbegin() = "self";
-    scm_eval(std::move(custom_ctor),env);
+    if(cps_block) {
+      scm_analyze(generate_CPS_custom_prototype_constructor(custom_ctor),false,cps_block)(env);
+    } else {
+      scm_eval(std::move(custom_ctor),env);
+    }
   }
 
   // (define make-<class-name>
@@ -1493,7 +1530,7 @@ namespace heist {
   //        (define self (heist:core:oo:make-object <class-name>))
   //        <... CUSTOM CTOR BODY HERE ...>
   //        self) ...))
-  void define_custom_prototype_fn_constructor(const scm_string& class_name, env_type& env, scm_list& ctor_proc) {
+  void define_custom_prototype_fn_constructor(const scm_string& class_name, env_type& env, scm_list& ctor_proc,const bool cps_block) {
     scm_list custom_ctor(3);
     custom_ctor[0] = symconst::define;
     custom_ctor[1] = ctor_proc[0];
@@ -1511,7 +1548,14 @@ namespace heist {
       std::copy(ctor_proc[i].exp.begin()+1,ctor_proc[i].exp.end(),custom_ctor[2].exp[i].exp.begin()+2);
       custom_ctor[2].exp[i].exp[ctor_proc[i].exp.size()+1] = "self";
     }
-    scm_eval(std::move(custom_ctor),env);
+    if(cps_block) {
+      // convert fn defn to CPS notation as needed
+      auto cps_fn_expr = generate_fundamental_form_cps(custom_ctor[2].exp); // (lambda (c) (c <fn-we-want>))
+      custom_ctor[2] = std::move(cps_fn_expr[2].exp[1]);
+      scm_analyze(std::move(custom_ctor),false,cps_block)(env);
+    } else {
+      scm_eval(std::move(custom_ctor),env);
+    }
   }
 
   void parse_defclass_expression(scm_list& exp, class_prototype& proto, std::vector<exe_fcn_t>& member_exec_procs, 
@@ -1528,7 +1572,7 @@ namespace heist {
           validate_unique_member_or_method_name(exp,exp[i].exp[0].sym,proto.method_names,"member already defined as a method");
           validate_unique_member_or_method_name(exp,exp[i].exp[0].sym,proto.member_names,"member is already defined");
           proto.member_names.push_back(exp[i].exp[0].sym);
-          member_exec_procs.push_back(scm_analyze(scm_list_cast(exp[i].exp[1]),false,cps_block));
+          member_exec_procs.push_back(scm_analyze(scm_list_cast(exp[i].exp[1]),false,cps_block)); // cps transforms already handled!
         }
       // parse method
       } else { 
@@ -1537,7 +1581,7 @@ namespace heist {
           validate_unique_member_or_method_name(exp,exp[i].exp[1].sym,proto.member_names,"method already defined as a member");
           validate_unique_member_or_method_name(exp,exp[i].exp[1].sym,proto.method_names,"method is already defined");
           proto.method_names.push_back(exp[i].exp[1].sym);
-          method_exec_procs.push_back(scm_analyze(scm_list_cast(exp[i].exp[2]),false,cps_block));
+          method_exec_procs.push_back(scm_analyze(scm_list_cast(exp[i].exp[2]),false,cps_block)); // cps transforms already handled!
         // extract ctor
         } else if(exp[i].exp[0].exp[0].sym == ctor_name) {
           ctor_proc = exp[i].exp;
@@ -1564,7 +1608,7 @@ namespace heist {
     parse_defclass_expression(exp,proto,member_exec_procs,method_exec_procs,ctor_proc,cps_block);
     return [proto=std::move(proto),member_exec_procs=std::move(member_exec_procs),
             method_exec_procs=std::move(method_exec_procs),exp=std::move(exp),
-            ctor_proc=std::move(ctor_proc)](env_type& env)mutable{
+            ctor_proc=std::move(ctor_proc),cps_block](env_type& env)mutable{
       proto.defn_env = env;
       // confirm inheriting from class objects & add inherited prototype (if present)
       // NOTE: THIS ORDERING IS IN PART RESPONSIBLE (ALONG WITH SEARCH) FOR LEFT-PREDECENT INHERITANCE
@@ -1582,8 +1626,8 @@ namespace heist {
       // generate the ctor
       define_default_prototype_constructor(exp[1].sym,env,"new-"); // default ctor always available
       if(ctor_proc.empty()) define_default_prototype_constructor(exp[1].sym,env,"make-");
-      else if(ctor_proc[0].is_type(types::exp)) define_custom_prototype_constructor(exp[1].sym,env,ctor_proc);
-      else define_custom_prototype_fn_constructor(exp[1].sym,env,ctor_proc);
+      else if(ctor_proc[0].is_type(types::exp)) define_custom_prototype_constructor(exp[1].sym,env,ctor_proc,cps_block);
+      else define_custom_prototype_fn_constructor(exp[1].sym,env,ctor_proc,cps_block);
       // define the class predicate
       define_class_prototype_predicate(exp[1].sym,env); // exp[1].sym == class_name
       return GLOBALS::VOID_DATA_EXPRESSION;
@@ -2392,8 +2436,7 @@ namespace heist {
     return app == symconst::cps_quote || app == symconst::scm_cps      || app == symconst::map_literal ||
            app == symconst::and_t     || app == symconst::or_t         || app == symconst::delay       || 
            app == symconst::while_t   || app == symconst::quasiquote   || app == symconst::vec_literal ||
-           app == symconst::unquote   || app == symconst::unquo_splice || app == symconst::infix       ||
-           app == symconst::infixr    || app == symconst::unfix        || app == symconst::defn_reader_alias;
+           app == symconst::unquote   || app == symconst::unquo_splice;
   }
 
 
@@ -2410,13 +2453,16 @@ namespace heist {
 
   // CPS atomics may be returned as is: (cps <cps-atomic>) -> <cps-atomic>
   bool data_is_cps_atomic(const data& d)noexcept{
-    return !d.is_type(types::exp) || 
-           is_tagged_list(d.exp,symconst::syn_rules) || 
-           is_tagged_list(d.exp,symconst::core_syn)  || 
-           is_tagged_list(d.exp,symconst::defclass)  || 
-           is_tagged_list(d.exp,symconst::quote)     ||
-           is_tagged_list(d.exp,symconst::using_cpsp)|| 
-           is_tagged_list(d.exp,symconst::definedp);
+    return !d.is_type(types::exp)                     || 
+           is_tagged_list(d.exp,symconst::syn_rules)  || 
+           is_tagged_list(d.exp,symconst::core_syn)   || 
+           is_tagged_list(d.exp,symconst::quote)      ||
+           is_tagged_list(d.exp,symconst::using_cpsp) || 
+           is_tagged_list(d.exp,symconst::definedp)   ||
+           is_tagged_list(d.exp,symconst::infix)      ||
+           is_tagged_list(d.exp,symconst::infixr)     ||
+           is_tagged_list(d.exp,symconst::unfix)      ||
+           is_tagged_list(d.exp,symconst::defn_reader_alias);
   }
 
 
@@ -2652,7 +2698,6 @@ namespace heist {
     return consequent;
   }
 
-
   // PRECONDITION: Assumes IF alternative exists
   scm_list get_cps_IF_alternative(const data& code, const data& continuation){
     scm_list alternative(2);
@@ -2666,12 +2711,48 @@ namespace heist {
     return alternative;
   }
 
-
   scm_list get_cps_IF_VOID_alternative(const data& continuation){
     scm_list void_alternative(2);
     void_alternative[0] = continuation;       // continuation
     void_alternative[1] = scm_list(1,"void"); // add (void)
     return void_alternative;
+  }
+
+
+  bool cps_is_non_atomc_defclass_member(const data& d)noexcept{
+    return d.is_type(types::exp) && d.exp.size() == 2 && 
+           d.exp[0].is_type(types::sym) && d.exp[1].is_type(types::exp);
+  }
+
+  bool cps_is_non_atomc_defclass_defmethod(const data& d)noexcept{
+    return d.is_type(types::exp) && d.exp.size() == 3 && 
+           d.exp[0].is_type(types::sym) && d.exp[0].sym == symconst::defmethod &&
+           d.exp[1].is_type(types::sym) && d.exp[2].is_type(types::exp);
+  }
+
+  bool cps_defclass_requires_outlined_properties(scm_list& defclass_expr, 
+                                                 std::vector<scm_list>& stripped_member_values, 
+                                                 std::vector<scm_list>& stripped_defmethod_values, 
+                                                 std::vector<sym_type>& stripped_member_names,  
+                                                 std::vector<sym_type>& stripped_defmethod_names) {
+    validate_defclass(defclass_expr);
+    bool requires_outlined_properties = false;
+    for(size_type i = 2, n = defclass_expr.size(); i < n; ++i) {
+      if(cps_is_non_atomc_defclass_member(defclass_expr[i])) {
+        stripped_member_names.push_back(defclass_expr[i].exp[0].sym);
+        stripped_member_values.push_back(defclass_expr[i].exp[1].exp);
+        defclass_expr.erase(defclass_expr.begin()+i);
+        --i; // account for loop's "++i" after having rm'd an item from <defclass_expr>
+        requires_outlined_properties = true;
+      } else if(cps_is_non_atomc_defclass_defmethod(defclass_expr[i])) {
+        stripped_defmethod_names.push_back(defclass_expr[i].exp[1].sym);
+        stripped_defmethod_values.push_back(defclass_expr[i].exp[2].exp);
+        defclass_expr.erase(defclass_expr.begin()+i);
+        --i; // account for loop's "++i" after having rm'd an item from <defclass_expr>
+        requires_outlined_properties = true;
+      }
+    }
+    return requires_outlined_properties;
   }
 
 
@@ -2686,6 +2767,49 @@ namespace heist {
       lambda[2].exp[0] = lambda[1].exp[0];
       lambda[2].exp[1] = code;
       return lambda;
+
+    // DEFCLASS
+    } else if(is_tagged_list(code.exp,symconst::defclass)) {
+      // Check if need to strip-out any member/defmethod property defns
+      std::vector<scm_list> stripped_member_values, stripped_defmethod_values;
+      std::vector<sym_type> stripped_member_names, stripped_defmethod_names;
+      // If must strip out defns
+      auto defclass_expr = code.exp; // trasformation may mutate the <deflcass> expression
+      if(cps_defclass_requires_outlined_properties(defclass_expr,stripped_member_values,stripped_defmethod_values,
+                                                                 stripped_member_names,stripped_defmethod_names)){
+        scm_list begin_expr(2+stripped_member_names.size()+stripped_defmethod_names.size());
+        begin_expr[0] = symconst::begin;
+        begin_expr[1] = defclass_expr;
+        size_type j = 2;
+        for(size_type i = 0, n = stripped_member_names.size(); i < n; ++i, ++j) {
+          begin_expr[j] = scm_list(4);
+          begin_expr[j].exp[0] = "proto-add-member!";
+          begin_expr[j].exp[1] = begin_expr[1].exp[1]; // prototype name
+          begin_expr[j].exp[2] = scm_list(2);
+          begin_expr[j].exp[2].exp[0] = symconst::quote;
+          begin_expr[j].exp[2].exp[1] = stripped_member_names[i];
+          begin_expr[j].exp[3] = stripped_member_values[i];
+        }
+        for(size_type i = 0, n = stripped_defmethod_names.size(); i < n; ++i, ++j) {
+          begin_expr[j] = scm_list(4);
+          begin_expr[j].exp[0] = "proto-add-method!";
+          begin_expr[j].exp[1] = begin_expr[1].exp[1]; // prototype name
+          begin_expr[j].exp[2] = scm_list(2);
+          begin_expr[j].exp[2].exp[0] = symconst::quote;
+          begin_expr[j].exp[2].exp[1] = stripped_defmethod_names[i];
+          begin_expr[j].exp[3] = stripped_defmethod_values[i];
+        }
+        return generate_fundamental_form_cps(begin_expr,topmost_call);
+      // No external definitions needed! Treat as if cps-atomic.
+      } else {
+        scm_list lambda(3);
+        lambda[0] = symconst::lambda;
+        lambda[1] = scm_list(1,generate_unique_cps_hash()); // "k"
+        lambda[2] = scm_list(2);
+        lambda[2].exp[0] = lambda[1].exp[0];
+        lambda[2].exp[1] = code;
+        return lambda;
+      }
 
     // DEFINE-SYNTAX
     } else if(is_tagged_list(code.exp,symconst::defn_syn)) {

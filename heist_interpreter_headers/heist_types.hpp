@@ -1359,11 +1359,16 @@ namespace heist {
 
   // get the extended environment for the compound procedure given <arguments>
   env_type scm_fcn::get_extended_environment(exp_type& arguments, exe_fcn_t& body){
+    // erase the misplaced sentinel arg for nullary CPS procedures (CPS-transform artifact)
+    bool is_nullary_cps_params(scm_list&)noexcept;
+    if(is_nullary_cps_params(arguments)) arguments.erase(arguments.begin());
+    // extend the lambda environment
     env_type extend_environment(frame_vars&&,frame_vals&,env_type&,const sym_type&);
     if(is_lambda()) {
       body = bodies[0];
       return extend_environment(lambda_parameters(), arguments, env, name);
     }
+    // extend the fn environment
     frame_vars unpacked_params;
     exp_type values;
     fn_param_matching::match_fn_call_signature(param_instances,bodies,printable_procedure_name(),arguments,values,unpacked_params,body);
