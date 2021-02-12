@@ -4473,6 +4473,7 @@ namespace heist {
 
   scm_string convert_char_to_cpp_literal(char c) {
     if(c == '\'') return "\\'";
+    if(c == '"') return "\"";
     data d(make_str(scm_string(1,c)));
     auto str = d.write();
     str.pop_back();       // disregard closing "
