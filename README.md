@@ -208,12 +208,14 @@ Compilation replaces interpreter's reader, hence:
 
 0. Reader-modifying operations must be done in a seperate file and linked with `-l`!
    * This includes [`infix!`](#Infix--Infixr), [`infixr!`](#Infix--Infixr), [`unfix!`](#Unfix), [`define-reader-syntax`](#Syntax-Procedures), & [`define-reader-alias`](#Define-Reader-Alias)!
+   * Ie: `$ heist -l reader_modifications.scm -compile file_to_compile.scm`
 
 ### `-cps` Quirks:
 Wraps scheme code in a [`scm->cps`](#scm-cps) block automatically, hence:
 
 0. Reader-modifying operations must be done in a seperate file and linked with `-l`!
    * This includes [`infix!`](#Infix--Infixr), [`infixr!`](#Infix--Infixr), [`unfix!`](#Unfix), [`define-reader-syntax`](#Syntax-Procedures), & [`define-reader-alias`](#Define-Reader-Alias)!
+   * Ie: `$ heist -l reader_modifications.scm -cps file_to_interpret.scm`
 1. Use with the REPL wraps every expression in a unique [`scm->cps`](#scm-cps) block!
 
 ### `-infix` Operators:
