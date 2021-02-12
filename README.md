@@ -43,6 +43,7 @@
    - [Notation](#Notation)
    - [Namespacing](#Namespacing)
 1. [Heist Command-Line Flags](#Heist-Command-Line-Flags)
+   - [`-compile` Notes](#-compile-notes)
    - [`-cps` Quirks](#-cps-quirks)
    - [`-infix` Operators](#-infix-operators)
 2. [Heist Primitive Data Types](#Heist-Primitive-Data-Types)
@@ -201,6 +202,12 @@
 9. Stack Trace Size: `-trace-limit <non-negative-integer>`
 10. Interpreter Version: `--version`
 11. Show These Options: `--help`
+
+### `-compile` Notes:
+Compilation replaces interpreter's reader, hence:
+
+0. Reader-modifying operations must be done in a seperate file and linked with `-l`!
+   * This includes [`infix!`](#Infix--Infixr), [`infixr!`](#Infix--Infixr), [`unfix!`](#Unfix), [`define-reader-syntax`](#Syntax-Procedures), & [`define-reader-alias`](#Define-Reader-Alias)!
 
 ### `-cps` Quirks:
 Wraps scheme code in a [`scm->cps`](#scm-cps) block automatically, hence:
@@ -2861,8 +2868,10 @@ Other primitives of this nature include:<br>
    * `(dirname <filepath-string>)`
 
 7. __Compile a File__: `(compile <filename-string> <optional-compiled-filename>)`
+   * Take into account the [compiler's replacement of the reader](#-compile-notes)!
 
 8. __Cps-Compile a File__: `(cps-compile <filename-string> <optional-compiled-filename>)`
+   * Take into account the [compiler's replacement of the reader](#-compile-notes)!
 
 9. __Get Seconds Since Epoch__: `(seconds-since-epoch)`
 
