@@ -832,10 +832,17 @@ Returns Heist Scheme's cmd-line options as a string:
   Interpreter Version: --version
   Show These Options: --help
 
+Reader changes with "-compile":
+  *) Compilation replaces interpreter's reader, hence:
+     0. Reader-modifying operations must be done in a seperate file and linked with "-l"!
+        => These include "infix!", "infixr!", "unfix!", "define-reader-syntax", & "define-reader-alias"!
+        => IE: "$ heist -l reader_modifications.scm -compile file_to_compile.scm"
+
 Quirks to account for with "-cps":
   *) Wraps scheme code in a "scm->cps" block automatically, hence:
      0. Reader-modifying operations must be done in a seperate file and linked with "-l"!
-        => This includes "infix!", "infixr!", "unfix!", "define-reader-syntax", & "define-reader-alias"!
+        => These include "infix!", "infixr!", "unfix!", "define-reader-syntax", & "define-reader-alias"!
+        => IE: "$ heist -cps -l reader_modifications.scm -script file_to_interpret.scm"
      1. Use with the REPL wraps every expression in a unique "scm->cps" block!
 
 Note that the "-infix" cmd-line flag defines the following:
@@ -9090,6 +9097,11 @@ Compile the given Heist Scheme file.
   *) The interpreter is still linked to evaluate the C++ AST.
   *) Enables producing a binary of scheme code for slightly faster eval.
   *) See "cps-compile" for a CPS-compilation alternative!
+
+Reader changes with compilation:
+  *) Compilation replaces interpreter's reader, hence:
+     0. Reader-modifying operations must be processed in the script doing the compiling!
+        => These include "infix!", "infixr!", "unfix!", "define-reader-syntax", & "define-reader-alias"!
 )",
 
 
@@ -9109,6 +9121,11 @@ large "scm->cps" block with "id" as the topmost continuation.
   *) The interpreter is still linked to evaluate the C++ AST.
   *) Enables producing a binary of scheme code for slightly faster eval.
   *) See "compile" for a non-CPS-compilation alternative!
+
+Reader changes with cps-compilation:
+  *) Compilation replaces interpreter's reader, hence:
+     0. Reader-modifying operations must be processed in the script doing the compiling!
+        => These include "infix!", "infixr!", "unfix!", "define-reader-syntax", & "define-reader-alias"!
 )",
 
 
