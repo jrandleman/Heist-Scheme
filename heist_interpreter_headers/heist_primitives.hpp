@@ -5735,12 +5735,12 @@ namespace heist {
         return GLOBALS::VOID_DATA_OBJECT;
       }
     }
-    // Confirm Member doesn't already exist as a local method
+    // Rm if member already exists as a local method
     for(size_type i = 0, n = args[0].obj->method_names.size(); i < n; ++i) {
       if(args[0].obj->method_names[i] == args[1].sym) {
-        THROW_ERR("'add-member! member-name arg "<<PROFILE(args[1])
-        <<" is already defined as a method of "<<PROFILE(args[0])<<'!'
-        <<format<<FCN_ERR("'add-member!",args));
+        args[0].obj->method_names.erase(args[0].obj->method_names.begin()+i);
+        args[0].obj->method_values.erase(args[0].obj->method_values.begin()+i);
+        break;
       }
     }
     // define a setter for the new member
@@ -5765,12 +5765,20 @@ namespace heist {
         return GLOBALS::VOID_DATA_OBJECT;
       }
     }
-    // Confirm Member doesn't already exist as a local method
+    // Rm if method already exists as a local member (also rm said member's setter!)
     for(size_type i = 0, n = args[0].obj->member_names.size(); i < n; ++i) {
       if(args[0].obj->member_names[i] == args[1].sym) {
-        THROW_ERR("'add-method! method-name arg "<<PROFILE(args[1])
-        <<" is already defined as a member of "<<PROFILE(args[0])<<'!'
-        <<format<<FCN_ERR("'add-method!",args));
+        args[0].obj->member_names.erase(args[0].obj->member_names.begin()+i);
+        args[0].obj->member_values.erase(args[0].obj->member_values.begin()+i);
+        scm_string setter_name = "set-" + args[1].sym + '!';
+        for(size_type j = 0, m = args[0].obj->method_names.size(); j < m; ++j) {
+          if(args[0].obj->method_names[j] == setter_name) {
+            args[0].obj->method_names.erase(args[0].obj->method_names.begin()+j);
+            args[0].obj->method_values.erase(args[0].obj->method_values.begin()+j);
+            break;
+          }
+        }
+        break;
       }
     }
     // add the new method name & assign it the given value
