@@ -3909,9 +3909,13 @@ namespace heist {
     }
 
 
+    bool input_ends_with_char_prefix(const scm_string& input, const size_type end_offset = 0)noexcept{
+      return input.size() >= 2+end_offset && *(input.rbegin()+1+end_offset) == '#' && *(input.rbegin()+end_offset) == '\\';
+    }
+
+
     size_type input_ends_with_reader_macro_or_quote(const scm_string& input)noexcept{
-      const size_type n = input.size();
-      if(n < 2 || input[n-2] != '#' || input[n-1] != '\\') // prevents matching lambda "\" against char "#\"
+      if(!input_ends_with_char_prefix(input)) // prevents matching lambda "\" against char "#\"
         for(const auto& reader_macro_shorthand : G.SHORTHAND_READER_MACRO_REGISTRY)
           if(input_ends_with_postfix(reader_macro_shorthand,input))
             return reader_macro_shorthand.size();
@@ -3948,8 +3952,7 @@ namespace heist {
       if(input.size() <= 1) return false;
       auto last_ch = *input.rbegin();
       // Not improper ending -> false
-      if((!IS_CLOSE_PAREN(last_ch) && !isspace(last_ch)) || 
-         (input.size() > 3 && *(input.rbegin()+2) == '\\' && *(input.rbegin()+3) == '#')) return false;
+      if((!IS_CLOSE_PAREN(last_ch) && !isspace(last_ch)) || input_ends_with_char_prefix(input,2)) return false;
       input.pop_back(); // rm last char to check for quote/reader-macro
       bool ends_with_reader_macro_or_quote = input_ends_with_reader_macro_or_quote(input);
       input.push_back(last_ch); // add last char back in
@@ -3959,27 +3962,20 @@ namespace heist {
 
     // Confirm quotation/reader-macro shorthand found at the end of the file
     bool improper_EOF_quotation(const scm_string& input)noexcept{
-      return !input.empty() && input_ends_with_reader_macro_or_quote(input) &&
-             !(input.size()>2 && *(input.rbegin()+2)=='#' && *(input.rbegin()+1)=='\\');
+      return !input.empty() && input_ends_with_reader_macro_or_quote(input) && !input_ends_with_char_prefix(input,1);
     }
 
 
     // Confirm just appended a valid open/close paren to 'input'
     bool is_valid_open_exp(const scm_string &input,  const size_type& paren_count,
                            const bool& possible_vect,const bool& found_non_reader_syntax_data)noexcept{
-      return IS_OPEN_PAREN(*input.rbegin()) && (input.size() < 3 || 
-                                                *(input.rbegin()+2) != '#' || 
-                                                *(input.rbegin()+1) != '\\')
-                                            && (paren_count || 
-                                                !found_non_reader_syntax_data || 
-                                                possible_vect);
+      return IS_OPEN_PAREN(*input.rbegin()) && !input_ends_with_char_prefix(input,1)
+                                            && (paren_count || !found_non_reader_syntax_data || possible_vect);
     }
 
 
     bool is_valid_close_exp(const scm_string &input)noexcept{
-      return IS_CLOSE_PAREN(*input.rbegin()) && (input.size() < 3 || 
-                                                 *(input.rbegin()+2) != '#' || 
-                                                 *(input.rbegin()+1) != '\\');
+      return IS_CLOSE_PAREN(*input.rbegin()) && !input_ends_with_char_prefix(input,1);
     }
 
 
@@ -4068,7 +4064,8 @@ namespace heist {
       ++total_read_chars;
 
       // continue to get the quoted data
-      if((macro_length = read_port::input_ends_with_reader_macro_or_quote(input))) {
+      if(!in_a_string && !read_port::input_ends_with_char_prefix(input,1) && 
+         (macro_length = read_port::input_ends_with_reader_macro_or_quote(input))) {
         // if macro reader symbol is in middle of another symbol (ie e'e)
         //   return back to the previous non-macro symbol & stop parsing
         //   IFF not in the middle of an expression (since only reading 1 
@@ -4100,10 +4097,11 @@ namespace heist {
       if(possible_vect && !IS_OPEN_PAREN(ch)) possible_vect = false;
 
       // check if at a string
-      if(ch == '"' && (in_a_string || paren_count || !found_non_reader_syntax_data)) {
-        if(!in_a_string)
+      if(ch == '"' && !read_port::input_ends_with_char_prefix(input,1) && 
+         (in_a_string || paren_count || !found_non_reader_syntax_data)) {
+        if(!in_a_string) {
           in_a_string = true;
-        else if(is_non_escaped_double_quote(input.size()-1,input)) {
+        } else if(is_non_escaped_double_quote(input.size()-1,input)) {
           in_a_string = false;
           if(!paren_count) break;
         }
@@ -4154,9 +4152,11 @@ namespace heist {
     if(!input.empty()) {
       // Confirm file didn't end mid-string or mid-expression
       if(in_a_string || paren_count) {
-        if(in_a_string)
-             alert_non_repl_reader_error(outs,READER_ERROR::incomplete_string,input);
-        else alert_non_repl_reader_error(outs,READER_ERROR::incomplete_expression,input);
+        if(in_a_string) {
+          alert_non_repl_reader_error(outs,READER_ERROR::incomplete_string,input);
+        } else { 
+          alert_non_repl_reader_error(outs,READER_ERROR::incomplete_expression,input);
+        }
         throw SCM_EXCEPT::READ;
       }
 
@@ -4471,6 +4471,14 @@ namespace heist {
   // Compiler Helpers:
   // -----------------
 
+  scm_string convert_char_to_cpp_literal(char c) {
+    if(c == '\'') return "\\'";
+    data d(make_str(scm_string(1,c)));
+    auto str = d.write();
+    str.pop_back();       // disregard closing "
+    return str.substr(1); // disregard opening "
+  }
+
   // Recursively generate assignments to vectors as a precomputed AST
   //   => NOTE: The reader's generated AST _ONLY_ contains 1 of 5 types:
   //            types::exp, types::str, types::sym, types::chr, & types::num
@@ -4494,7 +4502,7 @@ namespace heist {
           break;
         case types::chr: // CHARACTER
           vector_assigns += assignment_chain+'['+std::to_string(i)+"] = heist::chr_type('"+
-            std::to_string((char)expressions[i].chr)+"');\n"; 
+            convert_char_to_cpp_literal(expressions[i].chr)+"');\n"; 
           break;
         default:         // NUMBER
           vector_assigns += assignment_chain+'['+std::to_string(i)+"] = heist::num_type("+
@@ -4549,7 +4557,7 @@ namespace heist {
                   "\n#include \"%s%cheist_interpreter_headers%cheist_types.hpp\""
                   "\n#define HEIST_INTERPRETING_COMPILED_AST"
                   "\n%s"
-                  "\n#include \"%s%cheist_main.cpp\"\n", 
+                  "\n#include \"%s%cheist.cpp\"\n", 
                   args[0].str->c_str(), 
                   HEIST_DIRECTORY_FILE_PATH,char(std::filesystem::path::preferred_separator),
                   char(std::filesystem::path::preferred_separator),
@@ -4565,7 +4573,7 @@ namespace heist {
     if(args.size() == 2)
       return primitive_write_compiled_file(args,*args[1].str,
         primitive_generate_precompiled_AST(expressions),name);
-    return primitive_write_compiled_file(args,"HEIST_COMPILER_OUTPUT.cpp",
+    return primitive_write_compiled_file(args,symconst::dflt_compile_name,
       primitive_generate_precompiled_AST(expressions),name);
   }
 

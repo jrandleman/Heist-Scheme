@@ -143,6 +143,7 @@ namespace heist {
     constexpr const char * const defn_reader_alias = "define-reader-alias";
     constexpr const char * const inf_precedence    = "heist:core:inf-precedence";
     constexpr const char * const while_t           = "heist:core:while";
+    constexpr const char * const dflt_compile_name = "a.cpp";
   } // End namespace symconst
 
   /******************************************************************************

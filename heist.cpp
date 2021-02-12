@@ -5004,6 +5004,13 @@ bool confirm_valid_non_negative_integer(const char* name, int& i, int argc, char
 }
 
 
+bool not_heist_cmd_line_flag(const std::string& next_cmd)noexcept{
+return next_cmd != "-script" && next_cmd != "-compile" && next_cmd != "-l" && next_cmd != "-infix" && 
+       next_cmd != "-cps" && next_cmd != "-nansi" && next_cmd != "-ci" && next_cmd != "-dynamic-call-trace" && 
+       next_cmd != "-trace-args" && next_cmd != "-trace-limit" && next_cmd != "--version" && next_cmd != "--help";
+}
+
+
 bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
                                      int& compile_pos,std::string& compile_as,
                                      bool& immediate_exit, bool& trace_calls,
@@ -5045,14 +5052,14 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
       if(i == argc-1) {
         fprintf(stderr,"\n> \"-l\" wasn't followed by a file!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n");
         return false;
-      } else if(compile_pos != -1) {
-        fprintf(stderr,"\n> Can't load & compile files simultaneously!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n");
-        return false;
       }
       LOADED_FILES.push_back(argv[++i]);
     } else if(cmd_flag == "-script") {
       if(i == argc-1) {
         fprintf(stderr,"\n> \"-script\" wasn't followed by a file!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n");
+        return false;
+      } else if(compile_pos != -1) {
+        fprintf(stderr,"\n> Can't interpret & compile files simultaneously!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n");
         return false;
       }
       script_pos = ++i;
@@ -5061,14 +5068,9 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
       if(i == argc-1) {
         fprintf(stderr,"\n> \"-compile\" wasn't followed by a file!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n");
         return false;
-      } else if(!LOADED_FILES.empty()) {
-        fprintf(stderr,"\n> Can't load & compile files simultaneously!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n");
-        return false;
       }
       compile_pos = ++i;
-      if(std::string next_cmd(argv[i]); i < argc-1 && next_cmd != "-nansi" && 
-         next_cmd != "-script" && next_cmd != "-compile" && next_cmd != "-ci")
-        compile_as = argv[++i];
+      if(i < argc-1 && not_heist_cmd_line_flag(argv[i+1])) compile_as = argv[++i];
     } else {
       fprintf(stderr,"\n> Invalid command-line flag \"%s\"!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n",argv[i]);
       return false;
@@ -5182,7 +5184,7 @@ int main(int argc, char* argv[]) {
   // Validate arguments
   int script_pos = -1, compile_pos = -1;
   bool immediate_exit = false, trace_calls = false;
-  std::string compile_as = "HEIST_COMPILER_OUTPUT.cpp";
+  std::string compile_as = heist::symconst::dflt_compile_name;
   std::vector<const char*> LOADED_FILES;
   if(!confirm_valid_command_line_args(argc,argv,script_pos,compile_pos,compile_as,
     immediate_exit,trace_calls,LOADED_FILES)) return 1;
@@ -5218,6 +5220,10 @@ int main(int argc, char* argv[]) {
 ******************************************************************************/
 
 #else // @ONLY-COMPILER
+void POPULATE_ARGV_REGISTRY(int argc,int& i,char* argv[])noexcept{
+  while(i < argc) heist::GLOBALS::ARGV.push_back(heist::str_type(argv[i++]));
+}
+
 int interpret_premade_AST_code(){
   heist::set_default_global_environment();
   heist::GLOBALS::STACK_TRACE.clear();

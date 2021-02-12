@@ -152,7 +152,7 @@ namespace heist {
       // account for whether at a paren, string literal, or comment
       if(is_non_char_open_paren(i,input))       ++paren_count;
       else if(is_non_char_close_paren(i,input)) --paren_count;
-      else if(input[i] == '"') {
+      else if(is_non_escaped_double_quote(i,input)) {
         skip_string_literal(i,input);
         if(i == n) throw READER_ERROR::incomplete_string;
       } else if(is_single_line_comment(i,input)) {
