@@ -846,6 +846,10 @@ namespace heist {
     return d.is_type(types::sym) && d.sym == G.dot;
   }
 
+  bool is_variadic_cps_procedure_signature(const size_type i, const size_type n, scm_list& exp)noexcept{
+    return i+3 == n && data_is_continuation_parameter(exp[n-1]) && !data_is_dot_operator(exp[i+1]);
+  }
+
   // Returns quoted data's contents
   data text_of_quotation(scm_list& exp)noexcept{
     if(!exp[1].is_type(types::sym)) return exp[1];
@@ -863,16 +867,19 @@ namespace heist {
     // Confirm (.) does not terminate the list
     if(!exp.empty() && data_is_dot_operator(*exp.rbegin()))
       THROW_ERR("Unexpected dot (.) terminated the quoted list! -- ANALYZE_QUOTED"
-        << FCN_ERR(quote_name,exp));
+        << EXP_ERR('(' << quote_name << ' ' << data(exp).write() << ')'));
     // Iff exp begins w/ (.) & has a length of 2, it may be a valid instance of 
     //   quoting a variadic lambda [ ie '(lambda (. l) l) ] -- thus such is valid
     if(exp.size()==2 && data_is_dot_operator(exp[0]) && !data_is_dot_operator(exp[1]))
       return false;
     // Confirm no (.) prior the penultimate item in the list
-    for(size_type i = 0, n = exp.size(); i+2 < n; ++i)
-      if(data_is_dot_operator(exp[i]))
+    for(size_type i = 0, n = exp.size(); i+2 < n; ++i) {
+      if(data_is_dot_operator(exp[i])) {
+        if(is_variadic_cps_procedure_signature(i,n,exp)) return false;
         THROW_ERR("Unexpected dot (.) at position #"<<i+1<<" in quotation! -- ANALYZE_QUOTED"
-          << FCN_ERR(quote_name,exp));
+          << EXP_ERR('(' << quote_name << ' ' << data(exp).write() << ')'));
+      }
+    }
     // Determine whether at a cons or a list
     if(exp.size() > 2 && data_is_dot_operator(*(exp.end()-2))) {
       exp.erase(exp.end()-2); // rm (.)
