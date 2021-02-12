@@ -2462,7 +2462,6 @@ namespace heist {
   bool data_is_cps_atomic(const data& d)noexcept{
     return !d.is_type(types::exp)                     || 
            is_tagged_list(d.exp,symconst::syn_rules)  || 
-           is_tagged_list(d.exp,symconst::core_syn)   || 
            is_tagged_list(d.exp,symconst::quote)      ||
            is_tagged_list(d.exp,symconst::delay)      ||
            is_tagged_list(d.exp,symconst::using_cpsp) || 
@@ -2764,6 +2763,36 @@ namespace heist {
   }
 
 
+  scm_list cps_generate_macro_defn(const data& code,const bool topmost_call, const scm_string& mac_defn_statement){
+    confirm_valid_define_syntax(code.exp);
+    scm_list cps_defn_syn(3);
+    cps_defn_syn[0] = symconst::lambda;
+    cps_defn_syn[1] = scm_list(1,generate_unique_cps_hash()); // "k"
+    cps_defn_syn[2] = scm_list(2);
+    if(data_is_cps_atomic(code.exp[2])) {
+      cps_defn_syn[2].exp[0] = cps_defn_syn[1].exp[0];
+      cps_defn_syn[2].exp[1] = scm_list(3);
+      cps_defn_syn[2].exp[1].exp[0] = mac_defn_statement;
+      cps_defn_syn[2].exp[1].exp[1] = code.exp[1];
+      cps_defn_syn[2].exp[1].exp[2] = code.exp[2];
+      return cps_defn_syn;
+    }
+    cps_defn_syn[2].exp[0] = generate_fundamental_form_cps(code.exp[2],false);
+    cps_defn_syn[2].exp[1] = scm_list(3);
+    cps_defn_syn[2].exp[1].exp[0] = symconst::lambda;
+    cps_defn_syn[2].exp[1].exp[1] = scm_list(1,generate_unique_cps_hash()); // "syntax-object"
+
+    cps_defn_syn[2].exp[1].exp[2] = scm_list(2);
+    cps_defn_syn[2].exp[1].exp[2].exp[0] = cps_defn_syn[1].exp[0];
+    cps_defn_syn[2].exp[1].exp[2].exp[1] = scm_list(3);
+    cps_defn_syn[2].exp[1].exp[2].exp[1].exp[0] = mac_defn_statement;
+    cps_defn_syn[2].exp[1].exp[2].exp[1].exp[1] = code.exp[1];
+    cps_defn_syn[2].exp[1].exp[2].exp[1].exp[2] = cps_defn_syn[2].exp[1].exp[1].exp[0];
+    if(topmost_call) optimize_CPS_code_generation(cps_defn_syn);
+    return cps_defn_syn;
+  }
+
+
   // NOTE: <topmost_call> signals to optimize the result prior returning
   scm_list generate_fundamental_form_cps(const data& code,const bool topmost_call){
     // ATOMIC / SYNTAX-RULES / QUOTE
@@ -2821,32 +2850,11 @@ namespace heist {
 
     // DEFINE-SYNTAX
     } else if(is_tagged_list(code.exp,symconst::defn_syn)) {
-      confirm_valid_define_syntax(code.exp);
-      scm_list cps_defn_syn(3);
-      cps_defn_syn[0] = symconst::lambda;
-      cps_defn_syn[1] = scm_list(1,generate_unique_cps_hash()); // "k"
-      cps_defn_syn[2] = scm_list(2);
-      if(data_is_cps_atomic(code.exp[2])) {
-        cps_defn_syn[2].exp[0] = cps_defn_syn[1].exp[0];
-        cps_defn_syn[2].exp[1] = scm_list(3);
-        cps_defn_syn[2].exp[1].exp[0] = symconst::defn_syn;
-        cps_defn_syn[2].exp[1].exp[1] = code.exp[1];
-        cps_defn_syn[2].exp[1].exp[2] = code.exp[2];
-        return cps_defn_syn;
-      }
-      cps_defn_syn[2].exp[0] = generate_fundamental_form_cps(code.exp[2],false);
-      cps_defn_syn[2].exp[1] = scm_list(3);
-      cps_defn_syn[2].exp[1].exp[0] = symconst::lambda;
-      cps_defn_syn[2].exp[1].exp[1] = scm_list(1,generate_unique_cps_hash()); // "syntax-object"
+      return cps_generate_macro_defn(code,topmost_call,symconst::defn_syn);
 
-      cps_defn_syn[2].exp[1].exp[2] = scm_list(2);
-      cps_defn_syn[2].exp[1].exp[2].exp[0] = cps_defn_syn[1].exp[0];
-      cps_defn_syn[2].exp[1].exp[2].exp[1] = scm_list(3);
-      cps_defn_syn[2].exp[1].exp[2].exp[1].exp[0] = symconst::defn_syn;
-      cps_defn_syn[2].exp[1].exp[2].exp[1].exp[1] = code.exp[1];
-      cps_defn_syn[2].exp[1].exp[2].exp[1].exp[2] = cps_defn_syn[2].exp[1].exp[1].exp[0];
-      if(topmost_call) optimize_CPS_code_generation(cps_defn_syn);
-      return cps_defn_syn;
+    // CORE-SYNTAX
+    } else if(is_tagged_list(code.exp,symconst::core_syn)) {
+      return cps_generate_macro_defn(code,topmost_call,symconst::core_syn);
 
     // SET!
     } else if(is_tagged_list(code.exp,symconst::set)) {
@@ -4227,7 +4235,7 @@ namespace heist {
 
   exe_fcn_t analyze_core_syntax(scm_list& exp,const bool cps_block=false) {
     static constexpr const char * const format = 
-      "\n     (core-syntax <name> (<keyword> ...) (<pattern> <template>) ...)";
+      "\n     (core-syntax <label> <syntax-object>)";
     if(exp.size() < 3)
       THROW_ERR("'core-syntax didn't receive enough args!\n     In expression: " << exp << format);
     if(!exp[1].is_type(types::sym))
