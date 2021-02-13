@@ -96,6 +96,7 @@ namespace heist {
     constexpr const char * const cps_app_tag       = "heist:core:app-cps";
     constexpr const char * const gensym_prefix     = "heist:core:gensym-";
     constexpr const char * const reader_lambda     = "heist:core:reader-lambda";
+    constexpr const char * const cps_ignore_arg    = "heist:core:ignore";
     constexpr const char * const scm_cps           = "scm->cps";
     constexpr const char * const cps_quote         = "cps-quote";
     constexpr const char * const using_cpsp        = "using-cps?";

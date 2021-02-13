@@ -2336,7 +2336,7 @@ namespace heist {
   * CONTINUATION-PASSING-STYLE EXPANSION OPTIMIZATION -- PASS 4
   ******************************************************************************/
 
-  // Expand the "ignore" lambda application
+  // Expand the symconst::cps_ignore_arg lambda application
   void expand_CPS_lambda_pass_4_application(scm_list& cps_exp,const size_type& i)noexcept{
     scm_list unwrapped_exp(cps_exp[i].exp[0].exp.size()-1);
     unwrapped_exp[0] = cps_exp[i].exp[1];
@@ -2353,7 +2353,7 @@ namespace heist {
     return cps_exp.size() == 2 && cps_exp[0].is_type(types::exp) &&
            is_unary_arg_lambda_cps_exp(cps_exp[0].exp) &&
            cps_exp[0].exp[1].exp[0].is_type(types::sym) &&
-           cps_exp[0].exp[1].exp[0].sym == "ignore";
+           cps_exp[0].exp[1].exp[0].sym == symconst::cps_ignore_arg;
   }
 
 
@@ -2553,7 +2553,7 @@ namespace heist {
     // Continue w/ expression after binding [SELF IS THE "k1" CONTINUATION OF THE EXPRESSION ABOVE]
     cps_defn[2].exp[0].exp[2].exp[1] = scm_list(3);
     cps_defn[2].exp[0].exp[2].exp[1].exp[0] = symconst::lambda;
-    cps_defn[2].exp[0].exp[2].exp[1].exp[1] = scm_list(1,"ignore"); // result of set!
+    cps_defn[2].exp[0].exp[2].exp[1].exp[1] = scm_list(1,symconst::cps_ignore_arg); // result of set!
     cps_defn[2].exp[0].exp[2].exp[1].exp[2] = scm_list(2);
 
     // Pass <rest_exp> of expression to the topmost continuation if CPS-ATOMIC
@@ -2926,7 +2926,7 @@ namespace heist {
         }
         lambda[2].exp[rec_idx] = scm_list(3);
         lambda[2].exp[rec_idx].exp[0] = symconst::lambda;
-        lambda[2].exp[rec_idx].exp[1] = scm_list(1,"ignore");
+        lambda[2].exp[rec_idx].exp[1] = scm_list(1,symconst::cps_ignore_arg);
         lambda[2].exp[rec_idx].exp[2] = scm_list(2);
         if(code.exp.size() == 3 && data_is_cps_atomic(code.exp[2])) { // 2 ARGS, THE LAST BEING CPS-ATOMIC
           lambda[2].exp[rec_idx].exp[2].exp[0] = lambda[1].exp[0];
