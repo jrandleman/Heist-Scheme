@@ -5420,6 +5420,12 @@ namespace heist {
         << FCN_ERR("define-reader-syntax",args));
     // Delete Reader Macro
     if(args.size() == 1) return delete_reader_macro(*args[0].str);
+    // Confirm not shorthand isn't ":" (messes w/ internal reserved symbols)
+    if(*args[0].str == ":")
+      THROW_ERR("'define-reader-syntax \":\" is an invalid reader-syntax shorthand!"
+        "\n     (define-reader-syntax <shorthand-string> <optional-longhand-string>)"
+        "\n     => Defining \":\" as reader-syntax messes with internal reserved symbols!"
+        << FCN_ERR("define-reader-syntax",args));
     // Define/Redefine Reader Macro
     register_reader_macro(*args[0].str,*args[1].str);
     return GLOBALS::VOID_DATA_OBJECT;

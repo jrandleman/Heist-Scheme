@@ -9878,8 +9878,9 @@ R"(
 )",
 R"(
 Have the reader expand <shorthand-string> around objects into <longhand-string>.
-  *) Internally, "'" works as if interpreted (define-reader-syntax "'" "quote")
-  *) Leaving out <optional-longhand-string> rms <shorthand-string> reader macro & returns if found!
+  *) Internally, "'" works as if interpreted (define-reader-syntax "'" "quote")!
+  *) Leaving out <optional-longhand> rms <shorthand> reader macro & returns if found!
+  *) Defining ":" as a shorthand is invalid (messes with internal reserved symbols)!
   *) Examples:
 
      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

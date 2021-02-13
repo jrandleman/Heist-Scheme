@@ -2995,8 +2995,9 @@ Other primitives of this nature include:<br>
 5. __Define Reader Shorthand Syntax__: 
    * `(define-reader-syntax <shorthand-string> <optional-longhand-string>)`
    * Have the reader expand `<shorthand-string>` around objects into `<longhand-string>`
-     - _Internally, `'` works as if interpreted `(define-reader-syntax "'" "quote")`_
-     - _Leaving out `<optional-longhand-string>` rms `<shorthand-string>` reader macro & returns if found_
+     - _Internally, `'` works as if interpreted `(define-reader-syntax "'" "quote")`!_
+     - _Leaving out `<optional-longhand>` rms `<shorthand>` reader macro & returns if found!_
+     - _Defining `:` as a shorthand is invalid (messes with internal reserved symbols)!_
    ```scheme
    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
    ;; NOTE: Defn's _MUST_ be evaluated before being usable by the reader!
