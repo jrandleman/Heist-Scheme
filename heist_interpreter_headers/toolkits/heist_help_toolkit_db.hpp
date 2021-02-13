@@ -448,9 +448,9 @@ R"(
      *) Special Case: imaginary value of 0 becomes a real (non-complex) number!
 
         3/4+1/2i
-        3/4+0.5i ; becomes 0.75+0.5i to match exactness
+        3/4+0.5i ; BECOMES 0.75+0.5i to match exactness
         -i       ; valid complex number!
-        -44+0i   ; becomes -44
+        -44+0i   ; BECOMES -44
 
 2 Prefix Types:
   0. Radix:
@@ -743,7 +743,7 @@ NOTE: "universe" is also a class prototype under the hood, though it leverages
 
 }, {
 "procedure",
-"Object (Value Semantics)",
+"Object (Reference Semantics)",
 R"()",
 R"(
 All procedures are closures in Heist Scheme. Created via "lambda" or "fn", with 
@@ -765,6 +765,25 @@ values for args via '()' notation, though these become "fn"s under the hood:
       ((n) (factorial n 1))                 ; called only if given 1 arg 
       ((0 p) p)                             ; called if given 0 and any arg
       ((n p) (factorial (- n 1) (* n p))))) ; called if given any 2 args
+
+CPS Transformation:
+  *) If you use "cps-quote" you won't see this expansion, rather there will be a 
+     "heist:core:app-cps" tag prefixing the application in order to denote where 
+     to cps-transform in the future should the application be of a macro.
+
+  (<procedure> <arg1> <arg2> ... <argN>)
+  ; BECOMES
+  (lambda (k)
+    ((cps-transform <procedure>)
+      (lambda (procedure-value)
+        ((cps-transform <arg1>)
+          (lambda (arg1-value)
+            ((cps-transform <arg2>)
+              (lambda (arg2-value)
+                ... ; continue transform-lambda pattern here for each <arg> value
+                  ((cps-transform <argN>)
+                    (lambda (argN-value)
+                      (procedure-value arg1-value arg2-value ... argN-value k))))))))))
 )",
 
 
@@ -1078,6 +1097,11 @@ Quote becomes VERY powerful when combined with "eval" (converts data to code),
 especially in macros. IE: convert code to data via QUOTE, manipulate the data,
 then convert the data back to code via EVAL. Allows a program to edit itself by
 dynamically adding to the interpreted AST at runtime!
+
+CPS Transformation:
+  (quote <datum>)
+  ; BECOMES
+  (lambda (k) (k (quote <datum>)))
 )",
 
 
@@ -1139,6 +1163,18 @@ Assign default values to arguments by using ():
 Reader Shorthand: "\<expr>"
   *) Use "%n" to refer to the nth argument (1-indexed so "%1" is the 1st arg)
   *) Use "%%" to refer to a variadic arg (hence "list" is equivalent to "\%%")
+
+CPS Transformation:
+  *) If multiple <body> expressions, wrap them in a "begin" block!
+  *) Continuation *here* at the end of the parameter list necessitates interpreter 
+     be designed to handle variadic params w/ an extra continuation param at the end!
+
+  (lambda (<arg> ...) <body>) 
+  ; BECOMES
+  (lambda (k)
+    (k (lambda (<arg> ... k2) ; *here*
+         ((cps-transform <body>)
+           k2))))
 )",
 
 
@@ -1189,6 +1225,17 @@ Examples:
   (bad-bool-match #t) ; "true"
   (gud-bool-match 1)  ; "one"
   (gud-bool-match #t) ; "true"
+
+CPS Transformation:
+  *) If multiple <body> expressions, wrap them in a "begin" block!
+  *) Continuation *here* at the end of the parameter list necessitates interpreter 
+     be designed to handle variadic params w/ an extra continuation param at the end!
+
+  (fn ((<arg> ...) <body>) ...)
+  ; BECOMES
+  (lambda (k)
+    (k (fn ((<arg> ... k2) ; *here*
+            ((cps-transform <body>) k2)) ...)))
 )",
 
 
@@ -1207,8 +1254,23 @@ Bind a syntactic label to a value! Note that the procedure definition expands
 to a lambda binding:
   
   (define (<procedure-name> <arg> ...) <body> ...)
-  ; becomes
+  ; BECOMES
   (define <procedure-name> (lambda (<arg> ...) <body> ...))
+
+CPS Transformation:
+  *) If multiple <rest-of-code> expressions, wrap them in a "begin" block!
+  *) The need to know symbol-name *here* is why macro-expansion/eval/load 
+     can't leak definitions to the current environment in CPS!
+  
+  (define <var> <val>) <rest-of-code> 
+  ; BECOMES
+  (lambda (k)
+    ((lambda (<var>) ; *here*
+      ((cps-transform <val>)
+        (lambda (val-value)
+          (set! <var> val-value)
+          ((cps-transform <rest-of-code>) k))))
+    #f))
 )",
 
 
@@ -1226,8 +1288,16 @@ Set a syntactic label to a new value (must have been "define"d)!
 Special case for object properties: 
 
   (set! <object.name> <value>)
-  ; becomes
+  ; BECOMES
   (object.set-name! <value>)
+
+CPS Transformation:
+  (set! <var> <val>)
+  ; BECOMES
+  (lambda (k)
+    ((cps-transform <val>)
+      (lambda (val-value)
+        (k (set! <var> val-value)))))
 )",
 
 
@@ -1260,6 +1330,11 @@ Example:
 
   (defined? a)   ; #t ; '(undefined)' is a valid value type assigned to 'a' in the environment!
   (undefined? a) ; #t ; 'undefined?' checks values!
+
+CPS Transformation:
+  (defined? <symbol>)
+  ; BECOMES
+  (lambda (k) (k (defined? <symbol>)))
 )",
 
 
@@ -1290,6 +1365,19 @@ R"(
 Sequentially evaluate expressions IN THE CURRENT ENVIRONMENT!
   *) Helps fit multiple expressions somewhere only expecting 1 (see "if")
   *) Unlike '(let () <expr> ...)', DOESN'T create a new environment frame!
+
+CPS Transformation:
+  (begin <expr1> <expr2> <expr3> ... <exprN>)
+  ; BECOMES
+  (lambda (k)
+    ((cps-transform <expr1>)
+      (lambda (ignore)
+        ((cps-transform <expr2>)
+          (lambda (ignore) 
+            ((cps-transform <expr3>) 
+              (lambda (ignore) 
+                ... ; continue transform-ignore pattern here for each begin <expr>
+                  ((cps-transform <exprN>) k))))))))
 )",
 
 
@@ -1311,6 +1399,25 @@ Conditional branching!
      (if  0  "true!" "false!") ; "true!"
      (if '() "true!" "false!") ; "true!"
      (if  #f "true!" "false!") ; "false!"
+
+CPS Transformations:
+  (if <condition> <consequent> <alternative>)
+  ; BECOMES
+  (lambda (k) 
+    ((cps-transform <condition>)
+      (lambda (condition-value)
+        (if condition-value
+            ((cps-transform <consequent>) k)
+            ((cps-transform <alternative>) k)))))
+
+  (if <condition> <consequent>)
+  ; BECOMES
+  (lambda (k) 
+    ((cps-transform <condition>)
+      (lambda (condition-value)
+        (if condition-value
+            ((cps-transform <consequent>) k)
+            (k (void))))))
 )",
 
 
@@ -1328,7 +1435,7 @@ Confirm all expressions aren't "#f"!
 Derivation Using if:
 
   (and <exp1> <exp2> <exp3> <exp4>)
-  ; becomes
+  ; BECOMES
   (if <exp1> (if <exp2> (if <exp3> <exp4> #f) #f) #f)
 )",
 
@@ -1347,9 +1454,7 @@ Confirm 1 expression isn't "#f"!
 Derivation Using if:
   
   (or <exp1> <exp2> <exp3> <exp4>)
-
-  ; becomes
-
+  ; BECOMES
   (let ((or-val <exp1>)) ; bind value to prevent 2x eval from test & branch
     (if or-val
         or-val
@@ -1384,7 +1489,7 @@ Derivation using "if":
         (<condition3> => <callable>)
         (else <exp4> ...))
 
-  ; becomes
+  ; BECOMES
 
   (if <condition1>
       (begin <exp1> ...)
@@ -1418,7 +1523,7 @@ Derivation using "cond":
     ((<val4> ...) => <callable>)
     (else <exp3> ...))
 
-  ; becomes
+  ; BECOMES
 
   (cond ((memv <key> (list <val1> ...)) <exp1> ...) ; See the "memv" primitive!
         ((memv <key> (list <val2> <key> <val3> ...)) <exp2> ...)
@@ -1444,12 +1549,12 @@ Derivations using "lambda":
 
   ; NAMELESS
   (let ((<name> <value>) ...) <body> ...)
-  ; becomes
+  ; BECOMES
   ((lambda (<name> ...) <body> ...) <value> ...)
 
   ; NAMED
   (let <procedure-name> ((<name> <value>) ...) <body> ...)
-  ; becomes
+  ; BECOMES
   (let () 
     (define <procedure-name>
       (lambda (<name> ...) <body> ...))
@@ -1476,7 +1581,7 @@ Derivation using "let":
          (<name3> <value3>))
     <body> ...)
 
-  ; becomes
+  ; BECOMES
 
   (let ((<name1> <value1>))
     (let ((<name2> <value2>))
@@ -1496,13 +1601,10 @@ R"(
 <arg-binding> ::= (<name> <value>)
 )",
 R"(
-"let" with recursive bindings!
-Derivation using "let":
+"let" with recursive bindings! Derivation using "let":
 
   (letrec ((<name> <value>) ...) <body> ...)
-
-  ; becomes
-
+  ; BECOMES
   (let ((<name> #f) ...)
     (set! <name> <value>) ...
     <body> ...)
@@ -1528,7 +1630,7 @@ Derivation using "letrec":
       (<break-test> <return-exp1> <return-exp2> ...)
       <body> ...)
 
-  ; becomes
+  ; BECOMES
 
   (letrec ((<INTERNAL-RESERVED-NAME>
             (lambda (<var> ...)
@@ -1606,7 +1708,7 @@ Create a "stream" pair!
 Derivation using "delay" & "cons":
 
   (scons <scar-obj> <scdr-obj>)
-  ; becomes
+  ; BECOMES
   (cons (delay <scar-obj>) (delay <scdr-obj>))
 )",
 
@@ -1625,7 +1727,7 @@ Create a "stream" ("stream" is to "scons" as "list" is to "cons")!
 Derivation using "scons":
 
   (stream <obj1> <obj2> <obj3>)
-  ; becomes
+  ; BECOMES
   (scons <obj1> (scons <obj2> (scons <obj3> '())))
 )",
 
@@ -1646,9 +1748,9 @@ Longhand variant of the "#" vector-literal shorthand!
 Transformation:
   
   '#(<obj1> <obj2> <obj3> ...)
-  ; becomes
+  ; BECOMES
   '(vector-literal <obj1> <obj2> <obj3> ...)
-  ; becomes
+  ; BECOMES
   (vector '<obj1> '<obj2> '<obj3> '...)
 )",
 
@@ -1670,9 +1772,9 @@ Longhand variant of the "$" hmap-literal shorthand!
 Transformation:
   
   '$(<key1> <val1> <key2> <val2> ...)
-  ; becomes
+  ; BECOMES
   '(hmap-literal <key1> <val1> <key2> <val2> ...)
-  ; becomes
+  ; BECOMES
   (hmap '<key1> '<val1> '<key2> '<val2> '...)
 )",
 
@@ -1699,11 +1801,20 @@ Deriving "let-syntax" & "letrec-syntax" via "let":
   (let-syntax ((<label> <syntax-object>) ...) <body> ...)
   (letrec-syntax ((<label> <syntax-object>) ...) <body> ...)
 
-  ; becomes (letrec style macro evaluation is default) =>
+  ; BECOMES (letrec style macro evaluation is default) =>
 
   (let ()
     (define-syntax <label> <syntax-object>) ...
     <body> ...)
+
+CPS Transformation:
+  *) If multiple <rest-of-code> expressions, wrap them in a "begin" block!
+
+  (define-syntax <label> <syntax-object>) <rest-of-code> 
+  ; BECOMES
+  (lambda (k)
+    (define-syntax <label> <syntax-object>)
+    ((cps-transform <rest-of-code>) k))
 )",
 
 
@@ -1768,6 +1879,12 @@ Higher-Order Macro Template Expansion Support:
               ((_ arg \...) ; escape the ... to be un-escaped upon expansion
                 ((lambda (a ...)
                   b ...) arg \...)))))))
+
+CPS Transformation:
+  (syntax-rules () (<pattern> <template>) ...)
+  ; BECOMES
+  (lambda (k)
+    (k (syntax-rules () (<pattern> <template>) ...)))
 )",
 
 
@@ -1870,6 +1987,15 @@ Example Runtime Expansion Degradation Risk:
       (my-macro 12))           ; EXPANDS AT RUNTIME SINCE my-macro ISN'T CORE-SYNTAX YET!
     (f)                        ; RUN f TO REGISTER my-macro AS core-syntax IN THE GLOBAL ENV
     (define (g) (my-macro 13)) ; EXPANDS AT ANALYSIS TIME
+
+CPS Transformation:
+  *) If multiple <rest-of-code> expressions, wrap them in a "begin" block!
+
+  (core-syntax <label> <syntax-object>) <rest-of-code> 
+  ; BECOMES
+  (lambda (k)
+    (core-syntax <label> <syntax-object>)
+    ((cps-transform <rest-of-code>) k))
 )",
 
 
@@ -1894,6 +2020,17 @@ WARNING: Reader aliases do NOT recursively expand:
   (define-reader-alias b +)
   (b 1 2 3) ; 6
   (a 1 2 3) ; ERROR: VARIABLE b IS UNBOUND !!!
+
+CPS Transformations:
+  (define-reader-alias <alias-symbol> <name-symbol>)
+  ; BECOMES
+  (lambda (k) 
+    (k (define-reader-alias <alias-symbol> <name-symbol>)))
+
+  (define-reader-alias <alias-symbol-to-delete>)
+  ; BECOMES
+  (lambda (k) 
+    (k (define-reader-alias <alias-symbol-to-delete>)))
 )",
 
 
@@ -1964,6 +2101,11 @@ R"(
 )",
 R"(
 Determine whether in a "scm->cps" block or "-cps" is active!
+
+CPS Transformation:
+  (using-cps?)
+  ; BECOMES
+  (lambda (k) (k (using-cps?)))
 )",
 
 
@@ -2102,6 +2244,32 @@ Example:
   (display (root.leaf?)) ; #f
   (newline)
   (display (root.left.leaf?)) ; #t
+
+CPS Transformation:
+  *) If multiple <rest-of-code> expressions, wrap them in a "begin" block!
+  *) If multiple <body> expressions, wrap them in a "begin" block!
+  *) Dynamically add all non-atomic default-value members *here*!
+  *) Dynamically add all non-atomic/non-inlined methods *there*!
+
+  (defclass <prototype-name> (<optional-super-prototype>)
+    (<mem1> <atomic-val>)
+    (<mem2> <val-expr>)
+    ((<method1> <arg> ...) <body>)
+    (defmethod <method2> <procedure-val-expr>)) 
+  <rest-of-code> 
+
+  ; BECOMES
+
+  (lambda (k)
+    (defclass <prototype-name> (<optional-super-prototype>) 
+      (<mem1> <atomic-val>) 
+      ((<method1> <arg> ... k2) 
+        ((cps-transform <body>) k2)))
+      ((cps-transform 
+        (begin (proto-add-member! <prototype-name> (quote <mem2>) <val-expr>)              ; *here*
+               (proto-add-method! <prototype-name> (quote <method2>) <procedure-val-expr>) ; *there*
+               <rest-of-code>))
+        k))
 )",
 
 
@@ -2312,6 +2480,17 @@ Examples:
 
   ; (display (map + '(1 2) '(3 4)))) ; ERROR, READS: ((+ map '(1 2)) '(4 5))
   (display (map #!+ '(1 2) '(3 4)))  ; OK: ESCAPED "+" AVOIDS INFIX CONVERSION
+
+CPS Transformations:
+  (infix! <integer-literal> <symbol1> ...)
+  ; BECOMES
+  (lambda (k) 
+    (k (infix! <integer-literal> <symbol1> ...)))
+
+  (infixr! <integer-literal> <symbol1> ...)
+  ; BECOMES
+  (lambda (k) 
+    (k (infixr! <integer-literal> <symbol1> ...)))
 )",
 
 
@@ -2337,6 +2516,11 @@ Examples:
 
   ; (#<procedure even?> #<procedure compose> #<procedure length>)
   (display (list even? compose length))
+
+CPS Transformation:
+  (unfix! <symbol1> ...)
+  ; BECOMES
+  (lambda (k) (k (unfix! <symbol1> ...)))
 )",
 
 

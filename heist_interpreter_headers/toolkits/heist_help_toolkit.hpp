@@ -26,11 +26,27 @@ namespace GLOBALS {
 ******************************************************************************/
 
 namespace help::logic {
+  // Stop indenting if at "CPS Transformation" section!
+  bool at_CPS_Transformation_section(const char* s)noexcept{
+    static constexpr const char * const CPS_Transformation = "CPS Transformation";
+    const char* p = CPS_Transformation;
+    while(*p && *s) {
+      if(*p != *s) return false;
+      ++p, ++s;
+    }
+    return !*p;
+  }
+
+
   scm_string indent_phrasing(const char* s)noexcept{
     scm_string str;
     while(*s) {
       str += *s;
-      if(*s == '\n' && *(s+1)) str += ' ', str += ' ';
+      if(*s == '\n' && *(s+1)) {
+        if(at_CPS_Transformation_section(s+1))
+          return str + (s+1);
+        str += ' ', str += ' ';
+      }
       ++s;
     }
     return str;
