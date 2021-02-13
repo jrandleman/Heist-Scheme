@@ -5829,6 +5829,30 @@ namespace heist {
   * DEFCLASS OO GENERAL OBJECT ANALYSIS PRIMITIVES HELPERS
   ******************************************************************************/
 
+  bool object_has_property_name(obj_type& obj, const scm_string& name)noexcept{
+    return std::find(obj->member_names.begin(),obj->member_names.end(),name) != obj->member_names.end() || 
+           std::find(obj->method_names.begin(),obj->method_names.end(),name) != obj->method_names.end();
+  }
+
+
+  void populate_obj_with_new_dynamic_proto_properties(obj_type& obj) {
+    auto proto = obj->proto;
+    for(size_type i = 0, n = proto->member_names.size(); i < n; ++i) {
+      if(!object_has_property_name(obj,proto->member_names[i])) {
+        obj->member_names.push_back(proto->member_names[i]);
+        auto deep_copied_value = proto->member_values[i].copy();
+        obj->member_values.push_back(deep_copied_value);
+      }
+    }
+    for(size_type i = 0, n = proto->method_names.size(); i < n; ++i) {
+      if(!object_has_property_name(obj,proto->method_names[i])) {
+        obj->method_names.push_back(proto->method_names[i]);
+        obj->method_values.push_back(proto->method_values[i]);
+      }
+    }
+  }
+
+
   void confirm_given_unary_object_arg(scm_list& args, const char* name) {
     if(args.size() != 1)
       THROW_ERR('\''<<name<<" didn't receive 1 arg!"

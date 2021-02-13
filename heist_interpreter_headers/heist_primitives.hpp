@@ -5799,6 +5799,7 @@ namespace heist {
 
   data primitive_OBJECT_MEMBERS(scm_list& args) {
     confirm_given_unary_object_arg(args,"object-members");
+    populate_obj_with_new_dynamic_proto_properties(args[0].obj);
     scm_map m;
     for(size_type i = 0, n = args[0].obj->member_names.size(); i < n; ++i)
       m.val[args[0].obj->member_names[i]+char(types::sym)] = args[0].obj->member_values[i];
@@ -5807,6 +5808,7 @@ namespace heist {
 
   data primitive_OBJECT_METHODS(scm_list& args) {
     confirm_given_unary_object_arg(args,"object-methods");
+    populate_obj_with_new_dynamic_proto_properties(args[0].obj);
     scm_map m;
     for(size_type i = 0, n = args[0].obj->method_names.size(); i < n; ++i)
       m.val[args[0].obj->method_names[i]+char(types::sym)] = extend_method_env_with_SELF_object(args[0].obj,args[0].obj->method_values[i].fcn);
