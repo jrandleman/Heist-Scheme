@@ -461,14 +461,14 @@
     ((_ () body ...)
       (lambda () body ...))
     ((_ (arg) body ...) 
-      (lambda (x . xs)
+      (lambda (x *dot* xs) ; *dot* ensures variadic procedure after expansion even if user redefines '.
         (fold (lambda (f a) (f a)) 
               (lambda (arg) body ...)
               (cons x xs))))
     ((_ (arg rest-args ...) body ...)
       (let ((heist:curry:curried-lambdas 
               (lambda (arg) (curry (rest-args ...) body ...))))
-        (lambda (x . xs)
+        (lambda (x *dot* xs)
           (fold (lambda (f a) (f a)) 
                 heist:curry:curried-lambdas
                 (cons x xs)))))))
@@ -485,13 +485,13 @@
     ((_ overloaded (pred? function) ... (else else-function))
       (define overloaded
         (let ((*original* overloaded))
-          (lambda (`@x . `@xs)
+          (lambda (`@x *dot* `@xs) ; *dot* ensures variadic procedure after expansion even if user redefines '.
             (cond ((pred? x) (apply function (cons x xs))) ...
                   (else (apply else-function (cons x xs))))))))
     ((_ overloaded (pred? function) ...)
       (define overloaded
         (let ((*original* overloaded))
-          (lambda (`@x . `@xs)
+          (lambda (`@x *dot* `@xs)
             (cond ((pred? x) (apply function (cons x xs))) ...
                   (else (error 'overloaded "Unsupported Arg Type" x)))))))))
 

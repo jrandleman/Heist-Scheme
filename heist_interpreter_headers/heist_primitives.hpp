@@ -5116,18 +5116,18 @@ namespace heist {
   }
 
   data primitive_SET_DOT_BANG(scm_list& args) {
-    if(args.size() != 1 || !args[0].is_type(types::chr))
-      THROW_ERR("'set-dot! didn't receive 1 character!"
-        "\n     (set-dot! <char>)" << FCN_ERR("set-dot!",args));
-    data original_dot = G.dot[0];
-    G.dot[0] = args[0].chr;
+    if(args.size() != 1 || !args[0].is_type(types::sym))
+      THROW_ERR("'set-dot! didn't receive 1 symbol!"
+        "\n     (set-dot! <symbol>)" << FCN_ERR("set-dot!",args));
+    data original_dot = G.dot;
+    G.dot = args[0].sym;
     return original_dot;
   }
 
   data primitive_DOT(scm_list& args) {
     if(!args.empty())
       THROW_ERR("'dot doesn't accept any args: (dot)" << FCN_ERR("dot",args));
-    return data(G.dot[0]);
+    return data(G.dot);
   }
 
   /******************************************************************************

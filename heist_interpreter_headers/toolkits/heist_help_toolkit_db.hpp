@@ -1836,6 +1836,7 @@ Create syntax-objects to be assigned via "core-syntax", "define-syntax",
 "let-syntax", or "letrec-syntax"!
   *) Literals & <key>s in patterns must be matched exactly to expand!
   *) "..." and "syntax-hash" are always reserved <key> names!
+  *) Use "*dot*" to alias the current '(dot)' in expansions!
 
 Variadic Matching & Expansion:
   0. For Patterns:
@@ -9566,13 +9567,14 @@ Check status as to whether dynamically tracing procedure arguments in the call s
 "set-dot!",
 "Procedure",
 R"(
-(set-dot! <char>)
+(set-dot! <symbol>)
 )",
 R"(
 Set the dot denoting dotted lists & variadic arguments.
-  *) Defaults to #\.
-  *) Get current dot via "dot"!
+  *) Defaults to '.
+  *) Get current dot via '(dot)'!
   *) Returns the last value that served this role!
+  *) Alias the current dot in syntax via "*dot*"!
 )",
 
 
@@ -9586,8 +9588,9 @@ R"(
 (dot)
 )",
 R"(
-Get the current dot character being used to denote dotted lists & variadic args! 
-  *) Set the current dot via "set-dot!".
+Get the current dot symbol being used to denote dotted lists & variadic args! 
+  *) Set the current dot via '(set-dot! <new-dot-symbol>)'
+  *) Alias the current dot in syntax via "*dot*"!
 )",
 
 

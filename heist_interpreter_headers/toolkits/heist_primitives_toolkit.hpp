@@ -2622,7 +2622,7 @@ namespace heist {
       }
       deep_unpack_list_into_exp(curr_pair.par->second, args_list); 
     } else if(!primitive_IS_THE_EMPTY_LIST(curr_pair)) {
-      args_list.push_back(G.dot);
+      args_list.push_back(symconst::dot);
       args_list.push_back(curr_pair);
     }
   }

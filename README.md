@@ -1021,6 +1021,7 @@ Other primitives of this nature include:<br>
     - `<template>` = `<expression-to-expand-into>`
   - _Note: Literals & `<key>`s in patterns must be matched exactly to expand!_
   - _Note: `...` and `syntax-hash` are **always** reserved `<key>` names!_
+  - _Note: Use `*dot*` to alias the current [`(dot)`](#Interpreter-Invariants-Manipulation) in expansions!_
 
 #### Variadic Matching & Expansion:
 ##### Heist Scheme's Powerful Macro System Enables Matching & Constructing Arbitrarily Complex Expressions!
@@ -2908,10 +2909,11 @@ Other primitives of this nature include:<br>
 6. __Trace Procedure Call Arguments Too__: `(set-trace-args! <boolean>)`
    * Check status via `(trace-args?)`!
 
-7. __Set Dot Character For Pair Literals & Variadics__: `(set-dot! <char>)`
+7. __Set Dot Symbol For Pair Literals & Variadics__: `(set-dot! <symbol>)`
    * Defaults to `.`!
-   * Returns the last character that served this role!
+   * Returns the last symbol that served this role!
    * Get current dot via `(dot)`!
+   * Alias the current dot in syntax via `*dot*`!
 
 
 

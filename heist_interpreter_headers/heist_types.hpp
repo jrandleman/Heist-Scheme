@@ -88,6 +88,7 @@ namespace heist {
 
   namespace symconst {
     constexpr const char * const emptylist         = "";
+    constexpr const char * const dot               = "*dot*";
     constexpr const char * const sentinel_arg      = "heist:core:nil-arg";
     constexpr const char * const do_label          = "heist:core:do-letrec";
     constexpr const char * const tail_call         = "heist:core:tail-call";
@@ -1048,7 +1049,7 @@ namespace heist {
     * DOT CHARACTER FOR VARIADIC & PAIR-LITERAL DENOTATION
     ******************************************************************************/
 
-    char dot[2] = "."; // see the "set-dot!" primitive
+    scm_string dot = "."; // see the "set-dot!" primitive
 
   }; // End of struct process_invariants_t
 
@@ -1072,6 +1073,15 @@ namespace heist {
 ******************************************************************************/
 
 namespace heist {
+
+  bool symbol_is_dot_operator(const sym_type& sym)noexcept{
+    return sym == symconst::dot || sym == G.dot;
+  }
+
+  bool data_is_dot_operator(const data& d)noexcept{
+    return d.is_type(types::sym) && symbol_is_dot_operator(d.sym);
+  }
+
   namespace fn_param_matching {
     scm_string get_possible_signature(const exp_type& params)noexcept{
       scm_string buff;
@@ -1101,11 +1111,6 @@ namespace heist {
           buff += "\n        (" + name + ' ' + get_possible_signature(param_instances[i]);
       }
       return buff;
-    }
-
-
-    bool param_is_variadic(const data& d)noexcept{
-      return d.is_type(types::sym) && d.sym == G.dot;
     }
 
     bool param_is_token(const data& d)noexcept{
@@ -1231,7 +1236,7 @@ namespace heist {
       auto iter = arg;
       for(; i < n; ++i) {
         // dotted list may match all remaining values
-        if(param_is_variadic(lst.exp[i])) {
+        if(data_is_dot_operator(lst.exp[i])) {
           // pattern match dotted elt
           if(param_is_token(lst.exp[i+1])) {
             // booleans are a specialized token instance
@@ -1300,7 +1305,7 @@ namespace heist {
     bool is_fn_call_match(const exp_type& params, exp_type& arguments, exp_type& values, frame_vars& unpacked_params)noexcept{
       // confirm emptiness match
       if(bool no_params = no_args_given(params); 
-        (params.empty() || !param_is_variadic(params[0])) && (no_params ^ no_args_given(arguments))) {
+        (params.empty() || !data_is_dot_operator(params[0])) && (no_params ^ no_args_given(arguments))) {
         return false;
       } else if(no_params) {
         return true;
@@ -1308,7 +1313,7 @@ namespace heist {
       size_type i = 0, j = 0, n = params.size(), m = arguments.size();
       for(; i < n && j < m+1; ++i, ++j) { // j < m+1 to match no args against varaidic args
         // variadics match all remaining values
-        if(param_is_variadic(params[i])) {
+        if(data_is_dot_operator(params[i])) {
           for(auto iter = params.begin()+i, end = params.end(); iter != end; ++iter)
             unpacked_params.push_back(iter->sym);
           values.insert(values.end(),arguments.begin()+j,arguments.end());
