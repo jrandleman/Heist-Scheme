@@ -1430,31 +1430,33 @@ namespace heist {
       define_setter_method_for_member(proto,env,proto.member_names[i]);
   }
 
-  void define_dynamic_property_generator(class_prototype& proto,env_type& env,const char* method_name,const char* underlying_prm){
-    proto.method_names.push_back(method_name);
+  // ((add-property! name value)
+  //   (if (procedure? value)
+  //       (heist:core:oo:register-method! self name value)
+  //       (heist:core:oo:register-member! self name value)))
+  void define_dynamic_property_generator(class_prototype& proto, env_type& env) {
+    proto.method_names.push_back("add-property!");
     scm_list property_generator(3);
     property_generator[0] = symconst::lambda;
     property_generator[1] = scm_list(2);
-    property_generator[1].exp[0] = "property-name";
-    property_generator[1].exp[1] = "property-value";
+    property_generator[1].exp[0] = "heist:core:property-name";
+    property_generator[1].exp[1] = "heist:core:property-value";
     property_generator[2] = scm_list(4);
-    property_generator[2].exp[0] = underlying_prm;
-    property_generator[2].exp[1] = "self";
-    property_generator[2].exp[2] = "property-name";
-    property_generator[2].exp[3] = "property-value";
+    property_generator[2].exp[0] = symconst::if_t;
+    property_generator[2].exp[1] = scm_list(2);
+    property_generator[2].exp[1].exp[0] = "procedure?";
+    property_generator[2].exp[1].exp[1] = "heist:core:property-value";
+    property_generator[2].exp[2] = scm_list(4);
+    property_generator[2].exp[2].exp[0] = "heist:core:oo:register-method!";
+    property_generator[2].exp[2].exp[1] = "self";
+    property_generator[2].exp[2].exp[2] = "heist:core:property-name";
+    property_generator[2].exp[2].exp[3] = "heist:core:property-value";
+    property_generator[2].exp[3] = scm_list(4);
+    property_generator[2].exp[3].exp[0] = "heist:core:oo:register-member!";
+    property_generator[2].exp[3].exp[1] = "self";
+    property_generator[2].exp[3].exp[2] = "heist:core:property-name";
+    property_generator[2].exp[3].exp[3] = "heist:core:property-value";
     proto.method_values.push_back(data_cast(scm_eval(std::move(property_generator),env)));
-  }
-
-  // ((add-member! member-name default-value)
-  //   (heist:core:oo:register-member! self member-name default-value))
-  void define_dynamic_member_generator(class_prototype& proto, env_type& env) {
-    define_dynamic_property_generator(proto,env,"add-member!","heist:core:oo:register-member!");
-  }
-
-  // ((add-method! method-name procedure-value)
-  //   (heist:core:oo:register-method! self method-name procedure-value))
-  void define_dynamic_method_generator(class_prototype& proto, env_type& env) {
-    define_dynamic_property_generator(proto,env,"add-method!","heist:core:oo:register-method!");
   }
 
   // (define (<class-name>? <obj>)
@@ -1482,12 +1484,12 @@ namespace heist {
     dflt_ctor[1] = scm_list(3);
     dflt_ctor[1].exp[0] = name_prefix+class_name;
     dflt_ctor[1].exp[1] = symconst::dot;
-    dflt_ctor[1].exp[2] = "optional-member-value-container";
+    dflt_ctor[1].exp[2] = "heist:core:optional-member-value-container";
     dflt_ctor[2] = scm_list(4);
     dflt_ctor[2].exp[0] = symconst::if_t;
     dflt_ctor[2].exp[1] = scm_list(2);
     dflt_ctor[2].exp[1].exp[0] = "null?";
-    dflt_ctor[2].exp[1].exp[1] = "optional-member-value-container";
+    dflt_ctor[2].exp[1].exp[1] = "heist:core:optional-member-value-container";
     dflt_ctor[2].exp[2] = scm_list(2);
     dflt_ctor[2].exp[2].exp[0] = "heist:core:oo:make-object";
     dflt_ctor[2].exp[2].exp[1] = class_name;
@@ -1496,7 +1498,7 @@ namespace heist {
     dflt_ctor[2].exp[3].exp[1] = class_name;
     dflt_ctor[2].exp[3].exp[2] = scm_list(2);
     dflt_ctor[2].exp[3].exp[2].exp[0] = "car";
-    dflt_ctor[2].exp[3].exp[2].exp[1] = "optional-member-value-container";
+    dflt_ctor[2].exp[3].exp[2].exp[1] = "heist:core:optional-member-value-container";
     scm_eval(std::move(dflt_ctor),env);
   }
 
@@ -1632,10 +1634,8 @@ namespace heist {
       evaluate_method_and_member_exec_procs(exp,proto,member_exec_procs,method_exec_procs,env);
       // define setters for members
       define_setter_methods_for_members(proto,env);
-      // define dynamic member generator method
-      define_dynamic_member_generator(proto,env);
-      // define dynamic method generator method
-      define_dynamic_method_generator(proto,env);
+      // define dynamic property generator method
+      define_dynamic_property_generator(proto,env);
       // define the class prototype
       define_variable(proto.class_name,make_cls(proto),env);
       // generate the ctor

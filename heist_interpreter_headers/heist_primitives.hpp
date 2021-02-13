@@ -5672,7 +5672,7 @@ namespace heist {
   data primitive_HEIST_CORE_OO_SET_MEMBER_BANG(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (heist:core:oo:set-member! <object> <member-name-symbol> <value>)";
-    validate_oo_member_setter(args,"heist:core:oo:set-member!",format,"member");
+    validate_oo_member_setter(args,"heist:core:oo:set-member!",format);
     // Search Prototype/Inherited Prototype
     if(!set_new_object_member_value(args[0].obj->proto,args[0].obj,args[1].sym,args[2]))
       THROW_ERR("'heist:core:oo:set-member! 2nd member-name arg "<<PROFILE(args[1])
@@ -5733,7 +5733,7 @@ namespace heist {
   data primitive_HEIST_CORE_OO_REGISTER_MEMBER(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (heist:core:oo:register-member! <object> <member-name-symbol> <default-value>)";
-    validate_oo_member_setter(args,"add-member!",format,"member");
+    validate_oo_member_setter(args,"add-property!",format);
     // Set local member if already exists
     for(size_type i = 0, n = args[0].obj->member_names.size(); i < n; ++i) {
       if(args[0].obj->member_names[i] == args[1].sym) {
@@ -5762,8 +5762,8 @@ namespace heist {
   data primitive_HEIST_CORE_OO_REGISTER_METHOD(scm_list& args) {
     static constexpr const char * const format = 
       "\n     (heist:core:oo:register-method! <object> <method-name-symbol> <procedure-value>)";
-    validate_oo_member_setter(args,"add-method!",format,"method");
-    primitive_confirm_data_is_a_procedure(args[2], "add-method!", format, args);
+    validate_oo_member_setter(args,"add-property!",format);
+    primitive_confirm_data_is_a_procedure(args[2], "add-property!", format, args);
     // Set local method if already exists
     for(size_type i = 0, n = args[0].obj->method_names.size(); i < n; ++i) {
       if(args[0].obj->method_names[i] == args[1].sym) {
