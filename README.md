@@ -2911,8 +2911,8 @@ Other primitives of this nature include:<br>
 
 7. __Set Dot Symbol For Pair Literals & Variadics__: `(set-dot! <symbol>)`
    * Defaults to `.`!
-   * Returns the last symbol that served this role!
    * Get current dot via `(dot)`!
+   * Returns the last symbol that served this role!
    * Alias the current dot in syntax via `*dot*`!
 
 
