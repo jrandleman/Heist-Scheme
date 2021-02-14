@@ -2808,7 +2808,7 @@ namespace heist {
         size_type j = 2;
         for(size_type i = 0, n = stripped_member_names.size(); i < n; ++i, ++j) {
           begin_expr[j] = scm_list(4);
-          begin_expr[j].exp[0] = "proto-add-member!";
+          begin_expr[j].exp[0] = "proto-add-property!";
           begin_expr[j].exp[1] = begin_expr[1].exp[1]; // prototype name
           begin_expr[j].exp[2] = scm_list(2);
           begin_expr[j].exp[2].exp[0] = symconst::quote;
@@ -2817,7 +2817,7 @@ namespace heist {
         }
         for(size_type i = 0, n = stripped_defmethod_names.size(); i < n; ++i, ++j) {
           begin_expr[j] = scm_list(4);
-          begin_expr[j].exp[0] = "proto-add-method!";
+          begin_expr[j].exp[0] = "proto-add-property!";
           begin_expr[j].exp[1] = begin_expr[1].exp[1]; // prototype name
           begin_expr[j].exp[2] = scm_list(2);
           begin_expr[j].exp[2].exp[0] = symconst::quote;

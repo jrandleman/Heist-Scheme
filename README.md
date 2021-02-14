@@ -1747,11 +1747,8 @@ Other primitives of this nature include:<br>
 
 3. __Inherited Prototype__: `(proto-super <class-prototype>)`
 
-4. __Dynamically Add New Member__: 
-   * `(proto-add-member! <class-prototype> <member-name-symbol> <default-value>)`
-
-5. __Dynamically Add New Method__: 
-   * `(proto-add-method! <class-prototype> <method-name-symbol> <procedure-value>)`
+4. __Dynamically Add New Property__: 
+   * `(proto-add-property! <class-prototype> <property-name-symbol> <value>)`
 
 
 

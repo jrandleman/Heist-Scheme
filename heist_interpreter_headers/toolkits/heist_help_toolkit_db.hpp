@@ -104,8 +104,8 @@ static constexpr const char* HELP_MENU_PROCEDURES_OBJECTS[] = {
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_PROTOTYPES[] = {
-  "proto-name",        "proto-members",     "proto-methods", "proto-super", 
-  "proto-add-member!", "proto-add-method!", 
+  "proto-name",          "proto-members",     "proto-methods", "proto-super", 
+  "proto-add-property!", 
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_COROUTINES[] = {
@@ -723,7 +723,7 @@ members, methods, a ctor, and limited polymorphism. Created via "defclass".
 
 Analyze prototypes via the "proto-name" "proto-members" "proto-methods" & 
 "proto-super" primitives. Dynamically add properties to prototypes via the 
-"proto-add-member!" and "proto-add-method!" primitives.
+"proto-add-property!" primitive.
 
   => NOTE: Dynamically added properties to a prototype will give all new 
            AND ALL EXISTING objects of said prototype access to said property 
@@ -2266,8 +2266,8 @@ CPS Transformation:
       ((<method1> <arg> ... k2) 
         ((cps-transform <body>) k2)))
       ((cps-transform 
-        (begin (proto-add-member! <prototype-name> (quote <mem2>) <val-expr>)              ; *here*
-               (proto-add-method! <prototype-name> (quote <method2>) <procedure-val-expr>) ; *there*
+        (begin (proto-add-property! <prototype-name> (quote <mem2>) <val-expr>)              ; *here*
+               (proto-add-property! <prototype-name> (quote <method2>) <procedure-val-expr>) ; *there*
                <rest-of-code>))
         k))
 )",
@@ -2994,35 +2994,14 @@ Pointer to the prototype's inherited prototype (or "#f" if DNE).
 
 
 }, {
-"proto-add-member!",
+"proto-add-property!",
 "Procedure",
 R"(
-(proto-add-member! <class-prototype> <member-name-symbol> <default-value>)
+(proto-add-property! <class-prototype> <property-name-symbol> <value>)
 )",
 R"(
-Registers <member-name-symbol> as a property with <default-value> in
-<class-prototype>, which is then progated to all existing & new objects 
-of the given prototype!
-
-Use "proto-add-method!" for similar results with dynamic methods!
-)",
-
-
-
-
-
-}, {
-"proto-add-method!",
-"Procedure",
-R"(
-(proto-add-method! <class-prototype> <method-name-symbol> <procedure-value>)
-)",
-R"(
-Registers <method-name-symbol> as a property with <procedure-value> in
-<class-prototype>, which is then progated to all existing & new objects 
-of the given prototype!
-
-Use "proto-add-member!" for similar results with dynamic members!
+Registers <property-name-symbol> as a property with <value> in <class-prototype>, 
+which is then progated to all existing & new objects of the given prototype!
 )",
 
 

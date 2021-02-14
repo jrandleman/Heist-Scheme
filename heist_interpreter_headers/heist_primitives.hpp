@@ -5850,29 +5850,21 @@ namespace heist {
     return args[0].cls->inherited;
   }
 
-  data primitive_PROTO_ADD_MEMBER_BANG(scm_list& args) {
+  data primitive_PROTO_ADD_PROPERTY_BANG(scm_list& args) {
     static constexpr const char * const format = 
-      "\n     (proto-add-member! <class-prototype> <member-name-symbol> <default-value>)";
-    if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("proto-add-member!",primitive_PROTO_ADD_MEMBER_BANG,args);
-    confirm_proper_new_property_args(args,"proto-add-member!",format);
-    // Verify new member name isn't already the name of a member or method
-    confirm_new_property_name_doesnt_already_exist(args,"proto-add-member!",format);
-    args[0].cls->member_names.push_back(args[1].sym);
-    args[0].cls->member_values.push_back(args[2]);
-    return GLOBALS::VOID_DATA_OBJECT;
-  }
-
-  data primitive_PROTO_ADD_METHOD_BANG(scm_list& args) {
-    static constexpr const char * const format = 
-      "\n     (proto-add-method! <class-prototype> <method-name-symbol> <procedure-value>)";
-    if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("proto-add-method!",primitive_PROTO_ADD_METHOD_BANG,args);
-    confirm_proper_new_property_args(args,"proto-add-method!",format);
-    auto procedure = validate_and_extract_callable(args[2], "proto-add-method!", format, args);
-    // Verify new method name isn't already the name of a member or method
-    confirm_new_property_name_doesnt_already_exist(args,"proto-add-method!",format);
+      "\n     (proto-add-property! <class-property> <property-name-symbol> <procedure-value>)";
+    confirm_proper_new_property_args(args,"proto-add-property!",format);
+    // Verify new property name isn't already the name of a member or method
+    confirm_new_property_name_doesnt_already_exist(args,"proto-add-property!",format);
     // Define the new method
-    args[0].cls->method_names.push_back(args[1].sym);
-    args[0].cls->method_values.push_back(procedure);
+    if(args[2].is_type(types::fcn)) {
+      args[0].cls->method_names.push_back(args[1].sym);
+      args[0].cls->method_values.push_back(args[2]);
+    // Define the new member
+    } else {
+      args[0].cls->member_names.push_back(args[1].sym);
+      args[0].cls->member_values.push_back(args[2]);
+    }
     return GLOBALS::VOID_DATA_OBJECT;
   }
 
@@ -6590,12 +6582,11 @@ namespace heist {
     std::make_pair(primitive_OBJECT_TO_ALIST,             "object->alist"),
     std::make_pair(primitive_OBJECT_TO_JSON,              "object->json"),
 
-    std::make_pair(primitive_PROTO_NAME,            "proto-name"),
-    std::make_pair(primitive_PROTO_MEMBERS,         "proto-members"),
-    std::make_pair(primitive_PROTO_METHODS,         "proto-methods"),
-    std::make_pair(primitive_PROTO_SUPER,           "proto-super"),
-    std::make_pair(primitive_PROTO_ADD_MEMBER_BANG, "proto-add-member!"),
-    std::make_pair(primitive_PROTO_ADD_METHOD_BANG, "proto-add-method!"),
+    std::make_pair(primitive_PROTO_NAME,              "proto-name"),
+    std::make_pair(primitive_PROTO_MEMBERS,           "proto-members"),
+    std::make_pair(primitive_PROTO_METHODS,           "proto-methods"),
+    std::make_pair(primitive_PROTO_SUPER,             "proto-super"),
+    std::make_pair(primitive_PROTO_ADD_PROPERTY_BANG, "proto-add-property!"),
 
     std::make_pair(primitive_CYCLE_COROUTINES_BANG, "cycle-coroutines!"),
 
