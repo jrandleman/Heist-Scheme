@@ -5681,21 +5681,6 @@ namespace heist {
   }
 
 
-  // primitive "heist:core:oo:compare-classes" procedure:
-  data primitive_HEIST_CORE_OO_COMPARE_CLASSES(scm_list& args) {
-    static constexpr const char * const format = 
-      "\n     (heist:core:oo:compare-classes <obj> <class-prototype>)";
-    if(args.size() != 2)
-      THROW_ERR("'heist:core:oo:compare-classes didn't receive 2 args!"
-        <<format<<FCN_ERR("heist:core:oo:compare-classes",args));
-    if(!args[1].is_type(types::cls))
-      THROW_ERR("'heist:core:oo:compare-classes 2nd arg "<<PROFILE(args[1])<<" isn't a class-prototype!"
-        <<format<<FCN_ERR("heist:core:oo:compare-classes",args));
-    if(!args[0].is_type(types::obj)) return GLOBALS::FALSE_DATA_BOOLEAN;
-    return boolean(args[0].obj->proto == args[1].cls);
-  }
-
-
   // primitive "heist:core:oo:make-object" procedure:
   data primitive_HEIST_CORE_OO_MAKE_OBJECT(scm_list& args) {
     static constexpr const char * const format = 
@@ -6571,7 +6556,6 @@ namespace heist {
     std::make_pair(primitive_REGEX_SPLIT,       "regex-split"),
 
     std::make_pair(primitive_HEIST_CORE_OO_SET_PROPERTY_BANG, "heist:core:oo:set-property!"),
-    std::make_pair(primitive_HEIST_CORE_OO_COMPARE_CLASSES,   "heist:core:oo:compare-classes"),
     std::make_pair(primitive_HEIST_CORE_OO_MAKE_OBJECT,       "heist:core:oo:make-object"),
     std::make_pair(primitive_HEIST_CORE_OO_ADD_PROPERTY_BANG, "heist:core:oo:add-property!"),
 

@@ -1440,17 +1440,25 @@ namespace heist {
   }
 
   // (define (<class-name>? <obj>)
-  //   (heist:core:oo:compare-classes <obj> <class-name>))
+  //   (if (object? <obj>) 
+  //       (eq? <class-name> <obj>.prototype) 
+  //       #f))
   void define_class_prototype_predicate(scm_string& class_name, env_type& env) {
     scm_list predicate(3);
     predicate[0] = symconst::define;
     predicate[1] = scm_list(2);
     predicate[1].exp[0] = class_name + '?';
-    predicate[1].exp[1] = "obj";
-    predicate[2] = scm_list(3);
-    predicate[2].exp[0] = "heist:core:oo:compare-classes"; // primitive comparator helper
-    predicate[2].exp[1] = "obj";
-    predicate[2].exp[2] = class_name;
+    predicate[1].exp[1] = "heist:core:oo:obj";
+    predicate[2] = scm_list(4);
+    predicate[2].exp[0] = symconst::if_t;
+    predicate[2].exp[1] = scm_list(2);
+    predicate[2].exp[1].exp[0] = "object?";
+    predicate[2].exp[1].exp[1] = "heist:core:oo:obj";
+    predicate[2].exp[2] = scm_list(3);
+    predicate[2].exp[2].exp[0] = "eq?";
+    predicate[2].exp[2].exp[1] = class_name;
+    predicate[2].exp[2].exp[2] = "heist:core:oo:obj.prototype";
+    predicate[2].exp[3] = "#f";
     scm_eval(std::move(predicate),env);
   }
 
