@@ -5862,6 +5862,54 @@ namespace heist {
     }
   }
 
+
+  // primitive "heist:core:oo:add-property!" helper for members
+  data prm_HEIST_CORE_OO_ADD_MEMBER(scm_list& args) {
+    // Set local member if already exists
+    for(size_type i = 0, n = args[0].obj->member_names.size(); i < n; ++i) {
+      if(args[0].obj->member_names[i] == args[1].sym) {
+        args[0].obj->member_values[i] = args[2];
+        return GLOBALS::VOID_DATA_OBJECT;
+      }
+    }
+    // Rm if member already exists as a local method
+    for(size_type i = 0, n = args[0].obj->method_names.size(); i < n; ++i) {
+      if(args[0].obj->method_names[i] == args[1].sym) {
+        args[0].obj->method_names.erase(args[0].obj->method_names.begin()+i);
+        args[0].obj->method_values.erase(args[0].obj->method_values.begin()+i);
+        break;
+      }
+    }
+    // add the new member name & assign it the given value
+    args[0].obj->member_names.push_back(args[1].sym);
+    args[0].obj->member_values.push_back(args[2]);
+    return GLOBALS::VOID_DATA_OBJECT;
+  }
+
+
+  // primitive "heist:core:oo:add-property!" helper for methods
+  data prm_HEIST_CORE_OO_ADD_METHOD(scm_list& args) {
+    // Set local method if already exists
+    for(size_type i = 0, n = args[0].obj->method_names.size(); i < n; ++i) {
+      if(args[0].obj->method_names[i] == args[1].sym) {
+        args[0].obj->method_values[i] = args[2];
+        return GLOBALS::VOID_DATA_OBJECT;
+      }
+    }
+    // Rm if method already exists as a local member
+    for(size_type i = 0, n = args[0].obj->member_names.size(); i < n; ++i) {
+      if(args[0].obj->member_names[i] == args[1].sym) {
+        args[0].obj->member_names.erase(args[0].obj->member_names.begin()+i);
+        args[0].obj->member_values.erase(args[0].obj->member_values.begin()+i);
+        break;
+      }
+    }
+    // add the new method name & assign it the given value
+    args[0].obj->method_names.push_back(args[1].sym);
+    args[0].obj->method_values.push_back(args[2]);
+    return GLOBALS::VOID_DATA_OBJECT;
+  }
+
   /******************************************************************************
   * DEFCLASS OO GENERAL OBJECT ANALYSIS PRIMITIVES HELPERS
   ******************************************************************************/

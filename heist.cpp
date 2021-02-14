@@ -1423,9 +1423,7 @@ namespace heist {
   }
 
   // ((add-property! name value)
-  //   (if (procedure? value)
-  //       (heist:core:oo:register-method! self name value)
-  //       (heist:core:oo:register-member! self name value)))
+  //   (heist:core:oo:add-property! self name value))
   void define_dynamic_property_generator(class_prototype& proto, env_type& env) {
     proto.method_names.push_back("add-property!");
     scm_list property_generator(3);
@@ -1434,20 +1432,10 @@ namespace heist {
     property_generator[1].exp[0] = "heist:core:property-name";
     property_generator[1].exp[1] = "heist:core:property-value";
     property_generator[2] = scm_list(4);
-    property_generator[2].exp[0] = symconst::if_t;
-    property_generator[2].exp[1] = scm_list(2);
-    property_generator[2].exp[1].exp[0] = "procedure?";
-    property_generator[2].exp[1].exp[1] = "heist:core:property-value";
-    property_generator[2].exp[2] = scm_list(4);
-    property_generator[2].exp[2].exp[0] = "heist:core:oo:register-method!";
-    property_generator[2].exp[2].exp[1] = "self";
-    property_generator[2].exp[2].exp[2] = "heist:core:property-name";
-    property_generator[2].exp[2].exp[3] = "heist:core:property-value";
-    property_generator[2].exp[3] = scm_list(4);
-    property_generator[2].exp[3].exp[0] = "heist:core:oo:register-member!";
-    property_generator[2].exp[3].exp[1] = "self";
-    property_generator[2].exp[3].exp[2] = "heist:core:property-name";
-    property_generator[2].exp[3].exp[3] = "heist:core:property-value";
+    property_generator[2].exp[0] = "heist:core:oo:add-property!";
+    property_generator[2].exp[1] = "self";
+    property_generator[2].exp[2] = "heist:core:property-name";
+    property_generator[2].exp[3] = "heist:core:property-value";
     proto.method_values.push_back(data_cast(scm_eval(std::move(property_generator),env)));
   }
 

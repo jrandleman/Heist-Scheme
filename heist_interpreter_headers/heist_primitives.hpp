@@ -5729,58 +5729,13 @@ namespace heist {
   }
 
 
-  // primitive "heist:core:oo:register-member!" procedure:
-  data primitive_HEIST_CORE_OO_REGISTER_MEMBER(scm_list& args) {
-    static constexpr const char * const format = 
-      "\n     (heist:core:oo:register-member! <object> <member-name-symbol> <default-value>)";
-    validate_oo_member_setter(args,"add-property!",format);
-    // Set local member if already exists
-    for(size_type i = 0, n = args[0].obj->member_names.size(); i < n; ++i) {
-      if(args[0].obj->member_names[i] == args[1].sym) {
-        args[0].obj->member_values[i] = args[2];
-        return GLOBALS::VOID_DATA_OBJECT;
-      }
-    }
-    // Rm if member already exists as a local method
-    for(size_type i = 0, n = args[0].obj->method_names.size(); i < n; ++i) {
-      if(args[0].obj->method_names[i] == args[1].sym) {
-        args[0].obj->method_names.erase(args[0].obj->method_names.begin()+i);
-        args[0].obj->method_values.erase(args[0].obj->method_values.begin()+i);
-        break;
-      }
-    }
-    // add the new member name & assign it the given value
-    args[0].obj->member_names.push_back(args[1].sym);
-    args[0].obj->member_values.push_back(args[2]);
-    return GLOBALS::VOID_DATA_OBJECT;
-  }
-
-
-  // primitive "heist:core:oo:register-method!" procedure:
-  data primitive_HEIST_CORE_OO_REGISTER_METHOD(scm_list& args) {
-    static constexpr const char * const format = 
-      "\n     (heist:core:oo:register-method! <object> <method-name-symbol> <procedure-value>)";
-    validate_oo_member_setter(args,"add-property!",format);
-    primitive_confirm_data_is_a_procedure(args[2], "add-property!", format, args);
-    // Set local method if already exists
-    for(size_type i = 0, n = args[0].obj->method_names.size(); i < n; ++i) {
-      if(args[0].obj->method_names[i] == args[1].sym) {
-        args[0].obj->method_values[i] = args[2];
-        return GLOBALS::VOID_DATA_OBJECT;
-      }
-    }
-    // Rm if method already exists as a local member
-    for(size_type i = 0, n = args[0].obj->member_names.size(); i < n; ++i) {
-      if(args[0].obj->member_names[i] == args[1].sym) {
-        args[0].obj->member_names.erase(args[0].obj->member_names.begin()+i);
-        args[0].obj->member_values.erase(args[0].obj->member_values.begin()+i);
-        break;
-      }
-    }
-    // add the new method name & assign it the given value
-    args[0].obj->method_names.push_back(args[1].sym);
-    args[0].obj->method_values.push_back(args[2]);
-    return GLOBALS::VOID_DATA_OBJECT;
+  // primitive "heist:core:oo:add-property!" procedure:
+  data primitive_HEIST_CORE_OO_ADD_PROPERTY_BANG(scm_list& args) {
+    validate_oo_member_setter(args,"add-property!",
+      "\n     (heist:core:oo:add-property! <object> <property-name-symbol> <procedure-value>)");
+    if(args[2].is_type(types::fcn))
+      return prm_HEIST_CORE_OO_ADD_METHOD(args);
+    return prm_HEIST_CORE_OO_ADD_MEMBER(args);
   }
 
   /******************************************************************************
@@ -6626,8 +6581,7 @@ namespace heist {
     std::make_pair(primitive_HEIST_CORE_OO_SET_PROPERTY_BANG, "heist:core:oo:set-property!"),
     std::make_pair(primitive_HEIST_CORE_OO_COMPARE_CLASSES,   "heist:core:oo:compare-classes"),
     std::make_pair(primitive_HEIST_CORE_OO_MAKE_OBJECT,       "heist:core:oo:make-object"),
-    std::make_pair(primitive_HEIST_CORE_OO_REGISTER_MEMBER,   "heist:core:oo:register-member!"),
-    std::make_pair(primitive_HEIST_CORE_OO_REGISTER_METHOD,   "heist:core:oo:register-method!"),
+    std::make_pair(primitive_HEIST_CORE_OO_ADD_PROPERTY_BANG, "heist:core:oo:add-property!"),
 
     std::make_pair(primitive_OBJECT_MEMBERS,              "object-members"),
     std::make_pair(primitive_OBJECT_METHODS,              "object-methods"),
