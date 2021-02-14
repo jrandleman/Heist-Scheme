@@ -5668,15 +5668,15 @@ namespace heist {
   * DEFCLASS OO SUPPORT INTERNAL PRIMITIVES
   ******************************************************************************/
 
-  // primitive "heist:core:oo:set-member!" procedure:
-  data primitive_HEIST_CORE_OO_SET_MEMBER_BANG(scm_list& args) {
+  // primitive "heist:core:oo:set-property!" procedure:
+  data primitive_HEIST_CORE_OO_SET_PROPERTY_BANG(scm_list& args) {
     static constexpr const char * const format = 
-      "\n     (heist:core:oo:set-member! <object> <member-name-symbol> <value>)";
-    validate_oo_member_setter(args,"heist:core:oo:set-member!",format);
+      "\n     (heist:core:oo:set-property! <object> <property-name-symbol> <value>)";
+    validate_oo_member_setter(args,"set-property!",format);
     // Search Prototype/Inherited Prototype
-    if(!set_new_object_member_value(args[0].obj->proto,args[0].obj,args[1].sym,args[2]))
-      THROW_ERR("'heist:core:oo:set-member! 2nd member-name arg "<<PROFILE(args[1])
-        <<" isn't a member of "<<PROFILE(args[0])<<'!'<<format<<FCN_ERR("heist:core:oo:set-member!",args));
+    if(!set_new_object_property_value(args[0].obj->proto,args[0].obj,args[1].sym,args[2]))
+      THROW_ERR("'set-property! 2nd property-name arg "<<PROFILE(args[1])
+        <<" isn't a property of "<<PROFILE(args[0])<<'!'<<format<<FCN_ERR("set-property!",args));
     return GLOBALS::VOID_DATA_OBJECT;
   }
 
@@ -5749,8 +5749,6 @@ namespace heist {
         break;
       }
     }
-    // define a setter for the new member
-    define_setter_method_for_member(*args[0].obj, args[0].obj->proto->defn_env, args[1].sym);
     // add the new member name & assign it the given value
     args[0].obj->member_names.push_back(args[1].sym);
     args[0].obj->member_values.push_back(args[2]);
@@ -5771,19 +5769,11 @@ namespace heist {
         return GLOBALS::VOID_DATA_OBJECT;
       }
     }
-    // Rm if method already exists as a local member (also rm said member's setter!)
+    // Rm if method already exists as a local member
     for(size_type i = 0, n = args[0].obj->member_names.size(); i < n; ++i) {
       if(args[0].obj->member_names[i] == args[1].sym) {
         args[0].obj->member_names.erase(args[0].obj->member_names.begin()+i);
         args[0].obj->member_values.erase(args[0].obj->member_values.begin()+i);
-        scm_string setter_name = "set-" + args[1].sym + '!';
-        for(size_type j = 0, m = args[0].obj->method_names.size(); j < m; ++j) {
-          if(args[0].obj->method_names[j] == setter_name) {
-            args[0].obj->method_names.erase(args[0].obj->method_names.begin()+j);
-            args[0].obj->method_values.erase(args[0].obj->method_values.begin()+j);
-            break;
-          }
-        }
         break;
       }
     }
@@ -5912,8 +5902,6 @@ namespace heist {
     confirm_proper_new_property_args(args,"proto-add-member!",format);
     // Verify new member name isn't already the name of a member or method
     confirm_new_property_name_doesnt_already_exist(args,"proto-add-member!",format);
-    // Define setter for the new member & the new member
-    define_setter_method_for_member(*args[0].cls,args[0].cls->defn_env,args[1].sym);
     args[0].cls->member_names.push_back(args[1].sym);
     args[0].cls->member_values.push_back(args[2]);
     return GLOBALS::VOID_DATA_OBJECT;
@@ -6635,11 +6623,11 @@ namespace heist {
     std::make_pair(primitive_REGEX_MATCH,       "regex-match"),
     std::make_pair(primitive_REGEX_SPLIT,       "regex-split"),
 
-    std::make_pair(primitive_HEIST_CORE_OO_SET_MEMBER_BANG, "heist:core:oo:set-member!"),
-    std::make_pair(primitive_HEIST_CORE_OO_COMPARE_CLASSES, "heist:core:oo:compare-classes"),
-    std::make_pair(primitive_HEIST_CORE_OO_MAKE_OBJECT,     "heist:core:oo:make-object"),
-    std::make_pair(primitive_HEIST_CORE_OO_REGISTER_MEMBER, "heist:core:oo:register-member!"),
-    std::make_pair(primitive_HEIST_CORE_OO_REGISTER_METHOD, "heist:core:oo:register-method!"),
+    std::make_pair(primitive_HEIST_CORE_OO_SET_PROPERTY_BANG, "heist:core:oo:set-property!"),
+    std::make_pair(primitive_HEIST_CORE_OO_COMPARE_CLASSES,   "heist:core:oo:compare-classes"),
+    std::make_pair(primitive_HEIST_CORE_OO_MAKE_OBJECT,       "heist:core:oo:make-object"),
+    std::make_pair(primitive_HEIST_CORE_OO_REGISTER_MEMBER,   "heist:core:oo:register-member!"),
+    std::make_pair(primitive_HEIST_CORE_OO_REGISTER_METHOD,   "heist:core:oo:register-method!"),
 
     std::make_pair(primitive_OBJECT_MEMBERS,              "object-members"),
     std::make_pair(primitive_OBJECT_METHODS,              "object-methods"),

@@ -5708,7 +5708,7 @@ namespace heist {
   * OO INTERNAL PRIMITIVE HELPER FUNCTIONS
   ******************************************************************************/
 
-  // Correct arg validation for primitive "heist:core:oo:set-member!":
+  // Correct arg validation for primitive "heist:core:oo:set-property!":
   void validate_oo_member_setter(scm_list& args, const char* name, const char* format) {
     if(args.size() != 3)
       THROW_ERR('\''<<name<<" didn't receive 3 args!"
@@ -5728,23 +5728,60 @@ namespace heist {
   }
 
 
-  // Returns whether found <sought_member> in <proto> or its inheritance chain
-  bool set_new_object_member_value(cls_type& proto, obj_type& obj, const scm_string& sought_member, data& new_val)noexcept{
-    // Search local members
-    for(size_type i = 0, n = obj->member_names.size(); i < n; ++i)
-      if(obj->member_names[i] == sought_member) {
-        obj->member_values[i] = new_val;
+  bool set_new_property_value_SEEK_IN_PROTO(const std::vector<scm_string>& property_names, obj_type& obj, 
+                                            const scm_string& sought_property, data& new_val)noexcept{
+    for(size_type i = 0, n = property_names.size(); i < n; ++i) {
+      if(property_names[i] == sought_property) {
+        // setting property to be a member
+        if(!new_val.is_type(types::fcn)) {
+          obj->member_names.push_back(sought_property);
+          obj->member_values.push_back(new_val);
+        // setting property to be a method
+        } else {
+          obj->method_names.push_back(sought_property);
+          obj->method_values.push_back(new_val);
+        }
         return true;
       }
-    // Search the prototype & cache the new member if found
-    for(size_type i = 0, n = proto->member_names.size(); i < n; ++i)
-      if(proto->member_names[i] == sought_member) {
-        obj->member_names.push_back(sought_member);
-        obj->member_values.push_back(new_val);
+    }
+    return false;
+  }
+
+
+  bool set_new_property_value_SEEK_IN_OBJ(std::vector<scm_string>& seeking_names, scm_list& seeking_values, 
+                                          std::vector<scm_string>& alt_names, scm_list& alt_values, const bool new_val_in_SEEKING_set, 
+                                          const scm_string& sought_property, data& new_val)noexcept{
+    for(size_type i = 0, n = seeking_names.size(); i < n; ++i) {
+      if(seeking_names[i] == sought_property) {
+        if(new_val_in_SEEKING_set) {
+          seeking_values[i] = new_val;
+        } else {
+          seeking_names.erase(seeking_names.begin()+i);
+          seeking_values.erase(seeking_values.begin()+i);
+          alt_names.push_back(sought_property);
+          alt_values.push_back(new_val);
+        }
         return true;
       }
-    // Search the inherited prototype
-    return proto->inherited && obj->inherited && set_new_object_member_value(proto->inherited,obj->inherited,sought_member,new_val);
+    }
+    return false;
+  }
+
+
+  // Returns whether found <sought_property> in <obj>, <proto>, or its inheritance chain
+  bool set_new_object_property_value(cls_type& proto, obj_type& obj, const scm_string& sought_property, data& new_val)noexcept{
+    return 
+      // Search local members
+      set_new_property_value_SEEK_IN_OBJ(obj->member_names,obj->member_values,obj->method_names,obj->method_values,
+                                         !new_val.is_type(types::fcn),sought_property,new_val) || 
+      // Search local methods
+      set_new_property_value_SEEK_IN_OBJ(obj->method_names,obj->method_values,obj->member_names,obj->member_values,
+                                         new_val.is_type(types::fcn),sought_property,new_val)  ||
+      // Search the prototype & cache the new member/method if found
+      set_new_property_value_SEEK_IN_PROTO(proto->member_names, obj, sought_property, new_val) ||
+      set_new_property_value_SEEK_IN_PROTO(proto->method_names, obj, sought_property, new_val) ||
+      // Search the inherited super & its prototype
+      (proto->inherited && obj->inherited && set_new_object_property_value(proto->inherited,obj->inherited,sought_property,new_val));
   }
 
 

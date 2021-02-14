@@ -718,12 +718,6 @@ namespace heist {
   frame_var& assignment_variable(scm_list& exp) noexcept{return exp[1].sym;}
   scm_list assignment_value(const scm_list& exp)noexcept{return scm_list_cast(exp[2]);}
 
-  // PRECONDITION: call_chain.find('.') != scm_string::npos
-  scm_string convert_member_access_to_setter(scm_string& call_chain) {
-    call_chain.insert(call_chain.rfind('.')+1,"set-");
-    return call_chain + '!';
-  }
-
   // Analyzes value being assigned, & returns an execution procedure 
   //   to install it as the variable in the designated env
   exe_fcn_t analyze_assignment(scm_list& exp,const bool cps_block=false) { 
@@ -735,9 +729,13 @@ namespace heist {
         set_variable_value(var,data_cast(value_proc(env)),env);
         return GLOBALS::VOID_DATA_EXPRESSION; // return is undefined
       };
-    scm_list set_call(2);
-    set_call[0] = convert_member_access_to_setter(exp[1].sym);
-    set_call[1] = std::move(exp[2]);
+    scm_list set_call(4);
+    set_call[0] = "heist:core:oo:set-property!";
+    set_call[1] = exp[1].sym.substr(0, exp[1].sym.rfind('.'));
+    set_call[2] = scm_list(2);
+    set_call[2].exp[0] = symconst::quote;
+    set_call[2].exp[1] = exp[1].sym.substr(exp[1].sym.rfind('.')+1);
+    set_call[3] = std::move(exp[2]);
     return scm_analyze(std::move(set_call),false,cps_block);
   }
 
@@ -1407,27 +1405,21 @@ namespace heist {
     }
   }
 
-  // ((set-<member-name>! <value>)
-  //   (heist:core:oo:set-member! self '<member-name> <value>))
-  template<typename OBJECT_TYPE> // PRECONDITION: <OBJECT_TYPE> ::= <class_prototype> | <object_type>
-  void define_setter_method_for_member(OBJECT_TYPE& obj_instance,env_type& env,const scm_string& member_name){
-    obj_instance.method_names.push_back("set-"+member_name+'!');
+  // ((set-property! <name> <value>)
+  //   (heist:core:oo:set-property! self <name> <value>))
+  void define_property_setter(class_prototype& proto, env_type& env) {
+    proto.method_names.push_back("set-property!");
     scm_list setter_lambda(3);
     setter_lambda[0] = symconst::lambda;
-    setter_lambda[1] = scm_list(1,"heist:core:oo:new-value");
+    setter_lambda[1] = scm_list(2);
+    setter_lambda[1].exp[0] = "heist:core:oo:property-name";
+    setter_lambda[1].exp[1] = "heist:core:oo:new-value";
     setter_lambda[2] = scm_list(4);
-    setter_lambda[2].exp[0] = "heist:core:oo:set-member!";
+    setter_lambda[2].exp[0] = "heist:core:oo:set-property!";
     setter_lambda[2].exp[1] = "self";
-    setter_lambda[2].exp[2] = scm_list(2);
-    setter_lambda[2].exp[2].exp[0] = symconst::quote;
-    setter_lambda[2].exp[2].exp[1] = member_name;
+    setter_lambda[2].exp[2] = "heist:core:oo:property-name";
     setter_lambda[2].exp[3] = "heist:core:oo:new-value";
-    obj_instance.method_values.push_back(data_cast(scm_eval(std::move(setter_lambda),env)));
-  }
-
-  void define_setter_methods_for_members(class_prototype& proto, env_type& env) {
-    for(size_type i = 0, n = proto.member_names.size(); i < n; ++i)
-      define_setter_method_for_member(proto,env,proto.member_names[i]);
+    proto.method_values.push_back(data_cast(scm_eval(std::move(setter_lambda),env)));
   }
 
   // ((add-property! name value)
@@ -1632,8 +1624,8 @@ namespace heist {
       validate_inherited_entity(proto,exp,env);
       // evaluate member and method values
       evaluate_method_and_member_exec_procs(exp,proto,member_exec_procs,method_exec_procs,env);
-      // define setters for members
-      define_setter_methods_for_members(proto,env);
+      // define property setter method
+      define_property_setter(proto,env);
       // define dynamic property generator method
       define_dynamic_property_generator(proto,env);
       // define the class prototype
