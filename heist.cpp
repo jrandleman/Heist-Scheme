@@ -2791,7 +2791,7 @@ namespace heist {
 
   // NOTE: <topmost_call> signals to optimize the result prior returning
   scm_list generate_fundamental_form_cps(const data& code,const bool topmost_call){
-    // ATOMIC / SYNTAX-RULES / QUOTE
+    // ATOMIC DATUM OR EXPRESSION
     if(data_is_cps_atomic(code)) {
       scm_list lambda(3);
       lambda[0] = symconst::lambda;
