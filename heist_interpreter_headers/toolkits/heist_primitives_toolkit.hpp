@@ -224,6 +224,11 @@ namespace heist {
   }
 
 
+  bool data_is_zero(const data& d)noexcept{
+    return d.is_type(types::num) && d.num.is_zero();
+  }
+
+
   // (apply procedure args) == true
   bool is_true_scm_condition(data& procedure,scm_list& args,env_type& env = G.GLOBAL_ENVIRONMENT_POINTER){
     return is_true(execute_application(procedure,args,env));

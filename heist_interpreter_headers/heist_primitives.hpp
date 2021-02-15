@@ -966,10 +966,10 @@ namespace heist {
   // primitive "make-string" procedure:
   data primitive_MAKE_STRING(scm_list& args) {
     // confirm valid length given
-    if(args.empty() || args.size() > 2 || !primitive_is_valid_size(args[0]))
+    if(args.empty() || args.size() > 2 || (!data_is_zero(args[0]) && !primitive_is_valid_size(args[0])))
       THROW_ERR("'make-string didn't receive a proper positive integer size!"
         "\n     (make-string <size> <optional-fill-char>)"
-        "\n     <size> range: (0," << GLOBALS::MAX_SIZE_TYPE << ']'
+        "\n     <size> range: [0," << GLOBALS::MAX_SIZE_TYPE << ']'
         << FCN_ERR("make-string", args));
     if(args.size()==2 && !args[1].is_type(types::chr))
       THROW_ERR("'make-string received a non-character fill value:"
@@ -1941,10 +1941,10 @@ namespace heist {
       THROW_ERR("'make-list received incorrect # of args (only "
         << args.size() << "):\n     (make-list <size> <fill-value>)"
         << FCN_ERR("make-list", args));
-    if(!primitive_is_valid_size(args[0]))
+    if(!data_is_zero(args[0]) && !primitive_is_valid_size(args[0]))
       THROW_ERR("'make-list didn't receive a proper positive integer size!"
         "\n     (make-list <size> <fill-value>)"
-        "\n     <size> range: (0," << GLOBALS::MAX_SIZE_TYPE << ']' << FCN_ERR("make-list", args));
+        "\n     <size> range: [0," << GLOBALS::MAX_SIZE_TYPE << ']' << FCN_ERR("make-list", args));
     // mk a list w/ n copies of the given <fill-value>
     size_type n = (size_type)args[0].num.extract_inexact();
     if(!n) return data(symconst::emptylist);
@@ -2106,10 +2106,10 @@ namespace heist {
   // primitive "make-vector" procedure:
   data primitive_MAKE_VECTOR(scm_list& args) {
     // confirm valid length given
-    if(args.empty() || args.size() > 2 || !primitive_is_valid_size(args[0]))
+    if(args.empty() || args.size() > 2 || (!data_is_zero(args[0]) && !primitive_is_valid_size(args[0])))
       THROW_ERR("'make-vector didn't receive a proper positive integer size!"
         "\n     (make-vector <size> <optional-fill-value>)"
-        "\n     <size> range: (0," << GLOBALS::MAX_SIZE_TYPE << ']' << FCN_ERR("make-vector", args));
+        "\n     <size> range: [0," << GLOBALS::MAX_SIZE_TYPE << ']' << FCN_ERR("make-vector", args));
     // mk a vector w/ the the given reserve size
     size_type n = (size_type)args[0].num.extract_inexact();
     data vect(make_vec(scm_list(n)));
