@@ -1271,8 +1271,8 @@ namespace heist {
   #define DEFCLASS_LAYOUT\
     "\n     (defclass <class-name> (<optional-inherited-prototype>) <member-or-method-instances>)"\
     "\n     => <member-or-method> ::= (<member-name> <default-value>)"\
+    "\n                             | (<method-name> <procedure-value>)"\
     "\n                             | ((<method-name> <arg1> <arg2> ...) <body> ...)"\
-    "\n                             | (defmethod <method-name> <procedure-value>)"\
     "\n                             | ((make-<class-name> <arg> ...) <body> ...) ; constructor"\
     "\n                             | (make-<class-name> ((<arg> ...) <body> ...) ...) ; fn ctor"\
     "\n                             | ((eq? <obj>) <body> ...)    ; overload eq?"\
@@ -1288,7 +1288,7 @@ namespace heist {
 
 
   // -- OPTIONAL ARG CONVERSION
-  // converts inline methods using opt args to a defmethod expr
+  // converts inline methods using opt args to a <fn> method
   // converts inline ctor using opt args to use its <fn> syntax
   void convert_opt_args_method_or_ctor_to_fn_expr(const sym_type& ctor_name, scm_list& exp) {
     sym_type name = exp[0].exp[0].sym;
@@ -1300,8 +1300,8 @@ namespace heist {
       exp = convert_lambda_opt_args_to_fn(inline_method_as_lambda);
       exp[0] = ctor_name;
     } else { // method
-      exp = scm_list(3);
-      exp[0] = symconst::defmethod, exp[1] = name, exp[2] = inline_method_as_lambda;
+      exp = scm_list(2);
+      exp[0] = name, exp[1] = inline_method_as_lambda;
     }
   }
 
@@ -1321,12 +1321,7 @@ namespace heist {
     for(size_type i = 3, n = exp.size(); i < n; ++i) {
       if(!exp[i].is_type(types::exp) || exp[i].exp.size() < 2)
         THROW_ERR("'defclass invalid <member-or-method-instance> => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
-      if(exp[i].exp[0].is_type(types::sym)) { // member | defmethod
-        if(exp[i].exp[0].sym == symconst::defmethod) {
-          if(exp[i].exp.size() != 3 || !exp[i].exp[1].is_type(types::sym))
-            THROW_ERR("'defclass invalid method definition => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
-          continue;
-        }
+      if(exp[i].exp[0].is_type(types::sym)) { // member | fn ctor
         if(exp[i].exp[0].sym == ctor_name) { // fn ctor
           if(exp[i].exp.size() == 1)
             THROW_ERR("'defclass <constructor> missing fn arg-body instances => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
@@ -1368,7 +1363,7 @@ namespace heist {
     proto.inherited = result.cls;
   }
 
-  void validate_unique_member_or_method_name(scm_list& exp,const scm_string& name,const std::vector<scm_string>& seen_names,const char* message){
+  void validate_unique_property_name(scm_list& exp,const scm_string& name,const std::vector<scm_string>& seen_names,const char* message){
     for(const auto& n : seen_names)
       if(name == n)
         THROW_ERR("'defclass " << exp[1].sym << " => \"" << name << "\" " << message << '!'
@@ -1391,17 +1386,17 @@ namespace heist {
     }
   }
 
-  void evaluate_method_and_member_exec_procs(const scm_list& exp,
-                                             class_prototype& proto, std::vector<exe_fcn_t>& member_exec_procs, 
-                                             std::vector<exe_fcn_t>& method_exec_procs, env_type& env) {
-    for(size_type i = 0, n = member_exec_procs.size(); i < n; ++i)
-      proto.member_values.push_back(data_cast(member_exec_procs[i](env)));
-    for(size_type i = 0, n = method_exec_procs.size(); i < n; ++i) {
-      auto method_value = data_cast(method_exec_procs[i](env));
-      if(!method_value.is_type(types::fcn)) 
-        THROW_ERR("'defclass 'defmethod value " << PROFILE(method_value)
-          << " isn't a procedure!" DEFCLASS_LAYOUT << EXP_ERR(exp));
-      proto.method_values.push_back(method_value); 
+  void evaluate_method_and_member_exec_procs(class_prototype& proto, std::vector<scm_string>& property_names, 
+                                             std::vector<exe_fcn_t>& property_exec_procs, env_type& env) {
+    for(size_type i = 0, n = property_exec_procs.size(); i < n; ++i) {
+      auto value = data_cast(property_exec_procs[i](env));
+      if(value.is_type(types::fcn)) {
+        proto.method_names.push_back(property_names[i]);
+        proto.method_values.push_back(value);
+      } else {
+        proto.member_names.push_back(property_names[i]);
+        proto.member_values.push_back(value);
+      }
     }
   }
 
@@ -1563,39 +1558,31 @@ namespace heist {
     }
   }
 
-  void parse_defclass_expression(scm_list& exp, class_prototype& proto, std::vector<exe_fcn_t>& member_exec_procs, 
-                                                                        std::vector<exe_fcn_t>& method_exec_procs, 
-                                                                        scm_list& ctor_proc,const bool cps_block) {
+  void parse_defclass_expression(scm_list& exp, std::vector<scm_string>& property_names, 
+                                                std::vector<exe_fcn_t>& property_exec_procs, 
+                                                scm_list& ctor_proc,const bool cps_block) {
     const scm_string ctor_name("make-"+exp[1].sym);
     for(size_type i = 3, n = exp.size(); i < n; ++i) {
       // parse member
-      if(exp[i].exp[0].is_type(types::sym) && exp[i].exp[0].sym != symconst::defmethod) {
+      if(exp[i].exp[0].is_type(types::sym)) {
         // parse ctor inline fn (if relevant)
         if(exp[i].exp[0].sym == ctor_name) {
           ctor_proc = exp[i].exp;
         } else {
-          validate_unique_member_or_method_name(exp,exp[i].exp[0].sym,proto.method_names,"member already defined as a method");
-          validate_unique_member_or_method_name(exp,exp[i].exp[0].sym,proto.member_names,"member is already defined");
-          proto.member_names.push_back(exp[i].exp[0].sym);
-          member_exec_procs.push_back(scm_analyze(scm_list_cast(exp[i].exp[1]),false,cps_block)); // cps transforms already handled!
+          validate_unique_property_name(exp,exp[i].exp[0].sym,property_names,"property is already defined");
+          property_names.push_back(exp[i].exp[0].sym);
+          property_exec_procs.push_back(scm_analyze(scm_list_cast(exp[i].exp[1]),false,cps_block)); // cps transforms already handled!
         }
       // parse method
-      } else { 
-        // extract defmethod
-        if(exp[i].exp[0].is_type(types::sym)) {
-          validate_unique_member_or_method_name(exp,exp[i].exp[1].sym,proto.member_names,"method already defined as a member");
-          validate_unique_member_or_method_name(exp,exp[i].exp[1].sym,proto.method_names,"method is already defined");
-          proto.method_names.push_back(exp[i].exp[1].sym);
-          method_exec_procs.push_back(scm_analyze(scm_list_cast(exp[i].exp[2]),false,cps_block)); // cps transforms already handled!
+      } else {
         // extract ctor
-        } else if(exp[i].exp[0].exp[0].sym == ctor_name) {
+        if(exp[i].exp[0].exp[0].sym == ctor_name) {
           ctor_proc = exp[i].exp;
         // regular method
         } else {
-          validate_unique_member_or_method_name(exp,exp[i].exp[0].exp[0].sym,proto.member_names,"method already defined as a member");
-          validate_unique_member_or_method_name(exp,exp[i].exp[0].exp[0].sym,proto.method_names,"method is already defined");
-          proto.method_names.push_back(exp[i].exp[0].exp[0].sym);
-          method_exec_procs.push_back(convert_method_to_lambda(exp[i].exp,cps_block));
+          validate_unique_property_name(exp,exp[i].exp[0].exp[0].sym,property_names,"property is already defined");
+          property_names.push_back(exp[i].exp[0].exp[0].sym);
+          property_exec_procs.push_back(convert_method_to_lambda(exp[i].exp,cps_block));
         }
       }
     }
@@ -1608,18 +1595,19 @@ namespace heist {
     class_prototype proto;
     proto.class_name = exp[1].sym;
     // get exec procs for member values & method procedures
-    std::vector<exe_fcn_t> member_exec_procs, method_exec_procs;
+    std::vector<scm_string> property_names;
+    std::vector<exe_fcn_t> property_exec_procs;
     scm_list ctor_proc;
-    parse_defclass_expression(exp,proto,member_exec_procs,method_exec_procs,ctor_proc,cps_block);
-    return [proto=std::move(proto),member_exec_procs=std::move(member_exec_procs),
-            method_exec_procs=std::move(method_exec_procs),exp=std::move(exp),
+    parse_defclass_expression(exp,property_names,property_exec_procs,ctor_proc,cps_block);
+    return [proto=std::move(proto),property_names=std::move(property_names),
+            property_exec_procs=std::move(property_exec_procs),exp=std::move(exp),
             ctor_proc=std::move(ctor_proc),cps_block](env_type& env)mutable{
       proto.defn_env = env;
       // confirm inheriting from class objects & add inherited prototype (if present)
       // NOTE: THIS ORDERING IS IN PART RESPONSIBLE (ALONG WITH SEARCH) FOR LEFT-PREDECENT INHERITANCE
       validate_inherited_entity(proto,exp,env);
       // evaluate member and method values
-      evaluate_method_and_member_exec_procs(exp,proto,member_exec_procs,method_exec_procs,env);
+      evaluate_method_and_member_exec_procs(proto,property_names,property_exec_procs,env);
       // define property setter method
       define_property_setter(proto,env);
       // define dynamic property generator method
@@ -2722,34 +2710,20 @@ namespace heist {
   }
 
 
-  bool cps_is_non_atomc_defclass_member(const data& d)noexcept{
+  bool cps_is_non_atomc_defclass_property(const data& d)noexcept{
     return d.is_type(types::exp) && d.exp.size() == 2 && 
            d.exp[0].is_type(types::sym) && d.exp[1].is_type(types::exp);
   }
 
-  bool cps_is_non_atomc_defclass_defmethod(const data& d)noexcept{
-    return d.is_type(types::exp) && d.exp.size() == 3 && 
-           d.exp[0].is_type(types::sym) && d.exp[0].sym == symconst::defmethod &&
-           d.exp[1].is_type(types::sym) && d.exp[2].is_type(types::exp);
-  }
-
   bool cps_defclass_requires_outlined_properties(scm_list& defclass_expr, 
-                                                 std::vector<scm_list>& stripped_member_values, 
-                                                 std::vector<scm_list>& stripped_defmethod_values, 
-                                                 std::vector<sym_type>& stripped_member_names,  
-                                                 std::vector<sym_type>& stripped_defmethod_names) {
+                                                 std::vector<scm_list>& stripped_property_values, 
+                                                 std::vector<sym_type>& stripped_property_names) {
     validate_defclass(defclass_expr);
     bool requires_outlined_properties = false;
     for(size_type i = 2, n = defclass_expr.size(); i < n; ++i) {
-      if(cps_is_non_atomc_defclass_member(defclass_expr[i])) {
-        stripped_member_names.push_back(defclass_expr[i].exp[0].sym);
-        stripped_member_values.push_back(defclass_expr[i].exp[1].exp);
-        defclass_expr.erase(defclass_expr.begin()+i);
-        --i; // account for loop's "++i" after having rm'd an item from <defclass_expr>
-        requires_outlined_properties = true;
-      } else if(cps_is_non_atomc_defclass_defmethod(defclass_expr[i])) {
-        stripped_defmethod_names.push_back(defclass_expr[i].exp[1].sym);
-        stripped_defmethod_values.push_back(defclass_expr[i].exp[2].exp);
+      if(cps_is_non_atomc_defclass_property(defclass_expr[i])) {
+        stripped_property_names.push_back(defclass_expr[i].exp[0].sym);
+        stripped_property_values.push_back(defclass_expr[i].exp[1].exp);
         defclass_expr.erase(defclass_expr.begin()+i);
         --i; // account for loop's "++i" after having rm'd an item from <defclass_expr>
         requires_outlined_properties = true;
@@ -2803,34 +2777,24 @@ namespace heist {
 
     // DEFCLASS
     } else if(is_tagged_list(code.exp,symconst::defclass)) {
-      // Check if need to strip-out any member/defmethod property defns
-      std::vector<scm_list> stripped_member_values, stripped_defmethod_values;
-      std::vector<sym_type> stripped_member_names, stripped_defmethod_names;
+      // Check if need to strip-out any property defns (if they have non-atomic values)
+      std::vector<scm_list> stripped_property_values;
+      std::vector<sym_type> stripped_property_names;
       // If must strip out defns
       auto defclass_expr = code.exp; // trasformation may mutate the <deflcass> expression
-      if(cps_defclass_requires_outlined_properties(defclass_expr,stripped_member_values,stripped_defmethod_values,
-                                                                 stripped_member_names,stripped_defmethod_names)){
-        scm_list begin_expr(2+stripped_member_names.size()+stripped_defmethod_names.size());
+      if(cps_defclass_requires_outlined_properties(defclass_expr,stripped_property_values,stripped_property_names)){
+        scm_list begin_expr(2+stripped_property_names.size());
         begin_expr[0] = symconst::begin;
         begin_expr[1] = defclass_expr;
         size_type j = 2;
-        for(size_type i = 0, n = stripped_member_names.size(); i < n; ++i, ++j) {
+        for(size_type i = 0, n = stripped_property_names.size(); i < n; ++i, ++j) {
           begin_expr[j] = scm_list(4);
           begin_expr[j].exp[0] = "proto-add-property!";
           begin_expr[j].exp[1] = begin_expr[1].exp[1]; // prototype name
           begin_expr[j].exp[2] = scm_list(2);
           begin_expr[j].exp[2].exp[0] = symconst::quote;
-          begin_expr[j].exp[2].exp[1] = stripped_member_names[i];
-          begin_expr[j].exp[3] = stripped_member_values[i];
-        }
-        for(size_type i = 0, n = stripped_defmethod_names.size(); i < n; ++i, ++j) {
-          begin_expr[j] = scm_list(4);
-          begin_expr[j].exp[0] = "proto-add-property!";
-          begin_expr[j].exp[1] = begin_expr[1].exp[1]; // prototype name
-          begin_expr[j].exp[2] = scm_list(2);
-          begin_expr[j].exp[2].exp[0] = symconst::quote;
-          begin_expr[j].exp[2].exp[1] = stripped_defmethod_names[i];
-          begin_expr[j].exp[3] = stripped_defmethod_values[i];
+          begin_expr[j].exp[2].exp[1] = stripped_property_names[i];
+          begin_expr[j].exp[3] = stripped_property_values[i];
         }
         return generate_fundamental_form_cps(begin_expr,topmost_call);
       // No external definitions needed! Treat as if cps-atomic.

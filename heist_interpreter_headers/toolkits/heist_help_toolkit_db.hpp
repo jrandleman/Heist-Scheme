@@ -2178,8 +2178,8 @@ Example:
 R"(
 (defclass <class-name> (<optional-inherited-prototype>) <member-or-method-instances>)
 => <member-or-method-instance> ::= (<member-name> <default-value>)
+                                 | (<method-name> <procedure-value>)
                                  | ((<method-name> <arg1> <arg2> ...) <body> ...)
-                                 | (defmethod <method-name> <procedure-value>)
                                  |
                                  | ((make-<class-name> <arg> ...) <body> ...) ; constructor
                                  | (make-<class-name> ((<arg> ...) <body> ...) ...) ; fn ctor
@@ -2286,7 +2286,7 @@ CPS Transformation:
     (<mem1> <atomic-val>)
     (<mem2> <val-expr>)
     ((<method1> <arg> ...) <body>)
-    (defmethod <method2> <procedure-val-expr>)) 
+    (<method2> <procedure-val-expr>))
   <rest-of-code> 
 
   ; BECOMES
