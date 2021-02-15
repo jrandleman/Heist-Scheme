@@ -207,15 +207,21 @@
 ;; =========== "NEW" MACRO FOR ANONYMOUS OBJECTS ===========
 ;; =========================================================
 
-(define (heist:oo:anon:members=? lhs rhs) 
+(define (heist:oo:anon:members=? lhs rhs pred?) 
   (define lhs-members (object-members lhs)) 
   (define rhs-members (object-members rhs))
   (hmap-delete! lhs-members 'prototype) 
   (hmap-delete! rhs-members 'prototype)
-  (equal? lhs-members rhs-members))
+  (pred? lhs-members rhs-members))
 
-(define (heist:oo:anon:methods=? lhs rhs) ; checks NAME equality
-  (equal? (hmap-keys (object-methods lhs)) (hmap-keys (object-methods rhs))))
+(define (heist:oo:anon:methods=? lhs rhs pred?) ; checks NAME equality
+  (pred? (hmap-keys (object-methods lhs)) (hmap-keys (object-methods rhs))))
+
+(define (heist:oo:anon:equality self obj pred?)
+  (and (object? obj) 
+       (eq? 'heist:oo:anon:prototype (proto-name obj.prototype))
+       (heist:oo:anon:methods=? self obj pred?)
+       (heist:oo:anon:members=? self obj pred?)))
 
 ; Macro "new" used to create anonymous objects!
 (core-syntax new
@@ -225,10 +231,9 @@
         (defclass heist:oo:anon:prototype ()
           (name value) ...
           ((equal? obj) ; structural equality (w/o prototype)
-            (and (object? obj) 
-                 (eq? 'heist:oo:anon:prototype (proto-name obj.prototype))
-                 (heist:oo:anon:methods=? self obj)
-                 (heist:oo:anon:members=? self obj))))
+            (heist:oo:anon:equality self obj equal?))
+          ((eqv? obj) ; structural equality (w/o prototype)
+            (heist:oo:anon:equality self obj eqv?)))
         (new-heist:oo:anon:prototype)))))
 
 ;; ==============================================
@@ -554,7 +559,7 @@
   ((next)    ; continue/start coroutine
     (if self.coroutine:private:cont         ; if started coroutine
         (self.coroutine:private:cont id)    ;   continue execution
-        (self.coroutine:private:launch)))   ;   launch coroutine
+        (self.coroutine:private:launch)))   ; else launch coroutine
   (coroutine:private:cont #f)    ; IGNORE: USED INTERNALLY
   (coroutine:private:launch #f)) ; IGNORE: USED INTERNALLY
 
