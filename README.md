@@ -1382,13 +1382,13 @@ Other primitives of this nature include:<br>
 2. `.super` member returns object's underlying inherited object (returns `#f` if dne)
 
 #### Overload Equality, Printing, & Copying:
-0. Equality: `self=` method will attempt to be invoked on objects for `eq?`, `eqv?`, `equal?`
+0. Equality: `self=` method will attempt to be invoked on objects for [`eq?`](#Equality-Predicates), [`eqv?`](#Equality-Predicates), [`equal?`](#Equality-Predicates)
    - Method should accept 1 argument to compare equality against!
-   - May also have specific equality polymorphism by naming methods `eq?`, `eqv?`, `equal?` directly
-1. Printing: `self->string` method will attempt to be invoked on objects for `display`, `write`, `pprint`
+   - May also have specific equality polymorphism by naming methods [`eq?`](#Equality-Predicates), [`eqv?`](#Equality-Predicates), [`equal?`](#Equality-Predicates) directly
+1. Printing: `self->string` method will attempt to be invoked on objects for [`display`](#Output-Procedures), [`write`](#Output-Procedures), [`pprint`](#Output-Procedures)
    - Method should accept 0 arguments, and return a string to be "displayed"!
-   - May also have specific printing polymorphism by naming methods `display`, `write`, `pprint` directly
-2. Copying: `self->copy` method will attempt to be invoked on objects for `copy`
+   - May also have specific printing polymorphism by naming methods [`display`](#Output-Procedures), [`write`](#Output-Procedures), [`pprint`](#Output-Procedures) directly
+2. Copying: `self->copy` method will attempt to be invoked on objects for [`copy`](#copying)
    - Method should accept 0 arguments, and _by convention_ return a new object!
    - Unlike the above methods, `self->copy` is _NOT_ inherited by default!
 
