@@ -271,10 +271,6 @@ namespace heist {
         << exp[1].type_name() << "\" can't be defined (only symbols):"
         "\n     (define <var> <val>)"
         "\n     (define (<procedure-name> <args>) <body>)" << EXP_ERR(exp));
-    if(exp[1].is_type(types::sym) && symbol_is_property_chain_access(exp[1].sym))
-      THROW_ERR("'define 1st arg object property-chain-access [ " << exp[1] 
-        << " ] can't be defined (only symbols):\n     (define <var> <val>)"
-        "\n     (define (<procedure-name> <args>) <body>)" << EXP_ERR(exp));
     if(exp[1].is_type(types::exp) && 
         (exp[1].exp.empty() || !exp[1].exp[0].is_type(types::sym)))
       THROW_ERR("'define procedure name [ " 
@@ -722,13 +718,14 @@ namespace heist {
   //   to install it as the variable in the designated env
   exe_fcn_t analyze_assignment(scm_list& exp,const bool cps_block=false) { 
     confirm_valid_assignment(exp);
-    auto& var       = assignment_variable(exp);
-    auto value_proc = scm_analyze(assignment_value(exp),false,cps_block);
-    if(!symbol_is_property_chain_access(exp[1].sym))
+    if(!symbol_is_property_chain_access(exp[1].sym)) {
+      auto& var       = assignment_variable(exp);
+      auto value_proc = scm_analyze(assignment_value(exp),false,cps_block);
       return [var=std::move(var),value_proc=std::move(value_proc)](env_type& env){
         set_variable_value(var,data_cast(value_proc(env)),env);
         return GLOBALS::VOID_DATA_EXPRESSION; // return is undefined
       };
+    }
     scm_list set_call(4);
     set_call[0] = "heist:core:oo:set-property!";
     set_call[1] = exp[1].sym.substr(0, exp[1].sym.rfind('.'));
@@ -760,16 +757,35 @@ namespace heist {
     return make_lambda(args,body);
   }
 
+  bool is_obj_property_definition(const scm_list& exp)noexcept{
+    return exp[1].is_type(types::sym) && symbol_is_property_chain_access(exp[1].sym);
+  }
+
+  // Generate an 'add-property! call from the <define> expression
+  scm_list convert_obj_property_defintion_to_method_call(const scm_list& exp)noexcept{
+    scm_list def_call(4);
+    def_call[0] = "heist:core:oo:add-property!";
+    def_call[1] = exp[1].sym.substr(0, exp[1].sym.rfind('.'));
+    def_call[2] = scm_list(2);
+    def_call[2].exp[0] = symconst::quote;
+    def_call[2].exp[1] = exp[1].sym.substr(exp[1].sym.rfind('.')+1);
+    def_call[3] = exp[2];
+    return def_call;
+  }
+
   // Analyzes value being defined, & returns an execution procedure 
   //   to install it as the variable in the designated env
   exe_fcn_t analyze_definition(scm_list& exp,const bool cps_block=false) { 
     confirm_valid_definition(exp);
-    auto& var       = definition_variable(exp);
-    auto value_proc = scm_analyze(definition_value(exp),false,cps_block);
-    return [var=std::move(var),value_proc=std::move(value_proc)](env_type& env){
-      define_variable(var,data_cast(value_proc(env)),env);
-      return GLOBALS::VOID_DATA_EXPRESSION; // return is undefined
-    };
+    if(!is_obj_property_definition(exp)) {
+      auto& var       = definition_variable(exp);
+      auto value_proc = scm_analyze(definition_value(exp),false,cps_block);
+      return [var=std::move(var),value_proc=std::move(value_proc)](env_type& env){
+        define_variable(var,data_cast(value_proc(env)),env);
+        return GLOBALS::VOID_DATA_EXPRESSION; // return is undefined
+      };
+    }
+    return scm_analyze(convert_obj_property_defintion_to_method_call(exp),false,cps_block);
   }
 
   /******************************************************************************
@@ -2971,7 +2987,9 @@ namespace heist {
     // DEFINE
     } else if(is_tagged_list(code.exp,symconst::define)) {
       confirm_valid_definition(code.exp);
-      if(!code.exp[1].is_type(types::exp)) { // DEFINING VARIABLE
+      if(is_obj_property_definition(code.exp)) { // DYNAMIC PROPERTY ADDITION
+        return generate_fundamental_form_cps(convert_obj_property_defintion_to_method_call(code.exp),topmost_call);
+      } else if(!code.exp[1].is_type(types::exp)) { // DEFINING VARIABLE
         scm_list cps_defn(3);
         cps_defn[0] = symconst::lambda;
         cps_defn[1] = scm_list(1,generate_unique_cps_hash()); // topmost continuation "k"
