@@ -88,25 +88,13 @@
  *                     2) SPECIAL FORM ARGS ARE NOT EVALUATED PRIOR APPLICATION
  *                     3) USERS CAN DEFINE THEIR OWN SPECIAL FORMS VIA MACROS
  *       - EXAMPLES:
- *         * '                   ; quote
- *         * `                   ; quasiquote
- *         * ,                   ; unquote
- *         * ,@                  ; unquote-splicing
- *         * `@                  ; syntax-hash
- *         * .                   ; VARIADIC ARGS, cons LITERAL
- *         * #\                  ; CHARACTER PREFIX
- *         * =>                  ; APPLY CONDITION RESULT (FOR cond)
  *         * quote               ; SYMBOLIZE ARGS (CONVERT CODE TO DATA)
  *         * quasiquote          ; SELECTIVELY eval AND SYMBOLIZE CODE
- *         * unquote             ; eval quasiquote CODE
- *         * unquote-splicing    ; eval AND SPLICE IN quasiquote CODE'S RESULT
  *         * define-syntax       ; RUN-TIME MACRO DEFINITION
  *         * core-syntax         ; ANALYSIS-TIME GLOBAL MACRO DEFINITION
- *         * let-syntax          ; LOCALLY-SCOPED MACRO DEFINITION
- *         * letrec-syntax       ; LOCALLY-SCOPED RECURSIVE MACRO DEFINITION
  *         * syntax-rules        ; SYNTAX OBJECT
- *         * syntax-hash         ; HASH A MACRO-TEMPLATE VAR TO AVOID COLLISION
  *         * lambda              ; ANONYMOUS PROCEDURE
+ *         * fn                  ; ANONYMOUS MULTI-ARITY PATTERN-MATCHING PROCEDURE
  *         * define              ; BIND VARIABLE TO VALUE
  *         * set!                ; ASSIGN VARIABLE A NEW VALUE (MUTATATION)
  *         * begin               ; SEQUENTIALLY eval ARGS
@@ -114,18 +102,9 @@
  *         * if                  ; ARG1 ? ARG2 : ARG3
  *         * and                 ; ALL ARGS ARE TRUE
  *         * or                  ; NOT ALL ARGS ARE FALSE
- *         * cond                ; ALTERNATIVE TO NESTED IF-ELSE CHAINS
- *         * case                ; SWITCH-STATEMENT EQUIVALENT IN HEIST SCHEME
- *         * let                 ; LOCALLY-SCOPED DEFINITIONS
- *         * let*                ; let WITH BINDINGS IN TERMS OF ONE ANOTHER
- *         * letrec              ; let WITH RECURSIVE BINDINGS
- *         * do                  ; ITERATION CONSTRUCT ('LOOP' MECHANISM)
- *         * scons               ; STREAM-PAIR CONSTRUCTION
- *         * stream              ; STREAM CONSTRUCTION
  *         * defclass            ; CLASS PROTOTYPE DEFINITION
- *         * vector-literal      ; LONGHAND OF #( PREFIX
- *         * hmap-literal        ; LONGHAND OF $( PREFIX
  *         * defined?            ; DETERMINE IF A VARIABLE/OBJECT-PROPERTY-ACCESS EXISTS
+ *         * delete!             ; DELETE A VARIABLE/OBJECT-PROPERTY-ACCESS IF EXISTS
  *         * define-reader-alias ; DEFINE A SYMBOLIC ALIAS REPLACED VIA READER
  *         * infix!              ; DEFINE LEFT-ASSOCIATIVE INFIX OPERATORS
  *         * infixr!             ; DEFINE RIGHT-ASSOCIATIVE INFIX OPERATORS
@@ -140,6 +119,7 @@
  *                     2) MAY BE TREATED AS IF ANY OTHER HEIST PROCEDURE
  *       - EXAMPLES: 
  *         * (exit)               ; TERMINATE THE INTERPRETER
+ *         * (help)               ; INTERACTIVE ALTERNATIVE FOR README.MD
  *         * #t                   ; TRUE BOOLEAN VALUE
  *         * #f                   ; FALSE BOOLEAN VALUE
  *         * stream-null          ; EMPTY STREAM OBJECT
@@ -2182,6 +2162,94 @@ namespace heist {
   }
 
   /******************************************************************************
+  * REPRESENTING delete! SPECIAL FORM: DELETE VARS & OBJECT-PROPERTY-ACCESS
+  ******************************************************************************/
+
+  bool is_delete(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::delete_bang);}
+
+  namespace delete_variable_helpers {
+    void delete_variable_if_exists(const frame_var& var, env_type& env)noexcept{
+      // Search Each Environment Frame
+      for(size_type i = 0, total_frames = env->size(); i < total_frames; ++i) {
+        // Get Variables & Values Lists of the current frame
+        auto& [var_list, val_list, mac_list] = *env->operator[](i);
+        // Search Variable Bindings List of the Frame
+        for(size_type j = 0, total_vars = var_list.size(); j < total_vars; ++j) {
+          if(var == var_list[j]) {
+            var_list.erase(var_list.begin()+j);
+            val_list.erase(val_list.begin()+j);
+            return;
+          }
+        }
+      }
+    }
+
+    void delete_property_in_local_object(obj_type& obj, const scm_string& property)noexcept{
+      auto& members = obj->member_names;
+      // Seek members
+      for(size_type i = 0, n = members.size(); i < n; ++i)
+        if(members[i] == property) {
+          obj->member_names.erase(obj->member_names.begin()+i);
+          obj->member_values.erase(obj->member_values.begin()+i);
+          return;
+        }
+      // Seek methods
+      auto& methods = obj->method_names;
+      for(size_type i = 0, n = methods.size(); i < n; ++i)
+        if(methods[i] == property) {
+          obj->method_names.erase(obj->method_names.begin()+i);
+          obj->method_values.erase(obj->method_values.begin()+i);
+          return;
+        }
+      // Seek in inherited
+      if(obj->inherited) delete_property_in_local_object(obj->inherited, property);
+    }
+
+    // Returns the ultimate value of the call-chain
+    void delete_property_chain_if_exists(scm_string&& call, env_type& env)noexcept{
+      // split the call chain into object series
+      std::vector<scm_string> chain;
+      if(!undefined_determination_helpers::parse_object_property_chain_sequence(call,chain)) return;
+      // get the first object instance
+      if(undefined_determination_helpers::variable_is_undefined(chain[0],env)) return;
+      data value = lookup_variable_value(chain[0],env);
+      // get the call value
+      for(size_type i = 1, n = chain.size(); i < n; ++i) {
+        if(!value.is_type(types::obj)) return;
+        // Delete value if at last point in property chain
+        if(i+1 == n) {
+          delete_property_in_local_object(value.obj,chain[i]);
+          return;
+        }
+        // Search local members & methods, the proto, and the proto inheritances
+        bool is_member = false;
+        if(!undefined_determination_helpers::verify_value_in_local_object(value.obj,chain[i],is_member)) return;
+        // if found a method, confirm at the last item in the call chain
+        if(!is_member && i+1 < n) return;
+      }
+    }
+  } // End of namesapce delete_variable_helpers
+
+
+  exe_fcn_t analyze_delete(scm_list& exp) {
+    if(exp.size() != 2 || data_is_the_SENTINEL_VAL(exp[1]))
+      THROW_ERR("'delete! didn't receive 1 argument!\n     (delete! <symbol>)"<<EXP_ERR(exp));
+    if(!exp[1].is_type(types::sym))
+      THROW_ERR("'delete! arg "<<PROFILE(exp[1])<<" isn't a symbol!\n     (delete! <symbol>)"<<EXP_ERR(exp));
+    // Check if non-member-access symbol is defined in the environment
+    if(!symbol_is_property_chain_access(exp[1].sym))
+      return [variable=std::move(exp[1].sym)](env_type& env){
+        delete_variable_helpers::delete_variable_if_exists(variable,env);
+        return GLOBALS::VOID_DATA_EXPRESSION;
+      };
+    // Check if member-access chain is defined in the environment
+    return [variable=std::move(exp[1].sym)](env_type& env)mutable{
+      delete_variable_helpers::delete_property_chain_if_exists(std::move(variable),env);
+      return GLOBALS::VOID_DATA_EXPRESSION;
+    };
+  }
+
+  /******************************************************************************
   * CONTINUATION-PASSING-STYLE EXPANSION OPTIMIZATION -- PASS 1
   ******************************************************************************/
 
@@ -2460,15 +2528,16 @@ namespace heist {
 
   // CPS atomics may be returned as is: (cps <cps-atomic>) -> <cps-atomic>
   bool data_is_cps_atomic(const data& d)noexcept{
-    return !d.is_type(types::exp)                     || 
-           is_tagged_list(d.exp,symconst::syn_rules)  || 
-           is_tagged_list(d.exp,symconst::quote)      ||
-           is_tagged_list(d.exp,symconst::delay)      ||
-           is_tagged_list(d.exp,symconst::using_cpsp) || 
-           is_tagged_list(d.exp,symconst::definedp)   ||
-           is_tagged_list(d.exp,symconst::infix)      ||
-           is_tagged_list(d.exp,symconst::infixr)     ||
-           is_tagged_list(d.exp,symconst::unfix)      ||
+    return !d.is_type(types::exp)                      || 
+           is_tagged_list(d.exp,symconst::syn_rules)   || 
+           is_tagged_list(d.exp,symconst::quote)       ||
+           is_tagged_list(d.exp,symconst::delay)       ||
+           is_tagged_list(d.exp,symconst::using_cpsp)  || 
+           is_tagged_list(d.exp,symconst::definedp)    ||
+           is_tagged_list(d.exp,symconst::delete_bang) ||
+           is_tagged_list(d.exp,symconst::infix)       ||
+           is_tagged_list(d.exp,symconst::infixr)      ||
+           is_tagged_list(d.exp,symconst::unfix)       ||
            is_tagged_list(d.exp,symconst::defn_reader_alias);
   }
 
@@ -4757,6 +4826,7 @@ namespace heist {
     else if(is_define_syntax(exp))     return analyze_define_syntax(exp,cps_block);
     else if(is_syntax_rules(exp))      return analyze_syntax_rules(exp);
     else if(is_definedp(exp))          return analyze_definedp(exp);
+    else if(is_delete(exp))            return analyze_delete(exp);
     else if(is_infix(exp))             return analyze_infix(exp);
     else if(is_infixr(exp))            return analyze_infixr(exp);
     else if(is_unfix(exp))             return analyze_unfix(exp);

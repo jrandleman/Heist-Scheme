@@ -61,14 +61,14 @@ static constexpr const char* HELP_MENU_TYPES[] = {
 };
 
 static constexpr const char* HELP_MENU_SPECIALS[] = { 
-  "quote",            "quasiquote",      "lambda",         "fn",                  "define",
-  "set!",             "defined?",        "defn",           "begin",               "if",
-  "and",              "or",              "cond",           "case",                "let",
-  "let*",             "letrec",          "do",             "while",               "delay",
-  "scons",            "stream",          "vector-literal", "hmap-literal",        "define-syntax",
-  "syntax-rules",     "syntax-hash",     "core-syntax",    "define-reader-alias", "scm->cps",
-  "cps-quote",        "using-cps?",      "curry",          "defclass",            "new",
-  "define-coroutine", "define-overload", "infix!",         "unfix!",
+  "quote",            "quasiquote",       "lambda",          "fn",                  "define",
+  "set!",             "defn",             "defined?",        "delete!",             "begin",
+  "if",               "and",              "or",              "cond",                "case",
+  "let",              "let*",             "letrec",          "do",                  "while",
+  "delay",            "scons",            "stream",          "vector-literal",      "hmap-literal",
+  "define-syntax",    "syntax-rules",     "syntax-hash",     "core-syntax",         "define-reader-alias", 
+  "scm->cps",         "cps-quote",        "using-cps?",      "curry",               "defclass",
+  "new",              "define-coroutine", "define-overload", "infix!",              "unfix!",
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES[] = { 
@@ -1372,6 +1372,47 @@ CPS Transformation:
   (defined? <symbol>)
   ; BECOMES
   (lambda (k) (k (defined? <symbol>)))
+)",
+
+
+
+
+
+}, {
+"delete!",
+"Special Form",
+R"(
+(delete! <symbol>)
+)",
+R"(
+Unbind a Symbol if "define"d!
+
+Given an object property-access symbol, removes the property from the object!
+  *) If property is in object's prototype, next access re-caches a copy in the object!
+
+Example:
+
+  (define a 12)
+  (display a) ; 12
+  (delete! a) ; unbind <a>
+  (display a) ; ERROR => UNBOUND a
+
+  (defclass C () (val 12))
+  (define c (new-C))
+  (define c.val2 13) ; dynamically add <val2> member to <c>
+  (set! c.val 14)    ; update <c.val> value
+  (display c.val)    ; 14
+  (display c.val2)   ; 13
+  (delete! c.val)
+  (delete! c.val2)
+  (display c)        ; #<object>
+  (display c.val)    ; 12 [re-cached in <c> from prototype <C>]
+  (display c.val2)   ; ERROR => <.val2> NOT A PROPERTY OF <c>
+
+CPS Transformation:
+  (delete! <symbol>)
+  ; BECOMES
+  (lambda (k) (k (delete! <symbol>)))
 )",
 
 

@@ -56,7 +56,8 @@
 7. [Heist Special Forms](#Heist-Special-Forms)
    - [Quote](#Quote), [Quasiquote](#Quasiquote-Unquote--Unquote-Splicing)
    - [Lambda](#Lambda), [Fn](#Fn)
-   - [Define](#Define), [Set!](#Set), [Defined?](#Defined), [Defn](#Defn)
+   - [Define](#Define), [Set!](#Set), [Defn](#Defn)
+   - [Defined?](#Defined), [Delete!](#Delete)
    - [Begin](#Begin)
    - [If](#If), [And](#And), [Or](#Or)
    - [Cond](#Cond), [Case](#Case)
@@ -605,17 +606,45 @@ Other primitives of this nature include:<br>
 
 #### Example:
 ```scheme
-
-(defined? a)   ; #f ; `a` was never registered in the environment!
-(undefined? a) ; ERROR: `undefined?` operates on values, and a has none in the environment!
+(defined? a)   ; #f ; <a> was never registered in the environment!
+(undefined? a) ; ERROR: <undefined?> operates on values, and <a> has none in the environment!
 
 (define a 12)
 (defined? a) ; #t
 (set! a (undefined))
 
-(defined? a)   ; #t ; "(undefined)" is a valid value type assigned to `a` in the environment!
-(undefined? a) ; #t ; `undefined?` checks values!
+(defined? a)   ; #t ; "(undefined)" is a valid value type assigned to <a> in the environment!
+(undefined? a) ; #t ; <undefined?> checks values!
+```
 
+
+------------------------
+## Delete!:
+
+#### Use: ___Unbind a Symbol if [`define`](#define)d!___
+* Given an [object](#defclass) property-access symbol, removes the property from the object!
+  - If property is in object's [prototype](#Defclass), next access re-caches a copy in the object!
+
+#### Form: `(delete! <symbol>)`
+
+#### Example:
+```scheme
+(define a 12)
+(display a) ; 12
+(delete! a) ; unbind <a>
+(display a) ; ERROR => UNBOUND a
+
+(defclass C () (val 12))
+(define c (new-C))
+(define c.val2 13) ; dynamically add <val2> member to <c>
+(set! c.val 14)    ; update <c.val> value
+(display c.val)    ; 14
+(display c.val2)   ; 13
+(delete! c.val)
+(delete! c.val2)
+(display c)        ; #<object>
+(display c.val)    ; 12 [re-cached in <c> from prototype <C>]
+(display c.val2)   ; ERROR => <.val2> NOT A PROPERTY OF <c>
 ```
 
 
