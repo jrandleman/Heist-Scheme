@@ -335,9 +335,11 @@
         (heist:stream:error 'stream-take-while "2nd arg isn't a stream!" 
           "(stream-take-while <predicate> <stream>)" s))
     (define (stream-take-while pred? s)
-      (if (pred? (scar s))
-          (scons (scar s) (stream-take-while pred? (scdr s)))
-          '()))
+      (if (stream-null? s)
+          '()
+        (if (pred? (scar s))
+            (scons (scar s) (stream-take-while pred? (scdr s)))
+            '())))
     (stream-take-while pred? s)))
 
 
