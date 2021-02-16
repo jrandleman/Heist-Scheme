@@ -72,6 +72,7 @@
    - [Curry](#Curry)
    - [Defclass](#Defclass), [New](#New)
    - [Define-Coroutine](#Define-Coroutine)
+   - [Define-Module](#Define-Module)
    - [Define-Overload](#Define-Overload)
    - [Infix!](#Infix--Infixr), [Infixr!](#Infix--Infixr), [Unfix!](#Unfix)
 8. [Heist Primitive Variables](#Heist-Primitive-Variables)
@@ -627,7 +628,7 @@ Other primitives of this nature include:<br>
 
 #### Form: `(delete! <symbol>)`
 
-#### Example:
+#### Examples:
 ```scheme
 (define a 12)
 (display a) ; 12
@@ -1234,7 +1235,7 @@ Other primitives of this nature include:<br>
 #### Danger Zone:
 * With CPS, avoid [macros](#define-syntax-let-syntax-letrec-syntax)/[eval](#eval--apply)/[load](#system-interface-procedures) expanding to a [`define`](#define) in the current envrionment!
   - Lazy expansion breaks this functionality (may expand to localized bindings though!)
-  - Includes [`defn`](#defn) & [`define-overload`](#Define-Overload) (manually write expansion)
+  - Includes [`defn`](#defn), [`define-module`](#Define-Module), & [`define-overload`](#Define-Overload) (manually write expansion)
 
 #### Author's Advice:
 * Experimentally, go wild! 
@@ -1565,6 +1566,29 @@ Other primitives of this nature include:<br>
 (display cobj.value)    ; 3
 (set! cobj (cobj.next)) ; last iteration returns the final value!
 (display cobj)          ; 4
+```
+
+
+------------------------
+## Define-Module:
+
+#### Use: ___Define a Module to Hide/Expose Select Procedures!___
+* _Note: `define-module` is actually a macro directly defined **in** Heist Scheme!_
+* _Note: Expose variables/macros by defining them outside of the module body!_
+
+#### Form: `(define-module (<exposed-procedure-name> ...) <expression> ...)`
+
+#### Example:
+```scheme
+(define-module (greet set-age! set-name!)
+  (define name "")                                ; hidden (variable's in the module)!
+  (define age 0)                                  ; hidden (variable's in the module)!
+  (define (increment-value is-name? val)          ; hidden (procedure not exposed)!
+    (if is-name? (set! name val) (set! age val)))
+  (define (set-age! a) (increment-value #f a))    ; exposed procedure!
+  (define (set-name! n) (increment-value #t n))   ; exposed procedure!
+  (define (greet)                                 ; exposed procedure!
+    (displayf "Hello! My name is %s and I'm %n years old!" name age)))
 ```
 
 

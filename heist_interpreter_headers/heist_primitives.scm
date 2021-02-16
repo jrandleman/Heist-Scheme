@@ -236,6 +236,22 @@
             (heist:oo:anon:equality self obj eqv?)))
         (new-heist:oo:anon:prototype)))))
 
+;; ==================================================================
+;; =========== "DEFINE-MODULE" MACRO FOR PROCEDURE HIDING ===========
+;; ==================================================================
+
+(core-syntax define-module
+  (syntax-rules ()
+    ((_ (exposure ...) expression ...)
+      (begin 
+        (define `@module-name ; hash module's name at expansion time
+          (let ()
+            expression ...
+            (fn (((quote exposure) heist:core:module:arguments)
+                  (apply exposure heist:core:module:arguments)) ...)))
+        (define (exposure *dot* heist:core:module:arguments)
+          (module-name (quote exposure) heist:core:module:arguments)) ...))))
+
 ;; ==============================================
 ;; =========== LAZY STREAM ALGORITHMS ===========
 ;; ==============================================

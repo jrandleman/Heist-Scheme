@@ -68,7 +68,8 @@ static constexpr const char* HELP_MENU_SPECIALS[] = {
   "delay",            "scons",            "stream",          "vector-literal",      "hmap-literal",
   "define-syntax",    "syntax-rules",     "syntax-hash",     "core-syntax",         "define-reader-alias", 
   "scm->cps",         "cps-quote",        "using-cps?",      "curry",               "defclass",
-  "new",              "define-coroutine", "define-overload", "infix!",              "unfix!",
+  "new",              "define-coroutine", "define-module",   "define-overload",     "infix!",
+  "unfix!",
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES[] = { 
@@ -1390,7 +1391,7 @@ Unbind a Symbol if "define"d!
 Given an object property-access symbol, removes the property from the object!
   *) If property is in object's prototype, next access re-caches a copy in the object!
 
-Example:
+Examples:
 
   (define a 12)
   (display a) ; 12
@@ -2136,7 +2137,7 @@ Danger zone:
   *) With CPS, avoid macros/eval/load expanding to a "define" in the current envrionment!
      => Lazy expansion breaks this functionality (may expand to localized 
         bindings though!)
-     => Includes "defn" & "define-overload" (manually write expansion)
+     => Includes "defn", "define-module", & "define-overload" (manually write expansion)
 
 Author's Advice:
   *) Experimentally, go wild! 
@@ -2466,6 +2467,33 @@ Examples:
   (display cobj.value)    ; 3
   (set! cobj (cobj.next)) ; last iteration returns the final value!
   (display cobj)          ; 4
+)",
+
+
+
+
+
+}, {
+"define-module",
+"Macro",
+R"(
+(define-module (<exposed-procedure-name> ...) <expression> ...)
+)",
+R"(
+Define a module to hide/expose select procedures!
+  *) Expose variables/macros by defining them outside of the module body!
+
+Example:
+  
+  (define-module (greet set-age! set-name!)
+    (define name "")                                ; hidden (variable's in the module)!
+    (define age 0)                                  ; hidden (variable's in the module)!
+    (define (increment-value is-name? val)          ; hidden (procedure not exposed)!
+      (if is-name? (set! name val) (set! age val)))
+    (define (set-age! a) (increment-value #f a))    ; exposed procedure!
+    (define (set-name! n) (increment-value #t n))   ; exposed procedure!
+    (define (greet)                                 ; exposed procedure!
+      (displayf "Hello! My name is %s and I'm %n years old!" name age)))
 )",
 
 
