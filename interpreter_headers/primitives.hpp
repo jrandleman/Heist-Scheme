@@ -1,13 +1,13 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- heist_primitives.hpp
+// Author: Jordan Randleman -- jrandleman@scu.edu -- primitives.hpp
 // => Defines primitive functions written in C++ for the Heist Scheme Interpreter
 
 // PRIMITIVE FUNCTION MANDATORY TYPE SIGNATURE: 
 // -> struct data(*)(scm_list&)
 
-#ifndef HEIST_PRIMITIVES_HPP_
-#define HEIST_PRIMITIVES_HPP_
+#ifndef PRIMITIVES_HPP_
+#define PRIMITIVES_HPP_
 
-#include "toolkits/heist_primitives_toolkit.hpp"
+#include "toolkits/primitives_toolkit.hpp"
 
 /******************************************************************************
 * ARITHMETIC PRIMITIVES
@@ -5882,7 +5882,7 @@ namespace heist {
   * "fmt:" PREFIXED ANSI ESCAPE CODE PRIMITIVES
   ******************************************************************************/
 
-  #include "toolkits/heist_fmt_toolkit.hpp"
+  #include "toolkits/fmt_toolkit.hpp"
 
   /******************************************************************************
   * STRING->ART PRIMITIVES
@@ -5912,7 +5912,7 @@ namespace heist {
   ******************************************************************************/
 
   void evaluate_primitives_written_in_heist_scheme() {
-    FILE* ins = std::fopen(HEIST_DIRECTORY_FILE_PATH "/heist_interpreter_headers/heist_primitives.scm", "r");
+    FILE* ins = std::fopen(HEIST_DIRECTORY_FILE_PATH "/interpreter_headers/primitives.scm", "r");
     scm_string heist_prim_exp;
     char buffer[1001];
     while(std::fgets(buffer,1000,ins))
@@ -5928,7 +5928,7 @@ namespace heist {
   * QUERY HELP DB FOR INFO ON HEIST SCHEME AS A LANGUAGE
   ******************************************************************************/
 
-  #include "toolkits/heist_help_toolkit.hpp"
+  #include "toolkits/help_toolkit.hpp"
 
   data primitive_HELP(scm_list& args) {
     if(args.empty()) {
@@ -6020,7 +6020,7 @@ namespace heist {
     primitive_RUNTIME_SYNTAXP, primitive_SET_RUNTIME_SYNTAX_BANG, 
   };
 
-#ifndef HEIST_CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
+#ifndef CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
   constexpr bool primitive_requires_environment(const prm_ptr_t& prm)noexcept{
     for(const auto& p : PRIMITIVES_REQUIRING_CURRENT_ENVIRONMENT)
       if(p == prm) return true;

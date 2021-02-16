@@ -1,4 +1,4 @@
-;; Author: Jordan Randleman -- jrandleman@scu.edu -- heist_primitives.scm
+;; Author: Jordan Randleman -- jrandleman@scu.edu -- primitives.scm
 ;; => Defines helper functions for the Heist Scheme Interpreter's Scheme primitives
 
 ;; ====================================================

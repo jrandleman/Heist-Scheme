@@ -1,8 +1,8 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- heist_input_parser.hpp
+// Author: Jordan Randleman -- jrandleman@scu.edu -- input_parser.hpp
 // => Parses user's input into an AST for the C++ Heist Scheme Interpreter
 
-#ifndef HEIST_INPUT_PARSER_HPP_
-#define HEIST_INPUT_PARSER_HPP_
+#ifndef INPUT_PARSER_HPP_
+#define INPUT_PARSER_HPP_
 
 /******************************************************************************
 * READER HELPER FUNCTIONS

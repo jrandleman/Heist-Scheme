@@ -1,9 +1,9 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- heist_types_toolkit.hpp
+// Author: Jordan Randleman -- jrandleman@scu.edu -- types_toolkit.hpp
 // => Defines string-serialization/equality/copying helper fcns for Scheme data
-// => Must link BELOW "heist_types.hpp"'s type definitions
+// => Must link BELOW "types.hpp"'s type definitions
 
-#ifndef HEIST_TYPES_TOOLKIT_HPP_
-#define HEIST_TYPES_TOOLKIT_HPP_
+#ifndef TYPES_TOOLKIT_HPP_
+#define TYPES_TOOLKIT_HPP_
 
 namespace heist {
 
@@ -46,7 +46,7 @@ namespace heist {
     * REGISTRY OF PRIMITIVES ALSO REQUIRING AN ENVIRONMENT (TO APPLY A PROCEDURE)
     ******************************************************************************/
 
-    #ifdef HEIST_CPP_INTEROP_HPP_ // @EMBEDDED-IN-C++
+    #ifdef CPP_INTEROP_HPP_ // @EMBEDDED-IN-C++
       std::vector<prm_ptr_t> USER_DEFINED_PRIMITIVES_REQUIRING_ENV;
     #endif
 

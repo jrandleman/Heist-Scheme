@@ -1,8 +1,8 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- heist_numerics_toolkit.hpp
+// Author: Jordan Randleman -- jrandleman@scu.edu -- numerics_toolkit.hpp
 // => Defines Numeric class for Heist Scheme Real Numbers (BigInt, etc.)
 
-#ifndef HEIST_NUMERICS_TOOLKIT_HPP_
-#define HEIST_NUMERICS_TOOLKIT_HPP_
+#ifndef NUMERICS_TOOLKIT_HPP_
+#define NUMERICS_TOOLKIT_HPP_
 
 #include <cctype>
 #include <cfloat>

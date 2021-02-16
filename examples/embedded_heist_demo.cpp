@@ -1,6 +1,6 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- embedded_heist_demo.cpp
 // => Demos Heist's ability to act as an embedded scripting langauge w/in C++
-#include "../heist_cpp_interop.hpp"
+#include "../cpp_interop.hpp"
 
 
 // C++ Factorial Function

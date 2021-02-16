@@ -1,4 +1,4 @@
-;; Author: Jordan Randleman -- jrandleman@scu.edu -- heist_infix_toolkit.scm
+;; Author: Jordan Randleman -- jrandleman@scu.edu -- infix_toolkit.scm
 ;; => Defines -infix cmd-line flag's operators for the Heist Scheme Interpreter
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

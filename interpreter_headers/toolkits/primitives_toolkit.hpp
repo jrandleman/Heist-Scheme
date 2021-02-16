@@ -1,8 +1,8 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- heist_primitives_toolkit.hpp
+// Author: Jordan Randleman -- jrandleman@scu.edu -- primitives_toolkit.hpp
 // => Defines helper functions for the Heist Scheme Interpreter's C++ primitives
 
-#ifndef HEIST_PRIMITIVES_TOOLKIT_HPP_
-#define HEIST_PRIMITIVES_TOOLKIT_HPP_
+#ifndef PRIMITIVES_TOOLKIT_HPP_
+#define PRIMITIVES_TOOLKIT_HPP_
 
 #include <regex>
 
@@ -10,7 +10,7 @@
 * PRIMITIVE HELPER ENUMERATIONS & FUNCTION PROTOTYPES
 ******************************************************************************/
 
-// VALID SEQUENCE INDEX RANGE (undef in heist_primitives.hpp)
+// VALID SEQUENCE INDEX RANGE (undef in primitives.hpp)
 #define VALID_SEQUENCE_INDEX_RANGE\
   "\n     <index> range: [0," << GLOBALS::MAX_SIZE_TYPE << ']'
 

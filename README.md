@@ -14,8 +14,8 @@
 1. REPL: `$ ./heist` (exit REPL via [`(exit)`](#Control-Flow-Procedures) command)
 2. Interpret Script: `$ ./heist -script <script-filename> <argv1> <argv2> ...`
 3. Compile Script to C++: `$ ./heist -compile <script-filename> <optional-target-name>`
-4. Embed Heist in C++: `#include` the [`heist_cpp_interop.hpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/heist_cpp_interop.hpp) header into your code (read it for more details)!
-   * See [`embedded_heist_demo.cpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/heist_examples/embedded_heist_demo.cpp) for an example of embedding Heist in action!
+4. Embed Heist in C++: `#include` the [`cpp_interop.hpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/cpp_interop.hpp) header into your code (read it for more details)!
+   * See [`embedded_heist_demo.cpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/examples/embedded_heist_demo.cpp) for an example of embedding Heist in action!
 
 ------------------------
 # Notable Features:
@@ -3003,7 +3003,7 @@ Other primitives of this nature include:<br>
 ## Control Flow Procedures:
 0. __Exit__: `(exit <optional-integer-exit-code>)`
    * Note: `<optional-integer-exit-code>` defaults to [`*exit-success*`](#Heist-Primitive-Variables)
-   * If triggered while embedded in C++ ([`heist_cpp_interop.hpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/heist_cpp_interop.hpp)), eval'd code<br>
+   * If triggered while embedded in C++ ([`cpp_interop.hpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/cpp_interop.hpp)), eval'd code<br>
      returns either [`*exit-success*`](#Heist-Primitive-Variables) or [`*exit-failure*`](#Heist-Primitive-Variables) as a SYMBOL!
    * If triggered in [`*null-environment*`](#Heist-Primitive-Variables), evaluation returns the given code immediately!
 

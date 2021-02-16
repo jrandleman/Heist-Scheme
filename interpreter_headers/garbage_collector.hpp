@@ -1,8 +1,8 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- heist_garbage_collector.hpp
+// Author: Jordan Randleman -- jrandleman@scu.edu -- garbage_collector.hpp
 // => Contains shared_ptr/GC struct for the C++ Heist Scheme Interpreter
 
-#ifndef HEIST_GARBAGE_COLLECTOR_HPP_
-#define HEIST_GARBAGE_COLLECTOR_HPP_
+#ifndef GARBAGE_COLLECTOR_HPP_
+#define GARBAGE_COLLECTOR_HPP_
 
 // GOAL: Combine reference counting w/ "GC" for cycle-safe "shared_ptr"s
 // APPROACH: Regular reference counting, w/ any ptr refs > 0 also

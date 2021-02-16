@@ -1,14 +1,14 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- heist_help_toolkit.hpp
+// Author: Jordan Randleman -- jrandleman@scu.edu -- help_toolkit.hpp
 // => Defines logic for the Heist Scheme Interpreter's <help> primitive
 
 ////////////////////////////////////////////////////////////
-// PROVIDES 2 PROCEDURES FOR USE IN heist_primitives.hpp:
+// PROVIDES 2 PROCEDURES FOR USE IN primitives.hpp:
 //   0. help::launch_interactive_menu()
 //   1. help::query_datum(const scm_string& query)
 ////////////////////////////////////////////////////////////
 
-#ifndef HEIST_HELP_TOOLKIT_HPP_
-#define HEIST_HELP_TOOLKIT_HPP_
+#ifndef HELP_TOOLKIT_HPP_
+#define HELP_TOOLKIT_HPP_
 
 /******************************************************************************
 * HELP DB DATA MATRIX
@@ -18,7 +18,7 @@ namespace GLOBALS {
   // defines menu options lists
   // defines <HELP_ENTRIES> matrix of entries:
   //    entry ::= {name, classification, signatures, description}
-  #include "heist_help_toolkit_db.hpp" 
+  #include "help_toolkit_db.hpp" 
 }
 
 /******************************************************************************
@@ -195,8 +195,8 @@ namespace help::logic {
     else if(query == "hash-map" || query == "hashmap") 
       query = "hmap";
     else if(query == "heist-interop" || query == "heist-cpp-interop" || query == "heist-c++-interop" || query == "cpp-interop" || 
-            query == "c++-interop" || query == "heist-cpp" || query == "heist-c++" || query == "heist_cpp_interop" || query == "interop")
-      query = "heist_cpp_interop.hpp";
+            query == "c++-interop" || query == "heist-cpp" || query == "heist-c++" || query == "heist_cpp_interop" || query == "cpp_interop" || query == "interop")
+      query = "cpp_interop.hpp";
     else if(query == "readme") 
       query = "readme.md";
     else if(query == "install") 
@@ -247,8 +247,8 @@ namespace help::logic {
       "min-infix-precedence","min-precedence","max-infix-precedence","max-precedence","null-environment","null-env","local-environment","local-env",
       "global-environment","global-env","argc","argv","heist-platform","platform","heist-exact-platform","exact-platform","heist-dirname","exit-success",
       "exit-failure","o","e","pi","phi","euler","+inf","inf","inf.0","-inf","-nan.0","nan.0","nan","+nan","-nan","seq","coro","expr","sym","str","hash-map",
-      "hashmap","heist-interop","heist-cpp-interop","heist-c++-interop","cpp-interop","c++-interop","heist-cpp","heist-c++","heist_cpp_interop","interop",
-      "readme","install","license.md","associative-list","association-list","universes","new-universe","universe?","universe-eval","\\","*dot","dot*",
+      "hashmap","heist-interop","heist-cpp-interop","heist-c++-interop","cpp-interop","c++-interop","heist-cpp","heist-c++","heist_cpp_interop","cpp_interop",
+      "interop","readme","install","license.md","associative-list","association-list","universes","new-universe","universe?","universe-eval","\\","*dot","dot*",
       "scaar","scadr","scdar","scddr","scaaar","scaadr","scadar","scaddr","scdaar","scdadr","scddar","scdddr","scaaaar","scaaadr","scaadar","scaaddr",
       "scadaar","scadadr","scaddar","scadddr","scdaaar","scdaadr","scdadar","scdaddr","scddaar","scddadr","scdddar","scddddr","scaar...scddddr","caar",
       "cadr","cdar","cddr","caaar","caadr","cadar","caddr","cdaar","cdadr","cddar","cdddr","caaaar","caaadr","caadar","caaddr","cadaar","cadadr","caddar",

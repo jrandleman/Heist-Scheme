@@ -26,10 +26,10 @@
 * ABSOLUTE FILE PATH TO HEIST INTERPRETERS DIRECTORY
 ******************************************************************************/
 
-#if __has_include("heist_interpreter_headers/HEIST_FILEPATH.hpp")
-  #include "heist_interpreter_headers/HEIST_FILEPATH.hpp"
+#if __has_include("interpreter_headers/HEIST_FILEPATH.hpp")
+  #include "interpreter_headers/HEIST_FILEPATH.hpp"
 #else
-  #error "heist_installer.cpp" MUST BE COMPILED (USING "-std=c++17") AND RUN PRIOR THE INTERPRETER!
+  #error "installer.cpp" MUST BE COMPILED (USING "-std=c++17") AND RUN PRIOR THE INTERPRETER!
 #endif
 
 /******************************************************************************
@@ -126,12 +126,12 @@
  *         * *null-environment*   ; eval IN DISJOINT GLOBAL ENVIRONMENT (FOR eval/load)
  *         * *local-environment*  ; eval IN LOCAL SCOPE (FOR eval/load)
  *         * *global-environment* ; eval IN GLOBAL SCOPE (FOR eval/load)
- *         * SEE "heist_primitives.hpp" FOR THE ALL PRIMITIVE IMPLEMENTATIONS
+ *         * SEE "primitives.hpp" FOR THE ALL PRIMITIVE IMPLEMENTATIONS
  */
 
-#include "heist_interpreter_headers/heist_types.hpp"
-#include "heist_interpreter_headers/heist_primitives.hpp"
-#include "heist_interpreter_headers/heist_input_parser.hpp"
+#include "interpreter_headers/types.hpp"
+#include "interpreter_headers/primitives.hpp"
+#include "interpreter_headers/input_parser.hpp"
 
 namespace heist {
 
@@ -4942,7 +4942,7 @@ namespace heist {
 
 
 // Account for whether REPL should print a newline
-#ifndef HEIST_CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
+#ifndef CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
 #ifndef HEIST_INTERPRETING_COMPILED_AST // @ONLY-INTERPRETER
 void print_repl_newline(const bool& printed_data)noexcept{ // after printing data
   if(printed_data || (!heist::G.LAST_PRINTED_NEWLINE_TO_STDOUT && heist::G.LAST_PRINTED_TO_STDOUT))
@@ -5099,7 +5099,7 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
       puts(HEIST_COMMAND_LINE_ARGS);
       return true;
     } else if(cmd_flag == "-infix") {
-      LOADED_FILES.push_back(HEIST_DIRECTORY_FILE_PATH "/heist_interpreter_headers/toolkits/heist_infix_toolkit.scm");
+      LOADED_FILES.push_back(HEIST_DIRECTORY_FILE_PATH "/interpreter_headers/toolkits/infix_toolkit.scm");
     } else if(cmd_flag == "-dynamic-call-trace") {
       trace_calls = true;
     } else if(cmd_flag == "-trace-args") {

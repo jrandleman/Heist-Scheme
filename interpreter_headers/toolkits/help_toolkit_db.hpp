@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- heist_help_toolkit_db.hpp
+// Author: Jordan Randleman -- jrandleman@scu.edu -- help_toolkit_db.hpp
 // => Defines db of help entries & descriptions
 
 // VARIABLES DEFINED:
@@ -14,8 +14,8 @@
 //   9. HELP_MENU_PROCEDURES (& 31 SUBVARIANTS)
 //   A. HELP_MENU_PROCEDURES_SUBMENU, HELP_MENU_PROCEDURES_SUBMENU_LENGTHS
 
-#ifndef HEIST_HELP_TOOLKIT_DB_HPP_
-#define HEIST_HELP_TOOLKIT_DB_HPP_
+#ifndef HELP_TOOLKIT_DB_HPP_
+#define HELP_TOOLKIT_DB_HPP_
 
 /******************************************************************************
 * HELP MENU SUBSECTIONS
@@ -49,7 +49,7 @@ static constexpr const char* HELP_MENU_TOPICS[] = {
 };
 
 static constexpr const char* HELP_MENU_DOCUMENTATION[] = { 
-  "heist_cpp_interop.hpp", "readme.md", "install.md", 
+  "cpp_interop.hpp", "readme.md", "install.md", 
 };
 
 static constexpr const char* HELP_MENU_TYPES[] = { 
@@ -2919,7 +2919,7 @@ Equivalent to 0. Designed to be passed as an argument to "exit".
 
 Possible return value as a SYMBOL by Heist Scheme embedded in C++ when
 "exit" is triggered in an "eval" or "apply" code instance.
-  *) See "heist_cpp_interop.hpp" for more on embedding Heist in C++!
+  *) See "cpp_interop.hpp" for more on embedding Heist in C++!
   *) Other posisble return value is "*exit-failure*".
 )",
 
@@ -2936,7 +2936,7 @@ Equivalent to 1. Designed to be passed as an argument to "exit".
 
 Possible return value as a SYMBOL by Heist Scheme embedded in C++ when
 "exit" is triggered in an "eval" or "apply" code instance.
-  *) See "heist_cpp_interop.hpp" for more on embedding Heist in C++!
+  *) See "cpp_interop.hpp" for more on embedding Heist in C++!
   *) Other posisble return value is "*exit-success*".
 )",
 
@@ -9720,7 +9720,7 @@ R"(
 R"(
 Exit the current Heist session with <optional-integer-exit-code> as its status.
   *) <optional-integer-exit-code> defaults to *exit-success*
-  *) If triggered while embedded in C++ (heist_cpp_interop.hpp), eval'd code
+  *) If triggered while embedded in C++ (cpp_interop.hpp), eval'd code
      returns either *exit-success* or *exit-failure* as a SYMBOL!
   *) If triggered in *null-environment*, evaluation sandboxes exit & returns 
      the given code immediately!
@@ -10971,7 +10971,7 @@ Example:
 
 
 }, {
-"heist_cpp_interop.hpp",
+"cpp_interop.hpp",
 "Document",
 R"()",
 R"(
@@ -11024,18 +11024,18 @@ Contents:
 
   0. With "python3", AND "clang++" OR "g++":
      ----------------------------------------
-     A) OPEN THE "/heist_installation/" FOLDER
-     B) RUN "$ python3 heist_installer.py"
-        *) This generates a file named "HEIST_FILEPATH.hpp" in "/heist_interpreter_headers/"
+     A) OPEN THE "/installers/" FOLDER
+     B) RUN "$ python3 installer.py"
+        *) This generates a file named "HEIST_FILEPATH.hpp" in "/interpreter_headers/"
            => Any instance of "<HEIST_DIRECTORY_FILE_PATH>" below refers to the string in this file
-        *) NOTE: Use "$ python3 heist_installer.py -debug" to compile with "-Wall -Wextra"!
+        *) NOTE: Use "$ python3 installer.py -debug" to compile with "-Wall -Wextra"!
 
 
   1. Otherwise:
      -----------
-     A) OPEN THE "/heist_installation/" FOLDER
-     B) COMPILE AND RUN "heist_installer.cpp" USING THE "-std=c++17" FLAG
-        *) This generates a file named "HEIST_FILEPATH.hpp" in "/heist_interpreter_headers/"
+     A) OPEN THE "/installers/" FOLDER
+     B) COMPILE AND RUN "installer.cpp" USING THE "-std=c++17" FLAG
+        *) This generates a file named "HEIST_FILEPATH.hpp" in "/interpreter_headers/"
            => Any instance of "<HEIST_DIRECTORY_FILE_PATH>" below refers to the string in this file
      C) COMPILE THE INTERPRETER: "$ clang++ -std=c++17 -O3 -o heist heist.cpp"
         *) FLAG DESCRIPTIONS:
