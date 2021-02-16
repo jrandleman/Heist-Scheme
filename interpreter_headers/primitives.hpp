@@ -1353,7 +1353,6 @@ namespace heist {
       THROW_ERR("'typeof received incorrect # of args!\n     (typeof <obj>)" 
         << FCN_ERR("typeof", args));
     if(data_is_stream_pair(args[0])) return "#<stream>";
-    if(data_is_a_delay(args[0]))     return "#<delay>";
     return args[0].type_name();
   }
 
@@ -3379,8 +3378,8 @@ namespace heist {
   data primitive_STREAM_PAIRP(scm_list& args) {
     confirm_given_one_arg(args, "stream-pair?");
     return data(boolean(args[0].is_type(types::par) && 
-                        data_is_a_delay(args[0].par->first) && 
-                        data_is_a_delay(args[0].par->second)));
+                        args[0].par->first.is_type(types::del) && 
+                        args[0].par->second.is_type(types::del)));
   }
 
   // primitive "stream-null?" procedure:
@@ -3394,8 +3393,8 @@ namespace heist {
     confirm_given_one_arg(args, "stream?");
     return data(boolean(data_is_the_empty_expression(args[0]) || 
                         (args[0].is_type(types::par) && 
-                         data_is_a_delay(args[0].par->first) && 
-                         data_is_a_delay(args[0].par->second))));
+                         args[0].par->first.is_type(types::del) && 
+                         args[0].par->second.is_type(types::del))));
   }
 
   // primitive "syntax-rules-object?" procedure:
@@ -3669,7 +3668,7 @@ namespace heist {
   // primitive "delay?" predicate procedure:
   data primitive_DELAYP(scm_list& args) {
     confirm_given_one_arg(args,"delay?");
-    return boolean(data_is_a_delay(args[0]));
+    return boolean(args[0].is_type(types::del));
   }
 
   // primitive "force" procedure:
@@ -4034,10 +4033,18 @@ namespace heist {
 
   // primitive "stream-drop-while" procedure:
   data primitive_STREAM_DROP_WHILE(scm_list& args) {
+    static constexpr const char * const format = "\n     (stream-drop-while <predicate> <stream>)";
     // Confirm appropriate # of args given
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("stream-drop-while",primitive_STREAM_DROP_WHILE,args);
-    primitive_TEMPLATE_TAKE_DROP_WHILE_VALIDATION(args, "stream-drop-while", 
-      "\n     (stream-drop-while <predicate> <stream>)");
+    if(args.size() != 2) 
+      THROW_ERR("'stream-drop-while received incorrect # of args (given "
+        << args.size() << "):" << format << FCN_ERR("stream-drop-while", args));
+    // Confirm given a procedure
+    primitive_confirm_data_is_a_callable(args[0], "stream-drop-while", format, args);
+    // Confirm given a stream
+    if(!data_is_stream(args[1]))
+      THROW_ERR("'stream-drop-while "<< PROFILE(args[1]) << " isn't a stream!"
+        << format << FCN_ERR("stream-drop-while", args));
     // Get keep dropping items while 'predicate' is true, then return result
     if(data_is_the_empty_expression(args[1])) return args[1];
     auto procedure = primitive_extract_callable_procedure(args[0]);
@@ -4056,21 +4063,6 @@ namespace heist {
     if(!n) return data(symconst::emptylist);
     scm_list substream;
     primitive_TAKE_SUBSTREAM_seeker(std::move(args[0]),n,substream);
-    return primitive_STREAM_to_SCONS_constructor(substream.begin(),substream.end());
-  }
-
-  // primitive "stream-take-while" procedure:
-  data primitive_STREAM_TAKE_WHILE(scm_list& args) {
-    // Confirm appropriate # of args given
-    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("stream-take-while",primitive_STREAM_TAKE_WHILE,args);
-    primitive_TEMPLATE_TAKE_DROP_WHILE_VALIDATION(args, "stream-take-while", 
-      "\n     (stream-take-while <predicate> <stream>)");
-    // Get keep dropping items while 'predicate' is true, then return result
-    if(data_is_the_empty_expression(args[1])) return args[1];
-    scm_list substream;
-    auto procedure = primitive_extract_callable_procedure(args[0]);
-    primitive_STREAM_TAKE_WHILE_ctor(std::move(args[1]), procedure, substream);
-    if(substream.empty()) return data(symconst::emptylist);
     return primitive_STREAM_to_SCONS_constructor(substream.begin(),substream.end());
   }
 
@@ -6393,7 +6385,6 @@ namespace heist {
     std::make_pair(primitive_STREAM_DROP,         "stream-drop"),
     std::make_pair(primitive_STREAM_DROP_WHILE,   "stream-drop-while"),
     std::make_pair(primitive_STREAM_TAKE,         "stream-take"),
-    std::make_pair(primitive_STREAM_TAKE_WHILE,   "stream-take-while"),
     std::make_pair(primitive_STREAM_REVERSE,      "stream-reverse"),
     std::make_pair(primitive_STREAM_FOLD,         "stream-fold"),
     std::make_pair(primitive_STREAM_FOLD_RIGHT,   "stream-fold-right"),

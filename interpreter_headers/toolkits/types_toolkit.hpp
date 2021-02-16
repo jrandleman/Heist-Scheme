@@ -16,7 +16,6 @@ namespace heist {
   list_status primitive_list_is_acyclic_and_null_terminated(const data& curr_pair)noexcept;
   scm_string  stack_trace_str         (const scm_string& tab = "  ")noexcept;
   sym_type    procedure_call_signature(const sym_type& name,const frame_vals& vals)noexcept;
-  bool        is_delay                (const scm_list& exp)noexcept;
   bool        data_is_stream_pair     (const data& d)noexcept;
   bool        data_is_proper_list     (const data& d)noexcept;
 
@@ -308,34 +307,11 @@ namespace heist {
   }
 
 
-  // Handle appending delay expressions
-  template <typename const_scm_node>
-  bool exp_is_delay(const const_scm_node& d, const exp_type& exp_object,scm_string& exp_str)noexcept{
-    // Ignore sentinel-arg expressions
-    if(data_is_the_SENTINEL_VAL(*d)) {
-      if(is_not_end_of_expression(d, exp_object.end())) exp_str += ' ';
-      return true;
-    }
-    // Append delayed expressions as needed
-    if(d->is_type(types::exp) && !d->exp.empty()) {
-      if(is_delay(d->exp)) {
-        exp_str += "#<delay>"; 
-        if(is_not_end_of_expression(d, exp_object.end())) exp_str += ' ';
-        return true;
-      }
-    }
-    return false;
-  }
-
-
   // Stringify expression recursive helper
   template<DATA_PRINTER to_str>
   void cio_expr_str_rec(const exp_type& exp_object, scm_string& exp_str) {
     if(no_args_given(exp_object)) return; // empty expression
     for(auto d = exp_object.begin(); d != exp_object.end(); ++d) {
-      // Append delay & procedure expressions w/ a special format
-      if(exp_is_delay(d, exp_object, exp_str)) 
-        continue;
       // Recursively append expressions
       if(d->is_type(types::exp)) {
         exp_str += '(';
@@ -357,8 +333,6 @@ namespace heist {
   scm_string cio_expr_str(const exp_type& exp_object) {
     // Sentinel Values are exclusively used internally, hence are never printed
     if(no_args_given(exp_object)||data_is_the_SENTINEL_VAL(data(exp_object))) return "";
-    // Delayed expressions print identically to delayed values
-    if(is_delay(exp_object)) return "#<delay>";
     scm_string exp_str;
     cio_expr_str_rec<to_str>(exp_object, exp_str);
     return '(' + exp_str + ')';

@@ -774,26 +774,14 @@ namespace heist {
 
   bool is_delay(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::delay);}
 
-  // 'Delay' data struct consists of the delayed expression, its environment, 
-  //   whether its already been forced, and the result of forcing it (if forced)
-  scm_list make_delay(const scm_list& exp, env_type& env, bool in_cps)noexcept{
-    scm_list del(2); del[0] = symconst::delay, del[1] = make_del(exp,env,in_cps);
-    return del;
-  }
-
   // Extracts the delayed expression and returns an exec proc ctor'ing a promise
   exe_fcn_t analyze_delay(scm_list& exp,const bool cps_block=false) {
-    if(exp.size() != 2 || data_is_the_SENTINEL_VAL(exp[1])) {
-      exp[0].sym += ' '; // add space to tag, avoiding #<delay> degradation
-      auto delay_call = cio_expr_str<&data::noexcept_write>(exp);
-      delay_call.erase(6,1);   // erase appended space
-      THROW_ERR("'delay expects 1 argument: (delay <delay-expression>)" 
-        << EXP_ERR(delay_call));
-    }
+    if(exp.size() != 2 || data_is_the_SENTINEL_VAL(exp[1])) 
+      THROW_ERR("'delay expects 1 argument: (delay <delay-expression>)" << EXP_ERR(exp));
     if(!cps_block) {
       auto delay_list = scm_list_cast(exp[1]);
       return [delay_list=std::move(delay_list)](env_type& env){
-        return make_delay(delay_list,env,false);
+        return scm_list(1,make_del(delay_list,env,false));
       };
     }
     // Bind delayed CPS expressions to always have 'id as the topmost continuation,
@@ -803,7 +791,7 @@ namespace heist {
     delay_list[0] = generate_fundamental_form_cps(data_cast(scm_list_cast(exp[1])));
     delay_list[1] = "id";
     return [delay_list=std::move(delay_list)](env_type& env){
-      return make_delay(delay_list,env,true);
+      return scm_list(1,make_del(delay_list,env,true));
     };
   }
 
@@ -4961,10 +4949,7 @@ void account_for_whether_printed_data(const heist::scm_list& val,bool& printed_d
 
 // Print output object
 void user_print(FILE* outs, heist::scm_list& object) {
-  if(heist::is_delay(object) && object.size() > 1)
-    fputs("#<delay>", outs);
-  else
-    fputs(object[0].pprint().c_str(), outs);
+  fputs(object[0].pprint().c_str(), outs);
   fflush(outs);
 }
 

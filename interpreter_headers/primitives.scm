@@ -270,6 +270,7 @@
 ; -:- TABLE OF CONTENTS -:-
 ; (stream-map        callable s . streams)
 ; (stream-filter     pred? s)
+; (stream-take-while pred? s)
 ; (stream-from       first . optional-step)
 ; (stream-unfold     break-cond map-callable suc-callable seed)
 ; (stream-iterate    suc-callable seed)
@@ -321,6 +322,23 @@
               (scons (scar s) (stream-filter (scdr s)))
               (stream-filter (scdr s)))))
     (stream-filter s)))
+
+
+(defn stream-take-while
+  ((pred?)
+    (lambda (s) (stream-take-while pred? s)))
+  ((pred? s)
+    (if (not (callable? pred?))
+        (heist:stream:error 'stream-take-while "1st arg isn't a callable!" 
+          "(stream-take-while <predicate> <stream>)" pred?))
+    (if (not (stream? s)) 
+        (heist:stream:error 'stream-take-while "2nd arg isn't a stream!" 
+          "(stream-take-while <predicate> <stream>)" s))
+    (define (stream-take-while pred? s)
+      (if (pred? (scar s))
+          (scons (scar s) (stream-take-while pred? (scdr s)))
+          '()))
+    (stream-take-while pred? s)))
 
 
 (defn stream-from

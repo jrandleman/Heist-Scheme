@@ -33,7 +33,6 @@ namespace heist {
   data     data_cast(const scm_list& l)noexcept;
   scm_list scm_list_cast(const data& d)noexcept;
   scm_list generate_fundamental_form_cps(const data& code,const bool topmost_call=true);
-  scm_list make_delay(const scm_list& exp, env_type& env, bool in_cps = false)noexcept;
   scm_list read_user_input(FILE* outs,FILE* ins,const bool& in_repl=true);
   scm_list execute_application(data&,scm_list&,env_type&,const bool tail_call,const bool inlined);
   scm_list execute_application(data&&,scm_list&,env_type&,const bool tail_call,const bool inlined);
@@ -2708,17 +2707,11 @@ namespace heist {
   * FORCE-DELAY PRIMITIVE HELPERS
   ******************************************************************************/
 
-  bool data_is_a_delay(const data& d)noexcept{
-    return d.is_type(types::exp) && !d.exp.empty() &&
-      d.exp[0].is_type(types::sym) && d.exp[0].sym==symconst::delay;
-  }
-
-
   data force_data_delay(data& d) {
-    if(!data_is_a_delay(d))
+    if(!d.is_type(types::del))
       THROW_ERR("'force "<<PROFILE(d)<<" isn't a delayed expression:\n     "
         "(force <delayed-expression>)"<<EXP_ERR("(force "<<d.noexcept_write()<<')'));
-    auto delay = d.exp[1].del;
+    auto delay = d.del;
     if(!delay->already_forced) {
       delay->already_forced = true;
       delay->result = data_cast(scm_analyze(std::move(delay->exp),false,delay->in_cps)(delay->env));
@@ -2736,8 +2729,8 @@ namespace heist {
 
 
   bool data_is_stream_pair(const data& d)noexcept{
-    return d.is_type(types::par) && data_is_a_delay(d.par->first) && 
-                                    data_is_a_delay(d.par->second);
+    return d.is_type(types::par) && d.par->first.is_type(types::del) && 
+                                    d.par->second.is_type(types::del);
   }
 
 
@@ -2815,9 +2808,9 @@ namespace heist {
       return empty_list; // becomes '() once forced
     }
     data new_stream_pair = data(make_par());
-    new_stream_pair.par->first  = make_delay(scm_list_cast(*obj),G.GLOBAL_ENVIRONMENT_POINTER);
-    new_stream_pair.par->second = make_delay(scm_list_cast(primitive_STREAM_to_SCONS_constructor(obj+1,null_obj)),
-                                             G.GLOBAL_ENVIRONMENT_POINTER);
+    new_stream_pair.par->first  = make_del(scm_list_cast(*obj),G.GLOBAL_ENVIRONMENT_POINTER,false);
+    new_stream_pair.par->second = make_del(scm_list_cast(primitive_STREAM_to_SCONS_constructor(obj+1,null_obj)),
+                                           G.GLOBAL_ENVIRONMENT_POINTER,false);
     return new_stream_pair;
   }
 
@@ -2936,15 +2929,6 @@ namespace heist {
   }
 
 
-  void primitive_STREAM_TAKE_WHILE_ctor(data&& curr_pair, data& proc, scm_list& substream){
-    if(!data_is_stream_pair(curr_pair)) return;
-    scm_list args(1,get_stream_data_car(curr_pair));
-    if(is_false_scm_condition(proc,args)) return;
-    substream.push_back(args[0]);
-    primitive_STREAM_TAKE_WHILE_ctor(get_stream_data_cdr(curr_pair),proc,substream);
-  }
-
-
   void primitive_STREAM_FOLD_accumulator(data&& curr_pair, data& proc, 
                                          data& init_val,   const bool& folding_left){
     // Return if fully iterated through stream
@@ -2999,21 +2983,6 @@ namespace heist {
     // Confirm given a stream
     if(!data_is_stream(args[0]))
       THROW_ERR('\''<<name<<' '<< PROFILE(args[0]) << " isn't a stream!"
-        << format << FCN_ERR(name, args));
-  }
-
-
-  void primitive_TEMPLATE_TAKE_DROP_WHILE_VALIDATION(scm_list& args, 
-                                                     const char* name, 
-                                                     const char* format){
-    if(args.size() != 2) 
-      THROW_ERR('\''<<name<<" received incorrect # of args (given "
-        << args.size() << "):" << format << FCN_ERR(name, args));
-    // Confirm given a procedure
-    primitive_confirm_data_is_a_callable(args[0], name, format, args);
-    // Confirm given a stream
-    if(!data_is_stream(args[1]))
-      THROW_ERR('\''<<name<<' '<< PROFILE(args[1]) << " isn't a stream!"
         << format << FCN_ERR(name, args));
   }
 
