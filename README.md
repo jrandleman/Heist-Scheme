@@ -61,7 +61,7 @@
    - [Begin](#Begin)
    - [If](#If), [And](#And), [Or](#Or)
    - [Cond](#Cond), [Case](#Case)
-   - [Let](#Let), [Let\*](#Let-1), [Letrec](#Letrec)
+   - [Let](#Let), [Let\*](#Let-1), [Letrec](#Letrec), [Letrec\*](#Letrec-1)
    - [Do](#Do), [While](#While)
    - [Delay](#Delay), [Scons](#Scons), [Stream](#Stream)
    - [Vector-Literal](#Vector-Literal), [Hmap-Literal](#Hmap-Literal)
@@ -818,7 +818,9 @@ Other primitives of this nature include:<br>
 
 #### Derivation Using [`let`](#let):
 ```scheme
-(let* ((<name1> <value1>) (<name2> <value2>) (<name3> <value3>))
+(let* ((<name1> <value1>) 
+       (<name2> <value2>) 
+       (<name3> <value3>))
   <body> ...)
 
 ;; Becomes =>
@@ -849,6 +851,31 @@ Other primitives of this nature include:<br>
 (let ((<name> #f) ...)
   (set! <name> <value>) ...
   <body> ...)
+```
+
+
+------------------------
+## Letrec\*:
+
+#### Use: ___Letrec with Bindings in Terms of One Another!___
+* _Note: `letrec*` is actually a macro directly defined **in** Heist Scheme!_
+
+#### Form: `(letrec* (<arg-binding1> ... <arg-bindingN>) <body> ...)`
+* `<arg-binding>` = `(<name> <value>)`
+
+#### Derivation Using [`letrec`](#letrec):
+```scheme
+(letrec* ((<name1> <value1>) 
+          (<name2> <value2>) 
+          (<name3> <value3>))
+  <body> ...)
+
+;; Becomes =>
+
+(letrec ((<name1> <value1>))
+  (letrec ((<name2> <value2>))
+    (letrec ((<name3> <value3>))
+      <body> ...)))
 ```
 
 

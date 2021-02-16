@@ -11,6 +11,7 @@
 ; let
 ; let*
 ; letrec
+; letrec*
 ; scons
 ; stream
 ; let-syntax
@@ -94,6 +95,16 @@
       (let ((a (undefined)) ...)
         (set! a v) ...
         b ...))))
+
+
+(core-syntax letrec* 
+  (syntax-rules ()
+    ((_ () b ...) 
+      (let () b ...))
+    ((_ ((a v)) b ...)
+      (letrec ((a v)) b ...))
+    ((_ ((a v) other-bindings ...) b ...)
+      (letrec ((a v)) (letrec* (other-bindings ...) b ...)))))
 
 
 (core-syntax scons 

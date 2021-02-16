@@ -61,15 +61,15 @@ static constexpr const char* HELP_MENU_TYPES[] = {
 };
 
 static constexpr const char* HELP_MENU_SPECIALS[] = { 
-  "quote",            "quasiquote",       "lambda",          "fn",                  "define",
-  "set!",             "defn",             "defined?",        "delete!",             "begin",
-  "if",               "and",              "or",              "cond",                "case",
-  "let",              "let*",             "letrec",          "do",                  "while",
-  "delay",            "scons",            "stream",          "vector-literal",      "hmap-literal",
-  "define-syntax",    "syntax-rules",     "syntax-hash",     "core-syntax",         "define-reader-alias", 
-  "scm->cps",         "cps-quote",        "using-cps?",      "curry",               "defclass",
-  "new",              "define-coroutine", "define-module",   "define-overload",     "infix!",
-  "unfix!",
+  "quote",               "quasiquote",    "lambda",           "fn",            "define",
+  "set!",                "defn",          "defined?",         "delete!",       "begin",
+  "if",                  "and",           "or",               "cond",          "case",
+  "let",                 "let*",          "letrec",           "letrec*",       "do",
+  "while",               "delay",         "scons",            "stream",        "vector-literal",
+  "hmap-literal",        "define-syntax", "syntax-rules",     "syntax-hash",   "core-syntax",
+  "define-reader-alias", "scm->cps",      "cps-quote",        "using-cps?",    "curry",
+  "defclass",            "new",           "define-coroutine", "define-module", "define-overload",
+  "infix!",              "unfix!",
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES[] = { 
@@ -1687,6 +1687,34 @@ R"(
   (let ((<name> #f) ...)
     (set! <name> <value>) ...
     <body> ...)
+)",
+
+
+
+
+
+}, {
+"letrec*",
+"Macro",
+R"(
+(letrec* (<arg-binding1> ... <arg-bindingN>) <body> ...)
+<arg-binding> ::= (<name> <value>)
+)",
+R"(
+"letrec" with bindings in terms of one another!
+Derivation using "letrec":
+
+  (letrec* ((<name1> <value1>) 
+            (<name2> <value2>) 
+            (<name3> <value3>))
+    <body> ...)
+
+  ; BECOMES
+
+  (letrec ((<name1> <value1>))
+    (letrec ((<name2> <value2>))
+      (letrec ((<name3> <value3>))
+        <body> ...)))
 )",
 
 
