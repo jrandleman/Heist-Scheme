@@ -5831,8 +5831,8 @@ namespace heist {
 
   data primitive_PROTO_SUPER(scm_list& args) {
     confirm_given_unary_class_prototype_arg(args,"proto-super");
-    if(!args[0].cls->inherited) return GLOBALS::FALSE_DATA_BOOLEAN;
-    return args[0].cls->inherited;
+    if(!args[0].cls->super) return GLOBALS::FALSE_DATA_BOOLEAN;
+    return args[0].cls->super;
   }
 
   data primitive_PROTO_ADD_PROPERTY_BANG(scm_list& args) {

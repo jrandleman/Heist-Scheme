@@ -138,7 +138,7 @@ namespace heist {
       for(size_type i = 0, n = obj->proto->method_names.size(); i < n; ++i)
         if(obj->proto->method_names[i] == "self->procedure") return true;
       // search inherited object prototype
-      obj = obj->inherited;
+      obj = obj->super;
     }
     return false;
   }
@@ -184,7 +184,7 @@ namespace heist {
           return extend_method_env_with_SELF_object(obj,obj->method_values.rbegin()->fcn);
         }
       // search inherited object prototype
-      obj = obj->inherited;
+      obj = obj->super;
     }
     return data(); // never triggered iff precondition met
   }
@@ -5786,7 +5786,7 @@ namespace heist {
       set_new_property_value_SEEK_IN_PROTO(proto->member_names, obj, sought_property, new_val) ||
       set_new_property_value_SEEK_IN_PROTO(proto->method_names, obj, sought_property, new_val) ||
       // Search the inherited super & its prototype
-      (proto->inherited && obj->inherited && set_new_object_property_value(proto->inherited,obj->inherited,sought_property,new_val));
+      (proto->super && obj->super && set_new_object_property_value(proto->super,obj->super,sought_property,new_val));
   }
 
 
@@ -5857,11 +5857,11 @@ namespace heist {
     obj.member_values.push_back(class_proto_obj);
     // add the <super> member
     obj.member_names.push_back("super");
-    if(class_proto_obj->inherited) {
-      object_type inherited_obj;
-      initialize_object_with_prototype_properties_and_inheritance(inherited_obj,class_proto_obj->inherited);
-      obj.inherited = make_obj(std::move(inherited_obj));
-      obj.member_values.push_back(obj.inherited);
+    if(class_proto_obj->super) {
+      object_type super_obj;
+      initialize_object_with_prototype_properties_and_inheritance(super_obj,class_proto_obj->super);
+      obj.super = make_obj(std::move(super_obj));
+      obj.member_values.push_back(obj.super);
     } else {
       obj.member_values.push_back(GLOBALS::FALSE_DATA_BOOLEAN);
     }

@@ -799,7 +799,7 @@ namespace heist {
 
   // class-prototype structure
   struct class_prototype {
-    cls_type inherited = nullptr; // inherited proto
+    cls_type super = nullptr; // inherited proto
     env_type defn_env; // environment of class prototype definition
     scm_string class_name;
     std::vector<scm_string> member_names, method_names;
@@ -808,7 +808,7 @@ namespace heist {
 
   // object structure
   struct object_type {
-    obj_type inherited = nullptr; // inherited proto subobject instance
+    obj_type super = nullptr; // inherited proto subobject instance
     cls_type proto; // ptr to the prototype object
     std::vector<scm_string> member_names, method_names;
     scm_list member_values, method_values;

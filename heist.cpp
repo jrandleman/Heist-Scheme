@@ -1356,7 +1356,7 @@ namespace heist {
     if(!result.is_type(types::cls))
       THROW_ERR("'defclass inheritance entity " << PROFILE(exp[2].exp[0]) << " isn't a class prototype!" 
         << DEFCLASS_LAYOUT << EXP_ERR(exp));
-    proto.inherited = result.cls;
+    proto.super = result.cls;
   }
 
   void validate_unique_property_name(scm_list& exp,const scm_string& name,const std::vector<scm_string>& seen_names,const char* message){
@@ -2097,7 +2097,7 @@ namespace heist {
           return true;
         }
       // Search the inherited prototypes (& in turn their inherited prototypes as well)
-      return proto->inherited && obj->inherited && verify_value_in_local_object(obj->inherited,sought_property,is_member);
+      return proto->super && obj->super && verify_value_in_local_object(obj->super,sought_property,is_member);
     }
 
     // Returns whether found <property> as a member/method in <obj> 
@@ -2202,7 +2202,7 @@ namespace heist {
           return;
         }
       // Seek in inherited
-      if(obj->inherited) delete_property_in_local_object(obj->inherited, property);
+      if(obj->super) delete_property_in_local_object(obj->super, property);
     }
 
     // Returns the ultimate value of the call-chain
@@ -4416,9 +4416,9 @@ namespace heist {
         return true;
       }
 
-    if(!value.obj->inherited) return false;
-    value = value.obj->inherited;
-    return proto->inherited && seek_call_value_in_local_object(value,sought_property,is_member);
+    if(!value.obj->super) return false;
+    value = value.obj->super;
+    return proto->super && seek_call_value_in_local_object(value,sought_property,is_member);
   }
 
 

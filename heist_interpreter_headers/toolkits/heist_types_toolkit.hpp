@@ -585,7 +585,7 @@ namespace heist {
         }
       }
       // search inherited object prototype
-      obj = obj->inherited;
+      obj = obj->super;
     }
     return "#<object[0x"+pointer_to_hexstring(object.ptr)+"]>";
   }
@@ -776,7 +776,7 @@ namespace heist {
         }
       }
       // search inherited object prototype
-      obj = obj->inherited;
+      obj = obj->super;
     }
     return false;
   }
@@ -894,7 +894,7 @@ namespace heist {
     // deep copy inherited objects
     object_type o;
     o.proto = d.obj->proto; // shallow copy the prototype (these are never deep copied!)
-    if(o.inherited) o.inherited = deep_copy_obj(make_obj(*o.inherited)).obj;
+    if(o.super) o.super = deep_copy_obj(make_obj(*o.super)).obj;
     // check for a custom self->copy
     data result;
     if(dynamic_object_copy(d.obj,result)) return result;
@@ -929,7 +929,7 @@ namespace heist {
     // shallow copy inherited objects
     object_type o;
     o.proto = d.obj->proto; // shallow copy the prototype (these are never deep copied!)
-    if(o.inherited) o.inherited = shallow_copy_obj(make_obj(*o.inherited)).obj;
+    if(o.super) o.super = shallow_copy_obj(make_obj(*o.super)).obj;
     // apply the default object copying mechanism
     o.member_names = d.obj->member_names;
     o.method_names = d.obj->method_names;
