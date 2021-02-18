@@ -204,14 +204,15 @@ static constexpr const char* HELP_MENU_PROCEDURES_SEQUENCES[] = {
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_PREDICATES[] = {
-  "typeof",               "undefined",      "undefined?",   "void", 
-  "void?",                "empty?",         "pair?",        "vector?", 
-  "hmap?",                "char?",          "number?",      "real?", 
-  "complex?",             "rational?",      "string?",      "symbol?", 
-  "boolean?",             "atom?",          "procedure?",   "functor?", 
-  "callable?",            "cps-procedure?", "input-port?",  "output-port?", 
-  "eof-object?",          "stream-pair?",   "stream-null?", "stream?", 
-  "syntax-rules-object?", "seq?",           "object?",      "class-prototype?", 
+  "typeof",       "undefined",        "undefined?",           "void", 
+  "void?",        "empty?",           "pair?",                "vector?", 
+  "hmap?",        "char?",            "number?",              "real?", 
+  "complex?",     "rational?",        "string?",              "symbol?", 
+  "boolean?",     "atom?",            "procedure?",           "functor?", 
+  "callable?",    "cps-procedure?",   "cps-functor?",         "cps-callable?", 
+  "input-port?",  "output-port?",     "eof-object?",          "stream-pair?",
+  "stream-null?", "stream?",          "syntax-rules-object?", "seq?",
+  "object?",      "class-prototype?", 
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_EVALAPPLY[] = {
@@ -1056,7 +1057,7 @@ primitives of this nature include:
   3. Bind "id" as the continuation of a procedure: "cps->scm"
      *) For passing a procedure defined in a "scm->cps" block as an argument to 
         a procedure not defined in a "scm->cps" block (determine definition 
-        context via "cps-procedure?")
+        context via "cps-callable?")
      *) Example:
 
         ;; <sort> primitive is NOT defined in a <scm->cps> block, so <cps-lt>
@@ -7591,7 +7592,46 @@ R"(
 Confirm <obj> is a procedure that was defined in a CPS context.
   *) CPS contexts: "scm->cps" blocks, "-cps" cmd-line flag, or in coroutines.
   *) Useful to figure out whether to apply "cps->scm" or not in CPS contexts.
+     => NOTE: Prefer "cps-callable?" here to preserve generality!
   *) Figure out whether currently in a cps context via "using-cps?".
+  *) See "cps-functor?" & "cps-callable?" for alternatives!
+)",
+
+
+
+
+
+}, {
+"cps-functor?",
+"Procedure",
+R"(
+(cps-functor? <obj>)
+)",
+R"(
+Confirm <obj> is a functor that was defined in a CPS context.
+  *) CPS contexts: "scm->cps" blocks, "-cps" cmd-line flag, or in coroutines.
+  *) Useful to figure out whether to apply "cps->scm" or not in CPS contexts.
+     => NOTE: Prefer "cps-callable?" here to preserve generality!
+  *) Figure out whether currently in a cps context via "using-cps?".
+  *) See "cps-procedure?" & "cps-callable?" for alternatives!
+)",
+
+
+
+
+
+}, {
+"cps-callable?",
+"Procedure",
+R"(
+(cps-callable? <obj>)
+)",
+R"(
+Confirm <obj> is a callable that was defined in a CPS context.
+  *) CPS contexts: "scm->cps" blocks, "-cps" cmd-line flag, or in coroutines.
+  *) Useful to figure out whether to apply "cps->scm" or not in CPS contexts.
+  *) Figure out whether currently in a cps context via "using-cps?".
+  *) See "cps-functor?" & "cps-procedure?" for alternatives!
 )",
 
 
@@ -9864,7 +9904,7 @@ Bind id as callable's "topmost" continuation.
   *) Designed to pass callables defined in CPS contexts as args to 
      callables defined out of CPS contexts (query "cps" with "help" for details).
   *) Hence programs written in and out of CPS contexts may interop!
-  *) Use in conjunction with "cps-procedure?" to determine if needed!
+  *) Use in conjunction with "cps-callable?" to determine if needed!
   *) BEWARE: primitives are defined OUT of CPS contexts!
      => Hence wrap cps->scm around callables being passed to them 
         as args when in CPS contexts!

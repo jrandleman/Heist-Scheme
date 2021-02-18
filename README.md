@@ -407,7 +407,7 @@ Other primitives of this nature include:<br>
 2. [`compile`](#system-interface-procedures) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-compile`](#system-interface-procedures)
 3. Bind [`id`](#compose-bind--id) as the continuation of a procedure: [`cps->scm`](#scm-cps-procedures)
    * For passing a procedure defined in a [`scm->cps`](#scm-cps) block as an argument to a procedure<br>
-     __not__ defined in a [`scm->cps`](#scm-cps) block (determine definition context via [`cps-procedure?`](#Type-Predicates-Undefined--Void))
+     __not__ defined in a [`scm->cps`](#scm-cps) block (determine definition context via [`cps-callable?`](#Type-Predicates-Undefined--Void))
    * Example:
      ```scheme
      ;; <sort> primitive is NOT defined in a <scm->cps> block, so <cps-lt>
@@ -2607,25 +2607,29 @@ Other primitives of this nature include:<br>
 
 21. __Cps-Procedure Predicate__: `(cps-procedure? <obj>)`
 
-22. __Input-Port Predicate__: `(input-port? <obj>)`
+22. __Cps-Functor Predicate__: `(cps-functor? <obj>)`
 
-23. __Output-Port Predicate__: `(output-port? <obj>)`
+23. __Cps-Callable Predicate__: `(cps-callable? <obj>)`
 
-24. __Eof-Object Predicate__: `(eof-object? <obj>)`
+24. __Input-Port Predicate__: `(input-port? <obj>)`
 
-25. __Stream-Pair Predicate__: `(stream-pair? <obj>)`
+25. __Output-Port Predicate__: `(output-port? <obj>)`
 
-26. __Empty-Stream Predicate__: `(stream-null? <obj>)`
+26. __Eof-Object Predicate__: `(eof-object? <obj>)`
 
-27. __Stream Predicate__: `(stream? <obj>)`
+27. __Stream-Pair Predicate__: `(stream-pair? <obj>)`
 
-28. __Syntax-Rules Object Predicate__: `(syntax-rules-object? <obj>)`
+28. __Empty-Stream Predicate__: `(stream-null? <obj>)`
 
-29. __Sequence Predicate__: `(seq? <obj>)`
+29. __Stream Predicate__: `(stream? <obj>)`
 
-30. __Object Predicate__: `(object? <obj>)`
+30. __Syntax-Rules Object Predicate__: `(syntax-rules-object? <obj>)`
 
-31. __Class Prototype Predicate__: `(class-prototype? <obj>)`
+31. __Sequence Predicate__: `(seq? <obj>)`
+
+32. __Object Predicate__: `(object? <obj>)`
+
+33. __Class Prototype Predicate__: `(class-prototype? <obj>)`
 
 
 

@@ -3352,8 +3352,19 @@ namespace heist {
   // primitive "cps-procedure?" procedure:
   data primitive_CPS_PROCEDUREP(scm_list& args) {
     confirm_given_one_arg(args, "cps-procedure?");
-    return data(boolean(args[0].is_type(types::fcn) && !args[0].fcn.param_instances.empty() && 
-      !args[0].fcn.param_instances[0].empty() && data_is_continuation_parameter(*args[0].fcn.param_instances[0].rbegin())));
+    return data(boolean(data_is_cps_procedure(args[0])));
+  }
+
+  // primitive "cps-functor?" procedure:
+  data primitive_CPS_FUNCTORP(scm_list& args) {
+    confirm_given_one_arg(args, "cps-functor?");
+    return data(boolean(data_is_cps_functor(args[0])));
+  }
+
+  // primitive "cps-callable?" procedure:
+  data primitive_CPS_CALLABLEP(scm_list& args) {
+    confirm_given_one_arg(args, "cps-callable?");
+    return data(boolean(data_is_cps_callable(args[0])));
   }
 
   // primitive "input-port?" procedure:
@@ -6357,6 +6368,8 @@ namespace heist {
     std::make_pair(primitive_ATOMP,                "atom?"),
     std::make_pair(primitive_PROCEDUREP,           "procedure?"),
     std::make_pair(primitive_CPS_PROCEDUREP,       "cps-procedure?"),
+    std::make_pair(primitive_CPS_FUNCTORP,         "cps-functor?"),
+    std::make_pair(primitive_CPS_CALLABLEP,        "cps-callable?"),
     std::make_pair(primitive_INPUT_PORTP,          "input-port?"),
     std::make_pair(primitive_OUTPUT_PORTP,         "output-port?"),
     std::make_pair(primitive_EOF_OBJECTP,          "eof-object?"),
