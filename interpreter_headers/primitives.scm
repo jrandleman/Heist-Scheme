@@ -596,9 +596,7 @@
 
 ;; Define a call/cc equivalent for coroutines
 (define (heist:core:pass-continuation-co-call/cc f k) (f k k))
-(define co-eval cps-eval)
-(define co-load cps-load)
-(define co-fn   cps->scm)
+(define co-fn cps->scm)
 
 
 (defclass coroutine ()

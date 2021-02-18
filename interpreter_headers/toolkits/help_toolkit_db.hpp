@@ -110,8 +110,7 @@ static constexpr const char* HELP_MENU_PROCEDURES_PROTOTYPES[] = {
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_COROUTINES[] = {
-  "coroutine?", "coroutine->generator", "cycle-coroutines!", "co-eval", 
-  "co-load",    "co-fn",
+  "coroutine?", "coroutine->generator", "cycle-coroutines!", "co-fn",
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_STREAMS[] = {
@@ -2428,10 +2427,8 @@ Associated Special Form:
   *) (yield <value>): yield a value from the coroutine via a new coroutine object!
      => '(yield)' is equivalent to '(yield #f)', designed for use with "cycle-coroutines"!
 
-Special Conditions:
-  0. Use "co-eval" instead of "eval" in coroutines
-  1. Use "co-load" instead of "load" in coroutines
-  2. Use "co-fn" to pass local procedures defined in a coroutine to an external procedure
+Special Condition:
+  0. Use "co-fn" to pass local procedures defined in a coroutine to an external procedure
 
 Danger Zone:
   0. Nesting "define-coroutine" instances (or use in "scm->cps") is undefined behavior!
@@ -3219,36 +3216,6 @@ TAKE HEED: if none of the coroutines ever finish, neither will this procedure!
           (loop (+ count 1)))))
 
   (cycle-coroutines! (print-ints) (print-chars)) ; 0 A 1 B 2 C ... 25 Z
-)",
-
-
-
-
-
-}, {
-"co-eval",
-"Procedure",
-R"(
-(co-eval <data>)
-)",
-R"(
-Use as an alternative to "eval" in coroutines (eval quoted code!).
-Alias for "cps-eval" (cps-transform occurs when generating coroutines).
-)",
-
-
-
-
-
-}, {
-"co-load",
-"Procedure",
-R"(
-(co-load <filename-string>)
-)",
-R"(
-Use as an alternative to "load" in coroutines (load a file!).
-Alias for "cps-load" (cps-transform occurs when generating coroutines).
 )",
 
 
@@ -10868,8 +10835,6 @@ Used in conjunction with the following procedures:
   (coroutine? <obj>)
   (coroutine->generator <coroutine-object>)
   (cycle-coroutines! <coroutine-object-1> ...)
-  (co-eval <datum>)
-  (co-load <filename-string>)
   (co-fn <local-callable>)
 
 Examples:

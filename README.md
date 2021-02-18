@@ -1523,10 +1523,8 @@ Other primitives of this nature include:<br>
 * `(yield <value>)`: yield a value from the coroutine via a new coroutine object!
   - `(yield)` is equivalent to `(yield #f)`, designed for use with [`cycle-coroutines!`](#Coroutine-Handling-Primitives)
 
-#### Special Conditions:
-0. Use [`co-eval`](#Coroutine-Handling-Primitives) instead of [`eval`](#eval--apply) in coroutines
-1. Use [`co-load`](#Coroutine-Handling-Primitives) instead of [`load`](#system-interface-procedures) in coroutines
-2. Use [`co-fn`](#Coroutine-Handling-Primitives) to pass local procedures defined in a coroutine to an external procedure
+#### Special Condition:
+0. Use [`co-fn`](#Coroutine-Handling-Primitives) to pass local procedures defined in a coroutine to an external procedure
 
 #### Danger Zone:
 0. Nesting `define-coroutine` instances (or use in [`scm->cps`](#Scm-Cps)) is undefined behavior!
@@ -1852,13 +1850,7 @@ Other primitives of this nature include:<br>
    * Returns the first non-coroutine-object received from a [`.next`](#Define-Coroutine) invocation
    * See the example from the [`define-coroutine`](#Define-Coroutine) section!
 
-3. __Eval in Coroutines__: `(co-eval <datum>)`
-   * Alias for [`cps-eval`](#eval--apply) (cps-transform occurs when generating coroutines)
-
-4. __Load in Coroutines__: `(co-load <filename-string>)`
-   * Alias for [`cps-load`](#system-interface-procedures) (cps-transform occurs when generating coroutines)
-
-5. __Pass Local Fcns to External Fcns__: `(co-fn <local-callable>)`
+3. __Pass Local Fcns to External Fcns__: `(co-fn <local-callable>)`
    * Alias for [`cps->scm`](#scm-cps-procedures) (cps-transform occurs when generating coroutines)
 
 
