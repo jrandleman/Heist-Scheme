@@ -4736,7 +4736,6 @@ namespace heist {
       exp.erase(exp.begin()); // Rm the cps-application prefix
       return analyze_CPS_block_application(exp,tail_call);
     }
-    auto op_proc  = scm_analyze(operator_of(exp),false,cps_block);
     auto arg_exps = operands(exp);
     // Save name of invoking entity (iff a symbol) to check for a possible macro
     sym_type op_name = exp[0].is_type(types::sym) ? exp[0].sym : "";
@@ -4749,6 +4748,7 @@ namespace heist {
           << "\") didn't match any patterns!" << EXP_ERR(exp));
       }
     }
+    auto op_proc = scm_analyze(operator_of(exp),false,cps_block);
     // If _NOT_ a possible macro, analyze the applicator's args ahead of time
     if(!application_is_a_potential_macro(op_name,G.MACRO_LABEL_REGISTRY)) {
       std::vector<exe_fcn_t> arg_procs(arg_exps.size());
