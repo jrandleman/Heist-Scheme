@@ -1604,8 +1604,6 @@ Other primitives of this nature include:<br>
 
 #### Form: `(define-module (<exposed-procedure-name> ...) <expression> ...)`
 
-#### Form: `(define-module <optional-name> (<exposed-procedure-name> ...) <expression> ...)`
-
 #### Example:
 ```scheme
 (define-module (greet set-age! set-name!)
