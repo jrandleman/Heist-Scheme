@@ -670,14 +670,7 @@ namespace heist {
     }
 
     bool is_self_evaluating() const noexcept { // for the core evaluator
-      switch(type) {
-        case types::num: case types::str: case types::chr: 
-        case types::par: case types::vec: case types::bol:
-        case types::syn: case types::dne: case types::fip: 
-        case types::fop: case types::del: case types::map: 
-        case types::cls: case types::obj: case types::undefined: return true;
-        default: return false;
-      }
+      return type != types::exp && type != types::sym;
     }
 
     // constructors

@@ -511,14 +511,6 @@ namespace heist {
     return GLOBALS::VOID_DATA_EXPRESSION; // w/o <alternative> return VOID
   }
 
-  scm_list make_if(const data& predicate, const scm_list& consequent, 
-                                          const scm_list& alternative)noexcept{
-    scm_list if_exp(4);
-    if_exp[0] = symconst::if_t, if_exp[1] = predicate;
-    if_exp[2] = consequent, if_exp[3] = alternative;
-    return if_exp;
-  }
-
 
   // -- PREDICATE TESTING
   bool is_true(const scm_list& exp)noexcept{ // true is not false
@@ -676,14 +668,6 @@ namespace heist {
         sequence_exe_procs[i](env);
       return sequence_exe_procs[n-1](env);
     };
-  }
-
-  // Convert a sequence into a single expression via 'begin
-  scm_list convert_sequence_exp(scm_list seq)noexcept{ 
-    scm_list begin_sequence(seq.size()+1); 
-    begin_sequence[0] = symconst::begin;
-    std::move(seq.begin(),seq.end(),begin_sequence.begin()+1);
-    return begin_sequence;
   }
 
   /******************************************************************************
