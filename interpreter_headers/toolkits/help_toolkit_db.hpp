@@ -1793,6 +1793,7 @@ R"(
 R"(
 Delay an expression's evaluation by creating a promise!
   *) Force the promise to run its expression via the "force" primitive!
+  *) Delayed expressions have "id" bound as their topmost continuation in CPS!
   *) NOTE: unlike most Scheme implementations, Heist's delayed expressions are
            distinct from thunks/procedures (first-class in their own right)!
 )",

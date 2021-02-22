@@ -945,7 +945,8 @@ Other primitives of this nature include:<br>
 ## Delay:
 
 #### Use: ___Delay an Expression's Evaluation by Creating a Promise!___
-* _Force the Promise to Run its Expression via the `force` primitive!_
+* _Force the promise to run its expression via the `force` primitive!_
+* _Delayed expressions have [`id`](#compose-bind--id) bound as their topmost continuation in [CPS](#scm-cps)!_
 
 #### Form: `(delay <exp>)`
 
