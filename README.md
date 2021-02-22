@@ -1602,10 +1602,11 @@ Other primitives of this nature include:<br>
 * _Note: `define-module` is actually a macro directly defined **in** Heist Scheme!_
 * _Note: Expose variables/macros by defining them outside of the module body!_
 
-#### Form: `(define-module (<exposed-procedure-name> ...) <expression> ...)`
+#### Form: `(define-module <optional-name> (<exposed-procedure-name> ...) <expression> ...)`
 
-#### Example:
+#### Examples:
 ```scheme
+; ANONYMOUS MODULE: procedures are directly exposed
 (define-module (greet set-age! set-name!)
   (define name "")                                ; hidden (variable's in the module)!
   (define age 0)                                  ; hidden (variable's in the module)!
@@ -1615,6 +1616,26 @@ Other primitives of this nature include:<br>
   (define (set-name! n) (increment-value #t n))   ; exposed procedure!
   (define (greet)                                 ; exposed procedure!
     (displayf "Hello! My name is %s and I'm %n years old!" name age)))
+
+(set-name! "Jordan")
+(set-age! 21)
+(greet) ; Hello! My name is Jordan and I'm 21 years old!
+
+
+; NAMED MODULE: exposed procedures are members of a "module" object!
+(define-module Person (greet set-age! set-name!)
+  (define name "")                                ; hidden (variable's in the module)!
+  (define age 0)                                  ; hidden (variable's in the module)!
+  (define (increment-value is-name? val)          ; hidden (procedure not exposed)!
+    (if is-name? (set! name val) (set! age val)))
+  (define (set-age! a) (increment-value #f a))    ; exposed procedure!
+  (define (set-name! n) (increment-value #t n))   ; exposed procedure!
+  (define (greet)                                 ; exposed procedure!
+    (displayf "Hello! My name is %s and I'm %n years old!" name age)))
+
+(Person.set-name! "Jordan")
+(Person.set-age! 21)
+(Person.greet) ; Hello! My name is Jordan and I'm 21 years old!
 ```
 
 

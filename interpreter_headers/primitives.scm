@@ -251,17 +251,34 @@
 ;; =========== "DEFINE-MODULE" MACRO FOR PROCEDURE HIDING ===========
 ;; ==================================================================
 
+(defclass module ()
+  (heist:core:module:name #f)
+  ((make-module name)
+    (set! self.heist:core:module:name 
+          (append "#<module[" (symbol->string name) "]>")))
+  ((self->string)
+    self.heist:core:module:name))
+
 (core-syntax define-module
   (syntax-rules ()
+    ; anonymous module
     ((_ (exposure ...) expression ...)
       (begin 
-        (define `@module-name ; hash module's name at expansion time
+        (define `@module-name ; hash anon module's name at expansion time
           (let ()
             expression ...
             (fn (((quote exposure) heist:core:module:arguments)
                   (apply exposure heist:core:module:arguments)) ...)))
         (define (exposure *dot* heist:core:module:arguments)
-          (module-name (quote exposure) heist:core:module:arguments)) ...))))
+          (module-name (quote exposure) heist:core:module:arguments)) ...))
+    ; named module
+    ((_ module-name (exposure ...) expression ...)
+      (begin 
+        (define module-name (make-module (quote module-name)))
+        (let ()
+          expression ...
+          ((.. module-name 'add-property!) (quote exposure) exposure) ...
+          module-name)))))
 
 ;; ==============================================
 ;; =========== LAZY STREAM ALGORITHMS ===========
