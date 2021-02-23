@@ -29,11 +29,9 @@ namespace heist {
     * INTERNAL COMMON CONSTANT VALUES
     ******************************************************************************/
 
-    const auto FALSE_DATA_BOOLEAN    = data(boolean(false));
-    const auto TRUE_DATA_BOOLEAN     = data(boolean(true));
-    const auto VOID_DATA_OBJECT      = data(types::dne);
-    const auto VOID_DATA_EXPRESSION  = scm_list(1,VOID_DATA_OBJECT);
-    const auto EMPTY_LIST_EXPRESSION = scm_list(1,symconst::emptylist);
+    const auto FALSE_DATA_BOOLEAN = data(boolean(false));
+    const auto TRUE_DATA_BOOLEAN  = data(boolean(true));
+    const auto VOID_DATA_OBJECT   = data(types::dne);
 
     /******************************************************************************
     * GLOBAL "JUMP!" PRIMITIVE ARGUMENT STORAGE
@@ -525,16 +523,16 @@ namespace heist {
   * OBJECT PRINTING HELPER (CHECKS IF OBJECT HAS A display write pprint MEMBER)
   ******************************************************************************/
 
-  scm_list execute_application(data&,scm_list&,env_type& env=G.GLOBAL_ENVIRONMENT_POINTER,const bool tail_call=false,const bool inlined=false);
-  scm_list execute_application(data&&,scm_list&,env_type& env=G.GLOBAL_ENVIRONMENT_POINTER,const bool tail_call=false,const bool inlined=false);
-  data     extend_method_env_with_SELF_object(obj_type& calling_obj, scm_fcn& procedure)noexcept;
-  data     data_cast(const scm_list& l)noexcept;
-  data     data_cast(scm_list&& l)noexcept;
+  data execute_application(data&,scm_list&,env_type& env=G.GLOBAL_ENVIRONMENT_POINTER,const bool tail_call=false,const bool inlined=false);
+  data execute_application(data&&,scm_list&,env_type& env=G.GLOBAL_ENVIRONMENT_POINTER,const bool tail_call=false,const bool inlined=false);
+  data extend_method_env_with_SELF_object(obj_type& calling_obj, scm_fcn& procedure)noexcept;
+  data data_cast(const scm_list& l)noexcept;
+  data data_cast(scm_list&& l)noexcept;
 
   data apply_dynamic_method(obj_type& obj, scm_list arg, scm_fcn procedure_cpy) {
     data procedure = extend_method_env_with_SELF_object(obj,procedure_cpy);
     env_type env = obj->proto->defn_env;
-    return data_cast(execute_application(procedure,arg,env));
+    return execute_application(procedure,arg,env);
   }
 
   template<DATA_PRINTER to_str>

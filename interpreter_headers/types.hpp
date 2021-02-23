@@ -193,7 +193,7 @@ namespace heist {
   ******************************************************************************/
 
   using prm_ptr_t = struct data(*)(scm_list&);          // primitive procedure ptr
-  using exe_fcn_t = std::function<scm_list(env_type&)>; // fcn execution procedure
+  using exe_fcn_t = std::function<struct data(env_type&)>; // fcn execution procedure
 
   /******************************************************************************
   * DATA PRINTING HELPER FUNCTION PROTOTYPES

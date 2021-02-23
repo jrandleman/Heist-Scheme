@@ -21,7 +21,7 @@ namespace heist {
 
 
   //       -- FROM THE EVALUATOR
-  bool     is_true(const scm_list& exp)noexcept;
+  bool     is_true(const data& exp)noexcept;
   bool     is_non_escaped_double_quote(size_type i, const scm_string& input)noexcept;
   bool     prepare_string_for_AST_generation(scm_string& input);
   bool     data_is_continuation_parameter(const data& d)noexcept;
@@ -31,12 +31,10 @@ namespace heist {
   void     skip_string_literal(size_type& i, const scm_string& input)noexcept;
   void     set_default_global_environment();
   data     data_cast(const scm_list& l)noexcept;
+  data     scm_eval(scm_list&& exp, env_type& env);
   scm_list scm_list_cast(const data& d)noexcept;
   scm_list generate_fundamental_form_cps(const data& code,const bool topmost_call=true);
   scm_list read_user_input(FILE* outs,FILE* ins,const bool& in_repl=true);
-  scm_list execute_application(data&,scm_list&,env_type&,const bool tail_call,const bool inlined);
-  scm_list execute_application(data&&,scm_list&,env_type&,const bool tail_call,const bool inlined);
-  scm_list scm_eval(scm_list&& exp, env_type& env);
   exe_fcn_t scm_analyze(scm_list&& exp,const bool tail_call=false,const bool cps_block=false);
   size_type is_expandable_reader_macro(const scm_string&, const size_type)noexcept;
   constexpr bool IS_END_OF_WORD(const char& c, const char& c2)noexcept;
@@ -196,7 +194,7 @@ namespace heist {
 
 
   // PRECONDITION: primitive_data_is_a_callable(d)
-  scm_list execute_callable(data& callable,scm_list& args,env_type& env = G.GLOBAL_ENVIRONMENT_POINTER,const bool tail_call = false,const bool inlined = false){
+  data execute_callable(data& callable,scm_list& args,env_type& env = G.GLOBAL_ENVIRONMENT_POINTER,const bool tail_call = false,const bool inlined = false){
     return execute_application(primitive_extract_callable_procedure(callable),args,env,tail_call,inlined);
   }
 
@@ -478,7 +476,7 @@ namespace heist {
         for(auto& sequence : sequences)
           args.push_back((sequence.*seq_ptr)->operator[](i)); // extract the ith elements
         args.insert(args.begin(), init_val);                  // and accumulate the elements
-        init_val = data_cast(execute_application(proc,args));
+        init_val = execute_application(proc,args);
       }
     } else {
       // for each ith element (in reverse)
@@ -488,7 +486,7 @@ namespace heist {
         for(auto& sequence : sequences)
           args.push_back((sequence.*seq_ptr)->operator[](i)); // extract the ith elements
         args.insert(args.end(), init_val);                    // and accumulate the elements
-        init_val = data_cast(execute_application(proc,args));
+        init_val = execute_application(proc,args);
       }
     }
   }
@@ -541,7 +539,7 @@ namespace heist {
       for(size_type j = 0; j < total_sequences; ++j)
         args[j] = (sequences[j].*seq_ptr)->operator[](i);
       // Push the mapped result of each elt
-      mapped_sequence.push_back(data_cast(execute_application(proc,args)));
+      mapped_sequence.push_back(execute_application(proc,args));
     }
   }
 
@@ -1134,7 +1132,7 @@ namespace heist {
     if(check_empty_list_else_acquire_cars_advance_cdrs(curr_pairs,args)) return symconst::emptylist;
     // Execute proc, store result, & recurse down the rest of the lists
     data mapped = make_par();
-    mapped.par->first = data_cast(execute_application(proc, args));
+    mapped.par->first = execute_application(proc, args);
     mapped.par->second = primitive_MAP_list_constructor(curr_pairs, proc);
     return mapped;
   }
@@ -1144,7 +1142,7 @@ namespace heist {
     auto map_to = curr_pairs[0];
     if(check_empty_list_else_acquire_cars_advance_cdrs(curr_pairs,args)) return;
     // Execute proc, store result, & recurse down the rest of the lists
-    map_to.par->first = data_cast(execute_application(proc,args));
+    map_to.par->first = execute_application(proc,args);
     primitive_MAP_BANG_list_constructor(curr_pairs, proc);
   }
 
@@ -1179,12 +1177,12 @@ namespace heist {
     // Execute proc, accumulate result, & recurse down the rest of the lists
     if(folding_left) { // fold is preorder
       args.insert(args.begin(), init_val);
-      init_val = data_cast(execute_application(proc,args));
+      init_val = execute_application(proc,args);
     }
     primitive_FOLD_accumulator(curr_pairs,proc,init_val,folding_left);
     if(!folding_left) { // fold-right is postorder
       args.insert(args.end(), init_val);
-      init_val = data_cast(execute_application(proc,args));
+      init_val = execute_application(proc,args);
     }
   }
 
@@ -1206,8 +1204,8 @@ namespace heist {
                                        data& successor, const data& seed, scm_list& unfolded){
     if(scm_list truth_arg(1,seed); is_true_scm_condition(break_condition,truth_arg)) return;
     scm_list map_arg(1,seed), suc_arg(1,seed);
-    unfolded.push_back(data_cast(execute_application(mapper,map_arg)));
-    primitive_UNFOLD_template_recur(break_condition,mapper,successor,data_cast(execute_application(successor,suc_arg)),unfolded);
+    unfolded.push_back(execute_application(mapper,map_arg));
+    primitive_UNFOLD_template_recur(break_condition,mapper,successor,execute_application(successor,suc_arg),unfolded);
   }
 
 
@@ -2236,7 +2234,7 @@ namespace heist {
       }
       // If set of elements is true
       auto result = execute_application(procedure,any_args);
-      if(is_true(result)) return data_cast(result); // return element set
+      if(is_true(result)) return result; // return element set
     }
     return GLOBALS::FALSE_DATA_BOOLEAN; // else return false
   }
@@ -2271,7 +2269,7 @@ namespace heist {
       // If set of elements is false
       auto result = execute_application(procedure,every_args);
       if(!is_true(result))  return GLOBALS::FALSE_DATA_BOOLEAN; // return false
-      if(i+1 == min_length) return data_cast(result); // else return last <predicate> result
+      if(i+1 == min_length) return result; // else return last <predicate> result
     }
     return GLOBALS::FALSE_DATA_BOOLEAN; // else return false
   }
@@ -2745,7 +2743,7 @@ namespace heist {
     auto delay = d.del;
     if(!delay->already_forced) {
       delay->already_forced = true;
-      delay->result = data_cast(scm_analyze(std::move(delay->exp),false,delay->in_cps)(delay->env));
+      delay->result = scm_analyze(std::move(delay->exp),false,delay->in_cps)(delay->env);
     }
     return delay->result; // Memoize delays, "call by need" evaluation
   }
@@ -2968,14 +2966,14 @@ namespace heist {
     if(folding_left) { // stream-fold is preorder
       scm_list args(2);
       args[0] = init_val, args[1] = get_stream_data_car(curr_pair);
-      init_val = data_cast(execute_application(proc,args));
+      init_val = execute_application(proc,args);
     }
     primitive_STREAM_FOLD_accumulator(get_stream_data_cdr(curr_pair),
                                       proc,init_val,folding_left);
     if(!folding_left) { // stream-fold-right is postorder
       scm_list args(2);
       args[0] = get_stream_data_car(curr_pair), args[1] = init_val;
-      init_val = data_cast(execute_application(proc,args));
+      init_val = execute_application(proc,args);
     }
   }
 
@@ -3869,7 +3867,7 @@ namespace heist {
     } else {
       read_data[1] = primitive_read_from_port(outs,ins)[0];
     }
-    return data_cast(scm_eval(std::move(read_data), G.GLOBAL_ENVIRONMENT_POINTER));
+    return scm_eval(std::move(read_data), G.GLOBAL_ENVIRONMENT_POINTER);
   }
 
 
@@ -3888,7 +3886,7 @@ namespace heist {
       // return the parsed AST
       scm_list quoted_read_data(2);
       quoted_read_data[0] = symconst::quote, quoted_read_data[1] = std::move(read_data[0]);
-      return data_cast(scm_eval(std::move(quoted_read_data),G.GLOBAL_ENVIRONMENT_POINTER));
+      return scm_eval(std::move(quoted_read_data),G.GLOBAL_ENVIRONMENT_POINTER);
     // throw error otherwise & return void data
     } catch(const READER_ERROR& read_error) {
       if(is_non_repl_reader_error(read_error))
@@ -4363,7 +4361,7 @@ namespace heist {
     GLOBALS::PORT_REGISTRY.push_back(get_port(args[0],name,format,args));
     // apply the given procedure w/ a port to the file
     scm_list port_arg(1,port_ctor(GLOBALS::PORT_REGISTRY.size()-1));
-    return data_cast(execute_application(procedure,port_arg));
+    return execute_application(procedure,port_arg);
   }
 
 
@@ -4382,7 +4380,7 @@ namespace heist {
     DEFAULT_PORT = get_port(args[0], name, format, args);
     // apply the given procedure
     auto null_arg = scm_list(1,symconst::sentinel_arg);
-    auto result   = data_cast(execute_application(procedure,null_arg));
+    auto result   = execute_application(procedure,null_arg);
     // reset the current port
     if(DEFAULT_PORT && DEFAULT_PORT != stdin && 
        DEFAULT_PORT != stdout && DEFAULT_PORT != stderr) fclose(DEFAULT_PORT);
@@ -4437,7 +4435,7 @@ namespace heist {
   }
 
 
-  scm_list primitive_CPS_LOAD_interpret_file_contents(scm_list& args, env_type& env, const char* format){
+  data primitive_CPS_LOAD_interpret_file_contents(scm_list& args, env_type& env, const char* format){
     // Load file contents
     if(args.size() != 1)
       THROW_ERR("'cps-load received incorrect # of arguments!" << format << FCN_ERR("cps-load", args));
@@ -4690,7 +4688,7 @@ namespace heist {
         << name << " <optional-bool>)" << FCN_ERR(name,args));
     bool original_setting_status = setting;
     setting = true;
-    if(!args.empty()) setting = is_true(args);
+    if(!args.empty()) setting = is_true(args[0]);
     return boolean(original_setting_status);
   }
 
@@ -4775,7 +4773,7 @@ namespace heist {
       auto quoted = scm_list(2);
       quoted[0] = symconst::quote;
       quoted[1] = std::move(expanded);
-      return data_cast(scm_eval(std::move(quoted),env));
+      return scm_eval(std::move(quoted),env);
     }
     return GLOBALS::FALSE_DATA_BOOLEAN;
   }
@@ -5529,7 +5527,7 @@ namespace heist {
       // Return AST if successfully parsed an expression
       parse_input_exp(scm_string(scm_expr),abstract_syntax_tree);
       if(abstract_syntax_tree.empty()) return GLOBALS::VOID_DATA_OBJECT;
-      return data_cast(scm_eval(scm_list_cast(abstract_syntax_tree[0]),G.GLOBAL_ENVIRONMENT_POINTER));
+      return scm_eval(scm_list_cast(abstract_syntax_tree[0]),G.GLOBAL_ENVIRONMENT_POINTER);
     } catch(const READER_ERROR& read_error) {
       print_csv_reader_error_alert(seq_prefix[1] == 'v' ? "VECTOR" : "LIST");
       if(is_non_repl_reader_error(read_error))
@@ -5619,7 +5617,7 @@ namespace heist {
       for(std::size_t i = 0, n = reg_matches.size(); i < n; ++i)
         reg_args[i+2] = make_str(reg_matches.str(i));
       // pass to given procedure & confirm returned a string
-      data result = data_cast(execute_application(procedure,reg_args));
+      data result = execute_application(procedure,reg_args);
       if(!result.is_type(types::str))
         THROW_ERR('\''<<name<<" procedure \""<<procedure.fcn.name // skip prefixing ' '
           <<"\" didn't return a string (returned "<<PROFILE(result)<<")!"<<format<<FCN_ERR(name,args));
@@ -6087,7 +6085,7 @@ namespace heist {
         auto& env = d.obj->proto->defn_env;
         d = extend_method_env_with_SELF_object(d.obj,d.obj->method_values[i].fcn);
         scm_list arg(1,symconst::sentinel_arg);
-        return data_cast(execute_application(d,arg,env));
+        return execute_application(d,arg,env);
       }
     THROW_ERR("'cycle-coroutines! 'coroutine object " << d
       << " is missing the \"next\" method!" << format); 

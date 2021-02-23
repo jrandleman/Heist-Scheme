@@ -468,7 +468,7 @@ namespace heist {
     new_log[2].exp[0] = "log";
     new_log[2].exp[1] = "num";
     new_log[2].exp[2] = args[0];
-    return data_cast(scm_eval(std::move(new_log),G.GLOBAL_ENVIRONMENT_POINTER));
+    return scm_eval(std::move(new_log),G.GLOBAL_ENVIRONMENT_POINTER);
   }
 
   /******************************************************************************
@@ -1522,7 +1522,7 @@ namespace heist {
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_MAP_BANG,"hmap-map!",
     scm_list arg(1,args[1].map->val[keys[i]]);
-    args[1].map->val[keys[i]] = data_cast(execute_application(procedure,arg)););
+    args[1].map->val[keys[i]] = execute_application(procedure,arg););
 
   // primitive "hmap-map"
   data primitive_HMAP_MAP(scm_list& args) {
@@ -1539,7 +1539,7 @@ namespace heist {
     scm_map map;
     for(i = 0; i < n; ++i) {
       scm_list arg(1,args[1].map->val[keys[i]]);
-      map.val[keys[i]] = data_cast(execute_application(procedure,arg));
+      map.val[keys[i]] = execute_application(procedure,arg);
     }
     return make_map(std::move(map));
   }
@@ -2243,7 +2243,7 @@ namespace heist {
       const auto mid = low + (high-low)/2; // no overflow on mid
       scm_list bsearch_args(2);
       bsearch_args[0] = vec[mid], bsearch_args[1] = value;
-      auto cmp_result = data_cast(execute_application(proc,bsearch_args));
+      auto cmp_result = execute_application(proc,bsearch_args);
       if(!cmp_result.is_type(types::num))
         THROW_ERR("'vector-binary-search result "<<PROFILE(cmp_result)<<
           " from callable "<<args[2]<<"\n     applied to args "<<vec[mid]
@@ -3483,7 +3483,7 @@ namespace heist {
       // if using *local-environment* or *global-environment*
       if(!must_reset_global_env) {
         try {
-          return data_cast(scm_eval(scm_list(1, args[0]),env));
+          return scm_eval(scm_list(1, args[0]),env);
         } catch(const SCM_EXCEPT& eval_throw) {
           throw eval_throw;
         }
@@ -3491,7 +3491,7 @@ namespace heist {
       } else {
         auto old_invariants = reset_process_invariant_state();
         try {
-          auto result = data_cast(scm_eval(scm_list(1, args[0]),G.GLOBAL_ENVIRONMENT_POINTER));
+          auto result = scm_eval(scm_list(1, args[0]),G.GLOBAL_ENVIRONMENT_POINTER);
           set_process_invariant_state(std::move(old_invariants));
           return result;
         } catch(const SCM_EXCEPT& eval_throw) {
@@ -3516,7 +3516,7 @@ namespace heist {
     // if using *local-environment* or *global-environment*
     if(!must_reset_global_env) {
       try {
-        return data_cast(scm_eval(prm_EVAL_convert_list_to_AST(args[0]),env));
+        return scm_eval(prm_EVAL_convert_list_to_AST(args[0]),env);
       } catch(const SCM_EXCEPT& eval_throw) {
         throw eval_throw;
       }
@@ -3524,7 +3524,7 @@ namespace heist {
     } else {
       auto old_invariants = reset_process_invariant_state();
       try {
-        auto result = data_cast(scm_eval(prm_EVAL_convert_list_to_AST(args[0]),G.GLOBAL_ENVIRONMENT_POINTER));
+        auto result = scm_eval(prm_EVAL_convert_list_to_AST(args[0]),G.GLOBAL_ENVIRONMENT_POINTER);
         set_process_invariant_state(std::move(old_invariants));
         return result;
       } catch(const SCM_EXCEPT& eval_throw) {
@@ -3572,7 +3572,7 @@ namespace heist {
     // if arg is self-evaluating, return arg
     if(prm_EVAL_data_is_self_evaluating(args[0])) {
       scm_list cps_eval_args(1,continuation);
-      return data_cast(execute_application(data_cast(scm_analyze(generate_fundamental_form_cps(args[0]),false,true)(env)),cps_eval_args,env));
+      return execute_application(scm_analyze(generate_fundamental_form_cps(args[0]),false,true)(env),cps_eval_args,env);
     }
 
 
@@ -3586,7 +3586,7 @@ namespace heist {
       if(!must_reset_global_env) {
         try {
           scm_list cps_eval_args(1,continuation);
-          return data_cast(execute_application(data_cast(scm_analyze(generate_fundamental_form_cps(args[0]),false,true)(env)),cps_eval_args,env));
+          return execute_application(scm_analyze(generate_fundamental_form_cps(args[0]),false,true)(env),cps_eval_args,env);
         } catch(const SCM_EXCEPT& eval_throw) {
           throw eval_throw;
         }
@@ -3595,8 +3595,8 @@ namespace heist {
         auto old_invariants = reset_process_invariant_state();
         try {
           scm_list cps_eval_args(1,continuation);
-          auto result = data_cast(execute_application(data_cast(scm_analyze(generate_fundamental_form_cps(args[0]),false,true)(G.GLOBAL_ENVIRONMENT_POINTER)),
-                                                      cps_eval_args, G.GLOBAL_ENVIRONMENT_POINTER));
+          auto result = execute_application(scm_analyze(generate_fundamental_form_cps(args[0]),false,true)(G.GLOBAL_ENVIRONMENT_POINTER),
+                                            cps_eval_args, G.GLOBAL_ENVIRONMENT_POINTER);
           set_process_invariant_state(std::move(old_invariants));
           return result;
         } catch(const SCM_EXCEPT& eval_throw) {
@@ -3621,8 +3621,9 @@ namespace heist {
     if(!must_reset_global_env) {
       try {
         scm_list cps_eval_args(1,continuation);
-        return data_cast(execute_application(data_cast(scm_analyze(generate_fundamental_form_cps(
-                prm_EVAL_convert_list_to_AST(args[0])),false,true)(env)),cps_eval_args,env));
+        return execute_application(scm_analyze(generate_fundamental_form_cps(
+                                   prm_EVAL_convert_list_to_AST(args[0])),false,true)(env),
+                                   cps_eval_args,env);
       } catch(const SCM_EXCEPT& eval_throw) {
         throw eval_throw;
       }
@@ -3631,9 +3632,9 @@ namespace heist {
       auto old_invariants = reset_process_invariant_state();
       try {
         scm_list cps_eval_args(1,continuation);
-        auto result = data_cast(
-          execute_application(data_cast(scm_analyze(generate_fundamental_form_cps(
-            prm_EVAL_convert_list_to_AST(args[0])),false,true)(G.GLOBAL_ENVIRONMENT_POINTER)),cps_eval_args,G.GLOBAL_ENVIRONMENT_POINTER));
+        auto result = execute_application(scm_analyze(generate_fundamental_form_cps(
+                                          prm_EVAL_convert_list_to_AST(args[0])),false,true)(G.GLOBAL_ENVIRONMENT_POINTER),
+                                          cps_eval_args,G.GLOBAL_ENVIRONMENT_POINTER);
         set_process_invariant_state(std::move(old_invariants));
         return result;
       } catch(const SCM_EXCEPT& eval_throw) {
@@ -3669,7 +3670,7 @@ namespace heist {
     scm_list args_list;
     shallow_unpack_list_into_exp(args[1], args_list);
     if(args_list.empty()) args_list.push_back(symconst::sentinel_arg);
-    return data_cast(execute_callable(args[0],args_list,G.GLOBAL_ENVIRONMENT_POINTER,tail_call));
+    return execute_callable(args[0],args_list,G.GLOBAL_ENVIRONMENT_POINTER,tail_call);
   }
 
   /******************************************************************************
@@ -4898,9 +4899,9 @@ namespace heist {
         try {
           scm_list cps_load_arg(1,continuation);
           // pass the continuation to the loaded file
-          auto result = data_cast(execute_application(
-            data_cast(primitive_CPS_LOAD_interpret_file_contents(args,G.GLOBAL_ENVIRONMENT_POINTER,format)),
-            cps_load_arg,G.GLOBAL_ENVIRONMENT_POINTER));
+          auto result = execute_application(
+            primitive_CPS_LOAD_interpret_file_contents(args,G.GLOBAL_ENVIRONMENT_POINTER,format),
+            cps_load_arg,G.GLOBAL_ENVIRONMENT_POINTER);
           // Reset interpreter invariants to their previous states
           set_process_invariant_state(std::move(old_invariants));
           return result;
@@ -4921,7 +4922,7 @@ namespace heist {
     }
     // pass the continuation to the loaded file
     scm_list cps_load_arg(1,continuation);
-    return data_cast(execute_application(data_cast(primitive_CPS_LOAD_interpret_file_contents(args,env,format)),cps_load_arg,env));
+    return execute_application(primitive_CPS_LOAD_interpret_file_contents(args,env,format),cps_load_arg,env);
   }
 
   // Compiles a given filename's file's Heist-Scheme code into a C++ File
@@ -5019,7 +5020,7 @@ namespace heist {
     // return a pair: (cons <time> <result>)
     data p = make_par();
     p.par->first = num_type(convert_us_to_s(std::chrono::duration_cast<std::chrono::microseconds>(end-start).count()));
-    p.par->second = data_cast(result);
+    p.par->second = std::move(result);
     return p;
   }
 
@@ -5042,7 +5043,7 @@ namespace heist {
         "\n     (set-nansi! <optional-bool>)" << FCN_ERR("set-nansi!",args));
     bool original_setting_status = !G.USING_ANSI_ESCAPE_SEQUENCES;
     G.USING_ANSI_ESCAPE_SEQUENCES = false;
-    if(!args.empty()) G.USING_ANSI_ESCAPE_SEQUENCES = !is_true(args);
+    if(!args.empty()) G.USING_ANSI_ESCAPE_SEQUENCES = !is_true(args[0]);
     return boolean(original_setting_status);
   }
 
@@ -5182,7 +5183,7 @@ namespace heist {
       "\n     (call/ce <callable> <arg1> ... <argN>)", args);
     scm_list call_ce_args(args.begin()+1,args.end());
     if(call_ce_args.empty()) call_ce_args.push_back(symconst::sentinel_arg);
-    return data_cast(execute_callable(args[0],call_ce_args,env,false,true));
+    return execute_callable(args[0],call_ce_args,env,false,true);
   }
 
   // Propagates "call/ce" across this invocation & every subsequent invocation 
@@ -5199,7 +5200,7 @@ namespace heist {
     if(inline_args.empty()) inline_args.push_back(symconst::sentinel_arg);
     G.USING_INLINE_INVOCATIONS = true;
     try {
-      auto result = data_cast(execute_callable(args[0],inline_args,env));
+      auto result = execute_callable(args[0],inline_args,env);
       G.USING_INLINE_INVOCATIONS = false;
       return result;
     } catch(const SCM_EXCEPT& call_ce_error) {
@@ -5230,7 +5231,7 @@ namespace heist {
     if(catch_jump_args.empty()) catch_jump_args.push_back(symconst::sentinel_arg);
     const bool inline_status = G.USING_INLINE_INVOCATIONS;
     try {
-      return data_cast(execute_callable(args[0],catch_jump_args));
+      return execute_callable(args[0],catch_jump_args);
     } catch(const SCM_EXCEPT& jump_error) {
       G.USING_INLINE_INVOCATIONS = inline_status;
       if(jump_error == SCM_EXCEPT::JUMP)
@@ -5266,7 +5267,7 @@ namespace heist {
     if(trace_args.empty()) trace_args.push_back(symconst::sentinel_arg);
     // Set name of the function to trace
     G.TRACED_FUNCTION_NAME = args[0].fcn.name;
-    auto result = data_cast(execute_application(args[0],trace_args));
+    auto result = execute_application(args[0],trace_args);
     G.TRACED_FUNCTION_NAME = "";
     return result;
   }
@@ -5488,7 +5489,7 @@ namespace heist {
       // Return AST if successfully parsed an expression
       parse_input_exp(heist_json_parser::convert_json_to_scm(*args[0].str,input),abstract_syntax_tree);
       if(abstract_syntax_tree.empty()) return GLOBALS::VOID_DATA_OBJECT;
-      return data_cast(scm_eval(scm_list_cast(abstract_syntax_tree[0]),G.GLOBAL_ENVIRONMENT_POINTER));
+      return scm_eval(scm_list_cast(abstract_syntax_tree[0]),G.GLOBAL_ENVIRONMENT_POINTER);
     } catch(const READER_ERROR& read_error) {
       heist_json_parser::print_json_reader_error_alert();
       if(is_non_repl_reader_error(read_error))
