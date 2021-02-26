@@ -29,8 +29,7 @@
 9. [Generic Algorithms](#Generic-Sequence-ListVectorString-Algorithmic-Procedures)
 10. [Expanded String Library](#String-Procedures)
 11. [String I/O](#Output-Procedures)
-12. [Recursive Depth Control](#Interpreter-Invariants-Manipulation)
-13. [A](#Curry)[n](#Heist-Mathematical-Flonum-Constants)[d](#Control-Flow-Procedures) [M](#Gensym--symbol-append)[o](#JSON-Interop)[r](#Define-Coroutine)[e](#System-Interface-Procedures)[!](#Syntax-Procedures)
+12. [A](#Curry)[n](#Heist-Mathematical-Flonum-Constants)[d](#Control-Flow-Procedures) [M](#Gensym--symbol-append)[o](#JSON-Interop)[r](#Define-Coroutine)[e](#System-Interface-Procedures)[!](#Syntax-Procedures)
 
 ------------------------ 
 # Table of Contents
