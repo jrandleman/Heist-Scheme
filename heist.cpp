@@ -4385,8 +4385,10 @@ namespace heist {
     exe_fcn_t fcn_body;
     auto extended_env = procedure.fcn.get_extended_environment(arguments,fcn_body);
     // splice in current env for dynamic scope as needed
-    if(procedure.fcn.is_using_dnyamic_scope())
-      extended_env->insert(extended_env->begin()+1, env->begin(), env->end());
+    if(procedure.fcn.is_using_dnyamic_scope()) {
+      extended_env->erase(extended_env->begin()+1,extended_env->end());
+      extended_env->insert(extended_env->end(), env->begin(), env->end());
+    }
     // add the 'self' object iff applying a method
     if(procedure.fcn.self) {
       frame_variables(*extended_env->operator[](0)).push_back("self");
