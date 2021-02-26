@@ -8,7 +8,7 @@
 #ifndef CPP_INTEROP_HPP_
 #define CPP_INTEROP_HPP_
 
-// Defines 4 Functions for C++ Interop w/ Heist:
+// Defines 3 Functions for C++ Interop w/ Heist:
 //   0) eval   // evaluate heist code string, same as _heist literal (see below)
 //   1) apply  // apply args to Heist callable (procedure or functor)
 //   2) define // define C++ Heist primitive _OR_ a global Heist variable
