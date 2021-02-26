@@ -5657,7 +5657,7 @@ namespace heist {
   }
 
 
-  data regex_split_empty_string(const scm_string& target) {
+  data regex_split_empty_string(const scm_string& target)noexcept{
     scm_list split;
     for(const auto& ch : target)
       split.push_back(make_str(scm_string(1,ch)));
@@ -5838,7 +5838,7 @@ namespace heist {
 
 
   // primitive "heist:core:oo:add-property!" helper for members
-  data prm_HEIST_CORE_OO_ADD_MEMBER(scm_list& args) {
+  data prm_HEIST_CORE_OO_ADD_MEMBER(scm_list& args)noexcept{
     // Set local member if already exists
     for(size_type i = 0, n = args[0].obj->member_names.size(); i < n; ++i) {
       if(args[0].obj->member_names[i] == args[1].sym) {
@@ -5862,7 +5862,7 @@ namespace heist {
 
 
   // primitive "heist:core:oo:add-property!" helper for methods
-  data prm_HEIST_CORE_OO_ADD_METHOD(scm_list& args) {
+  data prm_HEIST_CORE_OO_ADD_METHOD(scm_list& args)noexcept{
     // Set local method if already exists
     for(size_type i = 0, n = args[0].obj->method_names.size(); i < n; ++i) {
       if(args[0].obj->method_names[i] == args[1].sym) {
