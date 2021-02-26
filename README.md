@@ -7,7 +7,7 @@
 
 ------------------------
 # Using Heist Scheme:
-=> _See [`INSTALL.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/INSTALL.md) for step-by-step initial/new directory installation instructions!_<br>
+=> _See [`INSTALL.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/INSTALL.md) for initial/new directory installation instructions!_<br>
 => _Tested on OSX & Linux with Clang++ & G++, and **should** work on Windows (adheres C++17 standard)_<br>
 
 0. Compiling the Interpreter: `$ clang++ -std=c++17 -O3 -o heist heist.cpp`
