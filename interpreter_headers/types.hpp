@@ -89,7 +89,6 @@ namespace heist {
   namespace symconst {
     constexpr const char * const emptylist         = "";
     constexpr const char * const dot               = "*dot*";
-    constexpr const char * const sentinel_arg      = "heist:core:nil-arg";
     constexpr const char * const do_label          = "heist:core:do-letrec";
     constexpr const char * const tail_call         = "heist:core:tail-call";
     constexpr const char * const continuation      = "heist:core:cps-";              // hashed continuation arg name prefix
@@ -743,19 +742,19 @@ namespace heist {
 
   // delay structure
   struct scm_delay {
-    scm_list exp;
+    data datum;
     env_type env;
     bool already_forced, in_cps;
     data result;
-    scm_delay(const scm_list& delayed_exp = scm_list(), env_type delay_env = nullptr, bool cps = false) noexcept
-      : exp(delayed_exp), env(delay_env), already_forced(false), in_cps(cps), result(boolean(false)) {}
+    scm_delay(const data& delayed_datum = data(), env_type delay_env = nullptr, bool cps = false) noexcept
+      : datum(delayed_datum), env(delay_env), already_forced(false), in_cps(cps), result(boolean(false)) {}
     void operator=(const scm_delay& d) noexcept {
       if(this == &d) return;
-      exp=d.exp, in_cps=d.in_cps, env=d.env, already_forced=d.already_forced, result=d.result;
+      datum=d.datum, in_cps=d.in_cps, env=d.env, already_forced=d.already_forced, result=d.result;
     }
     void operator=(scm_delay&& d) noexcept {
       if(this == &d) return;
-      exp=std::move(d.exp), in_cps=std::move(d.in_cps), env=std::move(d.env);
+      datum=std::move(d.datum), in_cps=std::move(d.in_cps), env=std::move(d.env);
       already_forced=std::move(d.already_forced), result=std::move(d.result);
     }
     scm_delay(const scm_delay& d) noexcept {*this = d;}
@@ -897,20 +896,20 @@ namespace heist {
   * DATA TYPE GC CONSTRUCTORS
   ******************************************************************************/
 
-  frame_ptr make_frame(const frame_t& o)                             noexcept{return frame_ptr(o);}
-  frame_ptr make_frame(frame_t&& o)                                  noexcept{return frame_ptr(std::move(o));}
-  str_type make_str(const scm_string& o)                             noexcept{return str_type(o);}
-  str_type make_str(scm_string&& o)                                  noexcept{return str_type(std::move(o));}
-  vec_type make_vec(const scm_list& o)                               noexcept{return vec_type(o);}
-  vec_type make_vec(scm_list&& o)                                    noexcept{return vec_type(std::move(o));}
-  del_type make_del(const scm_list& l,const env_type& e, bool in_cps)noexcept{return del_type(scm_delay(l,e,in_cps));}
-  par_type make_par()                                                noexcept{return par_type(scm_pair());}
-  map_type make_map(const scm_map& m)                                noexcept{return map_type(m);}
-  map_type make_map(scm_map&& m)                                     noexcept{return map_type(std::move(m));}
-  env_type make_env()                                                noexcept{return env_type(environment());}
-  cls_type make_cls(const class_prototype& c)                        noexcept{return cls_type(c);}
-  obj_type make_obj(const object_type& o)                            noexcept{return obj_type(o);}
-  obj_type make_obj(object_type&& o)                                 noexcept{return obj_type(std::move(o));}
+  frame_ptr make_frame(const frame_t& o)                         noexcept{return frame_ptr(o);}
+  frame_ptr make_frame(frame_t&& o)                              noexcept{return frame_ptr(std::move(o));}
+  str_type make_str(const scm_string& o)                         noexcept{return str_type(o);}
+  str_type make_str(scm_string&& o)                              noexcept{return str_type(std::move(o));}
+  vec_type make_vec(const scm_list& o)                           noexcept{return vec_type(o);}
+  vec_type make_vec(scm_list&& o)                                noexcept{return vec_type(std::move(o));}
+  del_type make_del(const data& d,const env_type& e, bool in_cps)noexcept{return del_type(scm_delay(d,e,in_cps));}
+  par_type make_par()                                            noexcept{return par_type(scm_pair());}
+  map_type make_map(const scm_map& m)                            noexcept{return map_type(m);}
+  map_type make_map(scm_map&& m)                                 noexcept{return map_type(std::move(m));}
+  env_type make_env()                                            noexcept{return env_type(environment());}
+  cls_type make_cls(const class_prototype& c)                    noexcept{return cls_type(c);}
+  obj_type make_obj(const object_type& o)                        noexcept{return obj_type(o);}
+  obj_type make_obj(object_type&& o)                             noexcept{return obj_type(std::move(o));}
 
   /******************************************************************************
   * GLOBAL PROCESS-DEPENDANT MUTABLE GLOBAL INVARIANTS
@@ -1098,7 +1097,7 @@ namespace heist {
     scm_string get_possible_signatures(const std::vector<exp_type>& param_instances,const scm_string& name)noexcept{
       scm_string buff;
       for(size_type i = 0, n = param_instances.size(); i < n; ++i) {
-        if(no_args_given(param_instances[i]))
+        if(param_instances[i].empty())
           buff += "\n        (" + name + ')';
         else
           buff += "\n        (" + name + ' ' + get_possible_signature(param_instances[i]);
@@ -1297,10 +1296,9 @@ namespace heist {
     // 4. MATCHING & UPPACKING LIST/VECTOR/HMAP CONTAINER LITERALS
     bool is_fn_call_match(const exp_type& params, exp_type& arguments, exp_type& values, frame_vars& unpacked_params)noexcept{
       // confirm emptiness match
-      if(bool no_params = no_args_given(params); 
-        (params.empty() || !data_is_dot_operator(params[0])) && (no_params ^ no_args_given(arguments))) {
+      if((params.empty() || !data_is_dot_operator(params[0])) && (params.empty() ^ arguments.empty())) {
         return false;
-      } else if(no_params) {
+      } else if(params.empty()) {
         return true;
       }
       size_type i = 0, j = 0, n = params.size(), m = arguments.size();
@@ -1359,9 +1357,6 @@ namespace heist {
 
   // get the extended environment for the compound procedure given <arguments>
   env_type scm_fcn::get_extended_environment(exp_type& arguments, exe_fcn_t& body){
-    // erase the misplaced sentinel arg for nullary CPS procedures (CPS-transform artifact)
-    bool is_nullary_cps_params(scm_list&)noexcept;
-    if(is_nullary_cps_params(arguments)) arguments.erase(arguments.begin());
     // extend the lambda environment
     env_type extend_environment(frame_vars&&,frame_vals&,env_type&,const sym_type&);
     if(is_lambda()) {
@@ -1372,8 +1367,6 @@ namespace heist {
     frame_vars unpacked_params;
     exp_type values;
     fn_param_matching::match_fn_call_signature(param_instances,bodies,printable_procedure_name(),arguments,values,unpacked_params,body);
-    if(unpacked_params.empty()) unpacked_params.push_back(symconst::sentinel_arg);
-    if(values.empty()) values.push_back(symconst::sentinel_arg);
     return extend_environment(std::move(unpacked_params), values, env, name);
   }
 }; // End of namespace heist

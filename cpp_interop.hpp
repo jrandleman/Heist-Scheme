@@ -22,12 +22,14 @@ namespace heist {
     scm_list abstract_syntax_tree;
     try {
       // Evaluate AST if successfully parsed an expression
+      // => We wrap evaluated datums in "data" (*)HERE(*) to NOT mv the evaluated datum, 
+      //    in case such needs to be shown in the error message upon an evaluation error.
       parse_input_exp(std::move(exp),abstract_syntax_tree);
       for(size_type i = 0, n = abstract_syntax_tree.size(); i < n; ++i) {
         try {
-          if(i+1 == n) 
-            return scm_eval(scm_list_cast(abstract_syntax_tree[i]),G.GLOBAL_ENVIRONMENT_POINTER);
-          scm_eval(scm_list_cast(abstract_syntax_tree[i]),G.GLOBAL_ENVIRONMENT_POINTER);
+          if(i+1 == n)
+            return scm_eval(data(abstract_syntax_tree[i]),G.GLOBAL_ENVIRONMENT_POINTER); // (*)HERE(*)
+          scm_eval(data(abstract_syntax_tree[i]),G.GLOBAL_ENVIRONMENT_POINTER);          // (*)HERE(*)
         } catch(const SCM_EXCEPT& eval_throw) {
           if(eval_throw == heist::SCM_EXCEPT::JUMP) {
             PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
@@ -88,7 +90,6 @@ namespace heist {
       PRINT_ERR("Invalid Heist Scheme Callable: " << PROFILE(heist_procedure));
       return data();
     }
-    if(args.empty()) args.push_back(symconst::sentinel_arg);
     try {
       return execute_callable(heist_procedure, args, G.GLOBAL_ENVIRONMENT_POINTER);
     } catch(const SCM_EXCEPT& eval_throw) {
@@ -107,7 +108,6 @@ namespace heist {
   // Apply Heist Scheme Callable by Name
   data apply(const std::string& heist_procedure_name, scm_list args) noexcept {
     if(!G.GLOBAL_ENVIRONMENT_POINTER) set_default_global_environment(), atexit(close_port_registry);
-    if(args.empty()) args.push_back(symconst::sentinel_arg);
     try {
       auto val = lookup_variable_value(heist_procedure_name,G.GLOBAL_ENVIRONMENT_POINTER);
       return execute_callable(val, args, G.GLOBAL_ENVIRONMENT_POINTER);

@@ -30,12 +30,10 @@ namespace heist {
   void     parse_input_exp(scm_string&& input, scm_list& abstract_syntax_tree);
   void     skip_string_literal(size_type& i, const scm_string& input)noexcept;
   void     set_default_global_environment();
-  data     data_cast(const scm_list& l)noexcept;
-  data     scm_eval(scm_list&& exp, env_type& env);
-  scm_list scm_list_cast(const data& d)noexcept;
+  data     scm_eval(data&& datum, env_type& env);
   scm_list generate_fundamental_form_cps(const data& code,const bool topmost_call=true);
   scm_list read_user_input(FILE* outs,FILE* ins,const bool& in_repl=true);
-  exe_fcn_t scm_analyze(scm_list&& exp,const bool tail_call=false,const bool cps_block=false);
+  exe_fcn_t scm_analyze(data&& datum,const bool tail_call=false,const bool cps_block=false);
   size_type is_expandable_reader_macro(const scm_string&, const size_type)noexcept;
   constexpr bool IS_END_OF_WORD(const char& c, const char& c2)noexcept;
   std::pair<chr_type,scm_string> data_is_named_char(const size_type&,const scm_string&)noexcept;
@@ -44,7 +42,6 @@ namespace heist {
   //          -- FROM PRIMITIVES & ITS TOOLKIT
   template<typename OBJECT_TYPE>
   void        define_setter_method_for_member(OBJECT_TYPE& proto, env_type& env, const scm_string& member_name);
-  bool        data_is_the_empty_expression(const data& d)noexcept;
   void        shallow_unpack_list_into_exp(data& curr_pair, scm_list& args_list)noexcept;
   void        primitive_UNFOLD_template(scm_list&,scm_list&,const char*,const char* format);
   frame_var   procedure_name(const scm_list& p)noexcept;
@@ -109,6 +106,12 @@ namespace heist {
     for(size_type i = 0, n = args.size(); i < n; ++i)
       if(!args[i].is_type(t1) && !args[i].is_type(t2)) return i;
     return GLOBALS::MAX_SIZE_TYPE;
+  }
+
+
+  // returns whether 'curr_pair' is the end of a valid "list" sequence
+  bool data_is_the_empty_list(const data& curr_pair)noexcept{
+    return curr_pair.is_type(types::sym) && curr_pair.sym == symconst::emptylist;
   }
 
   /******************************************************************************
@@ -234,8 +237,8 @@ namespace heist {
   ******************************************************************************/
 
   bool data_is_proper_list(const data& d)noexcept{
-    return data_is_the_empty_expression(d) || // data is the empty list
-           (d.is_type(types::par) &&          // OR a finite & '()-terminated pair sequence
+    return data_is_the_empty_list(d) || // data is the empty list
+           (d.is_type(types::par) &&    // OR a finite & '()-terminated pair sequence
             (primitive_list_is_acyclic_and_null_terminated(d) == list_status::ok));
   }
 
@@ -282,7 +285,7 @@ namespace heist {
                                     const char* name, const char* format){
     if(d.is_type(types::vec))           return heist_sequence::vec;
     if(d.is_type(types::str))           return heist_sequence::str;
-    if(data_is_the_empty_expression(d)) return heist_sequence::nul;
+    if(data_is_the_empty_list(d)) return heist_sequence::nul;
     if(d.is_type(types::par) && 
       primitive_list_is_acyclic_and_null_terminated(d) == list_status::ok)
       return heist_sequence::lis;
@@ -294,7 +297,7 @@ namespace heist {
 
   // Confirm given an empty <sequence> (string, list, or vector)
   bool data_is_empty(const data& d)noexcept{
-    return data_is_the_empty_expression(d) || 
+    return data_is_the_empty_list(d) || 
       (d.is_type(types::str) && d.str->empty()) || 
       (d.is_type(types::vec) && d.vec->empty());
   }
@@ -447,7 +450,7 @@ namespace heist {
   bool primitive_validate_list_and_return_if_empty(scm_list& args, const char* name){
     confirm_given_one_arg(args,name,"<list>");
     // return an empty string/vector if given an empty list
-    if(data_is_the_empty_expression(args[0])) return true;
+    if(data_is_the_empty_list(args[0])) return true;
     // confirm given a proper list
     if(!args[0].is_type(types::par)) {
       THROW_ERR('\''<<name<<' '<<PROFILE(args[0])<<" isn't a proper list:"
@@ -793,7 +796,7 @@ namespace heist {
   void confirm_given_list_of_strings(scm_list& args, const char* format, 
                                                      scm_list& strings_list){
     // confirm proper list
-    if(!args[0].is_type(types::par) && !data_is_the_empty_expression(args[0]))
+    if(!args[0].is_type(types::par) && !data_is_the_empty_list(args[0]))
       THROW_ERR("'string-join 1st arg " << PROFILE(args[0]) 
         << " isn't a proper list:" << format << FCN_ERR("string-join",args));
     else if(auto list_stat = primitive_list_is_acyclic_and_null_terminated(args[0]); 
@@ -1026,14 +1029,6 @@ namespace heist {
   }
 
 
-  // returns whether 'curr_pair' is the end of a valid "list" sequence
-  bool primitive_IS_THE_EMPTY_LIST(const data& curr_pair)noexcept{
-    return curr_pair.is_type(types::sym) && 
-            (curr_pair.sym == symconst::emptylist || 
-             curr_pair.sym == symconst::sentinel_arg);
-  }
-
-
   // "list?" & "alist?" helper. Uses the 1st half of the Floyd Loop Detection 
   //   Algorithm (doesn't need to find WHERE the cycle is).
   list_status primitive_list_is_acyclic_and_null_terminated(const data& curr_pair)noexcept{
@@ -1045,11 +1040,11 @@ namespace heist {
     }
     // if found end of the list, return whether ends in '()
     if(!fast.is_type(types::par))
-      return primitive_IS_THE_EMPTY_LIST(fast) 
+      return data_is_the_empty_list(fast) 
               ? list_status::ok 
               : list_status::no_null;
     if(!fast.par->second.is_type(types::par))
-      return primitive_IS_THE_EMPTY_LIST(fast.par->second) 
+      return data_is_the_empty_list(fast.par->second) 
               ? list_status::ok 
               : list_status::no_null;
     // if didn't find end of the list, contains a cycle.
@@ -1079,7 +1074,7 @@ namespace heist {
 
   // Compute length of a guarenteed 'data' list (avoids redundant error handling)
   num_type primitive_guarenteed_list_length(const data& d)noexcept{
-    if(data_is_the_empty_expression(d)) return num_type();
+    if(data_is_the_empty_list(d)) return num_type();
     num_type count;
     primitive_list_LENGTH_computation(d.par->second,count);
     return count;
@@ -1246,7 +1241,7 @@ namespace heist {
       THROW_ERR('\''<<name<<" received incorrect # of args:\n     ("
         <<name<<" <obj> <list>)"<<FCN_ERR(name,args));
     // (<mem> <obj> '()) = #f
-    if(data_is_the_empty_expression(args[1]))
+    if(data_is_the_empty_list(args[1]))
       return GLOBALS::FALSE_DATA_BOOLEAN;
     // Confirm given a proper list
     if(!data_is_proper_list(args[1]))
@@ -1287,7 +1282,7 @@ namespace heist {
       THROW_ERR('\''<<name<<" received incorrect # of args:\n     ("
         <<name<<" <obj> <association-list>)"<<FCN_ERR(name,args));
     // (<mem> <obj> '()) = #f
-    if(data_is_the_empty_expression(args[1]))
+    if(data_is_the_empty_list(args[1]))
       return GLOBALS::FALSE_DATA_BOOLEAN;
     // Confirm given a proper list
     if(!data_is_proper_list(args[1]))
@@ -1654,7 +1649,7 @@ namespace heist {
     if(curr_pair.is_type(types::par)) {
       args_list.push_back(curr_pair.par->first);
       shallow_unpack_possibly_dotted_list_into_exp(curr_pair.par->second, args_list); 
-    } else if(!data_is_the_empty_expression(curr_pair)) {
+    } else if(!data_is_the_empty_list(curr_pair)) {
       args_list.push_back(curr_pair);
     }
   }
@@ -1726,7 +1721,7 @@ namespace heist {
         <<" isn't an acyclic list:"<< format << FCN_ERR("append", args));
     // Confirm Precondition 1
     for(size_type i = 0; i < n-1; ++i) {
-      if(data_is_the_empty_expression(args[i])) continue;
+      if(data_is_the_empty_list(args[i])) continue;
       if(!args[i].is_type(types::par))
         THROW_ERR("'append <list> argument #" << i+1 << ' ' << PROFILE(args[i]) 
           << " isn't a pair:" << format << FCN_ERR("append", args));
@@ -1741,7 +1736,7 @@ namespace heist {
     // Link the guarenteed proper lists to one another
     scm_list appended;
     for(size_type i = 0; i < n-1; ++i)
-      if(!data_is_the_empty_expression(args[i]))
+      if(!data_is_the_empty_list(args[i]))
         shallow_unpack_possibly_dotted_list_into_exp(args[i],appended);
     // Link last object (anything except a circular list)
     if(appended.empty()) return make_deep_copy_of_list(args[n-1]);
@@ -1884,7 +1879,7 @@ namespace heist {
     const size_type total_lists = args.size();
     std::vector<scm_list> lists_as_exps(total_lists-1);
     for(size_type i = 1, n = total_lists; i < n; ++i) {
-      if(!data_is_the_empty_expression(args[i])) {
+      if(!data_is_the_empty_list(args[i])) {
         if(!args[i].is_type(types::par) || 
            primitive_list_is_acyclic_and_null_terminated(args[i]) != list_status::ok)
           THROW_ERR("'seq= <list> arg #"<<i+1<<' '<<PROFILE(args[i])
@@ -2625,18 +2620,6 @@ namespace heist {
   * EVAL/APPLY PRIMITIVE HELPERS
   ******************************************************************************/
 
-  // [ EVAL ] Confirms whether given data is the AST's repn of ()
-  bool data_is_the_empty_expression(const data& d)noexcept{
-    return d.is_type(types::sym) && d.sym==symconst::emptylist;
-  }
-
-
-  // [ EVAL ] Confirms pair is the invocation of an argless procedure
-  bool evaling_an_argless_procedure(const par_type& par)noexcept{
-    return primitive_IS_THE_EMPTY_LIST(par->second);
-  }
-
-
   // [ EVAL ] Converts the given pair into an expression ('deep' b/c it 
   //   also recursively converts ALL nested pairs into expressions too)
   void deep_unpack_list_into_exp(data& curr_pair, scm_list& args_list)noexcept{
@@ -2647,14 +2630,14 @@ namespace heist {
         deep_unpack_list_into_exp(curr_pair.par->first, nested_list);
         args_list.push_back(nested_list);
       // Convert the empty list to an empty expression
-      } else if(data_is_the_empty_expression(curr_pair.par->first)) {
+      } else if(data_is_the_empty_list(curr_pair.par->first)) {
         args_list.push_back(scm_list());
       // Unpack atomic obj
       } else {
         args_list.push_back(curr_pair.par->first);
       }
       deep_unpack_list_into_exp(curr_pair.par->second, args_list); 
-    } else if(!primitive_IS_THE_EMPTY_LIST(curr_pair)) {
+    } else if(!data_is_the_empty_list(curr_pair)) {
       args_list.push_back(symconst::dot);
       args_list.push_back(curr_pair);
     }
@@ -2714,11 +2697,6 @@ namespace heist {
   scm_list prm_EVAL_convert_list_to_AST(data& par_data)noexcept{
     scm_list par_as_exp;
     deep_unpack_list_into_exp(par_data, par_as_exp);
-    if(evaling_an_argless_procedure(par_data.par)) { // requires sentinel arg
-      scm_list argless_call(2);
-      argless_call[0] = data_cast(par_as_exp), argless_call[1] = symconst::sentinel_arg;
-      par_as_exp = std::move(argless_call);
-    }
     return par_as_exp;
   }
 
@@ -2743,7 +2721,7 @@ namespace heist {
     auto delay = d.del;
     if(!delay->already_forced) {
       delay->already_forced = true;
-      delay->result = scm_analyze(std::move(delay->exp),false,delay->in_cps)(delay->env);
+      delay->result = scm_analyze(data(delay->datum),false,delay->in_cps)(delay->env);
     }
     return delay->result; // Memoize delays, "call by need" evaluation
   }
@@ -2764,7 +2742,7 @@ namespace heist {
 
 
   bool data_is_stream(const data& d)noexcept{
-    return data_is_the_empty_expression(d) || data_is_stream_pair(d);
+    return data_is_the_empty_list(d) || data_is_stream_pair(d);
   }
 
 
@@ -2837,8 +2815,8 @@ namespace heist {
       return empty_list; // becomes '() once forced
     }
     data new_stream_pair = data(make_par());
-    new_stream_pair.par->first  = make_del(scm_list_cast(*obj),G.GLOBAL_ENVIRONMENT_POINTER,false);
-    new_stream_pair.par->second = make_del(scm_list_cast(primitive_STREAM_to_SCONS_constructor(obj+1,null_obj)),
+    new_stream_pair.par->first  = make_del(*obj,G.GLOBAL_ENVIRONMENT_POINTER,false);
+    new_stream_pair.par->second = make_del(primitive_STREAM_to_SCONS_constructor(obj+1,null_obj),
                                            G.GLOBAL_ENVIRONMENT_POINTER,false);
     return new_stream_pair;
   }
@@ -2877,7 +2855,7 @@ namespace heist {
     size_type null_stream_pos = 0, pair_stream_pos = 0;
     for(size_type i = 0, n = streams.size(); i < n; ++i) {
       // If '(), confirm no stream-pair's
-      if(data_is_the_empty_expression(streams[i])) {
+      if(data_is_the_empty_list(streams[i])) {
         if(found_pair_stream)
           THROW_ERR('\''<<name<<" arg #" << first_arg_pos+i+1 << ' ' << PROFILE(streams[i]) 
             << " and\n                      arg #" << first_arg_pos+pair_stream_pos+1 << ' ' 
@@ -2906,7 +2884,7 @@ namespace heist {
     // Confirm given streams of the same length
     primitive_confirm_only_given_streams(curr_streams,name,format,1,scm_list());
     // Check if completed parsing every stream
-    if(data_is_the_empty_expression(curr_streams[0])) return true;
+    if(data_is_the_empty_list(curr_streams[0])) return true;
     // Add each arg for 'proc' & advance each stream's head ptr
     for(size_type i = 0, n = curr_streams.size(); i < n; ++i) {
       args[i]         = get_stream_data_car(curr_streams[i]);
@@ -2985,7 +2963,7 @@ namespace heist {
       THROW_ERR('\''<<name<<" received incorrect # of args (given " << args.size() 
         << "):" << format << FCN_ERR(name,args));
     auto procedure = validate_and_extract_callable(args[0], name, format, args);
-    if(data_is_the_empty_expression(args[2])) // folding '() returns seed
+    if(data_is_the_empty_list(args[2])) // folding '() returns seed
       return args[1];
     if(!data_is_stream_pair(args[2]))
       THROW_ERR('\''<<name<<' '<<PROFILE(args[2])<<" isn't a stream:" 
@@ -3856,16 +3834,16 @@ namespace heist {
 
   data primitive_read_from_input_port_logic(FILE*& outs, FILE*& ins, const bool& reading_stdin){
     // Read input
-    scm_list read_data(2);
-    read_data[0] = symconst::quote;
+    data read_data = scm_list(2);
+    read_data.exp[0] = symconst::quote;
     if(reading_stdin) {
       if(auto read_result = read_user_input(outs,ins,false); read_result.empty()) {
-        read_data[1] = GLOBALS::VOID_DATA_OBJECT;
+        read_data.exp[1] = GLOBALS::VOID_DATA_OBJECT;
       } else {
-        read_data[1] = std::move(read_result[0]);
+        read_data.exp[1] = std::move(read_result[0]);
       }
     } else {
-      read_data[1] = primitive_read_from_port(outs,ins)[0];
+      read_data.exp[1] = primitive_read_from_port(outs,ins)[0];
     }
     return scm_eval(std::move(read_data), G.GLOBAL_ENVIRONMENT_POINTER);
   }
@@ -3884,8 +3862,9 @@ namespace heist {
       outs_str.erase(0,i);
       outs_str.erase(0,read_data[0].write().size());
       // return the parsed AST
-      scm_list quoted_read_data(2);
-      quoted_read_data[0] = symconst::quote, quoted_read_data[1] = std::move(read_data[0]);
+      data quoted_read_data = scm_list(2);
+      quoted_read_data.exp[0] = symconst::quote;
+      quoted_read_data.exp[1] = std::move(read_data[0]);
       return scm_eval(std::move(quoted_read_data),G.GLOBAL_ENVIRONMENT_POINTER);
     // throw error otherwise & return void data
     } catch(const READER_ERROR& read_error) {
@@ -4379,7 +4358,7 @@ namespace heist {
     FILE* original_port = DEFAULT_PORT;
     DEFAULT_PORT = get_port(args[0], name, format, args);
     // apply the given procedure
-    auto null_arg = scm_list(1,symconst::sentinel_arg);
+    scm_list null_arg;
     auto result   = execute_application(procedure,null_arg);
     // reset the current port
     if(DEFAULT_PORT && DEFAULT_PORT != stdin && 
@@ -4416,7 +4395,7 @@ namespace heist {
     while(!feof(ins)) {
       // Try reading & evaluating an expression
       try {
-        scm_eval(scm_list_cast(primitive_read_from_port(G.CURRENT_OUTPUT_PORT,ins)[0]),env);
+        scm_eval(std::move(primitive_read_from_port(G.CURRENT_OUTPUT_PORT,ins)[0]),env);
         ++exp_count;
       // Catch, notify 'load' error occurred, & rethrow
       } catch(const SCM_EXCEPT& load_error) {
@@ -4441,11 +4420,11 @@ namespace heist {
       THROW_ERR("'cps-load received incorrect # of arguments!" << format << FCN_ERR("cps-load", args));
     FILE* ins = confirm_valid_input_file(args[0],"cps-load",format,args);
     size_type exp_count = 1;
-    scm_list AST;
+    data AST = scm_list();
     while(!feof(ins)) {
       // Try reading & evaluating an expression
       try {
-        AST.push_back(primitive_read_from_port(G.CURRENT_OUTPUT_PORT,ins)[0]);
+        AST.exp.push_back(primitive_read_from_port(G.CURRENT_OUTPUT_PORT,ins)[0]);
         ++exp_count;
       // Catch, notify 'CPS-load' error occurred, & rethrow
       } catch(const SCM_EXCEPT& load_error) {
@@ -4459,14 +4438,11 @@ namespace heist {
     }
     if(ins) fclose(ins);
     // Rm #!eof as last obj in AST (if present)
-    if(prm_cps_load_last_obj_is_EOF(AST)) AST.pop_back();
+    if(prm_cps_load_last_obj_is_EOF(AST.exp)) AST.exp.pop_back();
     // Add (void) as only obj iff AST.empty()
-    if(AST.empty()) {
-      AST.push_back(scm_list(1));
-      AST[0].exp[0] = "void";
-    }
+    if(AST.exp.empty()) AST.exp.push_back(scm_list(1,"void"));
     // Wrap in scm->cps
-    AST.insert(AST.begin(), symconst::scm_cps);
+    AST.exp.insert(AST.exp.begin(), symconst::scm_cps);
     return scm_eval(std::move(AST),env);
   }
 
@@ -4523,7 +4499,7 @@ namespace heist {
     while(!feof(ins)) {
       // Try reading an expression
       try {
-        expressions.push_back(scm_list_cast(primitive_read_from_port(G.CURRENT_OUTPUT_PORT,ins)[0]));
+        expressions.push_back(primitive_read_from_port(G.CURRENT_OUTPUT_PORT,ins)[0]);
         ++exp_count;
       // Catch, notify 'compile' error occurred, & rethrow
       } catch(const SCM_EXCEPT& compile_error) {
@@ -4558,7 +4534,7 @@ namespace heist {
         << "\" couldn't be written to!\n     ("<<name<<" <filename-string>)"
         << FCN_ERR(name,args));
     fprintf(outs, "// Heist-Scheme Compiled Source from \"%s\""
-                  "\n#include \"%s%cheist_interpreter_headers%cheist_types.hpp\""
+                  "\n#include \"%s%cinterpreter_headers%ctypes.hpp\""
                   "\n#define HEIST_INTERPRETING_COMPILED_AST"
                   "\n%s"
                   "\n#include \"%s%cheist.cpp\"\n", 
@@ -4770,9 +4746,9 @@ namespace heist {
     scm_list expanded, par_as_exp = prm_EVAL_convert_list_to_AST(d);
     if(!par_as_exp.empty() && par_as_exp[0].is_type(types::sym) && 
        expand_macro_if_in_env(par_as_exp[0].sym,scm_list(par_as_exp.begin()+1,par_as_exp.end()),env,expanded)){
-      auto quoted = scm_list(2);
-      quoted[0] = symconst::quote;
-      quoted[1] = std::move(expanded);
+      data quoted = scm_list(2);
+      quoted.exp[0] = symconst::quote;
+      quoted.exp[1] = std::move(expanded);
       return scm_eval(std::move(quoted),env);
     }
     return GLOBALS::FALSE_DATA_BOOLEAN;
@@ -5211,13 +5187,13 @@ namespace heist {
 
     bool datum_is_a_valid_json_map_key(const data& d)noexcept{
       return d.is_type(types::str) || d.is_type(types::num) || 
-             d.is_type(types::bol) || data_is_the_empty_expression(d);
+             d.is_type(types::bol) || data_is_the_empty_list(d);
     }
 
 
     scm_string convert_scm_to_json(data& d, const scm_list& args, const char* format) {
       // Convert Empty List
-      if(data_is_the_empty_expression(d)) {
+      if(data_is_the_empty_list(d)) {
         return "null";
       // Convert Strings
       } else if(d.is_type(types::str)) {
@@ -5281,7 +5257,7 @@ namespace heist {
   // validate that <d> is a candidate for json-ification
   bool is_valid_json_datum(data d)noexcept{
     // Empty List
-    if(data_is_the_empty_expression(d)) {
+    if(data_is_the_empty_list(d)) {
       return true;
     // Strings
     } else if(d.is_type(types::str)) {
@@ -5527,7 +5503,7 @@ namespace heist {
       // Return AST if successfully parsed an expression
       parse_input_exp(scm_string(scm_expr),abstract_syntax_tree);
       if(abstract_syntax_tree.empty()) return GLOBALS::VOID_DATA_OBJECT;
-      return scm_eval(scm_list_cast(abstract_syntax_tree[0]),G.GLOBAL_ENVIRONMENT_POINTER);
+      return scm_eval(std::move(abstract_syntax_tree[0]),G.GLOBAL_ENVIRONMENT_POINTER);
     } catch(const READER_ERROR& read_error) {
       print_csv_reader_error_alert(seq_prefix[1] == 'v' ? "VECTOR" : "LIST");
       if(is_non_repl_reader_error(read_error))
@@ -6084,8 +6060,8 @@ namespace heist {
       if(methods[i] == "next") {
         auto& env = d.obj->proto->defn_env;
         d = extend_method_env_with_SELF_object(d.obj,d.obj->method_values[i].fcn);
-        scm_list arg(1,symconst::sentinel_arg);
-        return execute_application(d,arg,env);
+        scm_list null_arg;
+        return execute_application(d,null_arg,env);
       }
     THROW_ERR("'cycle-coroutines! 'coroutine object " << d
       << " is missing the \"next\" method!" << format); 

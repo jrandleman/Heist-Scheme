@@ -463,7 +463,7 @@ namespace heist {
     confirm_unary_real_numeric(args, "make-log-base", "(make-log-base <real>)");
     scm_list new_log(3);
     new_log[0] = symconst::lambda;
-    new_log[1] = scm_list(1, "num");
+    new_log[1] = scm_list(1,"num");
     new_log[2] = scm_list(3);
     new_log[2].exp[0] = "log";
     new_log[2].exp[1] = "num";
@@ -1624,7 +1624,7 @@ namespace heist {
   // primitive "null?" procedure:
   data primitive_NULLP(scm_list& args) {
     confirm_given_one_arg(args,"null?");
-    return data(boolean(data_is_the_empty_expression(args[0])));
+    return data(boolean(data_is_the_empty_list(args[0])));
   }
 
   // primitive "set-car!" procedure:
@@ -2286,7 +2286,7 @@ namespace heist {
   // primitive "empty" procedure (given <sequence>, return its empty version):
   data primitive_EMPTY(scm_list& args) {
     confirm_given_one_sequence_arg(args,"empty");
-    if(args[0].is_type(types::par) || data_is_the_empty_expression(args[0]))
+    if(args[0].is_type(types::par) || data_is_the_empty_list(args[0]))
       return symconst::emptylist;
     if(args[0].is_type(types::vec)) return make_vec(scm_list());
     if(args[0].is_type(types::str)) return make_str("");
@@ -3396,13 +3396,13 @@ namespace heist {
   // primitive "stream-null?" procedure:
   data primitive_STREAM_NULLP(scm_list& args) {
     confirm_given_one_arg(args, "stream-null?");
-    return data(boolean(data_is_the_empty_expression(args[0])));
+    return data(boolean(data_is_the_empty_list(args[0])));
   }
 
   // primitive "stream?" procedure:
   data primitive_STREAMP(scm_list& args) {
     confirm_given_one_arg(args, "stream?");
-    return data(boolean(data_is_the_empty_expression(args[0]) || 
+    return data(boolean(data_is_the_empty_list(args[0]) || 
                         (args[0].is_type(types::par) && 
                          args[0].par->first.is_type(types::del) && 
                          args[0].par->second.is_type(types::del))));
@@ -3483,7 +3483,7 @@ namespace heist {
       // if using *local-environment* or *global-environment*
       if(!must_reset_global_env) {
         try {
-          return scm_eval(scm_list(1, args[0]),env);
+          return scm_eval(std::move(args[0]),env);
         } catch(const SCM_EXCEPT& eval_throw) {
           throw eval_throw;
         }
@@ -3491,7 +3491,7 @@ namespace heist {
       } else {
         auto old_invariants = reset_process_invariant_state();
         try {
-          auto result = scm_eval(scm_list(1, args[0]),G.GLOBAL_ENVIRONMENT_POINTER);
+          auto result = scm_eval(std::move(args[0]),G.GLOBAL_ENVIRONMENT_POINTER);
           set_process_invariant_state(std::move(old_invariants));
           return result;
         } catch(const SCM_EXCEPT& eval_throw) {
@@ -3669,7 +3669,6 @@ namespace heist {
     // apply arguments in list to the callable
     scm_list args_list;
     shallow_unpack_list_into_exp(args[1], args_list);
-    if(args_list.empty()) args_list.push_back(symconst::sentinel_arg);
     return execute_callable(args[0],args_list,G.GLOBAL_ENVIRONMENT_POINTER,tail_call);
   }
 
@@ -3713,7 +3712,7 @@ namespace heist {
   data primitive_STREAM_LENGTH(scm_list& args) {
     confirm_given_one_arg(args,"stream-length","<stream>");
     // Length of '() = 0
-    if(data_is_the_empty_expression(args[0])) return num_type();
+    if(data_is_the_empty_list(args[0])) return num_type();
     // Confirm given a stream pair, if not '()
     confirm_given_a_stream_pair_arg(args,"stream-length","\n     (stream-length <stream>)");
     num_type count;
@@ -4035,7 +4034,7 @@ namespace heist {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("stream-drop",primitive_STREAM_DROP,args);
     primitive_TEMPLATE_TAKE_DROP_VALIDATION(args, "stream-drop", format);
     // Get the a substream after dropping 'size' items from given stream
-    if(data_is_the_empty_expression(args[0])) return args[0];
+    if(data_is_the_empty_list(args[0])) return args[0];
     const size_type n = (size_type)args[1].num.extract_inexact();
     if(!n)     return args[0];
     if(n == 1) return get_stream_data_cdr(args[0]);
@@ -4058,7 +4057,7 @@ namespace heist {
       THROW_ERR("'stream-drop-while "<< PROFILE(args[1]) << " isn't a stream!"
         << format << FCN_ERR("stream-drop-while", args));
     // Get keep dropping items while 'predicate' is true, then return result
-    if(data_is_the_empty_expression(args[1])) return args[1];
+    if(data_is_the_empty_list(args[1])) return args[1];
     auto procedure = primitive_extract_callable_procedure(args[0]);
     return primitive_DROP_WHILE_ctor(std::move(args[1]), procedure);
   }
@@ -4070,7 +4069,7 @@ namespace heist {
     primitive_TEMPLATE_TAKE_DROP_VALIDATION(args, "stream-take", 
       "\n     (stream-take <stream> <n>)");
     // Get the a substream after dropping 'size' items from given stream
-    if(data_is_the_empty_expression(args[0])) return args[0];
+    if(data_is_the_empty_list(args[0])) return args[0];
     const size_type n = (size_type)args[1].num.extract_inexact();
     if(!n) return data(symconst::emptylist);
     scm_list substream;
@@ -4086,7 +4085,7 @@ namespace heist {
       THROW_ERR("'stream-reverse "<<PROFILE(args[0])<<" isn't a stream:" 
         "\n     (stream-reverse <stream>)" << FCN_ERR("stream-reverse",args));
     // Convert stream to a scm_list, reverse, & revert to a stream
-    if(data_is_the_empty_expression(args[0])) return args[0];
+    if(data_is_the_empty_list(args[0])) return args[0];
     scm_list stream_as_exp;
     unpack_stream_into_exp(std::move(args[0]), stream_as_exp);
     std::reverse(stream_as_exp.begin(),stream_as_exp.end());
@@ -4114,7 +4113,7 @@ namespace heist {
     primitive_TEMPLATE_TAKE_DROP_VALIDATION(args, "stream->list", 
                                             "\n     (stream->list <stream> <size>)");
     // Invoke stream-take, convert substream -> exp -> list
-    if(data_is_the_empty_expression(args[0])) return args[0];
+    if(data_is_the_empty_list(args[0])) return args[0];
     auto substream = primitive_STREAM_TAKE(args);
     scm_list stream_as_exp;
     unpack_stream_into_exp(std::move(substream), stream_as_exp);
@@ -4129,7 +4128,7 @@ namespace heist {
       THROW_ERR("'list->stream "<<PROFILE(args[0])<<" isn't a proper list:" 
         "\n     (list->stream <list>)" << FCN_ERR("list->stream",args));
     // Convert list -> exp -> stream
-    if(data_is_the_empty_expression(args[0])) return args[0];
+    if(data_is_the_empty_list(args[0])) return args[0];
     scm_list par_as_exp;
     shallow_unpack_list_into_exp(args[0], par_as_exp);
     if(par_as_exp.empty()) return data(symconst::emptylist);
@@ -5013,7 +5012,6 @@ namespace heist {
     primitive_confirm_data_is_a_callable(args[0], "time", 
       "\n     (time <callable> <arg1> ... <argN>)", args);
     scm_list time_args(args.begin()+1,args.end());
-    if(time_args.empty()) time_args.push_back(symconst::sentinel_arg);
     auto start = std::chrono::high_resolution_clock::now();
     auto result = execute_callable(args[0],time_args);
     auto end = std::chrono::high_resolution_clock::now();
@@ -5182,7 +5180,6 @@ namespace heist {
     primitive_confirm_data_is_a_callable(args[0], "call/ce", 
       "\n     (call/ce <callable> <arg1> ... <argN>)", args);
     scm_list call_ce_args(args.begin()+1,args.end());
-    if(call_ce_args.empty()) call_ce_args.push_back(symconst::sentinel_arg);
     return execute_callable(args[0],call_ce_args,env,false,true);
   }
 
@@ -5197,7 +5194,6 @@ namespace heist {
     primitive_confirm_data_is_a_callable(args[0], "inline", 
       "\n     (inline <callable> <arg1> ... <argN>)", args);
     scm_list inline_args(args.begin()+1,args.end());
-    if(inline_args.empty()) inline_args.push_back(symconst::sentinel_arg);
     G.USING_INLINE_INVOCATIONS = true;
     try {
       auto result = execute_callable(args[0],inline_args,env);
@@ -5228,7 +5224,6 @@ namespace heist {
     primitive_confirm_data_is_a_callable(args[0], "catch-jump", 
       "\n     (catch-jump <callable> <arg1> ... <argN>)", args);
     scm_list catch_jump_args(args.begin()+1,args.end());
-    if(catch_jump_args.empty()) catch_jump_args.push_back(symconst::sentinel_arg);
     const bool inline_status = G.USING_INLINE_INVOCATIONS;
     try {
       return execute_callable(args[0],catch_jump_args);
@@ -5264,7 +5259,6 @@ namespace heist {
     primitive_confirm_data_is_a_procedure(args[0], "trace", 
       "\n     (trace <procedure> <arg1> ... <argN>)", args);
     scm_list trace_args(args.begin()+1,args.end());
-    if(trace_args.empty()) trace_args.push_back(symconst::sentinel_arg);
     // Set name of the function to trace
     G.TRACED_FUNCTION_NAME = args[0].fcn.name;
     auto result = execute_application(args[0],trace_args);
@@ -5489,7 +5483,7 @@ namespace heist {
       // Return AST if successfully parsed an expression
       parse_input_exp(heist_json_parser::convert_json_to_scm(*args[0].str,input),abstract_syntax_tree);
       if(abstract_syntax_tree.empty()) return GLOBALS::VOID_DATA_OBJECT;
-      return scm_eval(scm_list_cast(abstract_syntax_tree[0]),G.GLOBAL_ENVIRONMENT_POINTER);
+      return scm_eval(std::move(abstract_syntax_tree[0]),G.GLOBAL_ENVIRONMENT_POINTER);
     } catch(const READER_ERROR& read_error) {
       heist_json_parser::print_json_reader_error_alert();
       if(is_non_repl_reader_error(read_error))
@@ -5703,7 +5697,7 @@ namespace heist {
     object_type obj;
     initialize_object_with_prototype_properties_and_inheritance(obj,class_proto_obj);
     // no args (or '()) given
-    if(args.size() == 1 || data_is_the_empty_expression(args[1])) return make_obj(std::move(obj));
+    if(args.size() == 1 || data_is_the_empty_list(args[1])) return make_obj(std::move(obj));
     // confirm given a container (hmap | vector | list)
     switch(args[1].type) {
       case types::map: return initialize_OO_ctord_object_HMAP(args,class_proto_obj,obj,format);
@@ -5925,7 +5919,7 @@ namespace heist {
     scm_list heist_scheme_prim_defns;
     parse_input_exp(std::move(heist_prim_exp), heist_scheme_prim_defns);
     for(auto& primitive_scm_prim_defn : heist_scheme_prim_defns)
-      scm_eval(std::move(primitive_scm_prim_defn.exp),G.GLOBAL_ENVIRONMENT_POINTER);
+      scm_eval(std::move(primitive_scm_prim_defn),G.GLOBAL_ENVIRONMENT_POINTER);
   }
 
   /******************************************************************************

@@ -284,32 +284,11 @@ namespace heist {
   * EXPRESSION PRINTING HELPER FUNCTIONS
   ******************************************************************************/
 
-  // Confirm whether 'd' is the AST's sentinel-value representation
-  //   => NOTE: "sentinel-value" = quoted sentinel-arg
-  bool data_is_the_SENTINEL_VAL(const data& d)noexcept{
-    return d.is_type(types::sym) && d.sym == symconst::sentinel_arg;
-  }
-
-
-  // Confirm whether 'args' are the EVALUATED sentinel-value representation
-  //   or is an otherwise empty expression
-  bool no_args_given(const scm_list& args)noexcept{
-    return args.empty() || (args.size()==1 && data_is_the_SENTINEL_VAL(args[0]));
-  }
-
-
-  // Confirm expression contains more data after 'd'
-  template <typename const_scm_node>
-  bool is_not_end_of_expression(const const_scm_node& d,const const_scm_node& end)noexcept{
-    return d+1 != end && !data_is_the_SENTINEL_VAL(*(d+1));
-  }
-
-
   // Stringify expression recursive helper
   template<DATA_PRINTER to_str>
   void cio_expr_str_rec(const exp_type& exp_object, scm_string& exp_str) {
-    if(no_args_given(exp_object)) return; // empty expression
-    for(auto d = exp_object.begin(); d != exp_object.end(); ++d) {
+    if(exp_object.empty()) return; // empty expression
+    for(auto d = exp_object.begin(), end = exp_object.end(); d != end; ++d) {
       // Recursively append expressions
       if(d->is_type(types::exp)) {
         exp_str += '(';
@@ -320,8 +299,7 @@ namespace heist {
         exp_str += ((*d).*to_str)();
       }
       // Add a space if not at the end of the current expression
-      if(d+1 != exp_object.end() && !data_is_the_SENTINEL_VAL(*(d+1))) 
-        exp_str += ' ';
+      if(d+1 != end) exp_str += ' ';
     }
   }
 
@@ -329,8 +307,6 @@ namespace heist {
   // Stringify expression
   template<DATA_PRINTER to_str>
   scm_string cio_expr_str(const exp_type& exp_object) {
-    // Sentinel Values are exclusively used internally, hence are never printed
-    if(no_args_given(exp_object)||data_is_the_SENTINEL_VAL(data(exp_object))) return "";
     scm_string exp_str;
     cio_expr_str_rec<to_str>(exp_object, exp_str);
     return '(' + exp_str + ')';
@@ -526,8 +502,6 @@ namespace heist {
   data execute_application(data&,scm_list&,env_type& env=G.GLOBAL_ENVIRONMENT_POINTER,const bool tail_call=false,const bool inlined=false);
   data execute_application(data&&,scm_list&,env_type& env=G.GLOBAL_ENVIRONMENT_POINTER,const bool tail_call=false,const bool inlined=false);
   data extend_method_env_with_SELF_object(obj_type& calling_obj, scm_fcn& procedure)noexcept;
-  data data_cast(const scm_list& l)noexcept;
-  data data_cast(scm_list&& l)noexcept;
 
   data apply_dynamic_method(obj_type& obj, scm_list arg, scm_fcn procedure_cpy) {
     data procedure = extend_method_env_with_SELF_object(obj,procedure_cpy);
@@ -542,7 +516,7 @@ namespace heist {
       // search object's local members
       for(size_type i = 0, n = obj->method_names.size(); i < n; ++i) {
         if(obj->method_names[i] == "self->string" || obj->method_names[i] == printer_name) {
-          data result = apply_dynamic_method(obj,scm_list(1,symconst::sentinel_arg),obj->method_values[i].fcn);
+          data result = apply_dynamic_method(obj,scm_list(),obj->method_values[i].fcn);
           if(result.is_type(types::str)) return *result.str;
           return (result.*to_str)();
         }
@@ -551,7 +525,7 @@ namespace heist {
       for(size_type i = 0, n = obj->proto->method_names.size(); i < n; ++i) {
         if(obj->proto->method_names[i] == "self->string" || obj->proto->method_names[i] == printer_name) {
           obj->method_names.push_back(obj->proto->method_names[i]), obj->method_values.push_back(obj->proto->method_values[i]);
-          data result = apply_dynamic_method(obj,scm_list(1,symconst::sentinel_arg),obj->method_values[i].fcn);
+          data result = apply_dynamic_method(obj,scm_list(),obj->method_values[i].fcn);
           if(result.is_type(types::str)) return *result.str;
           return (result.*to_str)();
         }
@@ -847,14 +821,14 @@ namespace heist {
     // search object's local members
     for(size_type i = 0, n = obj->method_names.size(); i < n; ++i)
       if(obj->method_names[i] == "self->copy") {
-        result = apply_dynamic_method(obj,scm_list(1,symconst::sentinel_arg),obj->method_values[i].fcn);
+        result = apply_dynamic_method(obj,scm_list(),obj->method_values[i].fcn);
         return true;
       }
     // search object's prototype
     for(size_type i = 0, n = obj->proto->method_names.size(); i < n; ++i) {
       if(obj->proto->method_names[i] == "self->copy") {
         obj->method_names.push_back(obj->proto->method_names[i]), obj->method_values.push_back(obj->proto->method_values[i]);
-        result = apply_dynamic_method(obj,scm_list(1,symconst::sentinel_arg),obj->method_values[i].fcn);
+        result = apply_dynamic_method(obj,scm_list(),obj->method_values[i].fcn);
         return true;
       }
     }
