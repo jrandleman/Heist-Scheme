@@ -1007,6 +1007,45 @@ Other primitives of this nature include:<br>
 (scons <obj1> (scons <obj2> (scons <obj3> '())))
 ```
 
+#### Stream Examples:
+```scheme
+;; Generate all powers of 2!
+(define (pows-of n (count 0))
+  (scons (expt n count)
+         (pows-of n (+ count 1))))
+
+(define 2-pow
+  (let ((s (pows-of 2)))
+    (lambda ()
+      (define hd (scar s))
+      (set! s (scdr s))
+      hd)))
+
+(do ((x 0 (+ x 1))) 
+    ((> x 24))
+  (display (2-pow)) ; 1 2 4 8 16 32 64 128 256 512 1024 ... 16777216
+  (newline))
+
+
+
+;; Generate all Fibonacci numbers!
+(define fibs (scons 0 (scons 1 (stream-map + fibs (scdr fibs)))))
+(display (stream->list fibs 25)) ; (0 1 1 2 3 5 8 13 21 34 55 89 ... 46368)
+
+
+
+;; Generate all primes!
+(define (ints-from n)
+  (scons n (ints-from (+ n 1))))
+
+(define (sieve ints)
+  (scons (scar ints)
+         (sieve (stream-filter \(not-zero? (remainder %1 (scar ints))) (scdr ints)))))
+
+(define primes (sieve (ints-from 2)))
+(display (stream->list primes 25)) ; (2 3 5 7 11 13 17 19 23 29 ... 97)
+```
+
 
 ------------------------
 ## Vector-Literal:
@@ -1608,7 +1647,7 @@ Other primitives of this nature include:<br>
 
 #### Examples:
 ```scheme
-; ANONYMOUS MODULE: procedures are directly exposed
+;; ANONYMOUS MODULE: procedures are directly exposed
 (define-module (greet set-age! set-name!)
   (define name "")                                ; hidden (variable's in the module)!
   (define age 0)                                  ; hidden (variable's in the module)!
@@ -1624,7 +1663,7 @@ Other primitives of this nature include:<br>
 (greet) ; Hello! My name is Jordan and I'm 21 years old!
 
 
-; NAMED MODULE: exposed procedures are members of a "module" object!
+;; NAMED MODULE: exposed procedures are members of a "module" object!
 (define-module Person (greet set-age! set-name!)
   (define name "")                                ; hidden (variable's in the module)!
   (define age 0)                                  ; hidden (variable's in the module)!
