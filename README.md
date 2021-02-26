@@ -7,15 +7,14 @@
 
 ------------------------
 # Using Heist Scheme:
-=> _See [`INSTALL.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/INSTALL.md) for step-by-step initial/new-directory installation instructions!_<br>
-=> _Tested on OSX & Linux with Clang++ & G++, but **should** work on Windows (adheres C++17 standard)_<br>
+=> _See [`INSTALL.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/INSTALL.md) for step-by-step initial/new directory installation instructions!_<br>
+=> _Tested on OSX & Linux with Clang++ & G++, and **should** work on Windows (adheres C++17 standard)_<br>
 
 0. Compiling the Interpreter: `$ clang++ -std=c++17 -O3 -o heist heist.cpp`
-1. REPL: `$ ./heist` (exit REPL via [`(exit)`](#Control-Flow-Procedures) command)
+1. REPL: `$ ./heist`
 2. Interpret Script: `$ ./heist -script <script-filename> <argv1> <argv2> ...`
-3. Compile Script to C++: `$ ./heist -compile <script-filename> <optional-target-name>`
-4. Embed Heist in C++: `#include` the [`cpp_interop.hpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/cpp_interop.hpp) header into your code (read it for more details)!
-   * See [`embedded_heist_demo.cpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/examples/embedded_heist_demo.cpp) for an example of embedding Heist in action!
+3. Embed Heist in C++: `#include` [`cpp_interop.hpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/cpp_interop.hpp) in your code (read it for more details)!
+   * See [`examples/embedded_heist_demo.cpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/examples/embedded_heist_demo.cpp) for a demo!
 
 ------------------------
 # Notable Features:
