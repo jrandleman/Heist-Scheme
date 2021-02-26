@@ -10,10 +10,9 @@
 => _See [`INSTALL.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/INSTALL.md) for initial/new directory installation instructions!_<br>
 => _Tested on OSX & Linux with Clang++ & G++, and **should** work on Windows (adheres C++17 standard)_<br>
 
-0. Compiling the Interpreter: `$ clang++ -std=c++17 -O3 -o heist heist.cpp`
-1. Launch REPL: `$ ./heist`
-2. Interpret Script: `$ ./heist -script <script-filename> <argv1> <argv2> ...`
-3. Embed Heist in C++: `#include` [`cpp_interop.hpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/cpp_interop.hpp) in your code (read it for more details)!
+0. Launch REPL: `$ heist`
+1. Interpret Script: `$ heist -script <script-filename> <argv1> <argv2> ...`
+2. Embed Heist in C++: `#include` [`cpp_interop.hpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/cpp_interop.hpp) in your code!
    * See [`examples/embedded_heist_demo.cpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/examples/embedded_heist_demo.cpp) for a demo!
 
 ------------------------
