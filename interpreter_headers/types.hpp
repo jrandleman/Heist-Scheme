@@ -329,7 +329,7 @@ namespace heist {
     env_type env        = nullptr ;
     obj_type self       = nullptr;
     depth_t rec_depth   = nullptr;
-    unsigned char flags = 2; // is_inline_invocation | is_lambda (as opposed to 'fn) [is lambda by default]
+    unsigned char flags = 1; // is_lambda (as opposed to 'fn) [lambda by default]
     scm_fcn() = default;
     // primitive ctors
     scm_fcn(const exp_type& a, const prm_ptr_t& p)noexcept:prm(p) {param_instances.push_back(a);} // partial primitive
@@ -351,10 +351,8 @@ namespace heist {
     bool operator==(const scm_fcn& f)const noexcept;
     bool is_primitive()const noexcept{return prm;};
     bool is_compound() const noexcept{return !prm;};
-    bool is_inline_invocation()const noexcept{return flags & 1;}
-    void set_inline_invocation(bool status)noexcept{if(status) flags |= 1; else flags &= ~1;}
-    bool is_lambda()const noexcept{return flags & 2;}
-    void set_lambda(bool status)noexcept{if(status) flags |= 2; else flags &= ~2;}
+    bool is_lambda()const noexcept{return flags & 1;}
+    void set_lambda(bool status)noexcept{if(status) flags |= 1; else flags &= ~1;}
     size_type& recursive_depth()noexcept{return *rec_depth;} // PRECONDITION: rec_depth
     size_type  recursive_depth()const noexcept{return *rec_depth;} // PRECONDITION: rec_depth
     scm_string str()const noexcept{return name.empty() ? "#<procedure>" : "#<procedure " + name + '>';}

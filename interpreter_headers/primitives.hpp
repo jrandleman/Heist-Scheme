@@ -3555,18 +3555,13 @@ namespace heist {
       THROW_ERR("'cps-eval received incorrect # of arguments:"
         << format << FCN_ERR("cps-eval", args));
     // Extract the continuation & confirm its a procedure
-    auto continuation = *args.rbegin();
-    auto continuation_procedure = validate_and_extract_callable(continuation, "cps-eval", format, args);
-    // set the continuation to be inlined on application
-    prm_set_procedure_INLINE_INVOCATION(continuation_procedure, true);
+    auto continuation = validate_and_extract_callable(*args.rbegin(), "cps-eval", format, args);
     args.pop_back();
     // use the initial/global environment if passed *null-environment* or
     //   *global-environment* as a 2nd arg
     bool must_reset_global_env = false;
     auto env = local_env;
     prm_CPS_EVAL_confirm_correct_number_of_args(args,must_reset_global_env,env,"cps-eval",format);
-    // Reset "inline"ing of the continuation if EVALing in the *null-environment*
-    if(must_reset_global_env) prm_set_procedure_INLINE_INVOCATION(continuation_procedure,false);
 
 
     // if arg is self-evaluating, return arg
@@ -4881,17 +4876,12 @@ namespace heist {
     if(args.size() < 2)
       THROW_ERR("'cps-load received incorrect # of args!" << format << FCN_ERR("cps-load",args));
     // extract the continuation
-    auto continuation = *(args.rbegin());
-    auto continuation_procedure = validate_and_extract_callable(continuation, "cps-load", format, args);
-    // set the continuation to be inlined on application
-    prm_set_procedure_INLINE_INVOCATION(continuation_procedure, true);
+    auto continuation = validate_and_extract_callable(*args.rbegin(), "cps-load", format, args);
     args.pop_back();
     // determine which environment to load <filename-string> wrt to
     auto env = local_env;
     if(args.size()==2 && args[1].is_type(types::sym)) {
       if(args[1].sym == symconst::null_env) {
-        // Reset "inline"ing of the continuation, no need in *null-environment*
-        prm_set_procedure_INLINE_INVOCATION(continuation_procedure,false);
         // Reset interpreter invariants to their default states
         auto old_invariants = reset_process_invariant_state();
         args.pop_back();

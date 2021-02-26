@@ -4388,9 +4388,6 @@ namespace heist {
     // compound proc -- create the procedure body's extended environment frame
     exe_fcn_t fcn_body;
     auto extended_env = procedure.fcn.get_extended_environment(arguments,fcn_body);
-    // determine whether to inline call
-    const bool inline_call = !G.USING_INLINE_INVOCATIONS && procedure.fcn.is_inline_invocation();
-    if(inline_call) G.USING_INLINE_INVOCATIONS = true;
     // splice in current env for dynamic scope as needed
     if(callceing || G.USING_INLINE_INVOCATIONS)
       extended_env->insert(extended_env->begin()+1, env->begin(), env->end());
@@ -4402,7 +4399,6 @@ namespace heist {
     // confirm max recursive depth hasn't been exceeded
     auto& recursive_depth = procedure.fcn.recursive_depth();
     if(recursive_depth > G.MAX_RECURSION_DEPTH) {
-      if(inline_call) G.USING_INLINE_INVOCATIONS = false;
       recursive_depth = 0;
       THROW_ERR("Maximum recursion depth of "<<G.MAX_RECURSION_DEPTH<<" exceeded!"
         << FCN_ERR(procedure.fcn.printable_procedure_name(), arguments));
@@ -4412,7 +4408,6 @@ namespace heist {
     if(tracing_proc) output_call_trace_invocation(procedure.fcn,arguments,tail_call);
     // store application data & return such back up to the last call if in a tail call
     if(tail_call) {
-      if(inline_call) G.USING_INLINE_INVOCATIONS = false;
       scm_list tail_call_signature(2); // {tail-call-tag, proc-body, extended-env}
       tail_call_signature[0] = symconst::tail_call;
       tail_call_signature[1] = scm_fcn(extended_env,fcn_body);
@@ -4423,7 +4418,6 @@ namespace heist {
     --recursive_depth;
     // output result's trace as needed
     if(tracing_proc) output_call_trace_result(procedure.fcn,result);
-    if(inline_call) G.USING_INLINE_INVOCATIONS = false;
     return result;
   }
 

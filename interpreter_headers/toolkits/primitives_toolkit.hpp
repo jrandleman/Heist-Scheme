@@ -4379,13 +4379,6 @@ namespace heist {
   }
 
 
-  // NOTE: Has no effect on primitive procedures
-  // PRECONDITION: proc.is_type(types::fcn)
-  void prm_set_procedure_INLINE_INVOCATION(data& proc, const bool status)noexcept{
-    if(proc.fcn.is_compound()) proc.fcn.set_inline_invocation(status);
-  }
-
-
   void primitive_LOAD_interpret_file_contents(scm_list& args, env_type& env, const char* format){
     // Load file contents
     if(args.size() != 1)
