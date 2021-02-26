@@ -1505,7 +1505,7 @@ CPS Transformations:
 
 }, {
 "and",
-"Special Form",
+"Macro",
 R"(
 (and <exp> ...)
 )",
@@ -1524,7 +1524,7 @@ Derivation Using if:
 
 }, {
 "or",
-"Special Form",
+"Macro",
 R"(
 (or <exp> ...)
 )",

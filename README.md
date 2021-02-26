@@ -679,6 +679,7 @@ Other primitives of this nature include:<br>
 ## And:
 
 #### Use: ___Confirm All Expressions Aren't `#f`!___
+* _Note: `and` is actually a macro directly defined **in** Heist Scheme!_
 
 #### Form: `(and <exp1> <exp2> ...)`
 
@@ -694,6 +695,7 @@ Other primitives of this nature include:<br>
 ## Or:
 
 #### Use: ___Confirm 1 Expression Isn't `#f`!___
+* _Note: `or` is actually a macro directly defined **in** Heist Scheme!_
 
 #### Form: `(or <exp1> <exp2> ...)`
 

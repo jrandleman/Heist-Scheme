@@ -125,8 +125,6 @@ namespace heist {
     constexpr const char * const begin             = "begin";
     constexpr const char * const if_t              = "if";
     constexpr const char * const cond_result       = "heist:core:cond-result";
-    constexpr const char * const and_t             = "and";
-    constexpr const char * const or_t              = "or";
     constexpr const char * const ellipsis          = "...";
     constexpr const char * const true_t            = "#t";
     constexpr const char * const false_t           = "#f";

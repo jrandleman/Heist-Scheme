@@ -521,100 +521,6 @@ namespace heist {
   }
 
   /******************************************************************************
-  * REPRESENTING COMPOUND BOOLEANS: (and <val1> ...) (or <val1> ...)
-  ******************************************************************************/
-
-  bool is_and(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::and_t);}
-  bool is_or(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::or_t);}
-
-
-  // -- GENERATING CPS-STYLE VALUE EVALUATION (for unary 'and 'or in scm->cps blocks)
-  exe_fcn_t generate_unary_cps_value_expansion(const data& d, const bool tail_call){
-    scm_list cps_val(3);
-    cps_val[0] = symconst::lambda;
-    cps_val[1] = scm_list(1,generate_unique_cps_hash()); // "k"
-    cps_val[2] = scm_list(2);
-    cps_val[2].exp[0] = cps_val[1].exp[0];
-    cps_val[2].exp[1] = d;
-    return scm_analyze(std::move(cps_val),tail_call,true);
-  }
-
-
-  // GENERATING and AND or IN TERMS OF if
-  void recursive_and_expansion_constructor(const scm_node& start,const scm_node& end,scm_list& expanded_and)noexcept{
-    expanded_and[0] = symconst::if_t;
-    expanded_and[1] = *start;
-    expanded_and[3] = GLOBALS::FALSE_DATA_BOOLEAN;
-    if(start+2 != end) {
-      expanded_and[2] = scm_list(4);
-      recursive_and_expansion_constructor(start+1,end,expanded_and[2].exp);
-    } else {
-      expanded_and[2] = *(start+1);
-    }
-  }
-
-  void recursive_or_expansion_constructor(const scm_node& start,const scm_node& end,scm_list& expanded_and)noexcept{
-    expanded_and[1] = *start;
-    expanded_and[0] = scm_list(3);
-    expanded_and[0].exp[0] = symconst::lambda;
-    expanded_and[0].exp[1] = scm_list(1,"test");
-    expanded_and[0].exp[2] = scm_list(4);
-    expanded_and[0].exp[2].exp[0] = symconst::if_t;
-    expanded_and[0].exp[2].exp[1] = "test";
-    expanded_and[0].exp[2].exp[2] = "test";
-    if(start+2 != end) {
-      expanded_and[0].exp[2].exp[3] = scm_list(2);
-      recursive_or_expansion_constructor(start+1,end,expanded_and[0].exp[2].exp[3].exp);
-    } else {
-      expanded_and[0].exp[2].exp[3] = *(start+1);
-    }
-  }
-
-
-  // -- AND: (and <condition1> <condition2> ...)
-  // Returns an exec proc to confirm whether all exp's are true
-  exe_fcn_t analyze_and(scm_list& and_exp,const bool tail_call=false,const bool cps_block=false) {
-    const size_type n = and_exp.size();
-    // (and) = #t
-    if(n == 1) {
-      if(cps_block) return generate_unary_cps_value_expansion(GLOBALS::TRUE_DATA_BOOLEAN,tail_call);
-      return [](env_type&){return GLOBALS::TRUE_DATA_BOOLEAN;};
-    }
-    // (and <obj>) = <obj>
-    if(n == 2) {
-      if(cps_block) return generate_unary_cps_value_expansion(and_exp[1],tail_call);
-      return [res=and_exp[1]](env_type&){return res;};
-    }
-    // (and <o1> <o2> ...) = (if <o1> (and <o2> ...) #f)
-    data expanded_and(scm_list(4));
-    recursive_and_expansion_constructor(and_exp.begin()+1,and_exp.end(),expanded_and.exp);
-    if(cps_block) return scm_analyze(generate_fundamental_form_cps(expanded_and),tail_call,true);
-    return scm_analyze(std::move(expanded_and),tail_call,false);
-  }
-
-
-  // -- OR: (or <condition1> <condition2> ...)
-  // Returns an exec proc to confirm whether >= 1 exp is true
-  exe_fcn_t analyze_or(scm_list& or_exp,const bool tail_call=false,const bool cps_block=false) {
-    const size_type n = or_exp.size();
-    // (or) = #f
-    if(n == 1) {
-      if(cps_block) return generate_unary_cps_value_expansion(GLOBALS::FALSE_DATA_BOOLEAN,tail_call);
-      return [](env_type&){return GLOBALS::FALSE_DATA_BOOLEAN;};
-    }
-    // (or <obj>) = <obj>
-    if(n == 2) {
-      if(cps_block) return generate_unary_cps_value_expansion(or_exp[1],tail_call);
-      return [res=or_exp[1]](env_type&){return res;};
-    }
-    // (or <o1> <o2> ...) = ((lambda (test) (if test test (or <o2> ...))) <o1>)
-    data expanded_or(scm_list(2));
-    recursive_or_expansion_constructor(or_exp.begin()+1,or_exp.end(),expanded_or.exp);
-    if(cps_block) return scm_analyze(generate_fundamental_form_cps(expanded_or),tail_call,true);
-    return scm_analyze(std::move(expanded_or),tail_call,false);
-  }
-
-  /******************************************************************************
   * REPRESENTING SEQUENCES: (begin <body>)
   ******************************************************************************/
 
@@ -2429,10 +2335,9 @@ namespace heist {
 
   // Heist-specific checker to not prefix C++ derived special forms w/ application tag
   bool is_HEIST_cpp_derived_special_form(const sym_type& app)noexcept{
-    return app == symconst::cps_quote  || app == symconst::scm_cps      || app == symconst::map_literal ||
-           app == symconst::and_t      || app == symconst::or_t         || app == symconst::while_t     || 
-           app == symconst::quasiquote || app == symconst::vec_literal  || app == symconst::unquote     || 
-           app == symconst::unquo_splice;
+    return app == symconst::cps_quote || app == symconst::scm_cps    || app == symconst::map_literal ||
+           app == symconst::while_t   || app == symconst::quasiquote || app == symconst::vec_literal || 
+           app == symconst::unquote   || app == symconst::unquo_splice;
   }
 
 
@@ -4707,8 +4612,6 @@ namespace heist {
     else if(is_assignment(datum.exp))        return analyze_assignment(datum.exp,cps_block);
     else if(is_definition(datum.exp))        return analyze_definition(datum.exp,cps_block);
     else if(is_if(datum.exp))                return analyze_if(datum.exp,tail_call,cps_block);
-    else if(is_and(datum.exp))               return analyze_and(datum.exp,tail_call,cps_block);
-    else if(is_or(datum.exp))                return analyze_or(datum.exp,tail_call,cps_block);
     else if(is_lambda(datum.exp))            return analyze_lambda(datum.exp,cps_block);
     else if(is_begin(datum.exp))             return analyze_sequence(begin_actions(datum.exp),tail_call,cps_block);
     else if(is_delay(datum.exp))             return analyze_delay(datum.exp,cps_block);

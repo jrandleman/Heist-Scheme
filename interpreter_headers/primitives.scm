@@ -6,6 +6,8 @@
 ;; ====================================================
 
 ; -:- TABLE OF CONTENTS -:-
+; and
+; or
 ; cond
 ; case
 ; let
@@ -19,6 +21,26 @@
 ; defn
 ; while
 ; do
+
+(core-syntax and
+  (syntax-rules ()
+    ((_) #t)
+    ((_ a) a)
+    ((_ a b ...) 
+      (if a (and b ...) #f))))
+
+
+(core-syntax or
+  (syntax-rules ()
+    ((_) #f)
+    ((_ a) a)
+    ((_ a b ...)
+      ((lambda (heist:core:or-val)
+        (if heist:core:or-val
+            heist:core:or-val
+            (or b ...))) 
+       a))))
+
 
 (core-syntax cond 
   (syntax-rules (else =>)
