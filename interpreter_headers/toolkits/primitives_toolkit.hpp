@@ -197,8 +197,8 @@ namespace heist {
 
 
   // PRECONDITION: primitive_data_is_a_callable(d)
-  data execute_callable(data& callable,scm_list& args,env_type& env = G.GLOBAL_ENVIRONMENT_POINTER,const bool tail_call = false,const bool inlined = false){
-    return execute_application(primitive_extract_callable_procedure(callable),args,env,tail_call,inlined);
+  data execute_callable(data& callable,scm_list& args,env_type& env = G.GLOBAL_ENVIRONMENT_POINTER,const bool tail_call = false){
+    return execute_application(primitive_extract_callable_procedure(callable),args,env,tail_call);
   }
 
   /******************************************************************************

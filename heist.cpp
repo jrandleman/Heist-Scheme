@@ -4130,18 +4130,15 @@ namespace heist {
     auto call_signature = procedure_call_signature(procedure.printable_procedure_name(),arguments);
     const char* in_tail_call = tail_call ? "#t" : "#f";
     const char* using_callce = callceing ? "#t" : "#f";
-    const char* using_inline = G.USING_INLINE_INVOCATIONS ? "#t" : "#f";
     // Generate colors for truth-values (Green=#t, Red=#f) of Call States
     const auto tail_c_color = tail_call ? AFMT_32 : AFMT_31;
     const auto callce_color = callceing ? AFMT_32 : AFMT_31;
-    const auto inline_color = G.USING_INLINE_INVOCATIONS ? AFMT_32 : AFMT_31;
     // Output Trace Data
     fprintf(G.CURRENT_OUTPUT_PORT,
-            "%s%s#<CALL-TRACE>%s Tail-Call: %s%s%s, Call/ce: %s%s%s, Inline: %s%s%s %s]=>%s %s%s\n",
+            "%s%s#<CALL-TRACE>%s Tail-Call: %s%s%s, Call/ce: %s%s%s %s]=>%s %s%s\n",
             afmt(AFMT_01), afmt(AFMT_35), afmt(AFMT_01), 
             afmt(tail_c_color), in_tail_call, afmt(AFMT_01), 
             afmt(callce_color), using_callce, afmt(AFMT_01), 
-            afmt(inline_color), using_inline, afmt(AFMT_01), 
             afmt(AFMT_35), afmt(AFMT_01), call_signature.c_str(), afmt(AFMT_0));
     fflush(G.CURRENT_OUTPUT_PORT);
   }
@@ -4311,10 +4308,10 @@ namespace heist {
   // -- STACK TRACE REGISTRATION
   void register_call_in_stack_trace(scm_fcn& procedure,scm_list& arguments)noexcept{
     if(!G.TRACE_LIMIT) return;
-    if(G.TRACE_ARGS) 
-      GLOBALS::STACK_TRACE.push_back(procedure_call_signature(procedure.printable_procedure_name(),arguments));
-    else
+    if(!G.TRACE_ARGS) 
       GLOBALS::STACK_TRACE.push_back(procedure.printable_procedure_name());
+    else
+      GLOBALS::STACK_TRACE.push_back(procedure_call_signature(procedure.printable_procedure_name(),arguments));
   }
 
   // -- OPERATOR EVALUATION
@@ -4372,8 +4369,7 @@ namespace heist {
   // Analogue to "apply", except no need to analyze the body of compound 
   //   procedures (already done). Hence only calls the execution procedure 
   //   for the proc's body w/ the extended environment
-  data execute_application(data& procedure,scm_list& arguments,env_type& env,
-                                  const bool tail_call,const bool callceing){
+  data execute_application(data& procedure,scm_list& arguments,env_type& env,const bool tail_call){
     if(!procedure.is_type(types::fcn))
       THROW_ERR("Invalid application of non-procedure "<<PROFILE(procedure)<<'!'
         <<FCN_ERR(procedure.noexcept_write(),arguments));
@@ -4381,7 +4377,7 @@ namespace heist {
     register_call_in_stack_trace(procedure.fcn,arguments);
     // output debugger call trace as needed
     if(G.TRACING_ALL_FUNCTION_CALLS)
-      output_debug_call_trace(procedure.fcn,arguments,tail_call,callceing);
+      output_debug_call_trace(procedure.fcn,arguments,tail_call,procedure.fcn.is_using_dnyamic_scope());
     // execute primitive procedure directly
     if(procedure.fcn.is_primitive())
       return apply_primitive_procedure(procedure,arguments,env,tail_call);
@@ -4389,7 +4385,7 @@ namespace heist {
     exe_fcn_t fcn_body;
     auto extended_env = procedure.fcn.get_extended_environment(arguments,fcn_body);
     // splice in current env for dynamic scope as needed
-    if(callceing || G.USING_INLINE_INVOCATIONS)
+    if(procedure.fcn.is_using_dnyamic_scope())
       extended_env->insert(extended_env->begin()+1, env->begin(), env->end());
     // add the 'self' object iff applying a method
     if(procedure.fcn.self) {
@@ -4422,9 +4418,8 @@ namespace heist {
   }
 
   // R-value overload
-  data execute_application(data&& procedure,scm_list& arguments,env_type& env,
-                                    const bool tail_call,const bool callceing){
-    return execute_application(procedure,arguments,env,tail_call,callceing);
+  data execute_application(data&& procedure,scm_list& arguments,env_type& env,const bool tail_call){
+    return execute_application(procedure,arguments,env,tail_call);
   }
 
   /******************************************************************************

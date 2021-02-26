@@ -5162,37 +5162,16 @@ namespace heist {
 
   // Invoke <proc> w/ args in the current environment, ie w/ Dynamic Scope!
   data primitive_CALL_CE(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (call/ce <callable> <arg1> ... <argN>)";
     auto env = args.rbegin()->env;
     args.pop_back();
     if(args.empty())
-      THROW_ERR("'call/ce received incorrect # of args!"
-        "\n     (call/ce <callable> <arg1> ... <argN>)" << FCN_ERR("call/ce",args));
-    primitive_confirm_data_is_a_callable(args[0], "call/ce", 
-      "\n     (call/ce <callable> <arg1> ... <argN>)", args);
+      THROW_ERR("'call/ce received incorrect # of args!" << format << FCN_ERR("call/ce",args));
+    auto proc = validate_and_extract_callable(args[0], "call/ce", format, args);
+    proc.fcn.set_using_dnyamic_scope(true);
     scm_list call_ce_args(args.begin()+1,args.end());
-    return execute_callable(args[0],call_ce_args,env,false,true);
-  }
-
-  // Propagates "call/ce" across this invocation & every subsequent invocation 
-  //   resulting from this invocation (ie "deep" call/ce)
-  data primitive_INLINE(scm_list& args) {
-    auto env = args.rbegin()->env;
-    args.pop_back();
-    if(args.empty())
-      THROW_ERR("'inline received incorrect # of args!"
-        "\n     (inline <callable> <arg1> ... <argN>)" << FCN_ERR("inline",args));
-    primitive_confirm_data_is_a_callable(args[0], "inline", 
-      "\n     (inline <callable> <arg1> ... <argN>)", args);
-    scm_list inline_args(args.begin()+1,args.end());
-    G.USING_INLINE_INVOCATIONS = true;
-    try {
-      auto result = execute_callable(args[0],inline_args,env);
-      G.USING_INLINE_INVOCATIONS = false;
-      return result;
-    } catch(const SCM_EXCEPT& call_ce_error) {
-      G.USING_INLINE_INVOCATIONS = false;
-      throw call_ce_error;
-    }
+    return execute_callable(proc,call_ce_args,env);
   }
 
   data primitive_JUMP_BANG(scm_list& args) {
@@ -5214,11 +5193,9 @@ namespace heist {
     primitive_confirm_data_is_a_callable(args[0], "catch-jump", 
       "\n     (catch-jump <callable> <arg1> ... <argN>)", args);
     scm_list catch_jump_args(args.begin()+1,args.end());
-    const bool inline_status = G.USING_INLINE_INVOCATIONS;
     try {
       return execute_callable(args[0],catch_jump_args);
     } catch(const SCM_EXCEPT& jump_error) {
-      G.USING_INLINE_INVOCATIONS = inline_status;
       if(jump_error == SCM_EXCEPT::JUMP)
         return GLOBALS::JUMP_GLOBAL_PRIMITIVE_ARGUMENT;
       throw jump_error;
@@ -6001,11 +5978,11 @@ namespace heist {
   ******************************************************************************/
 
   constexpr const prm_ptr_t PRIMITIVES_REQUIRING_CURRENT_ENVIRONMENT[] = {
-    primitive_EVAL,            primitive_CPS_EVAL,
-    primitive_LOAD,            primitive_CPS_LOAD, 
-    primitive_INLINE,          primitive_CALL_CE, 
-    primitive_GETENV,          primitive_EXPAND,
-    primitive_RUNTIME_SYNTAXP, primitive_SET_RUNTIME_SYNTAX_BANG, 
+    primitive_EVAL,                    primitive_CPS_EVAL,
+    primitive_LOAD,                    primitive_CPS_LOAD, 
+    primitive_CALL_CE,                 primitive_GETENV,
+    primitive_EXPAND,                  primitive_RUNTIME_SYNTAXP, 
+    primitive_SET_RUNTIME_SYNTAX_BANG, 
   };
 
 #ifndef CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
@@ -6506,7 +6483,6 @@ namespace heist {
     std::make_pair(primitive_SYNTAX_ERROR, "syntax-error"),
     std::make_pair(primitive_CALL_CE,      "call/ce"),
     std::make_pair(primitive_CALL_CE,      "call-with-current-environment"),
-    std::make_pair(primitive_INLINE,       "inline"),
     std::make_pair(primitive_JUMP_BANG,    "jump!"),
     std::make_pair(primitive_CATCH_JUMP,   "catch-jump"),
     std::make_pair(primitive_EXPAND,       "expand"),

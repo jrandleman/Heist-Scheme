@@ -325,7 +325,7 @@ namespace heist {
     env_type env        = nullptr ;
     obj_type self       = nullptr;
     depth_t rec_depth   = nullptr;
-    unsigned char flags = 1; // is_lambda (as opposed to 'fn) [lambda by default]
+    unsigned char flags = 1; // is_lambda (as opposed to 'fn) | using_dynamic_scope [only lambda by default]
     scm_fcn() = default;
     // primitive ctors
     scm_fcn(const exp_type& a, const prm_ptr_t& p)noexcept:prm(p) {param_instances.push_back(a);} // partial primitive
@@ -349,6 +349,8 @@ namespace heist {
     bool is_compound() const noexcept{return !prm;};
     bool is_lambda()const noexcept{return flags & 1;}
     void set_lambda(bool status)noexcept{if(status) flags |= 1; else flags &= ~1;}
+    bool is_using_dnyamic_scope()const noexcept{return flags & 2;}
+    void set_using_dnyamic_scope(bool status)noexcept{if(status) flags |= 2; else flags &= ~2;}
     size_type& recursive_depth()noexcept{return *rec_depth;} // PRECONDITION: rec_depth
     size_type  recursive_depth()const noexcept{return *rec_depth;} // PRECONDITION: rec_depth
     scm_string str()const noexcept{return name.empty() ? "#<procedure>" : "#<procedure " + name + '>';}
@@ -926,12 +928,6 @@ namespace heist {
     ******************************************************************************/
 
     bool USING_ANSI_ESCAPE_SEQUENCES = true; // see set-nansi! primitive
-
-    /******************************************************************************
-    * WHETHER "INLINE" MODE IS ACTIVE
-    ******************************************************************************/
-
-    bool USING_INLINE_INVOCATIONS = false; // see inline cps-load cps-eval prim's
 
     /******************************************************************************
     * WHETHER "-cps" COMMAND LINE FLAG WAS PASSED

@@ -276,8 +276,8 @@ static constexpr const char* HELP_MENU_PROCEDURES_INVARIANTS[] = {
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_CONTROLFLOW[] = {
-  "exit",   "error", "syntax-error", "call/ce", 
-  "inline", "jump!", "catch-jump",   "trace", 
+  "exit",  "error",      "syntax-error", "call/ce", 
+  "jump!", "catch-jump", "trace", 
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_CPS[] = {
@@ -9836,21 +9836,6 @@ R"(
 )",
 R"(
 Apply <callable> to <arg1> ... <argN> using dynamic scoping.
-)",
-
-
-
-
-
-}, {
-"inline",
-"Procedure",
-R"(
-(inline <callable> <arg1> ... <argN>)
-)",
-R"(
-Apply <callable> to <arg1> ... <argN> using propagated dynamic scoping.
-  *) 'deep-call/ce': all applications resulting from <callable> also have dynamic scope!
 )",
 
 
