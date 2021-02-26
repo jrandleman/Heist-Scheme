@@ -3090,7 +3090,7 @@ namespace heist {
   enum class READER_ERROR {
     early_end_paren,    incomplete_string,      incomplete_expression, 
     incomplete_comment, quoted_end_of_buffer,   quoted_end_of_expression,
-    quoted_space,       quoted_incomplete_char, 
+    quoted_space,       quoted_incomplete_char,
   };
 
 
@@ -3174,8 +3174,9 @@ namespace heist {
         fprintf(outs, "EXPRESSION:\n%s\n", input.c_str());
         fputs("--------------------------------------------------------\n", outs);
       }
-    }
+    } 
   }
+
 
   void alert_non_repl_reader_error(FILE* outs, const READER_ERROR& read_error, const scm_string& input)noexcept{
     if(read_error == READER_ERROR::incomplete_string) {
@@ -3222,6 +3223,7 @@ namespace heist {
       }
     }
   }
+  
 
   void alert_reader_error(FILE* outs, const size_type& read_error_index, const scm_string& input)noexcept{
     if(G.USING_ANSI_ESCAPE_SEQUENCES) {

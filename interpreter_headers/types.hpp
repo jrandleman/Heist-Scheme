@@ -89,7 +89,6 @@ namespace heist {
   namespace symconst {
     constexpr const char * const emptylist         = "";
     constexpr const char * const dot               = "*dot*";
-    constexpr const char * const do_label          = "heist:core:do-letrec";
     constexpr const char * const tail_call         = "heist:core:tail-call";
     constexpr const char * const continuation      = "heist:core:cps-";              // hashed continuation arg name prefix
     constexpr const char * const pass_continuation = "heist:core:pass-continuation"; // denotes to treat proc as if defn'd in a scm->cps block
@@ -115,7 +114,6 @@ namespace heist {
     constexpr const char * const quasiquote        = "quasiquote";
     constexpr const char * const unquote           = "unquote";
     constexpr const char * const unquo_splice      = "unquote-splicing";
-    constexpr const char * const letrec            = "letrec"; // used by <do>
     constexpr const char * const set               = "set!";
     constexpr const char * const core_syn          = "core-syntax";
     constexpr const char * const defn_syn          = "define-syntax";
@@ -124,12 +122,10 @@ namespace heist {
     constexpr const char * const define            = "define";
     constexpr const char * const begin             = "begin";
     constexpr const char * const if_t              = "if";
-    constexpr const char * const cond_result       = "heist:core:cond-result";
     constexpr const char * const ellipsis          = "...";
     constexpr const char * const true_t            = "#t";
     constexpr const char * const false_t           = "#f";
     constexpr const char * const append            = "append";
-    constexpr const char * const cons              = "cons";
     constexpr const char * const list              = "list";
     constexpr const char * const list_star         = "list*";
     constexpr const char * const vector            = "vector";
