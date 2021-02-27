@@ -9583,6 +9583,7 @@ R"(
 )",
 R"(
 Confirm case sensitivity is INACTIVE. 
+  *) Enable case-insensitivity via the "-ci" command-line flag!
   *) NOTE: Case-insensitivity implemented by having reader lowercase all input.
 )",
 
