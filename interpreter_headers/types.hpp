@@ -349,8 +349,8 @@ namespace heist {
     bool is_compound() const noexcept{return !prm;};
     bool is_lambda()const noexcept{return flags & 1;}
     void set_lambda(bool status)noexcept{if(status) flags |= 1; else flags &= ~1;}
-    bool is_using_dnyamic_scope()const noexcept{return flags & 2;}
-    void set_using_dnyamic_scope(bool status)noexcept{if(status) flags |= 2; else flags &= ~2;}
+    bool is_using_dynamic_scope()const noexcept{return flags & 2;}
+    void set_using_dynamic_scope(bool status)noexcept{if(status) flags |= 2; else flags &= ~2;}
     size_type& recursive_depth()noexcept{return *rec_depth;} // PRECONDITION: rec_depth
     size_type  recursive_depth()const noexcept{return *rec_depth;} // PRECONDITION: rec_depth
     scm_string str()const noexcept{return name.empty() ? "#<procedure>" : "#<procedure " + name + '>';}

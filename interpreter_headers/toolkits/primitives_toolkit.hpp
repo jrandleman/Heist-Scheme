@@ -4730,6 +4730,55 @@ namespace heist {
   }
 
   /******************************************************************************
+  * CALLABLE SCOPE (LEXICAL VS DYNAMIC) SETTER/PREDICATE HELPER FUNCTIONS
+  ******************************************************************************/
+
+  // PRECONDITION: primitive_data_is_a_callable(d)
+  void prm_toggle_functor_scope_semantics(data& d, bool using_dynamic_scope)noexcept{
+    obj_type obj = d.obj;
+    while(obj) {
+      // search object's local members
+      for(size_type i = 0, n = obj->method_names.size(); i < n; ++i)
+        if(obj->method_names[i] == "self->procedure") {
+          obj->method_values[i].fcn.set_using_dynamic_scope(using_dynamic_scope);
+          return;
+        }
+      // search object's prototype
+      for(size_type i = 0, n = obj->proto->method_names.size(); i < n; ++i)
+        if(obj->proto->method_names[i] == "self->procedure") {
+          // Cache the method dynamically added to the object's prototype IN the object
+          obj->method_names.push_back("self->procedure"), obj->method_values.push_back(obj->proto->method_values[i]);
+          obj->method_values.rbegin()->fcn.set_using_dynamic_scope(using_dynamic_scope);
+          return;
+        }
+      // search inherited object prototype
+      obj = obj->super;
+    }
+  }
+
+
+  data prm_convert_callable_scope(scm_list& args, bool using_dynamic_scope, const char* name, const char* format) {
+    if(args.size() != 1)
+      THROW_ERR('\''<<name<<" didn't receive 1 arg!" << format << FCN_ERR(name,args));
+    primitive_confirm_data_is_a_callable(args[0], name, format, args);
+    if(args[0].is_type(types::obj)) {
+      data obj = args[0].copy();
+      prm_toggle_functor_scope_semantics(obj, using_dynamic_scope);
+      return obj;
+    } else {
+      data callable = args[0];
+      callable.fcn.set_using_dynamic_scope(using_dynamic_scope);
+      return callable;
+    }
+  }
+
+
+  data prm_check_callable_scope(scm_list& args, bool checking_dynamic_scope, const char* name, const char* format) {
+    if(args.empty()) THROW_ERR('\''<<name<<" didn't receive 1 arg!" << format << FCN_ERR(name,args));
+    return boolean(validate_and_extract_callable(args[0],name,format,args).fcn.is_using_dynamic_scope() == checking_dynamic_scope);
+  }
+
+  /******************************************************************************
   * MACRO EXPANSION HELPERS
   ******************************************************************************/
 

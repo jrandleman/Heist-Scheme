@@ -276,8 +276,9 @@ static constexpr const char* HELP_MENU_PROCEDURES_INVARIANTS[] = {
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_CONTROLFLOW[] = {
-  "exit",  "error",      "syntax-error", "call/ce", 
-  "jump!", "catch-jump", "trace", 
+  "exit",                         "error",                        "syntax-error",   "call/ce", 
+  "lexical-scope->dynamic-scope", "dynamic-scope->lexical-scope", "dynamic-scope?", "lexical-scope?", 
+  "jump!",                        "catch-jump",                   "trace", 
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_CPS[] = {
@@ -9836,6 +9837,64 @@ R"(
 )",
 R"(
 Apply <callable> to <arg1> ... <argN> using dynamic scoping.
+)",
+
+
+
+
+
+}, {
+"lexical-scope->dynamic-scope",
+"Procedure",
+R"(
+(lexical-scope->dynamic-scope <callable>)
+)",
+R"(
+Get a deep-copy of <callable> that, when invoked, uses dynamic scope!
+)",
+
+
+
+
+
+}, {
+"dynamic-scope->lexical-scope",
+"Procedure",
+R"(
+(dynamic-scope->lexical-scope <callable>)
+)",
+R"(
+Get a deep-copy of <callable> that, when invoked, uses lexical scope!
+  *) NOTE: Callables use lexical scope by default!
+)",
+
+
+
+
+
+}, {
+"dynamic-scope?",
+"Procedure",
+R"(
+(dynamic-scope? <callable>)
+)",
+R"(
+Check whether <callable> uses dynamic scope!
+)",
+
+
+
+
+
+}, {
+"lexical-scope?",
+"Procedure",
+R"(
+(lexical-scope? <callable>)
+)",
+R"(
+Check whether <callable> uses lexical scope!
+  *) NOTE: Callables use lexical scope by default!
 )",
 
 

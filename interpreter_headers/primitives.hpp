@@ -5169,9 +5169,29 @@ namespace heist {
     if(args.empty())
       THROW_ERR("'call/ce received incorrect # of args!" << format << FCN_ERR("call/ce",args));
     auto proc = validate_and_extract_callable(args[0], "call/ce", format, args);
-    proc.fcn.set_using_dnyamic_scope(true);
+    proc.fcn.set_using_dynamic_scope(true);
     scm_list call_ce_args(args.begin()+1,args.end());
     return execute_callable(proc,call_ce_args,env);
+  }
+
+  data primitive_CONVERT_LEXICAL_SCOPE_TO_DYNAMIC_SCOPE(scm_list& args) {
+    return prm_convert_callable_scope(args, true, "lexical-scope->dynamic-scope", 
+      "\n     (lexical-scope->dynamic-scope <callable>)");
+  }
+
+  data primitive_CONVERT_DYNAMIC_SCOPE_TO_LEXICAL_SCOPE(scm_list& args) {
+    return prm_convert_callable_scope(args, false, "dynamic-scope->lexical-scope", 
+      "\n     (dynamic-scope->lexical-scope <callable>)");
+  }
+
+  data primitive_DYNAMIC_SCOPEP(scm_list& args) {
+    return prm_check_callable_scope(args,true,"dynamic-scope?",
+      "\n     (dynamic-scope? <callable>)");
+  }
+
+  data primitive_LEXICAL_SCOPEP(scm_list& args) {
+    return prm_check_callable_scope(args,false,"lexical-scope?",
+      "\n     (lexical-scope? <callable>)");
   }
 
   data primitive_JUMP_BANG(scm_list& args) {
@@ -6478,15 +6498,19 @@ namespace heist {
     std::make_pair(primitive_SET_DOT_BANG,                 "set-dot!"),
     std::make_pair(primitive_DOT,                          "dot"),
 
-    std::make_pair(primitive_EXIT,         "exit"),
-    std::make_pair(primitive_ERROR,        "error"),
-    std::make_pair(primitive_SYNTAX_ERROR, "syntax-error"),
-    std::make_pair(primitive_CALL_CE,      "call/ce"),
-    std::make_pair(primitive_CALL_CE,      "call-with-current-environment"),
-    std::make_pair(primitive_JUMP_BANG,    "jump!"),
-    std::make_pair(primitive_CATCH_JUMP,   "catch-jump"),
-    std::make_pair(primitive_EXPAND,       "expand"),
-    std::make_pair(primitive_TRACE,        "trace"),
+    std::make_pair(primitive_EXIT,                                   "exit"),
+    std::make_pair(primitive_ERROR,                                  "error"),
+    std::make_pair(primitive_SYNTAX_ERROR,                           "syntax-error"),
+    std::make_pair(primitive_CALL_CE,                                "call/ce"),
+    std::make_pair(primitive_CALL_CE,                                "call-with-current-environment"),
+    std::make_pair(primitive_CONVERT_LEXICAL_SCOPE_TO_DYNAMIC_SCOPE, "lexical-scope->dynamic-scope"),
+    std::make_pair(primitive_CONVERT_DYNAMIC_SCOPE_TO_LEXICAL_SCOPE, "dynamic-scope->lexical-scope"),
+    std::make_pair(primitive_DYNAMIC_SCOPEP,                         "dynamic-scope?"),
+    std::make_pair(primitive_LEXICAL_SCOPEP,                         "lexical-scope?"),
+    std::make_pair(primitive_JUMP_BANG,                              "jump!"),
+    std::make_pair(primitive_CATCH_JUMP,                             "catch-jump"),
+    std::make_pair(primitive_EXPAND,                                 "expand"),
+    std::make_pair(primitive_TRACE,                                  "trace"),
 
     std::make_pair(primitive_GENSYM,      "gensym"),
     std::make_pair(primitive_SOWN_GENSYM, "sown-gensym"),

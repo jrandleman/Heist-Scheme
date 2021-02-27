@@ -3071,15 +3071,21 @@ Other primitives of this nature include:<br>
    * `(call/ce <callable> <arg1> ... <argN>)`
    * `(call-with-current-environment <callable> <arg1> ... <argN>)`
 
-4. __Inline Call__: "deep" call/ce
-   * `(inline <callable> <arg1> ... <argN>)`
+4. __Convert Callable to Use Dynamic Scope__: `(lexical-scope->dynamic-scope <callable>)`
 
-5. __Jump/Throw Value__: `(jump! <optional-arg>)`
+5. __Convert Callable to Use Lexical Scope__: `(dynamic-scope->lexical-scope <callable>)`
+   * Callables use lexical scope by default!
+
+6. __Confirm Callable Uses Dynamic Scope__: `(dynamic-scope? <callable>)`
+
+7. __Confirm Callable Uses Lexical Scope__: `(lexical-scope? <callable>)`
+
+8. __Jump/Throw Value__: `(jump! <optional-arg>)`
    * `<optional-arg>` defaults to [`(void)`](#Type-Predicates-Undefined--Void)
 
-6. __Catch Jumped/Thrown Value__: `(catch-jump <callable> <arg1> ... <argN>)`
+9. __Catch Jumped/Thrown Value__: `(catch-jump <callable> <arg1> ... <argN>)`
 
-7. __Trace Procedure Call__: `(trace <procedure> <arg1> ... <argN>)`
+10. __Trace Procedure Call__: `(trace <procedure> <arg1> ... <argN>)`
 
 
 

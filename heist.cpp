@@ -4377,7 +4377,7 @@ namespace heist {
     register_call_in_stack_trace(procedure.fcn,arguments);
     // output debugger call trace as needed
     if(G.TRACING_ALL_FUNCTION_CALLS)
-      output_debug_call_trace(procedure.fcn,arguments,tail_call,procedure.fcn.is_using_dnyamic_scope());
+      output_debug_call_trace(procedure.fcn,arguments,tail_call,procedure.fcn.is_using_dynamic_scope());
     // execute primitive procedure directly
     if(procedure.fcn.is_primitive())
       return apply_primitive_procedure(procedure,arguments,env,tail_call);
@@ -4385,7 +4385,7 @@ namespace heist {
     exe_fcn_t fcn_body;
     auto extended_env = procedure.fcn.get_extended_environment(arguments,fcn_body);
     // splice in current env for dynamic scope as needed
-    if(procedure.fcn.is_using_dnyamic_scope()) {
+    if(procedure.fcn.is_using_dynamic_scope()) {
       extended_env->erase(extended_env->begin()+1,extended_env->end());
       extended_env->insert(extended_env->end(), env->begin(), env->end());
     }
