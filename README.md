@@ -2996,8 +2996,10 @@ Other primitives of this nature include:<br>
 12. __Rewind Port__: `(rewind-port! <input-or-output-port>)`
 
 13. __Seek from Port's Current Position__: `(port-seek! <open-port> <integer-offset>)`
+    * _Equivalent to C++'s `fseek` using `SEEK_CUR`_
 
 14. __Seek from Start of Port's Stream__: `(port-seek-front! <open-port> <integer-offset>)`
+    * _Equivalent to C++'s `fseek` using `SEEK_SET`_
 
 15. __Close Port__: `(close-port <input-or-output-port>)`
 
