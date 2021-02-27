@@ -2993,7 +2993,7 @@ Other primitives of this nature include:<br>
 11. __Destructively Generate Output Port__: `(open-output-file! <filename-string>)`
     * _Equivalent to `(begin (delete-file! <filename-string>) (open-output-file <filename-string>))`_
 
-12. __Rewind Port__: `(rewind-port <input-or-output-port>)`
+12. __Rewind Port__: `(rewind-port! <input-or-output-port>)`
 
 13. __Close Port__: `(close-port <input-or-output-port>)`
 

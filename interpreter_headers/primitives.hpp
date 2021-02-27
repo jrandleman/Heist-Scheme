@@ -4887,8 +4887,8 @@ namespace heist {
   }
 
   // rewind input or output port
-  data primitive_REWIND_PORT(scm_list& args){
-    confirm_given_1_open_port(args, "rewind-port");
+  data primitive_REWIND_PORT_BANG(scm_list& args){
+    confirm_given_1_open_port(args, "rewind-port!");
     if(is_readable_open_input_port(args[0])){
       rewind(args[0].fip.port());
     } else if(is_writable_open_output_port(args[0])){
@@ -6538,7 +6538,7 @@ namespace heist {
     std::make_pair(primitive_OPEN_OUTPUT_FILE,      "open-output-file"),
     std::make_pair(primitive_OPEN_OUTPUT_FILE_PLUS, "open-output-file+"),
     std::make_pair(primitive_OPEN_OUTPUT_FILE_BANG, "open-output-file!"),
-    std::make_pair(primitive_REWIND_PORT,           "rewind-port"),
+    std::make_pair(primitive_REWIND_PORT_BANG,      "rewind-port!"),
     std::make_pair(primitive_CLOSE_PORT,            "close-port"),
 
     std::make_pair(primitive_LOAD,         "load"),

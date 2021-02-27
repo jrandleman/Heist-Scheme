@@ -265,7 +265,7 @@ static constexpr const char* HELP_MENU_PROCEDURES_PORTS[] = {
   "open-port?",           "closed-port?",          "current-input-port",   "current-output-port",
   "call-with-input-file", "call-with-output-file", "with-input-from-file", "with-output-from-file", 
   "open-input-file",      "open-output-file",      "open-output-file+",    "open-output-file!",
-  "rewind-port",          "close-port", 
+  "rewind-port!",         "close-port", 
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_SYSINTERFACE[] = {
@@ -9380,10 +9380,10 @@ Destructively generates an output port from <filename-string>.
 
 
 }, {
-"rewind-port",
+"rewind-port!",
 "Procedure",
 R"(
-(rewind-port <input-or-output-port>)
+(rewind-port! <input-or-output-port>)
 )",
 R"(
 Rewind the given port back the beginning of its stream. 
