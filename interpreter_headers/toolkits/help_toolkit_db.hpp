@@ -256,16 +256,17 @@ static constexpr const char* HELP_MENU_PROCEDURES_INPUT[] = {
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_PORTS[] = {
-  "file?",                 "delete-file!",         "rename-file!",          "open-port?", 
-  "closed-port?",          "current-input-port",   "current-output-port",   "call-with-input-file", 
-  "call-with-output-file", "with-input-from-file", "with-output-from-file", "open-input-file", 
-  "open-output-file",      "open-output-file+",    "open-output-file!",     "close-port", 
+  "getcwd",                "dirname",              "file?",                 "delete-file!",
+  "rename-file!",          "open-port?",           "closed-port?",          "current-input-port",
+  "current-output-port",   "call-with-input-file", "call-with-output-file", "with-input-from-file", 
+  "with-output-from-file", "open-input-file",      "open-output-file",      "open-output-file+",
+  "open-output-file!",     "close-port", 
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_SYSINTERFACE[] = {
-  "load",         "cps-load",            "system",  "getenv", 
-  "command-line", "getcwd",              "dirname", "compile", 
-  "cps-compile",  "seconds-since-epoch", "time",    "current-date", 
+  "load",   "cps-load",     "compile",      "cps-compile",
+  "system", "getenv",       "command-line", "seconds-since-epoch", 
+  "time",   "current-date", 
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_INVARIANTS[] = {
@@ -9128,7 +9129,7 @@ R"(
 (file? <filename-string>)
 )",
 R"(
-File predicate.
+File/directory predicate.
 )",
 
 
@@ -9142,7 +9143,7 @@ R"(
 (delete-file! <filename-string>)
 )",
 R"(
-Delete file <filename-string>.
+Delete file/directory <filename-string>.
 )",
 
 
@@ -9156,7 +9157,7 @@ R"(
 (rename-file! <old-name-string> <new-name-string>)
 )",
 R"(
-Renames file named <old-name-string> to <new-name-string> (if exists).
+Renames file/directory named <old-name-string> to <new-name-string> (if exists).
 )",
 
 

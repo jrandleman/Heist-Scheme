@@ -4666,13 +4666,22 @@ namespace heist {
   // file & ports predicates
   data primitive_FILEP(scm_list& args) {
     confirm_given_one_string_arg(args, "file?", "\n     (file? <filename-string>)");
-    return data(boolean(confirm_file_exists(args[0].str->c_str())));
+    try {
+      return boolean(std::filesystem::exists(*args[0].str));
+    } catch(...) {
+      return boolean(false);
+    }
   }
 
   // returns whether succeed deleting given filename-string
   data primitive_DELETE_FILE_BANG(scm_list& args) {
     confirm_given_one_string_arg(args, "delete-file!", "\n     (delete-file! <filename-string>)");
-    return data(boolean(std::remove(args[0].str->c_str()) == 0));
+    try {
+      auto result = std::filesystem::remove_all(*args[0].str);
+      return boolean(result > 0);
+    } catch(...) {
+      return boolean(false);
+    }
   }
 
   // returns whether succeed deleting given filename-string
@@ -4687,8 +4696,12 @@ namespace heist {
       if(!args[i].is_type(types::str)) 
         THROW_ERR("'rename-file! arg "<<PROFILE(args[i])<<" isn't a string:"<<format 
           << FCN_ERR("rename-file!",args));
-    return data(boolean(std::rename(args[0].str->c_str(),
-                                    args[1].str->c_str()) == 0));
+    try {
+      std::filesystem::rename(*args[0].str,*args[1].str);
+      return boolean(true);
+    } catch(...) {
+      return boolean(false);
+    }
   }
 
   data primitive_OPEN_PORTP(scm_list& args) {
@@ -4790,7 +4803,7 @@ namespace heist {
   data primitive_OPEN_OUTPUT_FILE_BANG(scm_list& args){ // deletes if exists, and opens anew
     // confirm given a filename string, & rm file if exists
     confirm_given_one_string_arg(args, "open-output-file!", "\n     (open-output-file! <filename-string>)");
-    std::remove(args[0].str->c_str());
+    try { std::filesystem::remove_all(*args[0].str); } catch(...) {}
     GLOBALS::PORT_REGISTRY.push_back(confirm_valid_output_file(args[0],"open-output-file!",
       "\n     (open-output-file! <filename-string>)",args));
     return oport(GLOBALS::PORT_REGISTRY.size()-1);
@@ -4977,7 +4990,11 @@ namespace heist {
   // Returns a string of the current working directory
   data primitive_GETCWD(scm_list& args) {
     confirm_no_args_given(args,"getcwd");
-    return make_str(std::filesystem::current_path());
+    try {
+      return make_str(std::filesystem::current_path());  
+    } catch(...) {
+      return boolean(false);
+    }
   }
 
   // Returns a string of the parent directory of the given path string

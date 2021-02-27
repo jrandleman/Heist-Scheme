@@ -2943,40 +2943,44 @@ Other primitives of this nature include:<br>
 
 ------------------------
 ## File & Port Procedures:
-0. __File Predicate__: `(file? <filename-string>)`
+0. __Current Working Directory String__: `(getcwd)`
 
-1. __Delete File__: `(delete-file! <filename-string>)`
+1. __Get Parent Directory String__: `(dirname <filepath-string>)`
 
-2. __Rename File__: `(rename-file! <old-name-string> <new-name-string>)`
+2. __File/Directory Predicate__: `(file? <filename-string>)`
 
-3. __Open-Port Predicate__: `(open-port? <port>)`
+3. __Delete File/Directory__: `(delete-file! <filename-string>)`
 
-4. __Closed-Port Predicate__: `(closed-port? <port>)`
+4. __Rename File/Directory__: `(rename-file! <old-name-string> <new-name-string>)`
 
-5. __Current Input Port__: `(current-input-port)`
+5. __Open-Port Predicate__: `(open-port? <port>)`
 
-6. __Current Output Port__: `(current-output-port)`
+6. __Closed-Port Predicate__: `(closed-port? <port>)`
 
-7. __Call With Input File__: `(call-with-input-file <filename-string> <unary-port-callable>)`
+7. __Current Input Port__: `(current-input-port)`
 
-8. __Call With Output File__: `(call-with-output-file <filename-string> <unary-port-callable>)`
+8. __Current Output Port__: `(current-output-port)`
 
-9. __With Input From File__: `(with-input-from-file <filename-string> <nullary-callable>)`
+9. __Call With Input File__: `(call-with-input-file <filename-string> <unary-port-callable>)`
 
-10. __With Output From File__: `(with-output-from-file <filename-string> <nullary-callable>)`
+10. __Call With Output File__: `(call-with-output-file <filename-string> <unary-port-callable>)`
 
-11. __Generate Input Port__: `(open-input-file <filename-string>)`
+11. __With Input From File__: `(with-input-from-file <filename-string> <nullary-callable>)`
 
-12. __Generate Output Port__: `(open-output-file <filename-string>)`
+12. __With Output From File__: `(with-output-from-file <filename-string> <nullary-callable>)`
+
+13. __Generate Input Port__: `(open-input-file <filename-string>)`
+
+14. __Generate Output Port__: `(open-output-file <filename-string>)`
     * _Only works to create files that don't already exist!_
 
-13. __Generate Output Append Port__: `(open-output-file+ <filename-string>)`
+15. __Generate Output Append Port__: `(open-output-file+ <filename-string>)`
     * _Both creates new files & appends to existing files!_
 
-14. __Destructively Generate Output Port__: `(open-output-file! <filename-string>)`
+16. __Destructively Generate Output Port__: `(open-output-file! <filename-string>)`
     * _Equivalent to `(begin (delete-file! <filename-string>) (open-output-file <filename-string>))`_
 
-15. __Close Port__: `(close-port <input-or-output-port>)`
+17. __Close Port__: `(close-port <input-or-output-port>)`
 
 
 
@@ -2993,35 +2997,29 @@ Other primitives of this nature include:<br>
    * _Pass `*local-environment*` to `cps-load` in the local environment (default)!_
    * _Pass `*global-environment*` to `cps-load` in the global environment!_
 
-2. __System Interface Via Command-Line__: Returns `#f` if feature not offered by OS
+2. __Compile a File__: `(compile <filename-string> <optional-compiled-filename>)`
+   * Take into account the [compiler's replacement of the reader](#-compile-notes)!
+
+3. __Cps-Compile a File__: `(cps-compile <filename-string> <optional-compiled-filename>)`
+   * Take into account the [compiler's replacement of the reader](#-compile-notes)!
+
+4. __System Interface Via Command-Line__: Returns `#f` if feature not offered by OS
    * `(system <optional-system-call-string>)`
 
-3. __Get-Environment__: Get variable's value as a string
+5. __Get-Environment__: Get variable's value as a string
    * `(getenv <variable-name-string>)`
 
-4. __Command-Line Args__: Get a string with command-line arg descriptions
+6. __Command-Line Args__: Get a string with command-line arg descriptions
    * `(command-line)`
 
-5. __Current Working Directory__: Get a string of the current working directory
-   * `(getcwd)`
+7. __Get Seconds Since Epoch__: `(seconds-since-epoch)`
 
-6. __Get Parent Directory__: Given a filepath string, get a string of its parent directory
-   * `(dirname <filepath-string>)`
+8. __Time Callable Execution__: `(time <callable> <arg1> ... <argN>)`
+   * _Returns a pair: `(cons <time-in-seconds> <callable's-result>)`_
 
-7. __Compile a File__: `(compile <filename-string> <optional-compiled-filename>)`
-   * Take into account the [compiler's replacement of the reader](#-compile-notes)!
-
-8. __Cps-Compile a File__: `(cps-compile <filename-string> <optional-compiled-filename>)`
-   * Take into account the [compiler's replacement of the reader](#-compile-notes)!
-
-9. __Get Seconds Since Epoch__: `(seconds-since-epoch)`
-
-10. __Time Callable Execution__: `(time <callable> <arg1> ... <argN>)`
-    * _Returns a pair: `(cons <time-in-seconds> <callable's-result>)`_
-
-11. __Get Current Date as String__: `(current-date <optional-offset> ...)`
-    * `<optional-offset>` = `(<symbolic-unit> <integer-amount>)`
-    * `<symbolic-unit>` = `sec` | `min` | `hour` | `day` | `year`
+9. __Get Current Date as String__: `(current-date <optional-offset> ...)`
+   * `<optional-offset>` = `(<symbolic-unit> <integer-amount>)`
+   * `<symbolic-unit>` = `sec` | `min` | `hour` | `day` | `year`
 
 
 
