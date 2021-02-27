@@ -3174,17 +3174,17 @@ Other primitives of this nature include:<br>
 
 7. __Get Alist of Reader Aliases & Names__: `(reader-alias-list)`
 
-8. __Mutate Core Syntax__: `(set-core-syntax! <old-name-symbol> <optional-new-name-symbol>)`
+8. __Get Alist of Infix Symbols, Associativity, & Precedence__: `(infix-list)`
+
+9. __Mutate Core Syntax__: `(set-core-syntax! <old-name-symbol> <optional-new-name-symbol>)`
    * Only old name: ___DELETES___ `<old-name-symbol>` as core-syntax
    * Both old & new name: ___RENAMES___ syntax's old name to new name
      - _NOTE: also recursively renames all recursive calls to the macro in its templates!_
 
-9. __Mutate Runtime Syntax__: `(set-runtime-syntax! <old-name-symbol> <optional-new-name-symbol>)`
-   * Only old name: ___DELETES___ `<old-name-symbol>` as runtime-syntax
-   * Both old & new name: ___RENAMES___ syntax's old name to new name
-     - _NOTE: also recursively renames all recursive calls to the macro in its templates!_
-
-10. __Get Alist of Infix Symbols, Associativity, & Precedence__: `(infix-list)`
+10. __Mutate Runtime Syntax__: `(set-runtime-syntax! <old-name-symbol> <optional-new-name-symbol>)`
+    * Only old name: ___DELETES___ `<old-name-symbol>` as runtime-syntax
+    * Both old & new name: ___RENAMES___ syntax's old name to new name
+      - _NOTE: also recursively renames all recursive calls to the macro in its templates!_
 
 
 
