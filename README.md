@@ -121,7 +121,8 @@
      * [Convert Strings to ASCII/Whitespace Art](#Convert-Strings-to-ASCIIWhitespace-Art)
      * [Get ANSI Escape Code String (or `""` if `nansi` is active!)](#get-ansi-escape-code-string-or--if-nansi-is-active)
    - [Input Procedures](#Input-Procedures)
-   - [File & Port Procedures](#File--Port-Procedures)
+   - [Filesystem Procedures](#Filesystem-Procedures)
+   - [Port Procedures](#Port-Procedures)
    - [System Interface Procedures](#System-Interface-Procedures)
    - [Interpreter Invariants Manipulation](#Interpreter-Invariants-Manipulation)
    - [Control Flow Procedures](#Control-Flow-Procedures)
@@ -248,7 +249,7 @@ Wraps scheme code in a [`scm->cps`](#scm-cps) block automatically, hence:
 5. Boolean (true or false, `#t` or`#f`)
 6. Vector (quoted literal `'#(1 2 3)`, or primitive `(vector 1 2 3)`)
 7. Hash-Map (quoted literal `'$(a 1 b 2)`, or primitive `(hmap 'a 1 'b 2)`)
-8. Input Port, Output Port ([see port primitives](#File--Port-Procedures))
+8. Input Port, Output Port ([see port primitives](#Port-Procedures))
 9. Syntax-Rules Object (see [`syntax-rules`](#Define-Syntax-Let-Syntax-Letrec-Syntax) special form)
 10. Delayed Data (see [`delay`](#Delay) special form)
 11. Procedure (via primitives or the [`lambda`](#Lambda)/[`fn`](#Fn) special forms)
@@ -2941,7 +2942,7 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
-## File & Port Procedures:
+## Filesystem Procedures:
 0. __Current Working Directory String__: `(getcwd)`
 
 1. __Get Parent Directory String__: `(dirname <filepath-string>)`
@@ -2961,36 +2962,40 @@ Other primitives of this nature include:<br>
 8. __Get File Size__: `(file-size <filename-string>)`
    * _Behavior is platform-dependant when invoked on directories!_
 
-9. __Open-Port Predicate__: `(open-port? <port>)`
 
-10. __Closed-Port Predicate__: `(closed-port? <port>)`
 
-11. __Current Input Port__: `(current-input-port)`
+------------------------
+## Port Procedures:
+0. __Open-Port Predicate__: `(open-port? <port>)`
 
-12. __Current Output Port__: `(current-output-port)`
+1. __Closed-Port Predicate__: `(closed-port? <port>)`
 
-13. __Call With Input File__: `(call-with-input-file <filename-string> <unary-port-callable>)`
+2. __Current Input Port__: `(current-input-port)`
 
-14. __Call With Output File__: `(call-with-output-file <filename-string> <unary-port-callable>)`
+3. __Current Output Port__: `(current-output-port)`
 
-15. __With Input From File__: `(with-input-from-file <filename-string> <nullary-callable>)`
+4. __Call With Input File__: `(call-with-input-file <filename-string> <unary-port-callable>)`
 
-16. __With Output From File__: `(with-output-from-file <filename-string> <nullary-callable>)`
+5. __Call With Output File__: `(call-with-output-file <filename-string> <unary-port-callable>)`
 
-17. __Generate Input Port__: `(open-input-file <filename-string>)`
+6. __With Input From File__: `(with-input-from-file <filename-string> <nullary-callable>)`
 
-18. __Generate Output Port__: `(open-output-file <filename-string>)`
-    * _Only works to create files that don't already exist!_
+7. __With Output From File__: `(with-output-from-file <filename-string> <nullary-callable>)`
 
-19. __Generate Output Append Port__: `(open-output-file+ <filename-string>)`
+8. __Generate Input Port__: `(open-input-file <filename-string>)`
+
+9. __Generate Output Port__: `(open-output-file <filename-string>)`
+   * _Only works to create files that don't already exist!_
+
+10. __Generate Output Append Port__: `(open-output-file+ <filename-string>)`
     * _Both creates new files & appends to existing files!_
 
-20. __Destructively Generate Output Port__: `(open-output-file! <filename-string>)`
+11. __Destructively Generate Output Port__: `(open-output-file! <filename-string>)`
     * _Equivalent to `(begin (delete-file! <filename-string>) (open-output-file <filename-string>))`_
 
-21. __Rewind Port__: `(rewind-port <input-or-output-port>)`
+12. __Rewind Port__: `(rewind-port <input-or-output-port>)`
 
-22. __Close Port__: `(close-port <input-or-output-port>)`
+13. __Close Port__: `(close-port <input-or-output-port>)`
 
 
 

@@ -73,13 +73,13 @@ static constexpr const char* HELP_MENU_SPECIALS[] = {
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES[] = { 
-  "help",         "build",           "objects",    "prototypes",   "coroutines",
-  "streams",      "numbers",         "equality",   "chars",        "strings",
-  "pairs",        "vectors",         "hmaps",      "sequences",    "predicates",
-  "evalapply",    "copying",         "delayforce", "coercion",     "output",
-  "formatoutput", "input",           "ports",      "sysinterface", "invariants",
-  "controlflow",  "cps-helpers",     "syntax",     "json",         "csv",
-  "gensyms",      "compose-bind-id",
+  "help",         "build",       "objects",         "prototypes", "coroutines",
+  "streams",      "numbers",     "equality",        "chars",      "strings",
+  "pairs",        "vectors",     "hmaps",           "sequences",  "predicates",
+  "evalapply",    "copying",     "delayforce",      "coercion",   "output",
+  "formatoutput", "input",       "files",           "ports",      "sysinterface", 
+  "invariants",   "controlflow", "cps-helpers",     "syntax",     "json",
+  "csv",          "gensyms",     "compose-bind-id",
 };
 
 static constexpr char** HELP_MENU_SUBMENUS[] = {
@@ -255,13 +255,17 @@ static constexpr const char* HELP_MENU_PROCEDURES_INPUT[] = {
   "read-port", "read-file", 
 };
 
-static constexpr const char* HELP_MENU_PROCEDURES_PORTS[] = {
+static constexpr const char* HELP_MENU_PROCEDURES_FILES[] = {
   "getcwd",                "dirname",              "mkdir",                 "chdir", 
   "file?",                 "delete-file!",         "rename-file!",          "copy-file",
-  "file-size",             "open-port?",           "closed-port?",          "current-input-port",
-  "current-output-port",   "call-with-input-file", "call-with-output-file", "with-input-from-file", 
-  "with-output-from-file", "open-input-file",      "open-output-file",      "open-output-file+",
-  "open-output-file!",     "rewind-port",           "close-port", 
+  "file-size",
+};
+
+static constexpr const char* HELP_MENU_PROCEDURES_PORTS[] = {
+  "open-port?",           "closed-port?",          "current-input-port",   "current-output-port",
+  "call-with-input-file", "call-with-output-file", "with-input-from-file", "with-output-from-file", 
+  "open-input-file",      "open-output-file",      "open-output-file+",    "open-output-file!",
+  "rewind-port",          "close-port", 
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_SYSINTERFACE[] = {
@@ -316,9 +320,9 @@ static constexpr char** HELP_MENU_PROCEDURES_SUBMENU[] = {
   (char**)HELP_MENU_PROCEDURES_STRINGS,     (char**)HELP_MENU_PROCEDURES_PAIRS,         (char**)HELP_MENU_PROCEDURES_VECTORS,      (char**)HELP_MENU_PROCEDURES_HMAPS, 
   (char**)HELP_MENU_PROCEDURES_SEQUENCES,   (char**)HELP_MENU_PROCEDURES_PREDICATES,    (char**)HELP_MENU_PROCEDURES_EVALAPPLY,    (char**)HELP_MENU_PROCEDURES_COPY, 
   (char**)HELP_MENU_PROCEDURES_DELAY,       (char**)HELP_MENU_PROCEDURES_COERCION,      (char**)HELP_MENU_PROCEDURES_OUTPUT,       (char**)HELP_MENU_PROCEDURES_FORMATOUTPUT, 
-  (char**)HELP_MENU_PROCEDURES_INPUT,       (char**)HELP_MENU_PROCEDURES_PORTS,         (char**)HELP_MENU_PROCEDURES_SYSINTERFACE, (char**)HELP_MENU_PROCEDURES_INVARIANTS, 
-  (char**)HELP_MENU_PROCEDURES_CONTROLFLOW, (char**)HELP_MENU_PROCEDURES_CPS,           (char**)HELP_MENU_PROCEDURES_SYNTAX,       (char**)HELP_MENU_PROCEDURES_JSON, 
-  (char**)HELP_MENU_PROCEDURES_CSV,         (char**)HELP_MENU_PROCEDURES_GENSYM,        (char**)HELP_MENU_PROCEDURES_COMPOSEBINDID, 
+  (char**)HELP_MENU_PROCEDURES_INPUT,       (char**)HELP_MENU_PROCEDURES_FILES,         (char**)HELP_MENU_PROCEDURES_PORTS,        (char**)HELP_MENU_PROCEDURES_SYSINTERFACE, 
+  (char**)HELP_MENU_PROCEDURES_INVARIANTS,  (char**)HELP_MENU_PROCEDURES_CONTROLFLOW,   (char**)HELP_MENU_PROCEDURES_CPS,          (char**)HELP_MENU_PROCEDURES_SYNTAX,
+  (char**)HELP_MENU_PROCEDURES_JSON,        (char**)HELP_MENU_PROCEDURES_CSV,           (char**)HELP_MENU_PROCEDURES_GENSYM,       (char**)HELP_MENU_PROCEDURES_COMPOSEBINDID, 
 };
 
 static constexpr size_type HELP_MENU_PROCEDURES_SUBMENU_LENGTH[] = {
@@ -333,12 +337,12 @@ static constexpr size_type HELP_MENU_PROCEDURES_SUBMENU_LENGTH[] = {
   sizeof(HELP_MENU_PROCEDURES_EVALAPPLY)/sizeof(HELP_MENU_PROCEDURES_EVALAPPLY[0]),       sizeof(HELP_MENU_PROCEDURES_COPY)/sizeof(HELP_MENU_PROCEDURES_COPY[0]), 
   sizeof(HELP_MENU_PROCEDURES_DELAY)/sizeof(HELP_MENU_PROCEDURES_DELAY[0]),               sizeof(HELP_MENU_PROCEDURES_COERCION)/sizeof(HELP_MENU_PROCEDURES_COERCION[0]),
   sizeof(HELP_MENU_PROCEDURES_OUTPUT)/sizeof(HELP_MENU_PROCEDURES_OUTPUT[0]),             sizeof(HELP_MENU_PROCEDURES_FORMATOUTPUT)/sizeof(HELP_MENU_PROCEDURES_FORMATOUTPUT[0]), 
-  sizeof(HELP_MENU_PROCEDURES_INPUT)/sizeof(HELP_MENU_PROCEDURES_INPUT[0]),               sizeof(HELP_MENU_PROCEDURES_PORTS)/sizeof(HELP_MENU_PROCEDURES_PORTS[0]),
-  sizeof(HELP_MENU_PROCEDURES_SYSINTERFACE)/sizeof(HELP_MENU_PROCEDURES_SYSINTERFACE[0]), sizeof(HELP_MENU_PROCEDURES_INVARIANTS)/sizeof(HELP_MENU_PROCEDURES_INVARIANTS[0]), 
-  sizeof(HELP_MENU_PROCEDURES_CONTROLFLOW)/sizeof(HELP_MENU_PROCEDURES_CONTROLFLOW[0]),   sizeof(HELP_MENU_PROCEDURES_CPS)/sizeof(HELP_MENU_PROCEDURES_CPS[0]),
-  sizeof(HELP_MENU_PROCEDURES_SYNTAX)/sizeof(HELP_MENU_PROCEDURES_SYNTAX[0]),             sizeof(HELP_MENU_PROCEDURES_JSON)/sizeof(HELP_MENU_PROCEDURES_JSON[0]), 
-  sizeof(HELP_MENU_PROCEDURES_CSV)/sizeof(HELP_MENU_PROCEDURES_CSV[0]),                   sizeof(HELP_MENU_PROCEDURES_GENSYM)/sizeof(HELP_MENU_PROCEDURES_GENSYM[0]),
-  sizeof(HELP_MENU_PROCEDURES_COMPOSEBINDID)/sizeof(HELP_MENU_PROCEDURES_COMPOSEBINDID[0]), 
+  sizeof(HELP_MENU_PROCEDURES_INPUT)/sizeof(HELP_MENU_PROCEDURES_INPUT[0]),               sizeof(HELP_MENU_PROCEDURES_FILES)/sizeof(HELP_MENU_PROCEDURES_FILES[0]),
+  sizeof(HELP_MENU_PROCEDURES_PORTS)/sizeof(HELP_MENU_PROCEDURES_PORTS[0]),               sizeof(HELP_MENU_PROCEDURES_SYSINTERFACE)/sizeof(HELP_MENU_PROCEDURES_SYSINTERFACE[0]), 
+  sizeof(HELP_MENU_PROCEDURES_INVARIANTS)/sizeof(HELP_MENU_PROCEDURES_INVARIANTS[0]),     sizeof(HELP_MENU_PROCEDURES_CONTROLFLOW)/sizeof(HELP_MENU_PROCEDURES_CONTROLFLOW[0]),
+  sizeof(HELP_MENU_PROCEDURES_CPS)/sizeof(HELP_MENU_PROCEDURES_CPS[0]),                   sizeof(HELP_MENU_PROCEDURES_SYNTAX)/sizeof(HELP_MENU_PROCEDURES_SYNTAX[0]),
+  sizeof(HELP_MENU_PROCEDURES_JSON)/sizeof(HELP_MENU_PROCEDURES_JSON[0]),                 sizeof(HELP_MENU_PROCEDURES_CSV)/sizeof(HELP_MENU_PROCEDURES_CSV[0]),
+  sizeof(HELP_MENU_PROCEDURES_GENSYM)/sizeof(HELP_MENU_PROCEDURES_GENSYM[0]),             sizeof(HELP_MENU_PROCEDURES_COMPOSEBINDID)/sizeof(HELP_MENU_PROCEDURES_COMPOSEBINDID[0]), 
 };
 
 /******************************************************************************
