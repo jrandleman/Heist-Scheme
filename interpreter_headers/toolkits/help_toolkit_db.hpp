@@ -265,7 +265,7 @@ static constexpr const char* HELP_MENU_PROCEDURES_PORTS[] = {
   "open-port?",           "closed-port?",          "current-input-port",   "current-output-port",
   "call-with-input-file", "call-with-output-file", "with-input-from-file", "with-output-from-file", 
   "open-input-file",      "open-output-file",      "open-output-file+",    "open-output-file!",
-  "rewind-port!",         "close-port", 
+  "rewind-port!",         "port-seek!",            "port-seek-front!",     "close-port", 
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_SYSINTERFACE[] = {
@@ -9388,6 +9388,36 @@ R"(
 R"(
 Rewind the given port back the beginning of its stream. 
 Works on both input & output ports.
+)",
+
+
+
+
+
+}, {
+"port-seek!",
+"Procedure",
+R"(
+(port-seek! <open-port> <integer-offset>)
+)",
+R"(
+Seek from the port's current position in the stream.
+  *) Equivalent to C++'s "fseek" using "SEEK_CUR"
+)",
+
+
+
+
+
+}, {
+"port-seek-front!",
+"Procedure",
+R"(
+(port-seek-front! <open-port> <integer-offset>)
+)",
+R"(
+Seek from the start of port's stream.
+  *) Equivalent to C++'s "fseek" using "SEEK_SET"
 )",
 
 

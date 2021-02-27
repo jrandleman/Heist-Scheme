@@ -4391,6 +4391,26 @@ namespace heist {
            d.fop.port() != stdout && d.fop.port() != stderr;
   }
 
+
+  data prm_PORT_SEEK_template(scm_list& args, const char* name, const int origin){
+    if(args.size() != 2)
+      THROW_ERR('\''<<name<<" didn't receive 2 args!" 
+        "\n     (" << name << " <open-port> <integer-offset>)" << FCN_ERR(name,args));
+    if(!args[0].is_type(types::fip) && !args[0].is_type(types::fop))
+      THROW_ERR('\''<<name<<" 1st arg " << PROFILE(args[0]) << "\n     isn't a port:" 
+        "\n     (" << name << " <open-port> <integer-offset>)" << FCN_ERR(name,args));
+    if(!args[1].is_type(types::num) || !args[1].num.is_integer())
+      THROW_ERR('\''<<name<<" 2nd arg " << PROFILE(args[1]) << "\n     isn't an integer:" 
+        "\n     (" << name << " <open-port> <integer-offset>)" << FCN_ERR(name,args));
+    int result = 0;
+    if(is_readable_open_input_port(args[0])){
+      result = fseek(args[0].fip.port(), (long int)args[1].num.extract_inexact(), origin);
+    } else if(is_writable_open_output_port(args[0])){
+      result = fseek(args[0].fop.port(), (long int)args[1].num.extract_inexact(), origin);
+    }
+    return boolean(!result);
+  }
+
   /******************************************************************************
   * SYSTEM INTERFACE PRIMITIVE HELPERS
   ******************************************************************************/

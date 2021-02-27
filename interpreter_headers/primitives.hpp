@@ -4897,6 +4897,14 @@ namespace heist {
     return GLOBALS::VOID_DATA_OBJECT;
   }
 
+  data primitive_PORT_SEEK_FRONT_BANG(scm_list& args){
+    return prm_PORT_SEEK_template(args,"port-seek-front!",SEEK_SET);
+  }
+
+  data primitive_PORT_SEEK_BANG(scm_list& args){
+    return prm_PORT_SEEK_template(args,"port-seek!",SEEK_CUR);
+  }
+
   // close input or output port
   data primitive_CLOSE_PORT(scm_list& args){
     confirm_given_1_open_port(args, "close-port");
@@ -6539,6 +6547,8 @@ namespace heist {
     std::make_pair(primitive_OPEN_OUTPUT_FILE_PLUS, "open-output-file+"),
     std::make_pair(primitive_OPEN_OUTPUT_FILE_BANG, "open-output-file!"),
     std::make_pair(primitive_REWIND_PORT_BANG,      "rewind-port!"),
+    std::make_pair(primitive_PORT_SEEK_FRONT_BANG,  "port-seek-front!"),
+    std::make_pair(primitive_PORT_SEEK_BANG,        "port-seek!"),
     std::make_pair(primitive_CLOSE_PORT,            "close-port"),
 
     std::make_pair(primitive_LOAD,         "load"),
