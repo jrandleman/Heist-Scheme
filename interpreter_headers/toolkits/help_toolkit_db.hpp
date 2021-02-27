@@ -256,11 +256,12 @@ static constexpr const char* HELP_MENU_PROCEDURES_INPUT[] = {
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_PORTS[] = {
-  "getcwd",               "dirname",               "file?",                "delete-file!",
-  "rename-file!",         "copy-file",             "open-port?",           "closed-port?",
-  "current-input-port",   "current-output-port",   "call-with-input-file", "call-with-output-file", 
-  "with-input-from-file", "with-output-from-file", "open-input-file",      "open-output-file",
-  "open-output-file+",    "open-output-file!",     "close-port", 
+  "getcwd",               "dirname",               "mkdir",                "chdir", 
+  "file?",                "delete-file!",          "rename-file!",         "copy-file",
+  "open-port?",           "closed-port?",          "current-input-port",   "current-output-port",
+  "call-with-input-file", "call-with-output-file", "with-input-from-file", "with-output-from-file", 
+  "open-input-file",      "open-output-file",      "open-output-file+",    "open-output-file!",
+  "close-port", 
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_SYSINTERFACE[] = {
@@ -9461,6 +9462,34 @@ R"(
 )",
 R"(
 Given a filepath string, get a string of its parent directory.
+)",
+
+
+
+
+
+}, {
+"mkdir",
+"Procedure",
+R"(
+(mkdir <new-directory-name-string>)
+)",
+R"(
+Create a new directory.
+)",
+
+
+
+
+
+}, {
+"chdir",
+"Procedure",
+R"(
+(chdir <directory-path-string>)
+)",
+R"(
+Change the current working directory.
 )",
 
 

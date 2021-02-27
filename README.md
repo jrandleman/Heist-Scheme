@@ -2947,42 +2947,46 @@ Other primitives of this nature include:<br>
 
 1. __Get Parent Directory String__: `(dirname <filepath-string>)`
 
-2. __File/Directory Predicate__: `(file? <filename-string>)`
+2. __Create a New Directory__: `(mkdir <new-directory-name-string>)`
 
-3. __Delete File/Directory__: `(delete-file! <filename-string>)`
+3. __Change Current Working Directory__: `(chdir <directory-path-string>)`
 
-4. __Rename File/Directory__: `(rename-file! <old-name-string> <new-name-string>)`
+4. __File/Directory Predicate__: `(file? <filename-string>)`
 
-5. __Copy File/Directory__: `(copy-file <source-path-string> <destination-path-string>)`
+5. __Delete File/Directory__: `(delete-file! <filename-string>)`
 
-6. __Open-Port Predicate__: `(open-port? <port>)`
+6. __Rename File/Directory__: `(rename-file! <old-name-string> <new-name-string>)`
 
-7. __Closed-Port Predicate__: `(closed-port? <port>)`
+7. __Copy File/Directory__: `(copy-file <source-path-string> <destination-path-string>)`
 
-8. __Current Input Port__: `(current-input-port)`
+8. __Open-Port Predicate__: `(open-port? <port>)`
 
-9. __Current Output Port__: `(current-output-port)`
+9. __Closed-Port Predicate__: `(closed-port? <port>)`
 
-10. __Call With Input File__: `(call-with-input-file <filename-string> <unary-port-callable>)`
+10. __Current Input Port__: `(current-input-port)`
 
-11. __Call With Output File__: `(call-with-output-file <filename-string> <unary-port-callable>)`
+11. __Current Output Port__: `(current-output-port)`
 
-12. __With Input From File__: `(with-input-from-file <filename-string> <nullary-callable>)`
+12. __Call With Input File__: `(call-with-input-file <filename-string> <unary-port-callable>)`
 
-13. __With Output From File__: `(with-output-from-file <filename-string> <nullary-callable>)`
+13. __Call With Output File__: `(call-with-output-file <filename-string> <unary-port-callable>)`
 
-14. __Generate Input Port__: `(open-input-file <filename-string>)`
+14. __With Input From File__: `(with-input-from-file <filename-string> <nullary-callable>)`
 
-15. __Generate Output Port__: `(open-output-file <filename-string>)`
+15. __With Output From File__: `(with-output-from-file <filename-string> <nullary-callable>)`
+
+16. __Generate Input Port__: `(open-input-file <filename-string>)`
+
+17. __Generate Output Port__: `(open-output-file <filename-string>)`
     * _Only works to create files that don't already exist!_
 
-16. __Generate Output Append Port__: `(open-output-file+ <filename-string>)`
+18. __Generate Output Append Port__: `(open-output-file+ <filename-string>)`
     * _Both creates new files & appends to existing files!_
 
-17. __Destructively Generate Output Port__: `(open-output-file! <filename-string>)`
+19. __Destructively Generate Output Port__: `(open-output-file! <filename-string>)`
     * _Equivalent to `(begin (delete-file! <filename-string>) (open-output-file <filename-string>))`_
 
-18. __Close Port__: `(close-port <input-or-output-port>)`
+20. __Close Port__: `(close-port <input-or-output-port>)`
 
 
 

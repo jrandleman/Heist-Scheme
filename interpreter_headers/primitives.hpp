@@ -4663,6 +4663,53 @@ namespace heist {
   * PORT PRIMITIVES
   ******************************************************************************/
 
+  // Returns a string of the current working directory
+  data primitive_GETCWD(scm_list& args) {
+    confirm_no_args_given(args,"getcwd");
+    try {
+      return make_str(std::filesystem::current_path());  
+    } catch(...) {
+      return boolean(false);
+    }
+  }
+
+  // Returns a string of the parent directory of the given path string
+  data primitive_DIRNAME(scm_list& args) {
+    if(args.size() != 1 || !args[0].is_type(types::str))
+      THROW_ERR("'dirname didn't get a path <string> arg:"
+        "\n     (dirname <path-string>)" << FCN_ERR("dirname",args));
+    try {
+      return make_str(std::filesystem::path(*args[0].str).parent_path());
+    } catch(...) {
+      return boolean(false);
+    }
+  }
+
+  // Returns whether successfully created the given directory name
+  data primitive_MKDIR(scm_list& args) {
+    if(args.size() != 1 || !args[0].is_type(types::str))
+      THROW_ERR("'mkdir didn't get a directory name <string> arg:"
+        "\n     (mkdir <new-directory-name-string>)" << FCN_ERR("mkdir",args));
+    try {
+      return boolean(std::filesystem::create_directory(*args[0].str));
+    } catch(...) {
+      return boolean(false);
+    }
+  }
+
+  // Returns whether successfully changed the current directory
+  data primitive_CHDIR(scm_list& args) {
+    if(args.size() != 1 || !args[0].is_type(types::str))
+      THROW_ERR("'chdir didn't get a directory path <string> arg:"
+        "\n     (chdir <directory-path-string>)" << FCN_ERR("chdir",args));
+    try {
+      std::filesystem::current_path(*args[0].str);
+      return boolean(true);
+    } catch(...) {
+      return boolean(false);
+    }
+  }
+
   // file predicate
   data primitive_FILEP(scm_list& args) {
     confirm_given_one_string_arg(args, "file?", "\n     (file? <filename-string>)");
@@ -5003,24 +5050,6 @@ namespace heist {
   data primitive_COMMAND_LINE(scm_list& args) {
     confirm_no_args_given(args,"command-line");
     return make_str(HEIST_COMMAND_LINE_ARGS);
-  }
-
-  // Returns a string of the current working directory
-  data primitive_GETCWD(scm_list& args) {
-    confirm_no_args_given(args,"getcwd");
-    try {
-      return make_str(std::filesystem::current_path());  
-    } catch(...) {
-      return boolean(false);
-    }
-  }
-
-  // Returns a string of the parent directory of the given path string
-  data primitive_DIRNAME(scm_list& args) {
-    if(args.size() != 1 || !args[0].is_type(types::str))
-      THROW_ERR("'dirname didn't get a filepath <string> arg:"
-        "\n     (dirname <filepath-string>)" << FCN_ERR("dirname",args));
-    return make_str(std::filesystem::path(*args[0].str).parent_path());
   }
 
   /******************************************************************************
@@ -6475,6 +6504,10 @@ namespace heist {
     std::make_pair(primitive_SLURP_PORT,  "slurp-port"),
     std::make_pair(primitive_SLURP_FILE,  "slurp-file"),
 
+    std::make_pair(primitive_GETCWD,                "getcwd"),
+    std::make_pair(primitive_DIRNAME,               "dirname"),
+    std::make_pair(primitive_MKDIR,                 "mkdir"),
+    std::make_pair(primitive_CHDIR,                 "chdir"),
     std::make_pair(primitive_FILEP,                 "file?"),
     std::make_pair(primitive_COPY_FILE,             "copy-file"),
     std::make_pair(primitive_DELETE_FILE_BANG,      "delete-file!"),
@@ -6500,8 +6533,6 @@ namespace heist {
     std::make_pair(primitive_COMMAND_LINE, "command-line"),
     std::make_pair(primitive_COMPILE,      "compile"),
     std::make_pair(primitive_CPS_COMPILE,  "cps-compile"),
-    std::make_pair(primitive_GETCWD,       "getcwd"),
-    std::make_pair(primitive_DIRNAME,      "dirname"),
     
     std::make_pair(primitive_SECONDS_SINCE_EPOCH, "seconds-since-epoch"),
     std::make_pair(primitive_TIME,                "time"),
