@@ -128,7 +128,6 @@
    - [Gensym & Symbol-Append](#Gensym--symbol-append)
    - [Scm->Cps Procedures](#Scm-Cps-Procedures)
    - [Syntax Procedures](#Syntax-Procedures)
-   - [Infix Analysis](#Infix-Analysis)
    - [JSON Interop](#JSON-Interop)
    - [CSV Interop](#CSV-Interop)
    - [Universes](#Universes)
@@ -3185,12 +3184,7 @@ Other primitives of this nature include:<br>
    * Both old & new name: ___RENAMES___ syntax's old name to new name
      - _NOTE: also recursively renames all recursive calls to the macro in its templates!_
 
-
-
-------------------------
-## Infix Analysis:
-
-0. __Get Alist of Infix Symbols, Associativity, & Precedence__: `(infix-list)`
+10. __Get Alist of Infix Symbols, Associativity, & Precedence__: `(infix-list)`
 
 
 
