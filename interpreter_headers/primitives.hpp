@@ -4742,8 +4742,7 @@ namespace heist {
   data primitive_DELETE_FILE_BANG(scm_list& args) {
     confirm_given_one_string_arg(args, "delete-file!", "\n     (delete-file! <filename-string>)");
     try {
-      auto result = std::filesystem::remove_all(*args[0].str);
-      return boolean(result > 0);
+      return boolean(std::filesystem::remove_all(*args[0].str) > 0);
     } catch(...) {
       return boolean(false);
     }
@@ -4764,6 +4763,15 @@ namespace heist {
     try {
       std::filesystem::rename(*args[0].str,*args[1].str);
       return boolean(true);
+    } catch(...) {
+      return boolean(false);
+    }
+  }
+
+  data primitive_FILE_SIZE(scm_list& args) {
+    confirm_given_one_string_arg(args, "file-size", "\n     (file-size <filename-string>)");
+    try {
+      return num_type(std::filesystem::file_size(*args[0].str));
     } catch(...) {
       return boolean(false);
     }
@@ -4872,6 +4880,27 @@ namespace heist {
     GLOBALS::PORT_REGISTRY.push_back(confirm_valid_output_file(args[0],"open-output-file!",
       "\n     (open-output-file! <filename-string>)",args));
     return oport(GLOBALS::PORT_REGISTRY.size()-1);
+  }
+
+  // rewind input or output port
+  data primitive_REWIND_PORT(scm_list& args){
+    if(args.size() != 1)
+      THROW_ERR("'rewind-port received incorrect # of args:" 
+        "\n     (rewind-port <input-or-output-port>)" 
+        << FCN_ERR("rewind-port", args));
+    if(!args[0].is_type(types::fip) && !args[0].is_type(types::fop))
+      THROW_ERR("'rewind-port arg " << PROFILE(args[0])
+        << "\n     isn't a port:\n     (rewind-port <input-or-output-port>)"
+        << FCN_ERR("rewind-port",args));
+    if(args[0].is_type(types::fip) && args[0].fip.is_open() && 
+                                      args[0].fip.port() != stdin){
+      rewind(args[0].fip.port());
+    } else if(args[0].is_type(types::fop) && args[0].fop.is_open() && 
+                                             args[0].fop.port() != stdout && 
+                                             args[0].fop.port() != stderr){
+      rewind(args[0].fop.port());
+    }
+    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   // close input or output port
@@ -6512,6 +6541,7 @@ namespace heist {
     std::make_pair(primitive_COPY_FILE,             "copy-file"),
     std::make_pair(primitive_DELETE_FILE_BANG,      "delete-file!"),
     std::make_pair(primitive_RENAME_FILE_BANG,      "rename-file!"),
+    std::make_pair(primitive_FILE_SIZE,             "file-size"),
     std::make_pair(primitive_OPEN_PORTP,            "open-port?"),
     std::make_pair(primitive_CLOSED_PORTP,          "closed-port?"),
     std::make_pair(primitive_CURRENT_INPUT_PORT,    "current-input-port"),
@@ -6524,6 +6554,7 @@ namespace heist {
     std::make_pair(primitive_OPEN_OUTPUT_FILE,      "open-output-file"),
     std::make_pair(primitive_OPEN_OUTPUT_FILE_PLUS, "open-output-file+"),
     std::make_pair(primitive_OPEN_OUTPUT_FILE_BANG, "open-output-file!"),
+    std::make_pair(primitive_REWIND_PORT,           "rewind-port"),
     std::make_pair(primitive_CLOSE_PORT,            "close-port"),
 
     std::make_pair(primitive_LOAD,         "load"),

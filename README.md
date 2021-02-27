@@ -2959,34 +2959,39 @@ Other primitives of this nature include:<br>
 
 7. __Copy File/Directory__: `(copy-file <source-path-string> <destination-path-string>)`
 
-8. __Open-Port Predicate__: `(open-port? <port>)`
+8. __Get File Size__: `(file-size <filename-string>)`
+   * _Behavior is platform-dependant when invoked on directories!_
 
-9. __Closed-Port Predicate__: `(closed-port? <port>)`
+9. __Open-Port Predicate__: `(open-port? <port>)`
 
-10. __Current Input Port__: `(current-input-port)`
+10. __Closed-Port Predicate__: `(closed-port? <port>)`
 
-11. __Current Output Port__: `(current-output-port)`
+11. __Current Input Port__: `(current-input-port)`
 
-12. __Call With Input File__: `(call-with-input-file <filename-string> <unary-port-callable>)`
+12. __Current Output Port__: `(current-output-port)`
 
-13. __Call With Output File__: `(call-with-output-file <filename-string> <unary-port-callable>)`
+13. __Call With Input File__: `(call-with-input-file <filename-string> <unary-port-callable>)`
 
-14. __With Input From File__: `(with-input-from-file <filename-string> <nullary-callable>)`
+14. __Call With Output File__: `(call-with-output-file <filename-string> <unary-port-callable>)`
 
-15. __With Output From File__: `(with-output-from-file <filename-string> <nullary-callable>)`
+15. __With Input From File__: `(with-input-from-file <filename-string> <nullary-callable>)`
 
-16. __Generate Input Port__: `(open-input-file <filename-string>)`
+16. __With Output From File__: `(with-output-from-file <filename-string> <nullary-callable>)`
 
-17. __Generate Output Port__: `(open-output-file <filename-string>)`
+17. __Generate Input Port__: `(open-input-file <filename-string>)`
+
+18. __Generate Output Port__: `(open-output-file <filename-string>)`
     * _Only works to create files that don't already exist!_
 
-18. __Generate Output Append Port__: `(open-output-file+ <filename-string>)`
+19. __Generate Output Append Port__: `(open-output-file+ <filename-string>)`
     * _Both creates new files & appends to existing files!_
 
-19. __Destructively Generate Output Port__: `(open-output-file! <filename-string>)`
+20. __Destructively Generate Output Port__: `(open-output-file! <filename-string>)`
     * _Equivalent to `(begin (delete-file! <filename-string>) (open-output-file <filename-string>))`_
 
-20. __Close Port__: `(close-port <input-or-output-port>)`
+21. __Rewind Port__: `(rewind-port <input-or-output-port>)`
+
+22. __Close Port__: `(close-port <input-or-output-port>)`
 
 
 

@@ -256,12 +256,12 @@ static constexpr const char* HELP_MENU_PROCEDURES_INPUT[] = {
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_PORTS[] = {
-  "getcwd",               "dirname",               "mkdir",                "chdir", 
-  "file?",                "delete-file!",          "rename-file!",         "copy-file",
-  "open-port?",           "closed-port?",          "current-input-port",   "current-output-port",
-  "call-with-input-file", "call-with-output-file", "with-input-from-file", "with-output-from-file", 
-  "open-input-file",      "open-output-file",      "open-output-file+",    "open-output-file!",
-  "close-port", 
+  "getcwd",                "dirname",              "mkdir",                 "chdir", 
+  "file?",                 "delete-file!",         "rename-file!",          "copy-file",
+  "file-size",             "open-port?",           "closed-port?",          "current-input-port",
+  "current-output-port",   "call-with-input-file", "call-with-output-file", "with-input-from-file", 
+  "with-output-from-file", "open-input-file",      "open-output-file",      "open-output-file+",
+  "open-output-file!",     "rewind-port",           "close-port", 
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_SYSINTERFACE[] = {
@@ -9180,6 +9180,21 @@ Copies file/directory named <source-path-string> to <destination-path-string>.
 
 
 }, {
+"file-size",
+"Procedure",
+R"(
+(file-size <filename-string>)
+)",
+R"(
+Get size of the file designated by <filename-string>.
+  *) NOTE: Behavior is platform-dependant when invoked on directories!
+)",
+
+
+
+
+
+}, {
 "open-port?",
 "Procedure",
 R"(
@@ -9354,6 +9369,21 @@ Destructively generates an output port from <filename-string>.
   *) Equivalent to: 
      (begin (delete-file! <filename-string>) (open-output-file <filename-string>))
   *) See "open-output-file" & "open-output-file+" for alternative output port generators!
+)",
+
+
+
+
+
+}, {
+"rewind-port",
+"Procedure",
+R"(
+(rewind-port <input-or-output-port>)
+)",
+R"(
+Rewind the given port back the beginning of its stream. 
+Works on both input & output ports.
 )",
 
 
