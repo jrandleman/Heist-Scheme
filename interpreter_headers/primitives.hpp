@@ -4660,7 +4660,7 @@ namespace heist {
   }
 
   /******************************************************************************
-  * PORT PRIMITIVES
+  * FILESYSTEM PRIMITIVES
   ******************************************************************************/
 
   // Returns a string of the current working directory
@@ -4777,6 +4777,10 @@ namespace heist {
     }
   }
 
+  /******************************************************************************
+  * PORT PRIMITIVES
+  ******************************************************************************/
+
   data primitive_OPEN_PORTP(scm_list& args) {
     confirm_valid_port_predicate_arg(args,"open-port?","\n     (open-port? <port>)");
     if(args[0].is_type(types::fip))
@@ -4884,20 +4888,10 @@ namespace heist {
 
   // rewind input or output port
   data primitive_REWIND_PORT(scm_list& args){
-    if(args.size() != 1)
-      THROW_ERR("'rewind-port received incorrect # of args:" 
-        "\n     (rewind-port <input-or-output-port>)" 
-        << FCN_ERR("rewind-port", args));
-    if(!args[0].is_type(types::fip) && !args[0].is_type(types::fop))
-      THROW_ERR("'rewind-port arg " << PROFILE(args[0])
-        << "\n     isn't a port:\n     (rewind-port <input-or-output-port>)"
-        << FCN_ERR("rewind-port",args));
-    if(args[0].is_type(types::fip) && args[0].fip.is_open() && 
-                                      args[0].fip.port() != stdin){
+    confirm_given_1_open_port(args, "rewind-port");
+    if(is_readable_open_input_port(args[0])){
       rewind(args[0].fip.port());
-    } else if(args[0].is_type(types::fop) && args[0].fop.is_open() && 
-                                             args[0].fop.port() != stdout && 
-                                             args[0].fop.port() != stderr){
+    } else if(is_writable_open_output_port(args[0])){
       rewind(args[0].fop.port());
     }
     return GLOBALS::VOID_DATA_OBJECT;
@@ -4905,21 +4899,11 @@ namespace heist {
 
   // close input or output port
   data primitive_CLOSE_PORT(scm_list& args){
-    if(args.size() != 1)
-      THROW_ERR("'close-port received incorrect # of args:" 
-        "\n     (close-port <input-or-output-port>)" 
-        << FCN_ERR("close-port", args));
-    if(!args[0].is_type(types::fip) && !args[0].is_type(types::fop))
-      THROW_ERR("'close-port arg " << PROFILE(args[0])
-        << "\n     isn't a port:\n     (close-port <input-or-output-port>)"
-        << FCN_ERR("close-port",args));
-    if(args[0].is_type(types::fip) && args[0].fip.is_open() && 
-                                      args[0].fip.port() != stdin){
+    confirm_given_1_open_port(args, "close-port");
+    if(is_readable_open_input_port(args[0])){
       fclose(args[0].fip.port());
       args[0].fip.port() = nullptr;
-    } else if(args[0].is_type(types::fop) && args[0].fop.is_open() && 
-                                             args[0].fop.port() != stdout && 
-                                             args[0].fop.port() != stderr){
+    } else if(is_writable_open_output_port(args[0])){
       fclose(args[0].fop.port());
       args[0].fop.port() = nullptr;
     }

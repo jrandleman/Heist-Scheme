@@ -4369,6 +4369,28 @@ namespace heist {
     return result;
   }
 
+
+  void confirm_given_1_open_port(scm_list& args, const char* name) {
+    if(args.size() != 1)
+      THROW_ERR('\''<<name<<" received incorrect # of args:" 
+        "\n     (" << name << " <input-or-output-port>)" << FCN_ERR(name, args));
+    if(!args[0].is_type(types::fip) && !args[0].is_type(types::fop))
+      THROW_ERR('\''<<name<<" arg " << PROFILE(args[0])
+        << "\n     isn't a port:\n     (" << name << " <input-or-output-port>)" 
+        << FCN_ERR(name,args));
+  }
+
+
+  bool is_readable_open_input_port(data& d)noexcept{
+    return d.is_type(types::fip) && d.fip.is_open() && d.fip.port() != stdin;
+  }
+
+
+  bool is_writable_open_output_port(data& d)noexcept{
+    return d.is_type(types::fop) &&  d.fop.is_open() && 
+           d.fop.port() != stdout && d.fop.port() != stderr;
+  }
+
   /******************************************************************************
   * SYSTEM INTERFACE PRIMITIVE HELPERS
   ******************************************************************************/
