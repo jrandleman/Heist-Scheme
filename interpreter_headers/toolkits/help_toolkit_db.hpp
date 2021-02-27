@@ -256,11 +256,11 @@ static constexpr const char* HELP_MENU_PROCEDURES_INPUT[] = {
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_PORTS[] = {
-  "getcwd",                "dirname",              "file?",                 "delete-file!",
-  "rename-file!",          "open-port?",           "closed-port?",          "current-input-port",
-  "current-output-port",   "call-with-input-file", "call-with-output-file", "with-input-from-file", 
-  "with-output-from-file", "open-input-file",      "open-output-file",      "open-output-file+",
-  "open-output-file!",     "close-port", 
+  "getcwd",               "dirname",               "file?",                "delete-file!",
+  "rename-file!",         "copy-file",             "open-port?",           "closed-port?",
+  "current-input-port",   "current-output-port",   "call-with-input-file", "call-with-output-file", 
+  "with-input-from-file", "with-output-from-file", "open-input-file",      "open-output-file",
+  "open-output-file+",    "open-output-file!",     "close-port", 
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_SYSINTERFACE[] = {
@@ -9157,7 +9157,21 @@ R"(
 (rename-file! <old-name-string> <new-name-string>)
 )",
 R"(
-Renames file/directory named <old-name-string> to <new-name-string> (if exists).
+Renames file/directory named <old-name-string> to <new-name-string>.
+)",
+
+
+
+
+
+}, {
+"copy-file",
+"Procedure",
+R"(
+(copy-file <source-path-string> <destination-path-string>)
+)",
+R"(
+Copies file/directory named <source-path-string> to <destination-path-string>.
 )",
 
 

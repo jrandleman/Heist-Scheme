@@ -4663,11 +4663,29 @@ namespace heist {
   * PORT PRIMITIVES
   ******************************************************************************/
 
-  // file & ports predicates
+  // file predicate
   data primitive_FILEP(scm_list& args) {
     confirm_given_one_string_arg(args, "file?", "\n     (file? <filename-string>)");
     try {
       return boolean(std::filesystem::exists(*args[0].str));
+    } catch(...) {
+      return boolean(false);
+    }
+  }
+
+  // returns whether succeed copying given filename-string
+  data primitive_COPY_FILE(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (copy-file <source-path-string> <destination-path-string>)";
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("copy-file",primitive_COPY_FILE,args);
+    if(args.size() != 2) 
+      THROW_ERR("'copy-file didn't receive any args:"<<format<<FCN_ERR("copy-file",args));
+    for(size_type i = 0; i < 2; ++i)
+      if(!args[i].is_type(types::str)) 
+        THROW_ERR("'copy-file arg "<<PROFILE(args[i])<<" isn't a string:"<<format<<FCN_ERR("copy-file",args));
+    try {
+      std::filesystem::copy(*args[0].str,*args[1].str,std::filesystem::copy_options::recursive);
+      return boolean(true);
     } catch(...) {
       return boolean(false);
     }
@@ -6458,6 +6476,7 @@ namespace heist {
     std::make_pair(primitive_SLURP_FILE,  "slurp-file"),
 
     std::make_pair(primitive_FILEP,                 "file?"),
+    std::make_pair(primitive_COPY_FILE,             "copy-file"),
     std::make_pair(primitive_DELETE_FILE_BANG,      "delete-file!"),
     std::make_pair(primitive_RENAME_FILE_BANG,      "rename-file!"),
     std::make_pair(primitive_OPEN_PORTP,            "open-port?"),
