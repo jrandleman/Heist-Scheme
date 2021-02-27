@@ -3651,6 +3651,9 @@ namespace heist {
     // get whether in a tail call
     bool tail_call = args.rbegin()->bol.val;
     args.pop_back();
+    // get current environment
+    auto env = args.rbegin()->env;
+    args.pop_back();
     // confirm the correct # of arguments were passed
     static constexpr const char * const format = "\n     (apply <callable> <argument-list>)";
     if(args.size() != 2)
@@ -3664,7 +3667,7 @@ namespace heist {
     // apply arguments in list to the callable
     scm_list args_list;
     shallow_unpack_list_into_exp(args[1], args_list);
-    return execute_callable(args[0],args_list,G.GLOBAL_ENVIRONMENT_POINTER,tail_call);
+    return execute_callable(args[0],args_list,env,tail_call);
   }
 
   /******************************************************************************
@@ -5160,20 +5163,6 @@ namespace heist {
     return data();
   }
 
-  // Invoke <proc> w/ args in the current environment, ie w/ Dynamic Scope!
-  data primitive_CALL_CE(scm_list& args) {
-    static constexpr const char * const format = 
-      "\n     (call/ce <callable> <arg1> ... <argN>)";
-    auto env = args.rbegin()->env;
-    args.pop_back();
-    if(args.empty())
-      THROW_ERR("'call/ce received incorrect # of args!" << format << FCN_ERR("call/ce",args));
-    auto proc = validate_and_extract_callable(args[0], "call/ce", format, args);
-    proc.fcn.set_using_dynamic_scope(true);
-    scm_list call_ce_args(args.begin()+1,args.end());
-    return execute_callable(proc,call_ce_args,env);
-  }
-
   data primitive_CONVERT_LEXICAL_SCOPE_TO_DYNAMIC_SCOPE(scm_list& args) {
     return prm_convert_callable_scope(args, true, "lexical-scope->dynamic-scope", 
       "\n     (lexical-scope->dynamic-scope <callable>)");
@@ -5998,11 +5987,11 @@ namespace heist {
   ******************************************************************************/
 
   constexpr const prm_ptr_t PRIMITIVES_REQUIRING_CURRENT_ENVIRONMENT[] = {
-    primitive_EVAL,                    primitive_CPS_EVAL,
-    primitive_LOAD,                    primitive_CPS_LOAD, 
-    primitive_CALL_CE,                 primitive_GETENV,
-    primitive_EXPAND,                  primitive_RUNTIME_SYNTAXP, 
-    primitive_SET_RUNTIME_SYNTAX_BANG, 
+    primitive_EVAL,            primitive_CPS_EVAL,
+    primitive_LOAD,            primitive_CPS_LOAD, 
+    primitive_GETENV,          primitive_EXPAND,
+    primitive_RUNTIME_SYNTAXP, primitive_SET_RUNTIME_SYNTAX_BANG, 
+    primitive_APPLY, 
   };
 
 #ifndef CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
@@ -6501,8 +6490,6 @@ namespace heist {
     std::make_pair(primitive_EXIT,                                   "exit"),
     std::make_pair(primitive_ERROR,                                  "error"),
     std::make_pair(primitive_SYNTAX_ERROR,                           "syntax-error"),
-    std::make_pair(primitive_CALL_CE,                                "call/ce"),
-    std::make_pair(primitive_CALL_CE,                                "call-with-current-environment"),
     std::make_pair(primitive_CONVERT_LEXICAL_SCOPE_TO_DYNAMIC_SCOPE, "lexical-scope->dynamic-scope"),
     std::make_pair(primitive_CONVERT_DYNAMIC_SCOPE_TO_LEXICAL_SCOPE, "dynamic-scope->lexical-scope"),
     std::make_pair(primitive_DYNAMIC_SCOPEP,                         "dynamic-scope?"),

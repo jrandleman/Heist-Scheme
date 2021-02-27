@@ -302,6 +302,55 @@
           ((.. module-name 'add-property!) (quote exposure) exposure) ...
           module-name)))))
 
+;; ===================================
+;; =========== CURRY MACRO ===========
+;; ===================================
+
+; CURRIED LAMBDAS via Macro
+; => NOTE: It is UNDEFINED BEHAVIOR to have a VARIADIC CURRIED lambda
+;          IE: (define f (curry (x . xs) x)) ;; INVALID!
+; => 'lambda alternative that will curry its arguments
+;    => IE (define K (curry (a b) a)) => (define K (lambda (a) (lambda (b) a)))
+;          ((K 1) 2) = (K 1 2) ;; BOTH OF THESE MEANS OF APPLICATION WORK IDENTICALLY!
+(core-syntax curry 
+  (syntax-rules ()
+    ((_ () body ...)
+      (lambda () body ...))
+    ((_ (arg) body ...) 
+      (lambda (x *dot* xs) ; *dot* ensures variadic procedure after expansion even if user redefines '.
+        (fold (lambda (f a) (f a)) 
+              (lambda (arg) body ...)
+              (cons x xs))))
+    ((_ (arg rest-args ...) body ...)
+      (let ((heist:curry:curried-lambdas 
+              (lambda (arg) (curry (rest-args ...) body ...))))
+        (lambda (x *dot* xs)
+          (fold (lambda (f a) (f a)) 
+                heist:curry:curried-lambdas
+                (cons x xs)))))))
+
+;; =========================================================
+;; =========== OVERLOAD EXISTING FUNCTIONS MACRO ===========
+;; =========================================================
+
+; OVERLOAD EXISTING PROCEDURES
+; => Use "*original*" to refer to <overloaded>
+; => Use <else> to catch all other args that don't satisfy any <pred?>
+(core-syntax define-overload
+  (syntax-rules (else)
+    ((_ overloaded (pred? function) ... (else else-function))
+      (define overloaded
+        (let ((*original* overloaded))
+          (lambda (`@x *dot* `@xs) ; *dot* ensures variadic procedure after expansion even if user redefines '.
+            (cond ((pred? x) (apply function (cons x xs))) ...
+                  (else (apply else-function (cons x xs))))))))
+    ((_ overloaded (pred? function) ...)
+      (define overloaded
+        (let ((*original* overloaded))
+          (lambda (`@x *dot* `@xs)
+            (cond ((pred? x) (apply function (cons x xs))) ...
+                  (else (error 'overloaded "Unsupported Arg Type" x)))))))))
+
 ;; ==============================================
 ;; =========== LAZY STREAM ALGORITHMS ===========
 ;; ==============================================
@@ -532,55 +581,6 @@
 (define fl-gamma-1/3 2.678938534707748) ; Bound to Γ(1/3)
 (define fl-gamma-2/3 1.3541179394264) ; Bound to Γ(2/3)
 
-;; ===================================
-;; =========== CURRY MACRO ===========
-;; ===================================
-
-; CURRIED LAMBDAS via Macro
-; => NOTE: It is UNDEFINED BEHAVIOR to have a VARIADIC CURRIED lambda
-;          IE: (define f (curry (x . xs) x)) ;; INVALID!
-; => 'lambda alternative that will curry its arguments
-;    => IE (define K (curry (a b) a)) => (define K (lambda (a) (lambda (b) a)))
-;          ((K 1) 2) = (K 1 2) ;; BOTH OF THESE MEANS OF APPLICATION WORK IDENTICALLY!
-(core-syntax curry 
-  (syntax-rules ()
-    ((_ () body ...)
-      (lambda () body ...))
-    ((_ (arg) body ...) 
-      (lambda (x *dot* xs) ; *dot* ensures variadic procedure after expansion even if user redefines '.
-        (fold (lambda (f a) (f a)) 
-              (lambda (arg) body ...)
-              (cons x xs))))
-    ((_ (arg rest-args ...) body ...)
-      (let ((heist:curry:curried-lambdas 
-              (lambda (arg) (curry (rest-args ...) body ...))))
-        (lambda (x *dot* xs)
-          (fold (lambda (f a) (f a)) 
-                heist:curry:curried-lambdas
-                (cons x xs)))))))
-
-;; =========================================================
-;; =========== OVERLOAD EXISTING FUNCTIONS MACRO ===========
-;; =========================================================
-
-; OVERLOAD EXISTING PROCEDURES
-; => Use "*original*" to refer to <overloaded>
-; => Use <else> to catch all other args that don't satisfy any <pred?>
-(core-syntax define-overload
-  (syntax-rules (else)
-    ((_ overloaded (pred? function) ... (else else-function))
-      (define overloaded
-        (let ((*original* overloaded))
-          (lambda (`@x *dot* `@xs) ; *dot* ensures variadic procedure after expansion even if user redefines '.
-            (cond ((pred? x) (apply function (cons x xs))) ...
-                  (else (apply else-function (cons x xs))))))))
-    ((_ overloaded (pred? function) ...)
-      (define overloaded
-        (let ((*original* overloaded))
-          (lambda (`@x *dot* `@xs)
-            (cond ((pred? x) (apply function (cons x xs))) ...
-                  (else (error 'overloaded "Unsupported Arg Type" x)))))))))
-
 ;; =========================================
 ;; =========== COMPOSE BIND & ID ===========
 ;; =========================================
@@ -628,6 +628,15 @@
 (define (heist:core:pass-continuation-cps->scm proc k)
   (k (lambda (. args) (apply proc (append args (cons id '()))))))
 (define cps->scm heist:core:pass-continuation-cps->scm)
+
+;; ===============================
+;; =========== CALL/CE ===========
+;; ===============================
+
+(define (call/ce heist:core:call/ce:callable . heist:core:call/ce:args)
+  (apply (lexical-scope->dynamic-scope heist:core:call/ce:callable) heist:core:call/ce:args))
+(set! call/ce (lexical-scope->dynamic-scope call/ce))
+(define call-with-current-environment call/ce)
 
 ;; ==================================
 ;; =========== COROUTINES ===========
