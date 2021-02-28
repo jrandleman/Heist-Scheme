@@ -1,6 +1,9 @@
 ;; Author: Jordan Randleman -- jrandleman@scu.edu -- primitives.scm
 ;; => Defines helper functions for the Heist Scheme Interpreter's Scheme primitives
 
+;; => NOTE: THIS FILE SHOULD NEVER DEPEND ON LOCALLY-DEFINED READER SYNTAX !!!
+;;          => READ IN BY LINE (_NOT_ BY EXPRESSION) FOR BOOT-TIME SPEED !!!
+
 ;; ====================================================
 ;; =========== SELECTED SPECIAL FORM MACROS ===========
 ;; ====================================================
