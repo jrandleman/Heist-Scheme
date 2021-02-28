@@ -1184,15 +1184,16 @@ Create an anonymous procedure!
   *) See "fn" for a multi-arity pattern-matching alternative!
 
 Pass a variadic number of args (0+) by using ".":
-  *) NOTE: variadic arg-list name must always be the last arg!
-  *) NOTE: the "." char to denote variadics can be changed via "set-dot!"!
+  *) The variadic args-list name must always be the last arg!
+  *) The "." symbol to denote variadics can be changed via "set-dot!"!
+  *) The current "." symbol denoting variadics can always be aliased by "*dot*"!
 
   (lambda (. va-args-list) <body> ...)       ; OK
   (lambda (a b . va-args-list) <body> ...)   ; OK
   (lambda (a b . va-args-list c) <body> ...) ; ERROR: Variadic Arg Name Isn't Last!
 
 Assign default values to arguments by using ():
-  *) NOTE: Mandatory parameters must precede optional ones!
+  *) Mandatory parameters must precede optional ones!
 
   (lambda (a (b 1) (c 2)) <body> ...)          ; OK, b & c have default values!
   (lambda (a (b 1) . va-args-list) <body> ...) ; OK, has both optionals & variadics!
@@ -1232,7 +1233,8 @@ Create an anonymous multi-arity pattern-matching procedure!
   *) See "defn" for a macro combining "define" & "fn"!
 
 Pass a variadic number of args (0+) by using "." (like "lambda"!)
-  *) The "." char to denote variadics can be changed via "set-dot!"!
+  *) The "." symbol to denote variadics can be changed via "set-dot!"!
+  *) The current "." symbol denoting variadics can always be aliased by "*dot*"!
 
 Pattern-match against containers by using literal syntax!
   *) Like "syntax-rules", write more restrictive patterns first!
@@ -1413,7 +1415,6 @@ Examples:
   (display c.val2)   ; 13
   (delete! c.val)
   (delete! c.val2)
-  (display c)        ; #<object>
   (display c.val)    ; 12 [re-cached in <c> from prototype <C>]
   (display c.val2)   ; ERROR => <.val2> NOT A PROPERTY OF <c>
 
@@ -1573,7 +1574,7 @@ Derivation using "if":
   (cond (<condition1> <exp1> ...)
         (<condition2> <exp2> ...)
         (<condition3> => <callable>)
-        (else <exp4> ...))
+        (else <exp3> ...))
 
   ; BECOMES
 
@@ -1584,7 +1585,7 @@ Derivation using "if":
           (let ((cond-result <condition3>))
             (if cond-result
                 (<callable> cond-result)
-                (begin <exp4> ...)))))
+                (begin <exp3> ...)))))
 )",
 
 
@@ -6035,7 +6036,7 @@ R"(
 (memq <obj> <list>)
 )",
 R"(
-Get sublist beginning w/ an <obj> (checked via "eq?") if present (#f otherwise).
+Get sublist beginning w/ <obj> (checked via "eq?") if present (#f otherwise).
   *) See "memv" & "member" for alternatives using "eqv?" & "equal?" to check for equality!
 )",
 
@@ -6050,7 +6051,7 @@ R"(
 (memv <obj> <list>)
 )",
 R"(
-Get sublist beginning w/ an <obj> (checked via "eqv?") if present (#f otherwise).
+Get sublist beginning w/ <obj> (checked via "eqv?") if present (#f otherwise).
   *) See "memq" & "member" for alternatives using "eq?" & "equal?" to check for equality!
 )",
 
@@ -6065,7 +6066,7 @@ R"(
 (member <obj> <list>)
 )",
 R"(
-Get sublist beginning w/ an <obj> (checked via "equal?") if present (#f otherwise).
+Get sublist beginning w/ <obj> (checked via "equal?") if present (#f otherwise).
   *) See "memq" & "memv" for alternatives using "eq?" & "eqv?" to check for equality!
 )",
 
@@ -6080,7 +6081,7 @@ R"(
 (assq <obj> <alist>)
 )",
 R"(
-Get pair in <alist> Bbginning w/ key <obj> (checked via "eq?") 
+Get pair in <alist> beginning w/ key <obj> (checked via "eq?") 
 if present (#f otherwise).
   *) See "assv" & "assoc" for alternatives using "eqv?" & "equal?" to check for equality!
 )",
@@ -6096,7 +6097,7 @@ R"(
 (assv <obj> <alist>)
 )",
 R"(
-Get pair in <alist> Bbginning w/ key <obj> (checked via "eqv?") 
+Get pair in <alist> beginning w/ key <obj> (checked via "eqv?") 
 if present (#f otherwise).
   *) See "assq" & "assoc" for alternatives using "eq?" & "equal?" to check for equality!
 )",
@@ -6112,7 +6113,7 @@ R"(
 (assoc <obj> <alist>)
 )",
 R"(
-Get pair in <alist> Bbginning w/ key <obj> (checked via "equal?") 
+Get pair in <alist> beginning w/ key <obj> (checked via "equal?") 
 if present (#f otherwise).
   *) See "assq" & "assv" for alternatives using "eq?" & "eqv?" to check for equality!
 )",
