@@ -120,7 +120,7 @@
  *                     2) MAY BE TREATED AS IF ANY OTHER HEIST PROCEDURE
  *       - EXAMPLES: 
  *         * (exit)               ; TERMINATE THE INTERPRETER
- *         * (help)               ; INTERACTIVE ALTERNATIVE FOR README.MD
+ *         * (help)               ; INTERACTIVE ALTERNATIVE TO README.MD
  *         * #t                   ; TRUE BOOLEAN VALUE
  *         * #f                   ; FALSE BOOLEAN VALUE
  *         * stream-null          ; EMPTY STREAM OBJECT
