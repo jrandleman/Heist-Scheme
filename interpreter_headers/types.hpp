@@ -769,6 +769,8 @@ namespace heist {
     env_type env;
     bool already_forced, in_cps;
     data result;
+    scm_delay(const scm_delay& d) noexcept {*this = d;}
+    scm_delay(scm_delay&& d)      noexcept {*this = std::move(d);}
     scm_delay(const data& delayed_datum = data(), env_type delay_env = nullptr, bool cps = false) noexcept
       : datum(delayed_datum), env(delay_env), already_forced(false), in_cps(cps), result(boolean(false)) {}
     void operator=(const scm_delay& d) noexcept {
@@ -780,9 +782,14 @@ namespace heist {
       datum=std::move(d.datum), in_cps=std::move(d.in_cps), env=std::move(d.env);
       already_forced=std::move(d.already_forced), result=std::move(d.result);
     }
-    scm_delay(const scm_delay& d) noexcept {*this = d;}
-    scm_delay(scm_delay&& d)      noexcept {*this = std::move(d);}
-    ~scm_delay()                  noexcept {}
+    data force() { // Memoize delays, "call by need" evaluation
+      exe_fcn_t scm_analyze(data&& datum,const bool tail_call=false,const bool cps_block=false);
+      if(!already_forced) {
+        already_forced = true;
+        result = scm_analyze(data(datum),false,in_cps)(env);
+      }
+      return result;
+    }
   };
 
   // hash-map structure

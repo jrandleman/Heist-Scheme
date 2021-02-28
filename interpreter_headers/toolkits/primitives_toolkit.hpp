@@ -2718,12 +2718,7 @@ namespace heist {
     if(!d.is_type(types::del))
       THROW_ERR("'force "<<PROFILE(d)<<" isn't a delayed expression:\n     "
         "(force <delayed-expression>)"<<EXP_ERR("(force "<<d.noexcept_write()<<')'));
-    auto delay = d.del;
-    if(!delay->already_forced) {
-      delay->already_forced = true;
-      delay->result = scm_analyze(data(delay->datum),false,delay->in_cps)(delay->env);
-    }
-    return delay->result; // Memoize delays, "call by need" evaluation
+    return d.del->force(); // Memoizes delays, "call by need" evaluation
   }
 
   /******************************************************************************
