@@ -1,5 +1,6 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- heist.cpp
 // => Main execution and AST evaluation for the C++ Heist Scheme Interpreter
+// => GitHub: https://github.com/jrandleman/Heist-Scheme
 
 #ifndef HEIST_CPP_
 #define HEIST_CPP_
