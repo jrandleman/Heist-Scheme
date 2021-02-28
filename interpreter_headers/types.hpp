@@ -1434,7 +1434,7 @@ namespace heist {
   void environment::define_macro(const frame_mac& mac_val)noexcept{
     auto& macs = macros();
     for(auto& mac : macs) {
-      if(mac.label == mac.label) {
+      if(mac.label == mac_val.label) {
         mac = mac_val;
         return;
       }
