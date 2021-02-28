@@ -1294,7 +1294,7 @@ Special case for object properties:
 
   (define <object.name> <value>)
   ; BECOMES
-  (obj.add-property! (quote <name>) <value>)
+  (object.add-property! (quote <name>) <value>)
 
 Procedure definition expands to a lambda binding:
   
@@ -1334,7 +1334,7 @@ Special case for object properties:
 
   (set! <object.name> <value>)
   ; BECOMES
-  (obj.set-property! (quote <name>) <value>)
+  (object.set-property! (quote <name>) <value>)
 
 CPS Transformation:
   (set! <var> <val>)
