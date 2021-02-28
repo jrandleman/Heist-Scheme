@@ -145,7 +145,7 @@ namespace heist {
   * ENVIRONMENT DATA STRUCTURE TYPE ALIASES
   ******************************************************************************/
 
-  // ENVIRONMENTS AS VECTOR OF FRAMES, [i+1] = ENCLOSING ENVIRONMENT OF [i]
+  // ENVIRONMENTS AS NODES WITH A FRAME & POINTER TO THEIR ENCLOSING ENVIRONMENT
   //    => FRAMES AS TUPLE OF VECTORS: VARIABLE NAMES & VALUES, MACRO DEFNS
 
   using frame_var  = std::string;
