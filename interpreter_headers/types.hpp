@@ -1431,15 +1431,15 @@ namespace heist {
     values().push_back(val);
   }
 
-  void environment::define_macro(const frame_mac& mac)noexcept{
+  void environment::define_macro(const frame_mac& mac_val)noexcept{
     auto& macs = macros();
-    for(auto& m : macs) {
-      if(m.label == mac.label) {
-        m = mac;
+    for(auto& mac : macs) {
+      if(mac.label == mac.label) {
+        mac = mac_val;
         return;
       }
     }
-    macs.push_back(mac);
+    macs.push_back(mac_val);
   }
 
   // Get variable's name as a string
@@ -1457,16 +1457,14 @@ namespace heist {
   }
 
   bool environment::has_macro(const scm_string& label)const noexcept{
-    const auto& macs = macros();
-    for(size_type i = 0, n = macs.size(); i < n; ++i)
-      if(label == macs[i].label) return true;
+    for(const auto& mac : macros())
+      if(label == mac.label) return true;
     return parent && parent->has_macro(label);
   }
 
   bool environment::has_variable(const frame_var& var)const noexcept{
-    const auto& vars = variables();
-    for(size_type i = 0, n = vars.size(); i < n; ++i)
-      if(var == vars[i]) return true;
+    for(const auto& v : variables())
+      if(var == v) return true;
     return parent && parent->has_variable(var);
   }
 
@@ -1498,11 +1496,10 @@ namespace heist {
 
   // Returns whether found
   bool environment::relabel_macro(const scm_string& old_label, const scm_string& new_label)noexcept{
-    auto& macs = macros();
-    for(size_type i = 0, n = macs.size(); i < n; ++i) {
-      if(old_label == macs[i].label) {
-        macs[i].label = new_label;
-        for(auto& templ8 : macs[i].templates)
+    for(auto& mac : macros()) {
+      if(old_label == mac.label) {
+        mac.label = new_label;
+        for(auto& templ8 : mac.templates)
           relabel_recursive_calls_in_macro_template(old_label,new_label,templ8);
         return true;
       }
