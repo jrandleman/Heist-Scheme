@@ -260,8 +260,7 @@ namespace heist {
   // Transforms the appropriate 'vals' into a list (for the given variadic arg)
   //   => ((lambda (. l) l) <arg1> <arg2> ... <argN>)      [ BECOMES -> ]
   //      ((lambda (l) l) (list <arg1> <arg2> ... <argN>))
-  void transform_variadic_vals_into_a_list(frame_vars& vars,frame_vals& vals)noexcept{
-    const size_type continuation_offset = string_begins_with(*vars.rbegin(),symconst::continuation);
+  void transform_variadic_vals_into_a_list(frame_vars& vars,frame_vals& vals,const size_type continuation_offset)noexcept{
     const size_type va_arg_idx = vars.size()-2-continuation_offset;
     // Transform the arg names & vals as needed
     vars[va_arg_idx] = vars[va_arg_idx+1]; // shift up variadic arg name (erasing '.')
@@ -288,19 +287,22 @@ namespace heist {
   }
 
 
+  // Confirm <vars> is a cps-variadic procedure
+  bool is_cps_variadic_arg_declaration(const frame_vars& vars)noexcept{
+    return vars.size() > 2 && string_begins_with(vars[vars.size()-1],symconst::continuation) 
+                           && symbol_is_dot_operator(vars[vars.size()-3]);
+  }
+
+
   // Determine whether proc takes variadic args
-  bool variadic_arg_declaration(const frame_vars& vars) {
-    return (vars.size() > 1 && symbol_is_dot_operator(vars[vars.size()-2])) || 
-           (vars.size() > 2 && string_begins_with(vars[vars.size()-1],symconst::continuation)
-                            && symbol_is_dot_operator(vars[vars.size()-3]));
+  bool variadic_arg_declaration(const frame_vars& vars, const bool is_cps_variadic)noexcept{
+    return (vars.size() > 1 && symbol_is_dot_operator(vars[vars.size()-2])) || is_cps_variadic;
   }
 
 
   // Determine whether enough vals for the variadic arg decl
-  bool invalid_variadic_arg_declaration(const frame_vars& vars, const frame_vals& vals){
-    return vals.size() < vars.size() - 2 -
-      (vars.size() > 2 && string_begins_with(vars[vars.size()-1],symconst::continuation)
-                       && symbol_is_dot_operator(vars[vars.size()-3])); // - again if at a continuation
+  bool invalid_variadic_arg_declaration(const frame_vars& vars, const frame_vals& vals, const bool is_cps_variadic)noexcept{
+    return vals.size() < vars.size() - 2 - is_cps_variadic; // - again if at a continuation
   }
 
 
@@ -314,11 +316,12 @@ namespace heist {
       THROW_ERR("Too many arguments supplied! -- EXTEND_ENVIRONMENT" 
         << improper_call_alert(name,vals,vars));
     // Transform variadic arg's corresponding values into a list (if present)
-    if(variadic_arg_declaration(vars)) {
-      if(invalid_variadic_arg_declaration(vars,vals))
+    const bool is_cps_variadic = is_cps_variadic_arg_declaration(vars);
+    if(variadic_arg_declaration(vars,is_cps_variadic)) {
+      if(invalid_variadic_arg_declaration(vars,vals,is_cps_variadic))
         THROW_ERR("Too few arguments supplied! -- EXTEND_ENVIRONMENT" 
         << improper_call_alert(name,vals,vars));
-      transform_variadic_vals_into_a_list(vars,vals);
+      transform_variadic_vals_into_a_list(vars,vals,is_cps_variadic);
     }
     return vars.size() == vals.size();
   }
@@ -327,20 +330,14 @@ namespace heist {
   * ENVIRONMENT DATA STRUCTURE IMPLEMENTATION
   ******************************************************************************/
 
-  // -- ENVIRONMENTAL GETTERS
-  frame_vars& frame_variables(frame_t& f)noexcept{return std::get<0>(f);}
-  frame_vals& frame_values(frame_t& f)   noexcept{return std::get<1>(f);}
-  frame_macs& frame_macros(frame_t& f)   noexcept{return std::get<2>(f);}
-
-
   // -- ENVIRONMENTAL EXTENSION
   env_type extend_environment(frame_vars&& vars, frame_vals& vals, env_type& base_env, 
                                                              const sym_type& name = ""){
     // If valid extension, return environment w/ a new frame prepended
     if(confirm_valid_environment_extension(vars,vals,name)) {
       env_type extended_env(make_env());
-      extended_env->push_back(make_frame(frame_t(vars,vals,frame_macs())));
-      extended_env->insert(extended_env->end(), base_env->begin(), base_env->end());
+      extended_env->frame = frame_t(vars,vals,frame_macs());
+      extended_env->parent = base_env;
       return extended_env;
     // Invalid extension
     } else if(vars.size() < vals.size()) {
@@ -360,84 +357,34 @@ namespace heist {
 
   // -- VARIABLE LOOKUP
   frame_val lookup_variable_value(const frame_var& var, env_type& env) {
-    // Search Each Environment Frame
-    for(size_type i = 0, total_frames = env->size(); i < total_frames; ++i) {
-      // Get Variables & Values Lists of the current frame
-      auto& [var_list, val_list, mac_list] = *env->operator[](i);
-      // Search Variable Bindings List of the Frame
-      for(size_type j = 0, total_vars = var_list.size(); j < total_vars; ++j)
-        if(var == var_list[j]) return val_list[j];
-    }
+    bool found = false;
+    auto val = env->lookup_variable_value(var, found);
+    if(found) return val;
     THROW_ERR("Variable " << var << " is not bound!");
   }
 
 
-  // -- NAME MANGLING
-  // defining/set!ing an anonymous lambda generates a named procedure
-  void mangle_bound_anonymous_procedure_name(const frame_var& var, frame_val& val)noexcept{
-    if(val.is_type(types::fcn) && val.fcn.name.empty()) val.fcn.name = var;
-  }
-
-
   // -- VARIABLE SETTING: (set! <var> <val>)
-  bool is_single_self_evaluating_object_in_list(frame_val& val)noexcept{
-    return val.is_type(types::exp) && val.exp.size()==1;
-  }
   void set_variable_value(const frame_var& var, frame_val&& val, env_type& env) {
-    if(is_single_self_evaluating_object_in_list(val)) val = val.exp[0];
-    // Search Each Environment Frame
-    for(size_type i = 0, total_frames = env->size(); i < total_frames; ++i) {
-      // Get Variables & Values Lists of the current frame
-      auto& [var_list, val_list, mac_list] = *env->operator[](i);
-      // Search Variable Bindings List of the Frame, Assign New Val if Found
-      for(size_type j = 0, total_vars = var_list.size(); j < total_vars; ++j)
-        if(var == var_list[j]) {
-          mangle_bound_anonymous_procedure_name(var,val);
-          val_list[j] = val; // var found, change val
-          return;
-        }
+    if(!env->set_variable_value(var, std::move(val))) {
+      scm_list invalid_set_call(3);
+      invalid_set_call[0] = symconst::set;
+      invalid_set_call[1] = var;
+      invalid_set_call[2] = val;
+      THROW_ERR("Variable "<<var<<" is not bound!"<<EXP_ERR(invalid_set_call));
     }
-    scm_list invalid_set_call(3);
-    invalid_set_call[0] = symconst::set;
-    invalid_set_call[1] = var, invalid_set_call[2] = val;
-    THROW_ERR("Variable "<<var<<" is not bound!"<<EXP_ERR(invalid_set_call));
   }
 
 
   // -- VARIABLE DEFINITION: (define <var> <val>)
   void define_variable(const frame_var& var, frame_val val, env_type& env)noexcept{
-    if(env->empty()) // add an empty frame to if given an empty environment
-      env->push_back(make_frame(frame_t())); 
-    if(is_single_self_evaluating_object_in_list(val)) val = val.exp[0];
-    // Get Variables & Values Lists of the foremost frame
-    auto& [var_list, val_list, mac_list] = *env->operator[](0);
-    // Search Variable Bindings List of the Frame, Assign New Val if Found
-    mangle_bound_anonymous_procedure_name(var,val);
-    for(size_type j = 0, total_vars = var_list.size(); j < total_vars; ++j)
-      if(var == var_list[j]) {
-        val_list[j] = val; // var found, change val
-        return;
-      }
-    // var not found, bind it to the foremost frame
-    frame_variables(*env->operator[](0)).push_back(var);
-    frame_values(*env->operator[](0)).push_back(val);
+    env->define_variable(var,std::move(val));
   }
 
 
   // -- MACRO DEFINITION: (define-syntax <label> <syntax-rules>)
   void define_syntax_extension(const frame_mac& mac, env_type& env)noexcept{
-    if(env->empty()) // add an empty frame to if given an empty environment
-      env->push_back(make_frame(frame_t())); 
-    // macro list of the first frame
-    auto& macs = frame_macros(*env->operator[](0)); 
-    // if syntax is already defined, redefine it in the foremost frame
-    for(auto& m : macs)
-      if(m.label == mac.label) {
-        m = mac;
-        return;
-      }
-    // define the new syntax in the foremost frame & register its label
-    macs.push_back(mac);
+    env->define_macro(mac);
   }
 
   /******************************************************************************
@@ -1883,18 +1830,6 @@ namespace heist {
 
 
   namespace undefined_determination_helpers {
-    bool variable_is_undefined(const frame_var& var, env_type& env)noexcept{
-      // Search Each Environment Frame
-      for(size_type i = 0, total_frames = env->size(); i < total_frames; ++i) {
-        // Get Variables & Values Lists of the current frame
-        auto& [var_list, val_list, mac_list] = *env->operator[](i);
-        // Search Variable Bindings List of the Frame
-        for(size_type j = 0, total_vars = var_list.size(); j < total_vars; ++j)
-          if(var == var_list[j]) return false;
-      }
-      return true;
-    }
-
     // (string-split <call> ".")
     bool parse_object_property_chain_sequence(const scm_string& call, std::vector<scm_string>& chain)noexcept{
       chain.push_back("");
@@ -1955,7 +1890,7 @@ namespace heist {
       std::vector<scm_string> chain;
       if(!parse_object_property_chain_sequence(call,chain)) return true;
       // get the first object instance
-      if(variable_is_undefined(chain[0],env)) return true;
+      if(!env->has_variable(chain[0])) return true;
       data value = lookup_variable_value(chain[0],env);
       // get the call value
       for(size_type i = 1, n = chain.size(); i < n; ++i) {
@@ -1980,7 +1915,7 @@ namespace heist {
     // Check if non-member-access symbol is defined in the environment
     if(!symbol_is_property_chain_access(exp[1].sym))
       return [variable=std::move(exp[1].sym)](env_type& env){
-        return boolean(!undefined_determination_helpers::variable_is_undefined(variable,env));
+        return boolean(env->has_variable(variable));
       };
     // Check if member-access chain is defined in the environment
     return [variable=std::move(exp[1].sym)](env_type& env)mutable{
@@ -1995,22 +1930,6 @@ namespace heist {
   bool is_delete(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::delete_bang);}
 
   namespace delete_variable_helpers {
-    void delete_variable_if_exists(const frame_var& var, env_type& env)noexcept{
-      // Search Each Environment Frame
-      for(size_type i = 0, total_frames = env->size(); i < total_frames; ++i) {
-        // Get Variables & Values Lists of the current frame
-        auto& [var_list, val_list, mac_list] = *env->operator[](i);
-        // Search Variable Bindings List of the Frame
-        for(size_type j = 0, total_vars = var_list.size(); j < total_vars; ++j) {
-          if(var == var_list[j]) {
-            var_list.erase(var_list.begin()+j);
-            val_list.erase(val_list.begin()+j);
-            return;
-          }
-        }
-      }
-    }
-
     void delete_property_in_local_object(obj_type& obj, const scm_string& property)noexcept{
       auto& members = obj->member_names;
       // Seek members
@@ -2038,7 +1957,7 @@ namespace heist {
       std::vector<scm_string> chain;
       if(!undefined_determination_helpers::parse_object_property_chain_sequence(call,chain)) return;
       // get the first object instance
-      if(undefined_determination_helpers::variable_is_undefined(chain[0],env)) return;
+      if(!env->has_variable(chain[0])) return;
       data value = lookup_variable_value(chain[0],env);
       // get the call value
       for(size_type i = 1, n = chain.size(); i < n; ++i) {
@@ -2066,7 +1985,7 @@ namespace heist {
     // Check if non-member-access symbol is defined in the environment
     if(!symbol_is_property_chain_access(exp[1].sym))
       return [variable=std::move(exp[1].sym)](env_type& env){
-        delete_variable_helpers::delete_variable_if_exists(variable,env);
+        env->erase_variable(variable);
         return GLOBALS::VOID_DATA_OBJECT;
       };
     // Check if member-access chain is defined in the environment
@@ -3810,12 +3729,11 @@ namespace heist {
   // If true, it also transforms the macro by expanding it into 'expanded_exp'
   bool expand_macro_if_in_env(const sym_type& label,const scm_list& args, 
                               env_type& env,scm_list& expanded_exp){
-    // Search Each Environment Frame
-    for(auto& frame : *env) {
-      // Get Macro List of the current frame & search 
-      //   for a match with the current label & args
-      if(handle_macro_transformation(label,args,frame_macros(*frame),expanded_exp))
+    env_type env_iterator = env;
+    while(env_iterator != nullptr) {
+      if(handle_macro_transformation(label,args,env_iterator->macros(),expanded_exp))
         return true;
+      env_iterator = env_iterator->parent;
     }
     return false;
   }
@@ -4386,13 +4304,12 @@ namespace heist {
     auto extended_env = procedure.fcn.get_extended_environment(arguments,fcn_body);
     // splice in current env for dynamic scope as needed
     if(procedure.fcn.is_using_dynamic_scope()) {
-      extended_env->erase(extended_env->begin()+1,extended_env->end());
-      extended_env->insert(extended_env->end(), env->begin(), env->end());
+      extended_env->parent = env;
     }
     // add the 'self' object iff applying a method
     if(procedure.fcn.self) {
-      frame_variables(*extended_env->operator[](0)).push_back("self");
-      frame_values(*extended_env->operator[](0)).push_back(procedure.fcn.self);
+      extended_env->variables().push_back("self");
+      extended_env->values().push_back(procedure.fcn.self);
     }
     // confirm max recursive depth hasn't been exceeded
     auto& recursive_depth = procedure.fcn.recursive_depth();

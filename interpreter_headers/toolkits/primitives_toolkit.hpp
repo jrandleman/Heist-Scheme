@@ -4909,50 +4909,6 @@ namespace heist {
           << " isn't a symbol!" << format << FCN_ERR(name,args));
   }
 
-
-  void relabel_recursive_calls_in_macro_template(const sym_type& old_label,const sym_type& new_label,scm_list& tmp)noexcept{
-    for(size_type i = 0, n = tmp.size(); i < n; ++i) {
-      if(tmp[i].is_type(types::exp))
-        relabel_recursive_calls_in_macro_template(old_label,new_label,tmp[i].exp);
-      else if(tmp[i].is_type(types::sym) && tmp[i].sym == old_label)
-        tmp[i].sym = new_label;
-    }
-  }
-
-
-  data delete_macro_from_env(const sym_type& label,env_type& env)noexcept{
-    for(size_type i = 0, total_frames = env->size(); i < total_frames; ++i){
-      // Get Variables & Values Lists of the current frame
-      auto& [var_list, val_list, mac_list] = *env->operator[](i);
-      // Search Variable-Value List Pair In Frame
-      for(size_type j = 0, total_macs = mac_list.size(); j < total_macs; ++j)
-        if(label == mac_list[j].label) {
-          mac_list.erase(mac_list.begin()+j);
-          return GLOBALS::TRUE_DATA_BOOLEAN;
-        }
-    }
-    return GLOBALS::FALSE_DATA_BOOLEAN;
-  }
-
-
-  data relabel_macro_in_env(const sym_type& old_label,const sym_type& new_label,env_type& env)noexcept{
-    for(size_type i = 0, total_frames = env->size(); i < total_frames; ++i){
-      // Get Variables & Values Lists of the current frame
-      auto& [var_list, val_list, mac_list] = *env->operator[](i);
-      // Search Variable-Value List Pair In Frame
-      for(size_type j = 0, total_macs = mac_list.size(); j < total_macs; ++j)
-        if(old_label == mac_list[j].label) {
-          mac_list[j].label = new_label;
-          auto& templates = mac_list[j].templates;
-          // Relabel each recursive call in the macro templates as well
-          for(size_type k = 0, n = templates.size(); k < n; ++k)
-            relabel_recursive_calls_in_macro_template(old_label,new_label,templates[k]);
-          return GLOBALS::TRUE_DATA_BOOLEAN;
-        }
-    }
-    return GLOBALS::FALSE_DATA_BOOLEAN;
-  }
-
   /******************************************************************************
   * READER MACRO DEFINITION / DELETION PRIMITIVE HELPER
   ******************************************************************************/
@@ -6126,17 +6082,12 @@ namespace heist {
   
 
   cls_type prm_get_coroutine_class_prototype(scm_list& args, const char* format) {
-    auto& [var_list, val_list, mac_list] = *G.GLOBAL_ENVIRONMENT_POINTER->operator[](0);
-    for(size_type i = 0, total_vars = var_list.size(); i < total_vars; ++i)
-      if("coroutine" == var_list[i]) {
-        if(!val_list[i].is_type(types::cls))
-          THROW_ERR("'cycle-coroutines! 'coroutine symbol isn't bound to a class prototype!"
-            << format << FCN_ERR("cycle-coroutines!",args)); 
-        return val_list[i].cls;
-      }
-    THROW_ERR("'cycle-coroutines! 'coroutine symbol isn't bound to a class prototype!"
-      << format << FCN_ERR("cycle-coroutines!",args)); 
-    return nullptr; // never triggered
+    bool found = false;
+    auto val = G.GLOBAL_ENVIRONMENT_POINTER->lookup_variable_value("coroutine", found);
+    if(!found || !val.is_type(types::cls)) 
+      THROW_ERR("'cycle-coroutines! 'coroutine symbol isn't bound to a class prototype!"
+        << format << FCN_ERR("cycle-coroutines!",args));
+    return val.cls;
   }
 
 
@@ -6158,17 +6109,12 @@ namespace heist {
   ******************************************************************************/
 
   cls_type prm_get_universe_class_prototype(scm_list& args, const char* format) {
-    auto& [var_list, val_list, mac_list] = *G.GLOBAL_ENVIRONMENT_POINTER->operator[](0);
-    for(size_type i = 0, total_vars = var_list.size(); i < total_vars; ++i)
-      if("universe" == var_list[i]) {
-        if(!val_list[i].is_type(types::cls))
-          THROW_ERR("'heist:core:universe:eval 'universe symbol isn't bound to a class prototype!"
-            << format << FCN_ERR("heist:core:universe:eval",args)); 
-        return val_list[i].cls;
-      }
-    THROW_ERR("'heist:core:universe:eval 'universe symbol isn't bound to a class prototype!"
-      << format << FCN_ERR("heist:core:universe:eval",args)); 
-    return nullptr; // never triggered
+    bool found = false;
+    auto val = G.GLOBAL_ENVIRONMENT_POINTER->lookup_variable_value("universe", found);
+    if(!found || !val.is_type(types::cls)) 
+      THROW_ERR("'heist:core:universe:eval 'universe symbol isn't bound to a class prototype!"
+        << format << FCN_ERR("heist:core:universe:eval",args)); 
+    return val.cls;
   }
 } // End of namespace heist
 #endif

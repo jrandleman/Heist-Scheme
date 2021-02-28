@@ -148,15 +148,44 @@ namespace heist {
   // ENVIRONMENTS AS VECTOR OF FRAMES, [i+1] = ENCLOSING ENVIRONMENT OF [i]
   //    => FRAMES AS TUPLE OF VECTORS: VARIABLE NAMES & VALUES, MACRO DEFNS
 
-  using frame_var   = std::string;
-  using frame_val   = struct data;
-  using frame_mac   = struct scm_macro;
-  using frame_vars  = std::vector<frame_var>;
-  using frame_vals  = std::vector<frame_val>;
-  using frame_macs  = std::vector<frame_mac>;
-  using frame_t     = std::tuple<frame_vars,frame_vals,frame_macs>;
-  using frame_ptr   = tgc_ptr<frame_t>;
-  using environment = std::vector<frame_ptr>;
+  using frame_var  = std::string;
+  using frame_val  = struct data;
+  using frame_mac  = struct scm_macro;
+  using frame_vars = std::vector<frame_var>;
+  using frame_vals = std::vector<frame_val>;
+  using frame_macs = std::vector<frame_mac>;
+  using frame_t    = std::tuple<frame_vars,frame_vals,frame_macs>;
+
+
+  struct environment {
+    // Invariants
+    tgc_ptr<environment> parent = nullptr; // enclosing environment pointer
+    frame_t frame;                         // environment's bindings
+
+    // Getters
+    frame_vars& variables()noexcept{return std::get<0>(frame);}
+    const frame_vars& variables()const noexcept{return std::get<0>(frame);}
+    frame_vals& values()noexcept{return std::get<1>(frame);}
+    const frame_vals& values()const noexcept{return std::get<1>(frame);}
+    frame_macs& macros()noexcept{return std::get<2>(frame);}
+    const frame_macs& macros()const noexcept{return std::get<2>(frame);}
+
+    // Environmental Traversal & Access
+    frame_val lookup_variable_value(const frame_var& var, bool& found)const noexcept;
+    bool set_variable_value(const frame_var& var, frame_val&& val)noexcept;
+    void define_variable(const frame_var& var, frame_val&& val)noexcept;
+    void define_macro(const frame_mac& mac)noexcept;
+    scm_string getenv(const frame_var& var, bool& found)const;
+    bool has_macro(const scm_string& label)const noexcept;
+    bool has_variable(const frame_var& var)const noexcept;
+    bool erase_variable(const frame_var& var)noexcept;
+    bool erase_macro(const scm_string& label)noexcept;
+    bool relabel_macro(const scm_string& old_label, const scm_string& new_label)noexcept;
+
+  private:
+    // <relabel_macro> helper function
+    void relabel_recursive_calls_in_macro_template(const scm_string& old_label,const scm_string& new_label,scm_list& templ8)noexcept;
+  };
 
   /******************************************************************************
   * DATA TYPE ALIASES & CONSTRUCTORS
@@ -166,7 +195,7 @@ namespace heist {
   using par_type = tgc_ptr<scm_pair>;                    // pair
   using num_type = scm_numeric::Snum;                    // number (float/int/frac)
   using str_type = tgc_ptr<scm_string>;                  // string
-  using chr_type = int;                                  // character
+  using chr_type = int;                                  // character ("int" allows EOF to be a char)
   using sym_type = scm_string;                           // symbol
   using vec_type = tgc_ptr<scm_list>;                    // vector
   using bol_type = struct boolean;                       // boolean
@@ -890,8 +919,6 @@ namespace heist {
   * DATA TYPE GC CONSTRUCTORS
   ******************************************************************************/
 
-  frame_ptr make_frame(const frame_t& o)                         noexcept{return frame_ptr(o);}
-  frame_ptr make_frame(frame_t&& o)                              noexcept{return frame_ptr(std::move(o));}
   str_type make_str(const scm_string& o)                         noexcept{return str_type(o);}
   str_type make_str(scm_string&& o)                              noexcept{return str_type(std::move(o));}
   vec_type make_vec(const scm_list& o)                           noexcept{return vec_type(o);}
@@ -1356,6 +1383,142 @@ namespace heist {
     exp_type values;
     fn_param_matching::match_fn_call_signature(param_instances,bodies,printable_procedure_name(),arguments,values,unpacked_params,body);
     return extend_environment(std::move(unpacked_params), values, env, name);
+  }
+
+  /******************************************************************************
+  * ENVIRONMENT TRAVERSAL & ACCESS METHODS
+  ******************************************************************************/
+
+  // Environmental Traversal
+  frame_val environment::lookup_variable_value(const frame_var& var, bool& found)const noexcept{
+    const auto& vars = variables();
+    for(size_type i = 0, n = vars.size(); i < n; ++i) {
+      if(var == vars[i]) {
+        found = true;
+        return values()[i];
+      }
+    }
+    if(parent) return parent->lookup_variable_value(var,found);
+    found = false;
+    return frame_val();
+  }
+
+  // Returns whether found
+  bool environment::set_variable_value(const frame_var& var, frame_val&& val)noexcept{
+    auto& vars = variables();
+    for(size_type i = 0, n = vars.size(); i < n; ++i) {
+      if(var == vars[i]) {
+        // binding anonymous procedures -> named procedure
+        if(val.is_type(types::fcn) && val.fcn.name.empty()) val.fcn.name = var;
+        values()[i] = val;
+        return true;
+      }
+    }
+    return parent && parent->set_variable_value(var,std::move(val));
+  }
+
+  void environment::define_variable(const frame_var& var, frame_val&& val)noexcept{
+    // binding anonymous procedures -> named procedure
+    if(val.is_type(types::fcn) && val.fcn.name.empty()) val.fcn.name = var;
+    auto& vars = variables();
+    for(size_type i = 0, n = vars.size(); i < n; ++i) {
+      if(var == vars[i]) {
+        values()[i] = val;
+        return;
+      }
+    }
+    vars.push_back(var);
+    values().push_back(val);
+  }
+
+  void environment::define_macro(const frame_mac& mac)noexcept{
+    auto& macs = macros();
+    for(auto& m : macs) {
+      if(m.label == mac.label) {
+        m = mac;
+        return;
+      }
+    }
+    macs.push_back(mac);
+  }
+
+  // Get variable's name as a string
+  scm_string environment::getenv(const frame_var& var, bool& found)const{
+    const auto& vars = variables();
+    for(size_type i = 0, n = vars.size(); i < n; ++i) {
+      if(var == vars[i]) {
+        found = true;
+        return values()[i].write();
+      }
+    }
+    if(parent) return parent->getenv(var,found);
+    found = false;
+    return "";
+  }
+
+  bool environment::has_macro(const scm_string& label)const noexcept{
+    const auto& macs = macros();
+    for(size_type i = 0, n = macs.size(); i < n; ++i)
+      if(label == macs[i].label) return true;
+    return parent && parent->has_macro(label);
+  }
+
+  bool environment::has_variable(const frame_var& var)const noexcept{
+    const auto& vars = variables();
+    for(size_type i = 0, n = vars.size(); i < n; ++i)
+      if(var == vars[i]) return true;
+    return parent && parent->has_variable(var);
+  }
+
+  // Returns whether found
+  bool environment::erase_variable(const frame_var& var)noexcept{
+    auto& vars = variables();
+    for(size_type i = 0, n = vars.size(); i < n; ++i) {
+      if(var == vars[i]) {
+        auto& vals = values();
+        vars.erase(vars.begin()+i);
+        vals.erase(vals.begin()+i);
+        return true;
+      }
+    }
+    return parent && parent->erase_variable(var);
+  }
+
+  // Returns whether found
+  bool environment::erase_macro(const scm_string& label)noexcept{
+    auto& macs = macros();
+    for(size_type i = 0, n = macs.size(); i < n; ++i) {
+      if(label == macs[i].label) {
+        macs.erase(macs.begin()+i);
+        return true;
+      }
+    }
+    return parent && parent->erase_macro(label);
+  }
+
+  // Returns whether found
+  bool environment::relabel_macro(const scm_string& old_label, const scm_string& new_label)noexcept{
+    auto& macs = macros();
+    for(size_type i = 0, n = macs.size(); i < n; ++i) {
+      if(old_label == macs[i].label) {
+        macs[i].label = new_label;
+        for(auto& templ8 : macs[i].templates)
+          relabel_recursive_calls_in_macro_template(old_label,new_label,templ8);
+        return true;
+      }
+    }
+    return parent && parent->relabel_macro(old_label,new_label);
+  }
+
+
+  // <relabel_macro> helper function
+  void environment::relabel_recursive_calls_in_macro_template(const scm_string& old_label,const scm_string& new_label,scm_list& templ8)noexcept{
+    for(auto& datum : templ8) {
+      if(datum.is_type(types::exp))
+        relabel_recursive_calls_in_macro_template(old_label,new_label,datum.exp);
+      else if(datum.is_type(types::sym) && datum.sym == old_label)
+        datum.sym = new_label;
+    }
   }
 }; // End of namespace heist
 

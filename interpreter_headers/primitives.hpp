@@ -5055,15 +5055,9 @@ namespace heist {
       THROW_ERR("'getenv "<<PROFILE(args[0])<<" isn't a string!"
         "\n     (getenv <variable-name-string>)"<<FCN_ERR("getenv",args));
     // search each environment frame
-    auto var = *args[0].str;
-    for(size_type i = 0, total_frames = env->size(); i < total_frames; ++i){
-      // Get Variables & Values Lists of the current frame
-      auto& [var_list, val_list, mac_list] = *env->operator[](i);
-      // Search Variable-Value List Pair In Frame
-      for(size_type j = 0, total_vars = var_list.size(); j < total_vars; ++j)
-        if(var == var_list[j] && !val_list[j].is_type(types::undefined))
-          return make_str(val_list[j].write());
-    }
+    bool found = false;
+    auto val_string = env->getenv(*args[0].str, found);
+    if(found) return make_str(val_string);
     return GLOBALS::FALSE_DATA_BOOLEAN;
   }
 
@@ -5386,16 +5380,7 @@ namespace heist {
       if(core_syntax_label == args[0].sym)
         return GLOBALS::FALSE_DATA_BOOLEAN;
     // Search for macro in the environment
-    const auto& label = args[0].sym;
-    for(size_type i = 0, total_frames = env->size(); i < total_frames; ++i){
-      // Get Variables & Values Lists of the current frame
-      auto& [var_list, val_list, mac_list] = *env->operator[](i);
-      // Search Variable-Value List Pair In Frame
-      for(size_type j = 0, total_macs = mac_list.size(); j < total_macs; ++j)
-        if(label == mac_list[j].label)
-          return GLOBALS::TRUE_DATA_BOOLEAN;
-    }
-    return GLOBALS::FALSE_DATA_BOOLEAN;
+    return boolean(env->has_macro(args[0].sym));
   }
 
 
@@ -5444,10 +5429,9 @@ namespace heist {
       }
     if(i == n) return GLOBALS::FALSE_DATA_BOOLEAN; // not found
     // Delete core syntax as needed
-    if(args.size() == 1)
-      return delete_macro_from_env(args[0].sym,G.GLOBAL_ENVIRONMENT_POINTER);
+    if(args.size() == 1) return boolean(G.GLOBAL_ENVIRONMENT_POINTER->erase_macro(args[0].sym));
     // Relabel core syntax as needed
-    return relabel_macro_in_env(args[0].sym,args[1].sym,G.GLOBAL_ENVIRONMENT_POINTER);
+    return boolean(G.GLOBAL_ENVIRONMENT_POINTER->relabel_macro(args[0].sym,args[1].sym));
   }
 
 
@@ -5458,13 +5442,12 @@ namespace heist {
       "\n     (set-runtime-syntax! <old-name-symbol> <optional-new-name-symbol>)" 
       "\n     => LEAVING OUT <new-name-symbol> DELETES <old-name-symbol>");
     // NOTE: Can't check registry, since same name may be dispersed across environment frames
-    // Delete core syntax as needed
-    if(args.size() == 1)
-      return delete_macro_from_env(args[0].sym,env);
-    // Relabel core syntax as needed
-    auto result = relabel_macro_in_env(args[0].sym,args[1].sym,env);
-    if(result.bol.val) G.MACRO_LABEL_REGISTRY.push_back(args[1].sym); // if found, add to cumulative registry
-    return result;
+    // Delete runtime syntax as needed
+    if(args.size() == 1) return boolean(env->erase_macro(args[0].sym));
+    // Relabel runtime syntax as needed
+    auto result = env->relabel_macro(args[0].sym,args[1].sym);
+    if(result) G.MACRO_LABEL_REGISTRY.push_back(args[1].sym); // if found, add to cumulative registry
+    return boolean(result);
   }
 
   /******************************************************************************
