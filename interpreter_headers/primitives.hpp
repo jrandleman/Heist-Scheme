@@ -5049,12 +5049,10 @@ namespace heist {
     // extract the environment
     auto env = args.rbegin()->env;
     args.pop_back();
-    // confirm proper arg signature
     confirm_given_one_arg(args,"getenv","<variable-name-string>");
     if(!args.empty() && !args[0].is_type(types::str))
       THROW_ERR("'getenv "<<PROFILE(args[0])<<" isn't a string!"
         "\n     (getenv <variable-name-string>)"<<FCN_ERR("getenv",args));
-    // search each environment frame
     bool found = false;
     auto val_string = env->getenv(*args[0].str, found);
     if(found) return make_str(val_string);
