@@ -5941,8 +5941,7 @@ namespace heist {
     for(size_type i = 0, n = proto->member_names.size(); i < n; ++i) {
       if(!object_has_property_name(obj,proto->member_names[i])) {
         obj->member_names.push_back(proto->member_names[i]);
-        auto deep_copied_value = proto->member_values[i].copy();
-        obj->member_values.push_back(deep_copied_value);
+        obj->member_values.push_back(proto->member_values[i].copy());
       }
     }
     for(size_type i = 0, n = proto->method_names.size(); i < n; ++i) {
