@@ -154,13 +154,13 @@ namespace heist {
   using frame_vars = std::vector<frame_var>;
   using frame_vals = std::vector<frame_val>;
   using frame_macs = std::vector<frame_mac>;
-  using frame_t    = std::tuple<frame_vars,frame_vals,frame_macs>;
+  using frame_type = std::tuple<frame_vars,frame_vals,frame_macs>;
 
 
   struct environment {
     // Invariants
     tgc_ptr<environment> parent = nullptr; // enclosing environment pointer
-    frame_t frame;                         // environment's bindings
+    frame_type frame;                      // environment's bindings
 
     // Getters
     frame_vars& variables()noexcept{return std::get<0>(frame);}

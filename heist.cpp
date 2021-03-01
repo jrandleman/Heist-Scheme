@@ -337,7 +337,7 @@ namespace heist {
     // If valid extension, return environment w/ a new frame prepended
     if(confirm_valid_environment_extension(vars,vals,name)) {
       env_type extended_env(make_env());
-      extended_env->frame = frame_t(vars,vals,frame_macs());
+      extended_env->frame = frame_type(vars,vals,frame_macs());
       extended_env->parent = base_env;
       return extended_env;
     // Invalid extension
