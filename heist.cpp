@@ -4611,7 +4611,13 @@ namespace heist {
       // Read input
       fflush(outs);
       tmp_buffer.clear();
-      while((ch = fgetc(ins)) != '\n') tmp_buffer += ch;
+      while((ch = fgetc(ins)) != '\n' && ch != EOF) tmp_buffer += ch;
+      // Handle EOF Signal
+      if(ch == EOF) {
+        clearerr(stdin);
+        if(in_repl) return scm_list(1,chr_type(EOF)); // called by REPL
+        return scm_list();                            // called by <read>
+      }
       // Try parsing the expression, & read more input if unsuccessful 
       try {
         // Return AST if successfully parsed an expression
@@ -4670,6 +4676,12 @@ void user_print(FILE* outs, heist::data& object) {
 }
 
 
+// Determine if REPL recieved the EOF signal to terminate interpretation
+bool repl_detected_EOF_signal(const heist::scm_list& AST)noexcept{
+  return AST.size() == 1 && AST[0].is_type(heist::types::chr) && AST[0].chr == EOF;
+}
+
+
 // Wrap each entry in "scm->cps" (w/ "id" bound as the topmost cont.) 
 //   if "-cps" cmd-line flag passed
 void cpsify_inputs(heist::scm_list& AST) {
@@ -4686,7 +4698,7 @@ void cpsify_inputs(heist::scm_list& AST) {
 }
 
 
-// returns (begin (define #it <d>) #it)
+// Returns (begin (define #it <d>) #it)
 heist::data repl_tag_expression(const heist::data& d)noexcept{
   heist::data tag_exp = heist::exp_type(3);
   tag_exp.exp[0] = heist::symconst::begin;
@@ -4705,8 +4717,14 @@ int driver_loop() {
   for(;;) {
     heist::announce_input(stdout);
     auto AST = heist::read_user_input(stdout,stdin); // AST = Abstract Syntax Tree
+    // Handle EOF Signal
+    if(repl_detected_EOF_signal(AST)) {
+      puts("\nAdios!"); 
+      return heist::GLOBALS::HEIST_EXIT_CODE;
+    }
+    // Convert input to CPS as needed
     if(heist::G.USING_CPS_CMD_LINE_FLAG) cpsify_inputs(AST);
-    // Eval each expression given
+    // Eval each datum given
     for(const auto& input : AST) {
       try {
         auto value = heist::scm_eval(repl_tag_expression(input),heist::G.GLOBAL_ENVIRONMENT_POINTER);
