@@ -127,7 +127,7 @@
    - [Interpreter Invariants Manipulation](#Interpreter-Invariants-Manipulation)
    - [Control Flow Procedures](#Control-Flow-Procedures)
    - [Gensym & Symbol-Append](#Gensym--symbol-append)
-   - [Call/cc](#Calcc)
+   - [Call/cc](#Callcc)
    - [Syntax Procedures](#Syntax-Procedures)
    - [JSON Interop](#JSON-Interop)
    - [CSV Interop](#CSV-Interop)
@@ -383,8 +383,8 @@ Unfortunately, explicitly programming with continuations is rarely desirable and
 Fortunately, there are ways to convert any program into CPS, and Scheme as a language has this<br>
 transformation baked in by default.<br><br>
 
-The power of continuations in Scheme may be leveraged through the primitive [`call/cc`](#Calcc) procedure:<br>
-taking an unary procedure as its argument, [`call/cc`](#Calcc) (or [`call-with-current-continuation`](#Calcc)) passes<br>
+The power of continuations in Scheme may be leveraged through the primitive [`call/cc`](#Callcc) procedure:<br>
+taking an unary procedure as its argument, [`call/cc`](#Callcc) (or [`call-with-current-continuation`](#Callcc)) passes<br>
 the current continuation as an argument to the function it received.<br>
 [Check out this blog post on implementing Coroutines, Exceptions, Generators, and more using `call/cc`](http://matt.might.net/articles/programming-with-continuations--exceptions-backtracking-search-threads-generators-coroutines/)!<br><br>
 
@@ -395,7 +395,7 @@ using the intrinsic [`scm->cps`](#scm-cps) macro to transform code blocks into C
 transform entire programs at the user's behest.<br><br>
 
 As such, Heist programs may get the efficiency of not using continuations by default, then activate CPS<br>
-transformations for their benefits as needed. However, this means that primitives such as [`call/cc`](#Calcc)<br>
+transformations for their benefits as needed. However, this means that primitives such as [`call/cc`](#Callcc)<br>
 may ___only___ be validly used in the scope of a [`scm->cps`](#scm-cps) block ___or___ when using the [`-cps`](#Heist-Command-Line-Flags) cmd-line flag.<br>
 Other primitives of this nature include:<br>
 
@@ -1276,7 +1276,7 @@ Other primitives of this nature include:<br>
 
 #### Use: ___Convert Code to CPS & Evaluate the Result!___
 * _Hence returns an unary procedure, accepting the "topmost" continuation!_
-* _Enables use of [`call/cc`](#Calcc), [`cps-eval`](#eval--apply), & [`cps-load`](#system-interface-procedures) primitives!_
+* _Enables use of [`call/cc`](#Callcc), [`cps-eval`](#eval--apply), & [`cps-load`](#system-interface-procedures) primitives!_
 * _Automatically wraps entire program (& passed [`id`](#compose-bind--id)) if [`-cps`](#Heist-Command-Line-Flags) cmd-line flag used!_
 * _Enables opt-in continuations for their benefits w/o their overhead when unused!_
   - _Optimizes the cps transformation as well for reasonable speed!_
@@ -1297,7 +1297,7 @@ Other primitives of this nature include:<br>
   - _I.E. use [`define-coroutine`](#Define-Coroutine) and the [`jump!`](#Control-Flow-Procedures)/[`catch-jump`](#Control-Flow-Procedures) idiom rather than spinning_<br>
     _up your own versions via continuations._
 
-#### Coroutine Example Using [`call/cc`](#Calcc):
+#### Coroutine Example Using [`call/cc`](#Callcc):
 ```scheme
 ((scm->cps
   (define (make-queue) (cons '() '()))
