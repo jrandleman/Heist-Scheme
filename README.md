@@ -127,7 +127,7 @@
    - [Interpreter Invariants Manipulation](#Interpreter-Invariants-Manipulation)
    - [Control Flow Procedures](#Control-Flow-Procedures)
    - [Gensym & Symbol-Append](#Gensym--symbol-append)
-   - [Scm->Cps Procedures](#Scm-Cps-Procedures)
+   - [Call/cc](#Calcc)
    - [Syntax Procedures](#Syntax-Procedures)
    - [JSON Interop](#JSON-Interop)
    - [CSV Interop](#CSV-Interop)
@@ -383,8 +383,8 @@ Unfortunately, explicitly programming with continuations is rarely desirable and
 Fortunately, there are ways to convert any program into CPS, and Scheme as a language has this<br>
 transformation baked in by default.<br><br>
 
-The power of continuations in Scheme may be leveraged through the primitive [`call/cc`](#Scm-Cps-Procedures) procedure:<br>
-taking an unary procedure as its argument, [`call/cc`](#Scm-Cps-Procedures) (or [`call-with-current-continuation`](#Scm-Cps-Procedures)) passes<br>
+The power of continuations in Scheme may be leveraged through the primitive [`call/cc`](#Calcc) procedure:<br>
+taking an unary procedure as its argument, [`call/cc`](#Calcc) (or [`call-with-current-continuation`](#Calcc)) passes<br>
 the current continuation as an argument to the function it received.<br>
 [Check out this blog post on implementing Coroutines, Exceptions, Generators, and more using `call/cc`](http://matt.might.net/articles/programming-with-continuations--exceptions-backtracking-search-threads-generators-coroutines/)!<br><br>
 
@@ -395,27 +395,13 @@ using the intrinsic [`scm->cps`](#scm-cps) macro to transform code blocks into C
 transform entire programs at the user's behest.<br><br>
 
 As such, Heist programs may get the efficiency of not using continuations by default, then activate CPS<br>
-transformations for their benefits as needed. However, this means that primitives such as [`call/cc`](#Scm-Cps-Procedures)<br>
+transformations for their benefits as needed. However, this means that primitives such as [`call/cc`](#Calcc)<br>
 may ___only___ be validly used in the scope of a [`scm->cps`](#scm-cps) block ___or___ when using the [`-cps`](#Heist-Command-Line-Flags) cmd-line flag.<br>
 Other primitives of this nature include:<br>
 
 0. [`load`](#system-interface-procedures) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-load`](#system-interface-procedures)
 1. [`eval`](#eval--apply) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-eval`](#eval--apply)
 2. [`compile`](#system-interface-procedures) alternative in [`scm->cps`](#scm-cps) blocks: [`cps-compile`](#system-interface-procedures)
-3. Bind [`id`](#compose-bind--id) as the continuation of a procedure: [`cps->scm`](#scm-cps-procedures)
-   * For passing a procedure defined in a [`scm->cps`](#scm-cps) block as an argument to a procedure<br>
-     __not__ defined in a [`scm->cps`](#scm-cps) block (determine definition context via [`cps-callable?`](#Type-Predicates-Undefined--Void))
-   * Example:
-     ```scheme
-     ;; <sort> primitive is NOT defined in a <scm->cps> block, so <cps-lt>
-     ;; _MUST_ be wrapped in <cps->scm> to bind <id> as its continuation
-     ;; (since it was defined _IN_ a <scm->cps> block, it _EXPECTS_ a continuation,
-     ;; but it won't get one if used in a non <scm->cps> block, such as in <sort>)
-     ((scm->cps
-      (define (cps-lt a b) (< a b))
-      (sort (cps->scm cps-lt) '(1 3 5 7 2 4 6 8))
-      ) id)
-     ```
 
 
 
@@ -1290,7 +1276,7 @@ Other primitives of this nature include:<br>
 
 #### Use: ___Convert Code to CPS & Evaluate the Result!___
 * _Hence returns an unary procedure, accepting the "topmost" continuation!_
-* _Enables use of [`call/cc`](#scm-cps-procedures), [`cps-eval`](#eval--apply), [`cps-load`](#system-interface-procedures), & [`cps->scm`](#scm-cps-procedures) primitives!_
+* _Enables use of [`call/cc`](#Calcc), [`cps-eval`](#eval--apply), & [`cps-load`](#system-interface-procedures) primitives!_
 * _Automatically wraps entire program (& passed [`id`](#compose-bind--id)) if [`-cps`](#Heist-Command-Line-Flags) cmd-line flag used!_
 * _Enables opt-in continuations for their benefits w/o their overhead when unused!_
   - _Optimizes the cps transformation as well for reasonable speed!_
@@ -1302,6 +1288,7 @@ Other primitives of this nature include:<br>
 * With CPS, avoid [macros](#define-syntax-let-syntax-letrec-syntax)/[eval](#eval--apply)/[load](#system-interface-procedures) expanding to a [`define`](#define) in the current envrionment!
   - Lazy expansion breaks this functionality (may expand to localized bindings though!)
   - Includes [`defn`](#defn), [`define-module`](#Define-Module), & [`define-overload`](#Define-Overload) (manually write expansion)
+* CPS procedures applied in non-CPS contexts have `id` bound as their continuation!
 
 #### Author's Advice:
 * Experimentally, go wild! 
@@ -1310,7 +1297,7 @@ Other primitives of this nature include:<br>
   - _I.E. use [`define-coroutine`](#Define-Coroutine) and the [`jump!`](#Control-Flow-Procedures)/[`catch-jump`](#Control-Flow-Procedures) idiom rather than spinning_<br>
     _up your own versions via continuations._
 
-#### Coroutine Example Using [`call/cc`](#scm-cps-procedures):
+#### Coroutine Example Using [`call/cc`](#Calcc):
 ```scheme
 ((scm->cps
   (define (make-queue) (cons '() '()))
@@ -1561,9 +1548,6 @@ Other primitives of this nature include:<br>
 #### Associated Special Form:
 * `(yield <value>)`: yield a value from the coroutine via a new coroutine object!
   - `(yield)` is equivalent to `(yield #f)`, designed for use with [`cycle-coroutines!`](#Coroutine-Handling-Primitives)
-
-#### Special Condition:
-0. Use [`co-fn`](#Coroutine-Handling-Primitives) to pass local procedures defined in a coroutine to an external procedure
 
 #### Danger Zone:
 0. Nesting `define-coroutine` instances (or use in [`scm->cps`](#Scm-Cps)) is undefined behavior!
@@ -1909,9 +1893,6 @@ Other primitives of this nature include:<br>
    * Invokes first coroutine until yields, then invokes next, and so on until wraps around
    * Returns the first non-coroutine-object received from a [`.next`](#Define-Coroutine) invocation
    * See the example from the [`define-coroutine`](#Define-Coroutine) section!
-
-3. __Pass Local Fcns to External Fcns__: `(co-fn <local-callable>)`
-   * Alias for [`cps->scm`](#scm-cps-procedures) (cps-transform occurs when generating coroutines)
 
 
 
@@ -2665,31 +2646,25 @@ Other primitives of this nature include:<br>
 20. __Callable Predicate__: `(callable? <obj>)`
     * _Equivalent to: `(or (procedure? <obj>) (functor? <obj>))`_
 
-21. __Cps-Procedure Predicate__: `(cps-procedure? <obj>)`
+21. __Input-Port Predicate__: `(input-port? <obj>)`
 
-22. __Cps-Functor Predicate__: `(cps-functor? <obj>)`
+22. __Output-Port Predicate__: `(output-port? <obj>)`
 
-23. __Cps-Callable Predicate__: `(cps-callable? <obj>)`
+23. __Eof-Object Predicate__: `(eof-object? <obj>)`
 
-24. __Input-Port Predicate__: `(input-port? <obj>)`
+24. __Stream-Pair Predicate__: `(stream-pair? <obj>)`
 
-25. __Output-Port Predicate__: `(output-port? <obj>)`
+25. __Empty-Stream Predicate__: `(stream-null? <obj>)`
 
-26. __Eof-Object Predicate__: `(eof-object? <obj>)`
+26. __Stream Predicate__: `(stream? <obj>)`
 
-27. __Stream-Pair Predicate__: `(stream-pair? <obj>)`
+27. __Syntax-Rules Object Predicate__: `(syntax-rules-object? <obj>)`
 
-28. __Empty-Stream Predicate__: `(stream-null? <obj>)`
+28. __Sequence Predicate__: `(seq? <obj>)`
 
-29. __Stream Predicate__: `(stream? <obj>)`
+29. __Object Predicate__: `(object? <obj>)`
 
-30. __Syntax-Rules Object Predicate__: `(syntax-rules-object? <obj>)`
-
-31. __Sequence Predicate__: `(seq? <obj>)`
-
-32. __Object Predicate__: `(object? <obj>)`
-
-33. __Class Prototype Predicate__: `(class-prototype? <obj>)`
+30. __Class Prototype Predicate__: `(class-prototype? <obj>)`
 
 
 
@@ -3123,17 +3098,10 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
-## Scm->Cps Procedures:
+## Call/cc:
 0. __Call With Current Continuation__: 
    * `(call/cc <unary-continuation-callable>)`
    * `(call-with-current-continuation <unary-continuation-callable>)`
-
-1. __Cps->Scm__: Bind [`id`](#compose-bind--id) as callable's "topmost" continuation
-   * `(cps->scm <callable>)`
-   * _Note: To pass procs defined **in** a [`scm->cps`](#Scm-Cps) block as an arg to a proc defined **out** of [`scm->cps`](#Scm-Cps)_
-     - _Hence programs written in and out of [`scm->cps`](#Scm-Cps) blocks may interop!_
-     - _BEWARE: primitives are defined **OUT** of a [`scm->cps`](#Scm-Cps) block!_
-       - _Hence wrap `cps->scm` around procs being passed to them as args when in a [`scm->cps`](#Scm-Cps) block!_
 
 
 

@@ -617,7 +617,7 @@
 ; CALL/CC (ONLY WORKS IN scm->cps BLOCKS!)
 (define (heist:core:pass-continuation-call/cc f k)
   (define (heist:core:pass-continuation-k-kestrel a b) (k a)) ; ignore 2nd cont. passed by CPS-ification
-  (f heist:core:pass-continuation-k-kestrel k))
+  (heist:core:apply-with-continuation f heist:core:pass-continuation-k-kestrel k))
 (define call/cc heist:core:pass-continuation-call/cc)
 (define call-with-current-continuation heist:core:pass-continuation-call/cc)
 
@@ -625,12 +625,6 @@
 ; CPS-EVAL & CPS-LOAD
 (define cps-eval heist:core:pass-continuation-cps-eval)
 (define cps-load heist:core:pass-continuation-cps-load)
-
-
-; CPS->SCM (BINDS 'id TO THE GIVEN PROC'S CONTINUATION)[FOR scm->cps & REGULAR CODE HIGHER-ORDER FCN INTEROP]
-(define (heist:core:pass-continuation-cps->scm proc k)
-  (k (lambda (. args) (apply proc (append args (cons id '()))))))
-(define cps->scm heist:core:pass-continuation-cps->scm)
 
 ;; ===============================
 ;; =========== CALL/CE ===========
@@ -646,16 +640,15 @@
 ;; ==================================
 
 ;; Define a call/cc equivalent for coroutines
-(define (heist:core:pass-continuation-co-call/cc f k) (f k k))
-(define co-fn cps->scm)
+(define (heist:core:pass-continuation-co-call/cc f k) (heist:core:apply-with-continuation f k k))
 
 
 (defclass coroutine ()
   (value #f) ; access yielded value
   ((next)    ; continue/start coroutine
-    (if self.coroutine:private:cont       ; if started coroutine
-        (self.coroutine:private:cont id)  ;   continue execution
-        (self.coroutine:private:launch))) ; else launch coroutine
+    (if self.coroutine:private:cont                                          ; if started coroutine
+        (heist:core:apply-with-continuation self.coroutine:private:cont id)  ;   continue execution
+        (self.coroutine:private:launch)))                                    ; else launch coroutine
   (coroutine:private:cont #f)    ; IGNORE: USED INTERNALLY
   (coroutine:private:launch #f)) ; IGNORE: USED INTERNALLY
 

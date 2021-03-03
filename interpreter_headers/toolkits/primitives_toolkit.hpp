@@ -201,35 +201,10 @@ namespace heist {
     return execute_application(primitive_extract_callable_procedure(callable),args,env,tail_call);
   }
 
-  /******************************************************************************
-  * GENERAL CPS CALLABLE INTROSPECTION PRIMITIVES
-  ******************************************************************************/
 
-  bool data_is_cps_procedure(const data& d)noexcept{
-    return d.is_type(types::fcn) && !d.fcn.param_instances.empty() && 
-      !d.fcn.param_instances[0].empty() && data_is_continuation_parameter(*d.fcn.param_instances[0].rbegin());
-  }
-
-  bool data_is_cps_functor(const data& d)noexcept{
-    if(!d.is_type(types::obj)) return false;
-    obj_type obj = d.obj;
-    while(obj) {
-      // search object's local members
-      for(size_type i = 0, n = obj->method_names.size(); i < n; ++i)
-        if(obj->method_names[i] == "self->procedure")
-          return data_is_cps_procedure(obj->method_values[i]);
-      // search object's prototype
-      for(size_type i = 0, n = obj->proto->method_names.size(); i < n; ++i)
-        if(obj->proto->method_names[i] == "self->procedure")
-          return data_is_cps_procedure(obj->proto->method_values[i]);
-      // search inherited object prototype
-      obj = obj->super;
-    }
-    return false;
-  }
-
-  bool data_is_cps_callable(const data& d)noexcept{
-    return data_is_cps_procedure(d) || data_is_cps_functor(d);
+  // PRECONDITION: primitive_data_is_a_callable(d)
+  data execute_callable_callable_with_continuation(data& callable,scm_list& args,env_type& env = G.GLOBAL_ENVIRONMENT_POINTER,const bool tail_call = false){
+    return execute_application(primitive_extract_callable_procedure(callable),args,env,tail_call,true);
   }
 
   /******************************************************************************
@@ -4443,6 +4418,15 @@ namespace heist {
       }
     }
     if(ins) fclose(ins);
+  }
+
+
+  scm_list generate_CPS_LOAD_args(const data& continuation)noexcept{
+    // adds <id> to account for extra continuation slot added by <generate_fundamental_form_cps>
+    scm_list cps_load_arg(2);
+    cps_load_arg[0] = continuation;
+    cps_load_arg[1] = scm_fcn("id",DEFAULT_TOPMOST_CONTINUATION::id);
+    return cps_load_arg;
   }
 
 

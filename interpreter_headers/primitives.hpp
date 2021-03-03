@@ -3349,24 +3349,6 @@ namespace heist {
     return data(boolean(args[0].is_type(types::fcn)));
   }
 
-  // primitive "cps-procedure?" procedure:
-  data primitive_CPS_PROCEDUREP(scm_list& args) {
-    confirm_given_one_arg(args, "cps-procedure?");
-    return data(boolean(data_is_cps_procedure(args[0])));
-  }
-
-  // primitive "cps-functor?" procedure:
-  data primitive_CPS_FUNCTORP(scm_list& args) {
-    confirm_given_one_arg(args, "cps-functor?");
-    return data(boolean(data_is_cps_functor(args[0])));
-  }
-
-  // primitive "cps-callable?" procedure:
-  data primitive_CPS_CALLABLEP(scm_list& args) {
-    confirm_given_one_arg(args, "cps-callable?");
-    return data(boolean(data_is_cps_callable(args[0])));
-  }
-
   // primitive "input-port?" procedure:
   data primitive_INPUT_PORTP(scm_list& args) {
     confirm_given_one_arg(args, "input-port?");
@@ -3567,7 +3549,7 @@ namespace heist {
     // if arg is self-evaluating, return arg
     if(prm_EVAL_data_is_self_evaluating(args[0])) {
       scm_list cps_eval_args(1,continuation);
-      return execute_application(scm_analyze(generate_fundamental_form_cps(args[0]),false,true)(env),cps_eval_args,env);
+      return execute_application(scm_analyze(generate_fundamental_form_cps(args[0]),false,true)(env),cps_eval_args,env,false,true);
     }
 
 
@@ -3581,7 +3563,7 @@ namespace heist {
       if(!must_reset_global_env) {
         try {
           scm_list cps_eval_args(1,continuation);
-          return execute_application(scm_analyze(generate_fundamental_form_cps(args[0]),false,true)(env),cps_eval_args,env);
+          return execute_application(scm_analyze(generate_fundamental_form_cps(args[0]),false,true)(env),cps_eval_args,env,false,true);
         } catch(const SCM_EXCEPT& eval_throw) {
           throw eval_throw;
         }
@@ -3591,7 +3573,7 @@ namespace heist {
         try {
           scm_list cps_eval_args(1,continuation);
           auto result = execute_application(scm_analyze(generate_fundamental_form_cps(args[0]),false,true)(G.GLOBAL_ENVIRONMENT_POINTER),
-                                            cps_eval_args, G.GLOBAL_ENVIRONMENT_POINTER);
+                                            cps_eval_args,G.GLOBAL_ENVIRONMENT_POINTER,false,true);
           set_process_invariant_state(std::move(old_invariants));
           return result;
         } catch(const SCM_EXCEPT& eval_throw) {
@@ -3618,7 +3600,7 @@ namespace heist {
         scm_list cps_eval_args(1,continuation);
         return execute_application(scm_analyze(generate_fundamental_form_cps(
                                    prm_EVAL_convert_list_to_AST(args[0])),false,true)(env),
-                                   cps_eval_args,env);
+                                   cps_eval_args,env,false,true);
       } catch(const SCM_EXCEPT& eval_throw) {
         throw eval_throw;
       }
@@ -3629,7 +3611,7 @@ namespace heist {
         scm_list cps_eval_args(1,continuation);
         auto result = execute_application(scm_analyze(generate_fundamental_form_cps(
                                           prm_EVAL_convert_list_to_AST(args[0])),false,true)(G.GLOBAL_ENVIRONMENT_POINTER),
-                                          cps_eval_args,G.GLOBAL_ENVIRONMENT_POINTER);
+                                          cps_eval_args,G.GLOBAL_ENVIRONMENT_POINTER,false,true);
         set_process_invariant_state(std::move(old_invariants));
         return result;
       } catch(const SCM_EXCEPT& eval_throw) {
@@ -4988,11 +4970,11 @@ namespace heist {
         auto old_invariants = reset_process_invariant_state();
         args.pop_back();
         try {
-          scm_list cps_load_arg(1,continuation);
+          scm_list cps_load_arg = generate_CPS_LOAD_args(continuation);
           // pass the continuation to the loaded file
           auto result = execute_application(
             primitive_CPS_LOAD_interpret_file_contents(args,G.GLOBAL_ENVIRONMENT_POINTER,format),
-            cps_load_arg,G.GLOBAL_ENVIRONMENT_POINTER);
+            cps_load_arg,G.GLOBAL_ENVIRONMENT_POINTER,false,true);
           // Reset interpreter invariants to their previous states
           set_process_invariant_state(std::move(old_invariants));
           return result;
@@ -5012,8 +4994,8 @@ namespace heist {
       }
     }
     // pass the continuation to the loaded file
-    scm_list cps_load_arg(1,continuation);
-    return execute_application(primitive_CPS_LOAD_interpret_file_contents(args,env,format),cps_load_arg,env);
+    scm_list cps_load_arg = generate_CPS_LOAD_args(continuation);
+    return execute_application(primitive_CPS_LOAD_interpret_file_contents(args,env,format),cps_load_arg,env,false,true);
   }
 
   // Compiles a given filename's file's Heist-Scheme code into a C++ File
@@ -6049,6 +6031,24 @@ namespace heist {
   }
 
   /******************************************************************************
+  * INTERNAL CPS MANIPLUATION PRIMITIVE
+  ******************************************************************************/
+
+  // Designed for use with "heist:core:pass-continuation-" procedures!
+  data primitive_HEIST_CORE_APPLY_WITH_CONTINUATION(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (heist:core:apply-with-continuation <callable> <optional-arg> ... <continuation-callable>)";
+    if(args.size() < 2)
+      THROW_ERR("'heist:core:apply-with-continuation didn't enough args!"
+        << format << FCN_ERR("heist:core:apply-with-continuation", args));
+    // confirm given callable to apply, & a callable continuation
+    primitive_confirm_data_is_a_callable(args[0], "heist:core:apply-with-continuation", format, args);
+    primitive_confirm_data_is_a_callable(*args.rbegin(),"heist:core:apply-with-continuation",format,args);
+    scm_list application_args(args.begin()+1,args.end());
+    return execute_callable_callable_with_continuation(args[0],application_args);
+  }
+
+  /******************************************************************************
   * REGISTRY OF PRIMITIVES ALSO REQUIRING AN ENVIRONMENT (TO APPLY A PROCEDURE)
   ******************************************************************************/
 
@@ -6404,9 +6404,6 @@ namespace heist {
     std::make_pair(primitive_BOOLEANP,             "boolean?"),
     std::make_pair(primitive_ATOMP,                "atom?"),
     std::make_pair(primitive_PROCEDUREP,           "procedure?"),
-    std::make_pair(primitive_CPS_PROCEDUREP,       "cps-procedure?"),
-    std::make_pair(primitive_CPS_FUNCTORP,         "cps-functor?"),
-    std::make_pair(primitive_CPS_CALLABLEP,        "cps-callable?"),
     std::make_pair(primitive_INPUT_PORTP,          "input-port?"),
     std::make_pair(primitive_OUTPUT_PORTP,         "output-port?"),
     std::make_pair(primitive_EOF_OBJECTP,          "eof-object?"),
@@ -6717,6 +6714,8 @@ namespace heist {
     std::make_pair(primitive_HELP, "help"),
 
     std::make_pair(primitive_HEIST_CORE_UNIVERSE_EVAL, "heist:core:universe:eval"),
+
+    std::make_pair(primitive_HEIST_CORE_APPLY_WITH_CONTINUATION, "heist:core:apply-with-continuation"),
   };
 
   frame_vals primitive_procedure_objects()noexcept{

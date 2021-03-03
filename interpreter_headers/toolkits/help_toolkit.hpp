@@ -440,8 +440,15 @@ namespace help::menu {
           return false;
         }
       }
-      for(size_type i = 1, m = sizeof(GLOBALS::HELP_MENU_PROCEDURES)/sizeof(GLOBALS::HELP_MENU_PROCEDURES[0]); i < m; ++i) { // i=1 to skip "help"
-        if(query == GLOBALS::HELP_MENU_PROCEDURES[i]) {
+      for(size_type i = 0, m = sizeof(GLOBALS::HELP_MENU_PROCEDURES)/sizeof(GLOBALS::HELP_MENU_PROCEDURES[0]); i < m; ++i) { // i=1 to skip "help"
+        bool at_direct_link = false; // skip past direct procedure links (no submenu to print)
+        for(const auto& link : GLOBALS::HELP_MENU_PROCEDURES_DIRECT_LINKS) {
+          if(link == GLOBALS::HELP_MENU_PROCEDURES_SUBMENU[i]) {
+            at_direct_link = true;
+            break;
+          }
+        }
+        if(!at_direct_link && query == GLOBALS::HELP_MENU_PROCEDURES[i]) {
           menu::display_submenu(GLOBALS::HELP_MENU_PROCEDURES_SUBMENU[i],GLOBALS::HELP_MENU_PROCEDURES_SUBMENU_LENGTH[i]);
           return false;
         }

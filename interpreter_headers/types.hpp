@@ -92,6 +92,7 @@ namespace heist {
     constexpr const char * const tail_call         = "heist:core:tail-call";
     constexpr const char * const continuation      = "heist:core:cps-";              // hashed continuation arg name prefix
     constexpr const char * const pass_continuation = "heist:core:pass-continuation"; // denotes to treat proc as if defn'd in a scm->cps block
+    constexpr const char * const cps_generated_val = "heist:core:value-of-cps-";
     constexpr const char * const cps_app_tag       = "heist:core:app-cps";
     constexpr const char * const gensym_prefix     = "heist:core:gensym-";
     constexpr const char * const reader_lambda     = "heist:core:reader-lambda";
@@ -354,7 +355,7 @@ namespace heist {
     env_type env        = nullptr ;
     obj_type self       = nullptr;
     depth_t rec_depth   = nullptr;
-    unsigned char flags = 1; // is_lambda (as opposed to 'fn) | using_dynamic_scope [only lambda by default]
+    unsigned char flags = 1; // is_lambda (as opposed to 'fn) | using_dynamic_scope | cps_proc [only lambda by default]
     scm_fcn() = default;
     // primitive ctors
     scm_fcn(const exp_type& a, const prm_ptr_t& p)noexcept:prm(p) {param_instances.push_back(a);} // partial primitive
@@ -380,12 +381,14 @@ namespace heist {
     void set_lambda(bool status)noexcept{if(status) flags |= 1; else flags &= ~1;}
     bool is_using_dynamic_scope()const noexcept{return flags & 2;}
     void set_using_dynamic_scope(bool status)noexcept{if(status) flags |= 2; else flags &= ~2;}
+    bool is_cps_procedure()const noexcept{return flags & 4;}
+    void set_cps_procedure(bool status)noexcept{if(status) flags |= 4; else flags &= ~4;}
     size_type& recursive_depth()noexcept{return *rec_depth;} // PRECONDITION: rec_depth
     size_type  recursive_depth()const noexcept{return *rec_depth;} // PRECONDITION: rec_depth
     scm_string str()const noexcept{return name.empty() ? "#<procedure>" : "#<procedure " + name + '>';}
     scm_string printable_procedure_name()const noexcept{return name.empty() ? "#<procedure>" : name;}
     frame_vars lambda_parameters()const noexcept;
-    env_type   get_extended_environment(exp_type& arguments,exe_fcn_t& body);
+    env_type   get_extended_environment(exp_type& arguments,exe_fcn_t& body,const bool applying_in_cps);
   };
 
   // data_obj.type                  => current type enum
@@ -1018,6 +1021,8 @@ namespace heist {
 
     size_type CPS_HASH_IDX_1 = 0, CPS_HASH_IDX_2 = 0;
 
+    size_type CPS_VALUE_HASH_IDX_1 = 0, CPS_VALUE_HASH_IDX_2 = 0;
+
     /******************************************************************************
     * THE GLOBAL REGISTRY OF ANALYSIS-TIME GLOBAL MACRO LABELS
     ******************************************************************************/
@@ -1377,8 +1382,20 @@ namespace heist {
   }; // End of namespace fn_param_matching
 
 
-  // get the extended environment for the compound procedure given <arguments>
-  env_type scm_fcn::get_extended_environment(exp_type& arguments, exe_fcn_t& body){
+  // Default continuation to provide to cps procs applied in a non-cps context
+  namespace DEFAULT_TOPMOST_CONTINUATION {
+    data id(scm_list& args) {
+      if(args.size() != 1) THROW_ERR("'id not given 1 argument: (id <obj>)" << FCN_ERR("id",args));
+      return args[0];
+    }
+  };
+
+
+  // Get the extended environment for the compound procedure given <arguments>
+  env_type scm_fcn::get_extended_environment(exp_type& arguments, exe_fcn_t& body, const bool applying_in_cps){
+    // add <id> as the topmost continuation if applying a procedure accepting a continuation in a non-cps environment
+    if(!applying_in_cps && is_cps_procedure())
+      arguments.push_back(scm_fcn("id",DEFAULT_TOPMOST_CONTINUATION::id));
     // extend the lambda environment
     env_type extend_environment(frame_vars&&,frame_vals&,env_type&,const sym_type&);
     if(is_lambda()) {

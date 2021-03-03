@@ -805,6 +805,11 @@ namespace heist {
     return false;
   }
 
+  // Paramaters end with a continuation
+  bool params_end_with_a_continuation(const scm_list& params)noexcept{
+    return !params.empty() && data_is_continuation_parameter(*params.rbegin());
+  }
+
   // Validate lambda using optional args prior fn transformation
   void validate_lambda_opt_args(const scm_list& exp) {
     const auto& vars = exp[1].exp;
@@ -916,6 +921,14 @@ namespace heist {
     confirm_valid_procedure_parameters(vars,exp); // validate parameters
     replace_param_temporary_dot_with_internal_dot(vars);
     auto body_proc = analyze_sequence(lambda_body(exp),true,cps_block); // analyze body syntax
+    // set CPS value if needed
+    if(params_end_with_a_continuation(vars)) {
+      return [vars=std::move(vars),body_proc=std::move(body_proc)](env_type& env){
+        auto proc = scm_fcn(vars, body_proc, env, ""); // empty "" name by default (anon proc)
+        proc.set_cps_procedure(true);
+        return proc;
+      };
+    }
     return [vars=std::move(vars),body_proc=std::move(body_proc)](env_type& env){
       return scm_fcn(vars, body_proc, env, ""); // empty "" name by default (anon proc)
     };
@@ -1032,6 +1045,14 @@ namespace heist {
     }
     for(auto& params : param_insts)
       replace_param_temporary_dot_with_internal_dot(params);
+    // set CPS value if needed
+    if(!param_insts.empty() && params_end_with_a_continuation(param_insts[0])) {
+      return [param_insts=std::move(param_insts),bodies=std::move(bodies)](env_type& env){
+        auto proc = scm_fcn(param_insts, bodies, env, ""); // empty "" name by default (anon proc)
+        proc.set_cps_procedure(true);
+        return proc;
+      };
+    }
     return [param_insts=std::move(param_insts),bodies=std::move(bodies)](env_type& env){
       return scm_fcn(param_insts, bodies, env, ""); // empty "" name by default (anon proc)
     };
@@ -2272,6 +2293,17 @@ namespace heist {
   }
 
 
+  // Generate a unique hashed variant of a cps value name
+  // NOTE: Max Unique Hashes = (expt 18446744073709551615 18446744073709551615)
+  scm_string generate_unique_cps_value_hash()noexcept{
+    if(G.CPS_VALUE_HASH_IDX_1 != GLOBALS::MAX_SIZE_TYPE)
+      return symconst::cps_generated_val
+        + std::to_string(G.CPS_VALUE_HASH_IDX_2) + '_' + std::to_string(G.CPS_VALUE_HASH_IDX_1++);
+    return symconst::cps_generated_val
+      + std::to_string(++G.CPS_VALUE_HASH_IDX_2) + '_' + std::to_string(G.CPS_VALUE_HASH_IDX_1++);
+  }
+
+
   // CPS atomics may be returned as is: (cps <cps-atomic>) -> <cps-atomic>
   bool data_is_cps_atomic(const data& d)noexcept{
     return !d.is_type(types::exp)                      || 
@@ -2303,7 +2335,7 @@ namespace heist {
         iter->exp[0] = generate_fundamental_form_cps(application[i]);
         iter->exp[1] = scm_list(3);
         iter->exp[1].exp[0] = symconst::lambda;
-        iter->exp[1].exp[1] = scm_list(1,generate_unique_cps_hash()); // "arg"
+        iter->exp[1].exp[1] = scm_list(1,generate_unique_cps_value_hash()); // "arg"
         cps_app[i+1] = iter->exp[1].exp[1].exp[0];
         iter->exp[1].exp[2] = scm_list(2);
         iter = iter->exp[1].exp.begin()+2;
@@ -2332,7 +2364,7 @@ namespace heist {
       set_exp[0] = generate_fundamental_form_cps(val,false);
       set_exp[1] = scm_list(3);
       set_exp[1].exp[0] = symconst::lambda;
-      set_exp[1].exp[1] = scm_list(1,generate_unique_cps_hash()); // "defn-val"
+      set_exp[1].exp[1] = scm_list(1,generate_unique_cps_value_hash()); // "defn-val"
       set_exp[1].exp[2] = scm_list(2);
       set_exp[1].exp[2].exp[0] = continuation;
       set_exp[1].exp[2].exp[1] = scm_list(3);
@@ -2422,7 +2454,7 @@ namespace heist {
     cps_defn[2].exp[0] = generate_fundamental_form_cps(defn_exp[2],false);
     cps_defn[2].exp[1] = scm_list(4);
     cps_defn[2].exp[1].exp[0] = symconst::lambda;
-    cps_defn[2].exp[1].exp[1] = scm_list(1,generate_unique_cps_hash()); // "syntax-object"
+    cps_defn[2].exp[1].exp[1] = scm_list(1,generate_unique_cps_value_hash()); // "syntax-object"
 
     cps_defn[2].exp[1].exp[2] = scm_list(3);
     cps_defn[2].exp[1].exp[2].exp[0] = symconst::defn_syn;
@@ -2534,8 +2566,8 @@ namespace heist {
 
   scm_list get_cps_IF_VOID_alternative(const data& continuation){
     scm_list void_alternative(2);
-    void_alternative[0] = continuation;       // continuation
-    void_alternative[1] = scm_list(1,"void"); // add (void)
+    void_alternative[0] = continuation; // continuation
+    void_alternative[1] = scm_list(1,"void");  // add (void)
     return void_alternative;
   }
 
@@ -2580,7 +2612,7 @@ namespace heist {
     cps_defn_syn[2].exp[0] = generate_fundamental_form_cps(code.exp[2],false);
     cps_defn_syn[2].exp[1] = scm_list(3);
     cps_defn_syn[2].exp[1].exp[0] = symconst::lambda;
-    cps_defn_syn[2].exp[1].exp[1] = scm_list(1,generate_unique_cps_hash()); // "syntax-object"
+    cps_defn_syn[2].exp[1].exp[1] = scm_list(1,generate_unique_cps_value_hash()); // "syntax-object"
 
     cps_defn_syn[2].exp[1].exp[2] = scm_list(2);
     cps_defn_syn[2].exp[1].exp[2].exp[0] = cps_defn_syn[1].exp[0];
@@ -2661,7 +2693,7 @@ namespace heist {
       lambda[2].exp[0] = generate_fundamental_form_cps(code.exp[2],false);
       lambda[2].exp[1] = scm_list(3);
       lambda[2].exp[1].exp[0] = symconst::lambda;
-      lambda[2].exp[1].exp[1] = scm_list(1,generate_unique_cps_hash()); // "value"
+      lambda[2].exp[1].exp[1] = scm_list(1,generate_unique_cps_value_hash()); // "value"
       lambda[2].exp[1].exp[2] = scm_list(2);
       lambda[2].exp[1].exp[2].exp[0] = lambda[1].exp[0];
       lambda[2].exp[1].exp[2].exp[1] = scm_list(3);
@@ -2786,7 +2818,7 @@ namespace heist {
       lambda[2].exp[0] = generate_fundamental_form_cps(code.exp[1],false);
       lambda[2].exp[1] = scm_list(3);
       lambda[2].exp[1].exp[0] = symconst::lambda;
-      lambda[2].exp[1].exp[1] = scm_list(1,generate_unique_cps_hash()); // "test-result"
+      lambda[2].exp[1].exp[1] = scm_list(1,generate_unique_cps_value_hash()); // "test-result"
       lambda[2].exp[1].exp[2] = scm_list(4);
       lambda[2].exp[1].exp[2].exp[0] = symconst::if_t;
       lambda[2].exp[1].exp[2].exp[1] = lambda[2].exp[1].exp[1].exp[0];
@@ -2838,18 +2870,43 @@ namespace heist {
   }
 
 
+  // Extra <ignore> arg used to account for the <id> procedure that will be 
+  // passed automatically by <scm_fcn::get_extended_environment>
+  void account_for_automatically_passed_ID_continuation(scm_list& exp)noexcept{
+    // Add an extra continuation param to account for the auto-added <id> procedure
+    if(exp.size() >= 2 && exp[0].is_type(types::sym) && exp[0].sym == symconst::lambda && exp[1].is_type(types::exp) && exp[1].exp.size() == 1) {
+      exp[1].exp.push_back(generate_unique_cps_hash()); // account for <id>
+    // Wrap application in a lambda accepting an extra continuation param to 
+    // account for the auto-added <id> procedure
+    } else if(!exp.empty() && exp[0].is_type(types::sym) && exp[0].sym == symconst::cps_app_tag) {
+      scm_list lambda(3);
+      lambda[0] = symconst::lambda;
+      lambda[1] = scm_list(2);
+      lambda[1].exp[0] = generate_unique_cps_hash(); // k
+      lambda[1].exp[1] = generate_unique_cps_hash(); // account for <id>
+      lambda[2] = scm_list(2);
+      lambda[2].exp[0] = std::move(exp);
+      lambda[2].exp[1] = lambda[1].exp[0];
+      exp = std::move(lambda);
+    }
+  }
+
+
   // Process convert & eval exp in CPS (Continuation Passing Style)
   exe_fcn_t analyze_scm_cps(scm_list& exp) {
     if(exp.size() == 1)
       THROW_ERR("'scm->cps expects at least 1 expression: (scm->cps <exp-1> ... <exp-N>)"<<EXP_ERR(exp));
+    scm_list cps_exp;
     if(exp.size() == 2) {
-      return scm_analyze(generate_fundamental_form_cps(exp[1]),false,true);
+      cps_exp = generate_fundamental_form_cps(exp[1]);
     } else { // Wrap multi-statement transforms in a BEGIN
       scm_list begin(exp.size());
       begin[0] = symconst::begin;
       std::copy(exp.begin()+1,exp.end(),begin.begin()+1);
-      return scm_analyze(generate_fundamental_form_cps(begin),false,true);
+      cps_exp = generate_fundamental_form_cps(begin);
     }
+    account_for_automatically_passed_ID_continuation(cps_exp);
+    return scm_analyze(std::move(cps_exp),false,true);
   }
 
 
@@ -4288,7 +4345,7 @@ namespace heist {
   // Analogue to "apply", except no need to analyze the body of compound 
   //   procedures (already done). Hence only calls the execution procedure 
   //   for the proc's body w/ the extended environment
-  data execute_application(data& procedure,scm_list& arguments,env_type& env,const bool tail_call){
+  data execute_application(data& procedure,scm_list& arguments,env_type& env,const bool tail_call,const bool applying_in_cps){
     if(!procedure.is_type(types::fcn))
       THROW_ERR("Invalid application of non-procedure "<<PROFILE(procedure)<<'!'
         <<FCN_ERR(procedure.noexcept_write(),arguments));
@@ -4302,7 +4359,7 @@ namespace heist {
       return apply_primitive_procedure(procedure,arguments,env,tail_call);
     // compound proc -- create the procedure body's extended environment frame
     exe_fcn_t fcn_body;
-    auto extended_env = procedure.fcn.get_extended_environment(arguments,fcn_body);
+    auto extended_env = procedure.fcn.get_extended_environment(arguments,fcn_body,applying_in_cps);
     // splice in current env for dynamic scope as needed
     if(procedure.fcn.is_using_dynamic_scope()) {
       extended_env->parent = env;
@@ -4338,8 +4395,8 @@ namespace heist {
   }
 
   // R-value overload
-  data execute_application(data&& procedure,scm_list& arguments,env_type& env,const bool tail_call){
-    return execute_application(procedure,arguments,env,tail_call);
+  data execute_application(data&& procedure,scm_list& arguments,env_type& env,const bool tail_call,const bool applying_in_cps){
+    return execute_application(procedure,arguments,env,tail_call,applying_in_cps);
   }
 
   /******************************************************************************
@@ -4349,6 +4406,7 @@ namespace heist {
   bool data_is_continuation_parameter(const data& d)noexcept{
     return d.is_type(types::sym) && string_begins_with(d.sym,symconst::continuation);
   }
+
 
   bool procedure_defined_outside_of_CPS_block(const data& p)noexcept{
     return p.is_type(types::fcn) && 
@@ -4395,20 +4453,20 @@ namespace heist {
           arg_procs.pop_back();
           eval_application_arg_procs(arg_procs,arg_vals,env);
           // Pass the result of the proc to the continuation
-          auto result_arg = scm_list(1,execute_application(proc,arg_vals,env));
+          auto result_arg = scm_list(1,execute_application(proc,arg_vals,env,false,true));
           // Pass the result of the proc to the continuation
-          return execute_application(continuation,result_arg,env,tail_call);
+          return execute_application(continuation,result_arg,env,tail_call,true);
         }
         // Apply the proc w/ the continuation
         size_type i = 0, n = arg_procs.size()-1;
         for(; i < n; ++i) arg_vals[i] = arg_procs[i](env);
         arg_vals[n] = continuation; // don't re-eval the continuation
-        return execute_application(proc,arg_vals,env);
+        return execute_application(proc,arg_vals,env,false,true);
       // Else, apply the proc defined IN the CPS block as-is
       } else {
         scm_list arg_vals(arg_procs.size());
         eval_application_arg_procs(arg_procs,arg_vals,env);
-        return execute_application(proc,arg_vals,env,tail_call);
+        return execute_application(proc,arg_vals,env,tail_call,true);
       }
     };
   }
@@ -4432,8 +4490,9 @@ namespace heist {
     return [arg_exps=std::move(arg_exps),op_name=std::move(op_name),exp=std::move(exp),
             tail_call=std::move(tail_call)](env_type& env)mutable{
       // check for a possible macro instance, & expand/cps/eval it if so
-      if(scm_list expanded; expand_macro_if_in_env(op_name, arg_exps, env, expanded))
+      if(scm_list expanded; expand_macro_if_in_env(op_name, arg_exps, env, expanded)) {
         return scm_analyze(generate_fundamental_form_cps(expanded),tail_call,true)(env);
+      }
       // else convert the function application to CPS & eval it
       return scm_analyze(cps_expand_application(exp),tail_call,true)(env);
     };
@@ -4488,11 +4547,11 @@ namespace heist {
       for(size_type i = 0, n = arg_exps.size(); i < n; ++i)
         arg_procs[i] = scm_analyze(std::move(arg_exps[i]),false,cps_block);
       return [op_proc=std::move(op_proc),arg_procs=std::move(arg_procs),
-              tail_call=std::move(tail_call)](env_type& env){
+              tail_call=std::move(tail_call),cps_block=cps_block](env_type& env){
         scm_list arg_vals(arg_procs.size());
         eval_application_arg_procs(arg_procs,arg_vals,env);
         evaluate_operator(op_proc,env); // generates <data proc.is_type(types::fcn)>
-        return execute_application(proc,arg_vals,env,tail_call);
+        return execute_application(proc,arg_vals,env,tail_call,cps_block);
       };
     }
     // If possible macro, expand the application if so, else analyze args at eval
@@ -4507,7 +4566,7 @@ namespace heist {
       for(size_type i = 0, n = arg_exps.size(); i < n; ++i)
         arg_vals[i] = scm_analyze(data(arg_exps[i]),false,cps_block)(env);
       evaluate_operator(op_proc,env); // generates <data proc.is_type(types::fcn)>
-      return execute_application(proc,arg_vals,env,tail_call);
+      return execute_application(proc,arg_vals,env,tail_call,cps_block);
     };
   }
 
@@ -4676,7 +4735,7 @@ void user_print(FILE* outs, heist::data& object) {
 }
 
 
-// Determine if REPL recieved the EOF signal to terminate interpretation
+// Determine if REPL received the EOF signal to terminate interpretation
 bool repl_detected_EOF_signal(const heist::scm_list& AST)noexcept{
   return AST.size() == 1 && AST[0].is_type(heist::types::chr) && AST[0].chr == EOF;
 }

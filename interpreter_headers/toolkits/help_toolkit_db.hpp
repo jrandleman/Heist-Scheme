@@ -78,7 +78,7 @@ static constexpr const char* HELP_MENU_PROCEDURES[] = {
   "pairs",        "vectors",     "hmaps",           "sequences",  "predicates",
   "evalapply",    "copying",     "delayforce",      "coercion",   "output",
   "formatoutput", "input",       "files",           "ports",      "sysinterface", 
-  "invariants",   "controlflow", "cps-helpers",     "syntax",     "json",
+  "invariants",   "controlflow", "call/cc",         "syntax",     "json",
   "csv",          "gensyms",     "compose-bind-id",
 };
 
@@ -110,7 +110,7 @@ static constexpr const char* HELP_MENU_PROCEDURES_PROTOTYPES[] = {
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_COROUTINES[] = {
-  "coroutine?", "coroutine->generator", "cycle-coroutines!", "co-fn",
+  "coroutine?", "coroutine->generator", "cycle-coroutines!",
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_STREAMS[] = {
@@ -204,15 +204,14 @@ static constexpr const char* HELP_MENU_PROCEDURES_SEQUENCES[] = {
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_PREDICATES[] = {
-  "typeof",       "undefined",        "undefined?",           "void", 
-  "void?",        "empty?",           "pair?",                "vector?", 
-  "hmap?",        "char?",            "number?",              "real?", 
-  "complex?",     "rational?",        "string?",              "symbol?", 
-  "boolean?",     "atom?",            "procedure?",           "functor?", 
-  "callable?",    "cps-procedure?",   "cps-functor?",         "cps-callable?", 
-  "input-port?",  "output-port?",     "eof-object?",          "stream-pair?",
-  "stream-null?", "stream?",          "syntax-rules-object?", "seq?",
-  "object?",      "class-prototype?", 
+  "typeof",       "undefined",    "undefined?",       "void", 
+  "void?",        "empty?",       "pair?",            "vector?", 
+  "hmap?",        "char?",        "number?",          "real?", 
+  "complex?",     "rational?",    "string?",          "symbol?", 
+  "boolean?",     "atom?",        "procedure?",       "functor?", 
+  "callable?",    "input-port?",  "output-port?",     "eof-object?",
+  "stream-pair?", "stream-null?", "stream?",          "syntax-rules-object?", 
+  "seq?",         "object?",      "class-prototype?", 
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_EVALAPPLY[] = {
@@ -287,9 +286,7 @@ static constexpr const char* HELP_MENU_PROCEDURES_CONTROLFLOW[] = {
   "jump!",                        "catch-jump",                   "trace", 
 };
 
-static constexpr const char* HELP_MENU_PROCEDURES_CPS[] = {
-  "call/cc", "cps->scm", 
-};
+static constexpr const char* HELP_MENU_PROCEDURES_CALLCC[] = {}; // direct link
 
 static constexpr const char* HELP_MENU_PROCEDURES_SYNTAX[] = {
   "expand",           "core-syntax?",         "runtime-syntax?",    "reader-alias?", 
@@ -321,12 +318,12 @@ static constexpr char** HELP_MENU_PROCEDURES_SUBMENU[] = {
   (char**)HELP_MENU_PROCEDURES_SEQUENCES,   (char**)HELP_MENU_PROCEDURES_PREDICATES,    (char**)HELP_MENU_PROCEDURES_EVALAPPLY,    (char**)HELP_MENU_PROCEDURES_COPY, 
   (char**)HELP_MENU_PROCEDURES_DELAY,       (char**)HELP_MENU_PROCEDURES_COERCION,      (char**)HELP_MENU_PROCEDURES_OUTPUT,       (char**)HELP_MENU_PROCEDURES_FORMATOUTPUT, 
   (char**)HELP_MENU_PROCEDURES_INPUT,       (char**)HELP_MENU_PROCEDURES_FILES,         (char**)HELP_MENU_PROCEDURES_PORTS,        (char**)HELP_MENU_PROCEDURES_SYSINTERFACE, 
-  (char**)HELP_MENU_PROCEDURES_INVARIANTS,  (char**)HELP_MENU_PROCEDURES_CONTROLFLOW,   (char**)HELP_MENU_PROCEDURES_CPS,          (char**)HELP_MENU_PROCEDURES_SYNTAX,
+  (char**)HELP_MENU_PROCEDURES_INVARIANTS,  (char**)HELP_MENU_PROCEDURES_CONTROLFLOW,   (char**)HELP_MENU_PROCEDURES_CALLCC,       (char**)HELP_MENU_PROCEDURES_SYNTAX,
   (char**)HELP_MENU_PROCEDURES_JSON,        (char**)HELP_MENU_PROCEDURES_CSV,           (char**)HELP_MENU_PROCEDURES_GENSYM,       (char**)HELP_MENU_PROCEDURES_COMPOSEBINDID, 
 };
 
 static constexpr size_type HELP_MENU_PROCEDURES_SUBMENU_LENGTH[] = {
-  0, // help => direct link
+  0, /* help => direct link */
   sizeof(HELP_MENU_PROCEDURES_BUILD)/sizeof(HELP_MENU_PROCEDURES_BUILD[0]),               sizeof(HELP_MENU_PROCEDURES_OBJECTS)/sizeof(HELP_MENU_PROCEDURES_OBJECTS[0]),
   sizeof(HELP_MENU_PROCEDURES_PROTOTYPES)/sizeof(HELP_MENU_PROCEDURES_PROTOTYPES[0]),     sizeof(HELP_MENU_PROCEDURES_COROUTINES)/sizeof(HELP_MENU_PROCEDURES_COROUTINES[0]), 
   sizeof(HELP_MENU_PROCEDURES_STREAMS)/sizeof(HELP_MENU_PROCEDURES_STREAMS[0]),           sizeof(HELP_MENU_PROCEDURES_NUMBERS)/sizeof(HELP_MENU_PROCEDURES_NUMBERS[0]),
@@ -340,9 +337,13 @@ static constexpr size_type HELP_MENU_PROCEDURES_SUBMENU_LENGTH[] = {
   sizeof(HELP_MENU_PROCEDURES_INPUT)/sizeof(HELP_MENU_PROCEDURES_INPUT[0]),               sizeof(HELP_MENU_PROCEDURES_FILES)/sizeof(HELP_MENU_PROCEDURES_FILES[0]),
   sizeof(HELP_MENU_PROCEDURES_PORTS)/sizeof(HELP_MENU_PROCEDURES_PORTS[0]),               sizeof(HELP_MENU_PROCEDURES_SYSINTERFACE)/sizeof(HELP_MENU_PROCEDURES_SYSINTERFACE[0]), 
   sizeof(HELP_MENU_PROCEDURES_INVARIANTS)/sizeof(HELP_MENU_PROCEDURES_INVARIANTS[0]),     sizeof(HELP_MENU_PROCEDURES_CONTROLFLOW)/sizeof(HELP_MENU_PROCEDURES_CONTROLFLOW[0]),
-  sizeof(HELP_MENU_PROCEDURES_CPS)/sizeof(HELP_MENU_PROCEDURES_CPS[0]),                   sizeof(HELP_MENU_PROCEDURES_SYNTAX)/sizeof(HELP_MENU_PROCEDURES_SYNTAX[0]),
+  0, /* call/cc => direct link */                                                         sizeof(HELP_MENU_PROCEDURES_SYNTAX)/sizeof(HELP_MENU_PROCEDURES_SYNTAX[0]),
   sizeof(HELP_MENU_PROCEDURES_JSON)/sizeof(HELP_MENU_PROCEDURES_JSON[0]),                 sizeof(HELP_MENU_PROCEDURES_CSV)/sizeof(HELP_MENU_PROCEDURES_CSV[0]),
   sizeof(HELP_MENU_PROCEDURES_GENSYM)/sizeof(HELP_MENU_PROCEDURES_GENSYM[0]),             sizeof(HELP_MENU_PROCEDURES_COMPOSEBINDID)/sizeof(HELP_MENU_PROCEDURES_COMPOSEBINDID[0]), 
+};
+
+static constexpr char** HELP_MENU_PROCEDURES_DIRECT_LINKS[] = {
+  (char**)HELP_MENU_PROCEDURES_HELP, (char**)HELP_MENU_PROCEDURES_CALLCC,
 };
 
 /******************************************************************************
@@ -1061,20 +1062,6 @@ primitives of this nature include:
   0. "load" alternative in "scm->cps" blocks: "cps-load"
   1. "eval" alternative in "scm->cps" blocks: "cps-eval"
   2. "compile" alternative in "scm->cps" blocks: "cps-compile"
-  3. Bind "id" as the continuation of a procedure: "cps->scm"
-     *) For passing a procedure defined in a "scm->cps" block as an argument to 
-        a procedure not defined in a "scm->cps" block (determine definition 
-        context via "cps-callable?")
-     *) Example:
-
-        ;; <sort> primitive is NOT defined in a <scm->cps> block, so <cps-lt>
-        ;; _MUST_ be wrapped in <cps->scm> to bind <id> as its continuation
-        ;; (since it was defined _IN_ a <scm->cps> block, it _EXPECTS_ a continuation,
-        ;; but it won't get one if used in a non <scm->cps> block, such as in <sort>)
-        ((scm->cps
-         (define (cps-lt a b) (< a b))
-         (sort (cps->scm cps-lt) '(1 3 5 7 2 4 6 8))
-         ) id)
 )",
 
 
@@ -2201,7 +2188,7 @@ R"(
 R"(
 Convert code to CPS & evaluate the result!
   *) Hence returns an unary procedure, accepting the 'topmost' continuation!
-  *) Enables use of "call/cc", "cps-eval", "cps-load", & "cps->scm" primitives!
+  *) Enables use of "call/cc", "cps-eval" & "cps-load" primitives!
   *) Automatically wraps entire program (& passed id) if -cps cmd-line flag used!
   *) Enables opt-in continuations for their benefits w/o their overhead when unused!
      => Optimizes the cps transformation as well for reasonable speed!
@@ -2210,9 +2197,9 @@ Convert code to CPS & evaluate the result!
 
 Danger zone:
   *) With CPS, avoid macros/eval/load expanding to a "define" in the current envrionment!
-     => Lazy expansion breaks this functionality (may expand to localized 
-        bindings though!)
+     => Lazy expansion breaks this functionality (may expand to localized bindings though!)
      => Includes "defn", "define-module", & "define-overload" (manually write expansion)
+  *) CPS procedures applied in non-CPS contexts have <id> bound as their continuation!
 
 Author's Advice:
   *) Experimentally, go wild! 
@@ -2474,9 +2461,6 @@ Coroutine Objects:
 Associated Special Form:
   *) (yield <value>): yield a value from the coroutine via a new coroutine object!
      => '(yield)' is equivalent to '(yield #f)', designed for use with "cycle-coroutines"!
-
-Special Condition:
-  0. Use "co-fn" to pass local procedures defined in a coroutine to an external procedure
 
 Danger Zone:
   0. Nesting "define-coroutine" instances (or use in "scm->cps") is undefined behavior!
@@ -3285,21 +3269,6 @@ TAKE HEED: if none of the coroutines ever finish, neither will this procedure!
           (loop (+ count 1)))))
 
   (cycle-coroutines! (print-ints) (print-chars)) ; 0 A 1 B 2 C ... 25 Z
-)",
-
-
-
-
-
-}, {
-"co-fn",
-"Procedure",
-R"(
-(co-fn <local-callable>)
-)",
-R"(
-Use to pass local procedures defined in a coroutine to an external procedure.
-Alias for "cps->scm" (cps-transform occurs when generating coroutines).
 )",
 
 
@@ -7651,62 +7620,6 @@ Callable predicate. Callables are defined as either procedures or functors.
 
 
 }, {
-"cps-procedure?",
-"Procedure",
-R"(
-(cps-procedure? <obj>)
-)",
-R"(
-Confirm <obj> is a procedure that was defined in a CPS context.
-  *) CPS contexts: "scm->cps" blocks, "-cps" cmd-line flag, or in coroutines.
-  *) Useful to figure out whether to apply "cps->scm" or not in CPS contexts.
-     => NOTE: Prefer "cps-callable?" here to preserve generality!
-  *) Figure out whether currently in a cps context via "using-cps?".
-  *) See "cps-functor?" & "cps-callable?" for alternatives!
-)",
-
-
-
-
-
-}, {
-"cps-functor?",
-"Procedure",
-R"(
-(cps-functor? <obj>)
-)",
-R"(
-Confirm <obj> is a functor that was defined in a CPS context.
-  *) CPS contexts: "scm->cps" blocks, "-cps" cmd-line flag, or in coroutines.
-  *) Useful to figure out whether to apply "cps->scm" or not in CPS contexts.
-     => NOTE: Prefer "cps-callable?" here to preserve generality!
-  *) Figure out whether currently in a cps context via "using-cps?".
-  *) See "cps-procedure?" & "cps-callable?" for alternatives!
-)",
-
-
-
-
-
-}, {
-"cps-callable?",
-"Procedure",
-R"(
-(cps-callable? <obj>)
-)",
-R"(
-Confirm <obj> is a callable that was defined in a CPS context.
-  *) CPS contexts: "scm->cps" blocks, "-cps" cmd-line flag, or in coroutines.
-  *) Useful to figure out whether to apply "cps->scm" or not in CPS contexts.
-  *) Figure out whether currently in a cps context via "using-cps?".
-  *) See "cps-functor?" & "cps-procedure?" for alternatives!
-)",
-
-
-
-
-
-}, {
 "input-port?",
 "Procedure",
 R"(
@@ -10108,32 +10021,6 @@ Call <unary-continuation-callable> by passing it the current continuation as a p
 
 
 }, {
-"cps->scm",
-"Procedure",
-R"(
-(cps->scm <callable>)
-)",
-R"(
-Bind id as callable's "topmost" continuation.
-  *) Designed to pass callables defined in CPS contexts as args to 
-     callables defined out of CPS contexts (query "cps" with "help" for details).
-  *) Hence programs written in and out of CPS contexts may interop!
-  *) Use in conjunction with "cps-callable?" to determine if needed!
-  *) BEWARE: primitives are defined OUT of CPS contexts!
-     => Hence wrap cps->scm around callables being passed to them 
-        as args when in CPS contexts!
-
-        ((scm->cps
-         (define (cps-lt a b) (< a b))               ; 'cps-lt' defined in a CPS context!
-         (sort (cps->scm cps-lt) '(1 3 5 7 2 4 6 8)) ; 'sort' defined out of CPS context!
-         ) id)
-)",
-
-
-
-
-
-}, {
 "expand",
 "Procedure",
 R"(
@@ -11089,7 +10976,6 @@ Used in conjunction with the following procedures:
   (coroutine? <obj>)
   (coroutine->generator <coroutine-object>)
   (cycle-coroutines! <coroutine-object-1> ...)
-  (co-fn <local-callable>)
 
 Examples:
 
