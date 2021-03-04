@@ -215,7 +215,8 @@ Wraps scheme code in a [`scm->cps`](#scm-cps) block automatically, hence:
 0. Reader-modifying operations must be done in a seperate file and linked with `-l`!
    * These include [`infix!`](#Infix--Infixr), [`infixr!`](#Infix--Infixr), [`unfix!`](#Unfix), [`define-reader-syntax`](#Syntax-Procedures), & [`define-reader-alias`](#Define-Reader-Alias)!
    * IE: `$ heist -cps -l reader_modifications.scm -script file_to_interpret.scm`
-1. Use with the REPL wraps every expression in a unique [`scm->cps`](#scm-cps) block!
+1. Affects the REPL, `-script`, and `-compile`!
+   * Use with the REPL wraps every expression in a unique [`scm->cps`](#scm-cps) block!
 
 ### `-infix` Operators:
 | Order |                       Operators                      | Assoc |                Effects                 |
@@ -3102,6 +3103,7 @@ Other primitives of this nature include:<br>
 0. __Call With Current Continuation__: 
    * `(call/cc <unary-continuation-callable>)`
    * `(call-with-current-continuation <unary-continuation-callable>)`
+   * Note: only valid in [CPS](#Scm-cps) contexts!
 
 
 

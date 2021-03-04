@@ -871,7 +871,8 @@ Quirks to account for with "-cps":
      0. Reader-modifying operations must be done in a seperate file and linked with "-l"!
         => These include "infix!", "infixr!", "unfix!", "define-reader-syntax", & "define-reader-alias"!
         => IE: "$ heist -cps -l reader_modifications.scm -script file_to_interpret.scm"
-     1. Use with the REPL wraps every expression in a unique "scm->cps" block!
+     1. Affects the REPL, "-script", and "-compile"!
+        => Use with the REPL wraps every expression in a unique "scm->cps" block!
 
 Note that the "-infix" cmd-line flag defines the following:
 

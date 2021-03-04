@@ -1394,7 +1394,7 @@ namespace heist {
   // Get the extended environment for the compound procedure given <arguments>
   env_type scm_fcn::get_extended_environment(exp_type& arguments, exe_fcn_t& body, const bool applying_in_cps){
     // add <id> as the topmost continuation if applying a procedure accepting a continuation in a non-cps environment
-    if(!applying_in_cps && is_cps_procedure())
+    if(is_cps_procedure() && !applying_in_cps)
       arguments.push_back(scm_fcn("id",DEFAULT_TOPMOST_CONTINUATION::id));
     // extend the lambda environment
     env_type extend_environment(frame_vars&&,frame_vals&,env_type&,const sym_type&);
