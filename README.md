@@ -3103,7 +3103,7 @@ Other primitives of this nature include:<br>
 0. __Call With Current Continuation__: 
    * `(call/cc <unary-continuation-callable>)`
    * `(call-with-current-continuation <unary-continuation-callable>)`
-   * Note: only valid in [CPS](#Scm-cps) contexts!
+   * Note: only valid in [CPS contexts](#Scm-cps)!
 
 
 
