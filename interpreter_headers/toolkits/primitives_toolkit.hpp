@@ -4737,7 +4737,7 @@ namespace heist {
         // erase all spaces after "\n"
         size_type j = i+1;
         for(size_type m = err.size(); j < m && err[j] == ' '; ++j);
-        err.erase(i, j-i-1);
+        err.erase(i+1, j-i);
         // add 2 spaces after "\n"
         err.insert(i+1,2,' ');
         i += 2; // skip past inserted spaces
