@@ -371,7 +371,7 @@
 ; (stream-interleave stream1 stream2)
 
 (define (heist:stream:error name message format variable)
-  (syntax-error name (append message "\n               " format "\n               ") variable))
+  (syntax-error name (append message "\n" format) variable))
 
 
 (defn stream-map

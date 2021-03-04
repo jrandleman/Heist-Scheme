@@ -4726,11 +4726,34 @@ namespace heist {
   }
 
 
+  // Replace all "\n" with "\n  ", and add "\n" at the end IF one 
+  // isn't there AND "\n" is in the string
+  scm_string prepare_error_string(scm_string err, const bool given_item)noexcept{
+    if(err.empty()) return "";
+    bool found_newline = false;
+    for(size_type i = 0; i < err.size(); ++i) {
+      if(err[i] == '\n') {
+        found_newline = true;
+        // erase all spaces after "\n"
+        size_type j = i+1;
+        for(size_type m = err.size(); j < m && err[j] == ' '; ++j);
+        err.erase(i, j-i-1);
+        // add 2 spaces after "\n"
+        err.insert(i+1,2,' ');
+        i += 2; // skip past inserted spaces
+      }
+    }
+    if(given_item && found_newline && *err.rbegin() != '\n') 
+      return err + "\n ";
+    return err;
+  }
+
+
   void primitive_error_template(const scm_list& args, const char* name, 
                                 const char* err_type, const afmts& err_format){
     confirm_valid_error_primitive_layout(args, name);
     // Cook the raw error string
-    scm_string error_str(*args[1].str);
+    scm_string error_str = prepare_error_string(*args[1].str, args.size() == 3);
     // Alert error
     fprintf(G.CURRENT_OUTPUT_PORT, 
             "\n%s%s%s in %s: %s", afmt(err_format), err_type, afmt(AFMT_01), 
