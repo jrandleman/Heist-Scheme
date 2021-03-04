@@ -5365,7 +5365,6 @@ namespace heist {
     }
     if(d.is_type(types::sym)) return true;
     auto iter = d;
-    size_type length = GLOBALS::MAX_SIZE_TYPE;
     size_type count = 1;
     while(iter.is_type(types::par)) {
       if(!data_is_proper_list(iter.par->first)) {
@@ -5374,18 +5373,6 @@ namespace heist {
             << " in list " << PROFILE(d) << " isn't a proper list!" << FCN_ERR(name,args));
         } else {
           return false;
-        }
-      }
-      if(length == GLOBALS::MAX_SIZE_TYPE) {
-        length = (size_type)primitive_guarenteed_list_length(iter.par->first).extract_inexact();
-      } else {
-        if((size_type)primitive_guarenteed_list_length(iter.par->first).extract_inexact() != length) {
-          if constexpr (THROWING_ERRORS) {
-            THROW_ERR('\''<<name<<" inner lists in " << PROFILE(d) 
-              << " aren't of the same length!" << FCN_ERR(name,args));
-          } else {
-            return false;
-          }
         }
       }
       scm_list row;
@@ -5427,7 +5414,6 @@ namespace heist {
         return false;
       }
     }
-    size_type length = GLOBALS::MAX_SIZE_TYPE;
     for(size_type i = 0, n = d.vec->size(); i < n; ++i) {
       if(!d.vec->operator[](i).is_type(types::vec)) {
         if constexpr (THROWING_ERRORS) {
@@ -5435,18 +5421,6 @@ namespace heist {
             << " in list " << PROFILE(d) << " isn't a vector!" << FCN_ERR(name,args));
         } else {
           return false;
-        }
-      }
-      if(length == GLOBALS::MAX_SIZE_TYPE) {
-        length = d.vec->operator[](i).vec->size();
-      } else {
-        if(d.vec->operator[](i).vec->size() != length) {
-          if constexpr (THROWING_ERRORS) {
-            THROW_ERR('\''<<name<<" inner vectors in " << PROFILE(d) 
-              << " aren't of the same length!" << FCN_ERR(name,args));
-          } else {
-            return false;
-          }
         }
       }
       scm_list row;
@@ -5461,11 +5435,7 @@ namespace heist {
     scm_string csv;
     for(size_type i = 0, n = csv_matrix.size(); i < n; ++i) {
       for(size_type j = 0, m = csv_matrix[i].size(); j < m; ++j) {
-        if(j+1 < m) {
-          csv += csv_matrix[i][j].write() + delimiter;
-        } else {
-          csv += csv_matrix[i][j].write();
-        }
+        csv += csv_matrix[i][j].write() + delimiter;
       }
       csv += '\n';
     }
