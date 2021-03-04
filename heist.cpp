@@ -4672,7 +4672,7 @@ namespace heist {
       tmp_buffer.clear();
       while((ch = fgetc(ins)) != '\n' && ch != EOF) tmp_buffer += ch;
       // Handle EOF Signal
-      if(ch == EOF) {
+      if(ch == EOF && ins == stdin) {
         clearerr(stdin);
         if(in_repl) return scm_list(1,chr_type(EOF)); // called by REPL
         return scm_list();                            // called by <read>

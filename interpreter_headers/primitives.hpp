@@ -4546,6 +4546,7 @@ namespace heist {
     fflush(outs);
     int ch = 0;
     while((ch = fgetc(ins)) != '\n' && ch != EOF) line_buffer += ch;
+    if(ch == EOF && ins == stdin) clearerr(ins);
     return make_str(line_buffer);
   }
 
@@ -4566,7 +4567,11 @@ namespace heist {
     if(!reading_stdin) return chr_type(getc(ins));
     // Else read 1 char from stdin & throw away the rest of the line
     int ch = getc(stdin);
-    if(ch!='\n') while(getc(stdin) != '\n'); // eat rest of the line
+    if(ch == EOF) {
+      clearerr(stdin);
+    } else if(ch != '\n') {
+      while(getc(stdin) != '\n'); // eat rest of the line
+    }
     return chr_type(ch);
   }
 
@@ -4593,7 +4598,11 @@ namespace heist {
     // NOTE: 'peek-char' from stdin is equivalent to 'read-char' from stdin since
     //       both return 1 char from the stream & throw away the rest of the line
     int ch = getc(stdin);
-    if(ch!='\n') while(getc(stdin) != '\n'); // eat rest of the line
+    if(ch == EOF) {
+      clearerr(stdin);
+    } else if(ch != '\n') {
+      while(getc(stdin) != '\n'); // eat rest of the line
+    }
     return chr_type(ch);
   }
 
