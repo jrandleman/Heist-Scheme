@@ -76,11 +76,6 @@
 9. [Heist Primitive Procedures](#Heist-Primitive-Procedures)
    - [Help](#Help)
    - [Build System Information](#Build-System-Information)
-   - [OOP Reflection Primitives](#OOP-Reflection-Primitives)
-     * [Object Primitives](#Object-Primitives)
-     * [Prototype Primitives](#Prototype-Primitives)
-   - [Coroutine Handling Primitives](#Coroutine-Handling-Primitives)
-   - [Stream Primitives](#Stream-Primitives)
    - [Numeric Primitives](#Numeric-Primitives)
      * [General](#General)
      * [Numeric Predicates](#Numeric-Predicates)
@@ -108,6 +103,11 @@
      * [General](#General-3)
      * [Set Procedures](#Set-Procedures)
      * [Sorting Procedures](#Sorting-Procedures)
+   - [OOP Reflection Primitives](#OOP-Reflection-Primitives)
+     * [Object Primitives](#Object-Primitives)
+     * [Prototype Primitives](#Prototype-Primitives)
+   - [Coroutine Handling Primitives](#Coroutine-Handling-Primitives)
+   - [Stream Primitives](#Stream-Primitives)
    - [Type Predicates, Undefined, & Void](#Type-Predicates-Undefined--Void)
    - [Eval & Apply](#eval--apply)
    - [Copying](#copying)
@@ -1853,118 +1853,6 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
-## OOP Reflection Primitives:
-### Object Primitives:
-0. __Functional Property Access__: `(.. <object> <property-symbol-1> ...)`
-   * IE `person.sibling.age` = `(.. person 'sibling 'age)`
-
-1. __Object Members Hash-Map__: `(object-members <object>)`
-   * Returns a [`hash-map`](#Hash-Map-Procedures) of member names & values
-
-2. __Object Methods Hash-Map__: `(object-methods <object>)`
-   * Returns a [`hash-map`](#Hash-Map-Procedures) of method names & values
-   * Method values already have `<object>` bound as `self`!
-
-
-### Prototype Primitives:
-0. __Class Name__: `(proto-name <class-prototype>)`
-
-1. __Prototype Member Names List__: `(proto-members <class-prototype>)`
-
-2. __Prototype Method Names List__: `(proto-methods <class-prototype>)`
-
-3. __Inherited Prototype__: `(proto-super <class-prototype>)`
-
-4. __Dynamically Add New Property__: 
-   * `(proto-add-property! <class-prototype> <property-name-symbol> <value>)`
-
-
-
-------------------------
-## Coroutine Handling Primitives:
-0. __Coroutine Object Predicate__: `(coroutine? <obj>)`
-   * Coroutine objects can __only__ be made by [coroutine instantiations](#Define-Coroutine) or [`yield`](#Define-Coroutine)
-
-1. __Convert Coroutine Object to a Generator Thunk__: `(coroutine->generator <coroutine-object>)`
-   * Invoking the generator will continuously yield the next [`yield`](#Define-Coroutine)ed value
-   * Yields the `'generator-complete` symbol once finished iterating the coroutine!
-
-2. __Cyclical Coroutine Invocation__: `(cycle-coroutines! <coroutine-object-1> ...)`
-   * ___TAKE HEED___: if none of the coroutines ever finish, neither will this procedure!
-   * Invokes first coroutine until yields, then invokes next, and so on until wraps around
-   * Returns the first non-coroutine-object received from a [`.next`](#Define-Coroutine) invocation
-   * See the example from the [`define-coroutine`](#Define-Coroutine) section!
-
-
-
-------------------------
-## Stream Primitives:
-0. __Get Length of Stream__: `(stream-length <stream>)`
-
-1. __Get Reverse of Stream__: `(stream-reverse <stream>)`
-
-2. __Stream Access__: `scar` = first of stream, `scdr` = rest of stream, & composed `scar` & `scdr`
-   * `(scar <stream>)`, `(scdr <stream>)`
-   * `(scaar <stream>)`, `(scadr <stream>)`, `(scdar <stream>)`, `(scddr <stream>)`
-   * `(scaaar <stream>)` ... `(scdddr <stream>)`
-   * `(scaaaar <stream>)` ... `(scddddr <stream>)`
-
-3. __Reference__: Get elt at `<index>` in `<stream-pair>`
-   * `(stream-ref <stream-pair> <index>)`
-
-4. __Append__: Join `<streams>` into a new stream
-   * `(stream-append <stream1> <stream2> ...)`
-
-5. __Drop__: Drop `<n>` elts from `<stream>`
-   * `(stream-drop <stream> <n>)`
-
-6. __Drop While__: Drop elts from `<stream>` while `<predicate?>` is true
-   * `(stream-drop-while <predicate?> <stream>)`
-
-7. __Take__: Take `<n>` elts from `<stream>`
-   * `(stream-take <stream> <n>)`
-
-8. __Take While__: Take elts from `<stream>` while `<predicate?>` is true
-   * `(stream-take-while <predicate?> <stream>)`
-
-9. __Map__: Apply `<callable>` to each elt in each stream, forming a stream of results
-   * `(stream-map <callable> <stream1> <stream2> ...)`
-
-10. __Filter__: Form a stream of elts from `<stream>` satisfying `<predicate?>`
-    * `(stream-filter <predicate?> <stream>)`
-
-11. __For Each__: Apply `<callable>` to each elt of each `<stream>`
-    * `(stream-for-each <callable> <stream1> <stream2> ...)`
-
-12. __Unfold__: Form a stream by mapping & incrementing seed, until `<break-cond-callable>` is true
-    * _Note: **map** via `<map-callable>`, **increment** via `<suc-callable>`_
-    * `(stream-unfold <break-cond-callable> <map-callable> <suc-callable> <seed>)`
-
-13. __Fold__: Accumulate stream from left to right, starting with `<seed>` using `<callable>`
-    * `(stream-fold <callable> <seed> <stream>)`
-
-14. __Fold Right__: Accumulate stream from right to left, starting with `<seed>` using `<callable>`
-    * `(stream-fold-right <callable> <seed> <stream>)`
-
-15. __Numeric Stream__: Form a stream starting from `<first>` incrementing by `<optional-step>`
-    * _Note: `<optional-step>` step is `1` by default_
-    * `(stream-from <first> <optional-step>)`
-
-16. __Stream Generation__: Form a stream starting from `<seed>` using `<suc-callable>`
-    * `(stream-iterate <suc-callable> <seed>)`
-
-17. __Zip__: Form a stream of lists containing the nth elt of each `<stream>`
-    * `(stream-zip <stream1> <stream2> ...)`
-
-18. __Infinite Cycle__: Forms an infinite stream of repeating `<objs>`
-    * `(stream-constant <obj1> <obj2> ...)`
-  
-19. __Interleave__: Form a stream by interleaving elts of either `<stream>`
-    * `(stream-interleave <stream1> <stream2>)`
-
-
-
-------------------------
 ## Numeric Primitives:
 ### General:
 0. __Addition__: Add n numbers
@@ -2597,6 +2485,118 @@ Other primitives of this nature include:<br>
 4. __Delete Neighboring Duplicates__: `(delete-neighbor-dups <equality-predicate?> <sequence>)`
 
 5. __Mutating Delete Neighboring Duplicates__: `(delete-neighbor-dups! <equality-predicate?> <sequence>)`
+
+
+
+------------------------
+## OOP Reflection Primitives:
+### Object Primitives:
+0. __Functional Property Access__: `(.. <object> <property-symbol-1> ...)`
+   * IE `person.sibling.age` = `(.. person 'sibling 'age)`
+
+1. __Object Members Hash-Map__: `(object-members <object>)`
+   * Returns a [`hash-map`](#Hash-Map-Procedures) of member names & values
+
+2. __Object Methods Hash-Map__: `(object-methods <object>)`
+   * Returns a [`hash-map`](#Hash-Map-Procedures) of method names & values
+   * Method values already have `<object>` bound as `self`!
+
+
+### Prototype Primitives:
+0. __Class Name__: `(proto-name <class-prototype>)`
+
+1. __Prototype Member Names List__: `(proto-members <class-prototype>)`
+
+2. __Prototype Method Names List__: `(proto-methods <class-prototype>)`
+
+3. __Inherited Prototype__: `(proto-super <class-prototype>)`
+
+4. __Dynamically Add New Property__: 
+   * `(proto-add-property! <class-prototype> <property-name-symbol> <value>)`
+
+
+
+------------------------
+## Coroutine Handling Primitives:
+0. __Coroutine Object Predicate__: `(coroutine? <obj>)`
+   * Coroutine objects can __only__ be made by [coroutine instantiations](#Define-Coroutine) or [`yield`](#Define-Coroutine)
+
+1. __Convert Coroutine Object to a Generator Thunk__: `(coroutine->generator <coroutine-object>)`
+   * Invoking the generator will continuously yield the next [`yield`](#Define-Coroutine)ed value
+   * Yields the `'generator-complete` symbol once finished iterating the coroutine!
+
+2. __Cyclical Coroutine Invocation__: `(cycle-coroutines! <coroutine-object-1> ...)`
+   * ___TAKE HEED___: if none of the coroutines ever finish, neither will this procedure!
+   * Invokes first coroutine until yields, then invokes next, and so on until wraps around
+   * Returns the first non-coroutine-object received from a [`.next`](#Define-Coroutine) invocation
+   * See the example from the [`define-coroutine`](#Define-Coroutine) section!
+
+
+
+------------------------
+## Stream Primitives:
+0. __Get Length of Stream__: `(stream-length <stream>)`
+
+1. __Get Reverse of Stream__: `(stream-reverse <stream>)`
+
+2. __Stream Access__: `scar` = first of stream, `scdr` = rest of stream, & composed `scar` & `scdr`
+   * `(scar <stream>)`, `(scdr <stream>)`
+   * `(scaar <stream>)`, `(scadr <stream>)`, `(scdar <stream>)`, `(scddr <stream>)`
+   * `(scaaar <stream>)` ... `(scdddr <stream>)`
+   * `(scaaaar <stream>)` ... `(scddddr <stream>)`
+
+3. __Reference__: Get elt at `<index>` in `<stream-pair>`
+   * `(stream-ref <stream-pair> <index>)`
+
+4. __Append__: Join `<streams>` into a new stream
+   * `(stream-append <stream1> <stream2> ...)`
+
+5. __Drop__: Drop `<n>` elts from `<stream>`
+   * `(stream-drop <stream> <n>)`
+
+6. __Drop While__: Drop elts from `<stream>` while `<predicate?>` is true
+   * `(stream-drop-while <predicate?> <stream>)`
+
+7. __Take__: Take `<n>` elts from `<stream>`
+   * `(stream-take <stream> <n>)`
+
+8. __Take While__: Take elts from `<stream>` while `<predicate?>` is true
+   * `(stream-take-while <predicate?> <stream>)`
+
+9. __Map__: Apply `<callable>` to each elt in each stream, forming a stream of results
+   * `(stream-map <callable> <stream1> <stream2> ...)`
+
+10. __Filter__: Form a stream of elts from `<stream>` satisfying `<predicate?>`
+    * `(stream-filter <predicate?> <stream>)`
+
+11. __For Each__: Apply `<callable>` to each elt of each `<stream>`
+    * `(stream-for-each <callable> <stream1> <stream2> ...)`
+
+12. __Unfold__: Form a stream by mapping & incrementing seed, until `<break-cond-callable>` is true
+    * _Note: **map** via `<map-callable>`, **increment** via `<suc-callable>`_
+    * `(stream-unfold <break-cond-callable> <map-callable> <suc-callable> <seed>)`
+
+13. __Fold__: Accumulate stream from left to right, starting with `<seed>` using `<callable>`
+    * `(stream-fold <callable> <seed> <stream>)`
+
+14. __Fold Right__: Accumulate stream from right to left, starting with `<seed>` using `<callable>`
+    * `(stream-fold-right <callable> <seed> <stream>)`
+
+15. __Numeric Stream__: Form a stream starting from `<first>` incrementing by `<optional-step>`
+    * _Note: `<optional-step>` step is `1` by default_
+    * `(stream-from <first> <optional-step>)`
+
+16. __Stream Generation__: Form a stream starting from `<seed>` using `<suc-callable>`
+    * `(stream-iterate <suc-callable> <seed>)`
+
+17. __Zip__: Form a stream of lists containing the nth elt of each `<stream>`
+    * `(stream-zip <stream1> <stream2> ...)`
+
+18. __Infinite Cycle__: Forms an infinite stream of repeating `<objs>`
+    * `(stream-constant <obj1> <obj2> ...)`
+  
+19. __Interleave__: Form a stream by interleaving elts of either `<stream>`
+    * `(stream-interleave <stream1> <stream2>)`
 
 
 
