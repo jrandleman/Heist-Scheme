@@ -688,7 +688,7 @@
           (if (coroutine? coroutine-object)
               coroutine-object.value
               coroutine-object))
-        'coroutine-complete))) ; finished iterating!
+        'generator-complete))) ; finished iterating!
 
 ;; =================================
 ;; =========== UNIVERSES ===========

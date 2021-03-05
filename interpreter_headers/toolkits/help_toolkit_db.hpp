@@ -3231,7 +3231,7 @@ R"(
 R"(
 Converts the given coroutine object into a "generator" thunk! 
 Invoking the generator will continuously "yield" the next yielded value! 
-Yields the 'coroutine-complete symbol once finished iterating the coroutine!
+Yields the 'generator-complete symbol once finished iterating the coroutine!
 
   (define-coroutine (pows-of-2-coro)
     (let loop ((count 0))

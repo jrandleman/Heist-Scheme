@@ -1887,7 +1887,7 @@ Other primitives of this nature include:<br>
 
 1. __Convert Coroutine Object to a Generator Thunk__: `(coroutine->generator <coroutine-object>)`
    * Invoking the generator will continuously yield the next [`yield`](#Define-Coroutine)ed value
-   * Yields the `'coroutine-complete` symbol once finished iterating the coroutine!
+   * Yields the `'generator-complete` symbol once finished iterating the coroutine!
 
 2. __Cyclical Coroutine Invocation__: `(cycle-coroutines! <coroutine-object-1> ...)`
    * ___TAKE HEED___: if none of the coroutines ever finish, neither will this procedure!
