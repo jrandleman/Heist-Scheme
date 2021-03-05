@@ -22,6 +22,17 @@ namespace GLOBALS {
 }
 
 /******************************************************************************
+* HELP EOF SIGNAL HANDLER
+******************************************************************************/
+
+scm_string handle_help_EOF_signal() {
+  clearerr(stdin);
+  puts("");
+  fflush(stdout);
+  return "quit";
+}
+
+/******************************************************************************
 * HELP DB QUERYING HELPER FUNCTIONS
 ******************************************************************************/
 
@@ -313,7 +324,9 @@ namespace help::logic {
     // get new query
     scm_string new_query;
     int ch;
-    while((ch = fgetc(stdin)) != '\n') new_query += ch;
+    while((ch = fgetc(stdin)) != '\n' && ch != EOF) new_query += ch;
+    // Quit if given EOF signal
+    if(ch == EOF) return handle_help_EOF_signal();
     // clean new query & determine if given a number
     strip_whitespace(new_query);
     if(new_query.empty()) return get_new_help_query(possible_matches);
@@ -385,8 +398,9 @@ namespace help::menu {
     fflush(stdout);
     scm_string new_query;
     int ch;
-    while((ch = fgetc(stdin)) != '\n') 
+    while((ch = fgetc(stdin)) != '\n' && ch != EOF)
       new_query += (ch >= 'A' && ch <= 'Z' ? ch+32 : ch); // mk lowercase
+    if(ch == EOF) return handle_help_EOF_signal();
     logic::strip_whitespace(new_query);
     return new_query;
   }
