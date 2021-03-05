@@ -405,6 +405,7 @@ namespace heist {
   // data_obj.noexcept_equal(datum) => <equal?> but w/o invoking object methods
   // data_obj.is_self_evaluating()  => core evaluator should reflect datum
   // data_obj.copy()                => deep-cpy vector|string|pair|hmap|object
+  // data_obj.shallow_copy()        => shallow-cpy vector|string|pair|hmap|object
   struct data {
     // current type & value held by data object
     types type = types::undefined;
@@ -771,27 +772,26 @@ namespace heist {
     data datum;
     env_type env;
     bool already_forced, in_cps;
-    data result;
     scm_delay(const scm_delay& d) noexcept {*this = d;}
     scm_delay(scm_delay&& d)      noexcept {*this = std::move(d);}
     scm_delay(const data& delayed_datum = data(), env_type delay_env = nullptr, bool cps = false) noexcept
-      : datum(delayed_datum), env(delay_env), already_forced(false), in_cps(cps), result(boolean(false)) {}
+      : datum(delayed_datum), env(delay_env), already_forced(false), in_cps(cps) {}
     void operator=(const scm_delay& d) noexcept {
       if(this == &d) return;
-      datum=d.datum, in_cps=d.in_cps, env=d.env, already_forced=d.already_forced, result=d.result;
+      datum=d.datum, in_cps=d.in_cps, env=d.env, already_forced=d.already_forced;
     }
     void operator=(scm_delay&& d) noexcept {
       if(this == &d) return;
       datum=std::move(d.datum), in_cps=std::move(d.in_cps), env=std::move(d.env);
-      already_forced=std::move(d.already_forced), result=std::move(d.result);
+      already_forced=std::move(d.already_forced);
     }
     data force() { // Memoize delays, "call by need" evaluation
       exe_fcn_t scm_analyze(data&& datum,const bool tail_call=false,const bool cps_block=false);
       if(!already_forced) {
         already_forced = true;
-        result = scm_analyze(data(datum),false,in_cps)(env);
+        datum = scm_analyze(std::move(datum),false,in_cps)(env);
       }
-      return result;
+      return datum;
     }
   };
 
