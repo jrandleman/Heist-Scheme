@@ -3048,6 +3048,27 @@ Other primitives of this nature include:<br>
    * Returns the last symbol that served this role!
    * Alias the current dot in syntax via `*dot*`!
 
+8. __Register Values as Falsey__: `(set-falsey! <obj> ...)`
+   * Note that `#t` can NEVER be set as falsey!
+   * By default, only `#f` is falsey in Heist Scheme.
+   * Falsey values are identified internally via `equal?`.
+   * Falsey values are ***deep-copied*** via `copy` internally to the set of falsey values.<br>
+     Thus:
+     ```scheme
+     (define l '(1 2 3))
+     (set-falsey! l)
+     (if l 1 0) ; 0
+     (set-car! l 0)
+     (if l 1 0) ; 1
+     ```
+
+9. __Register Values as Truthy__: `(set-truthy! <obj> ...)`
+   * Note that `#f` can NEVER be set as truthy!
+   * Effectively removes `<datum> ...` from the set of falsey values.
+   * By default, everything EXCEPT `#f` is truthy in Heist Scheme.
+
+10. __Get Falsey Values List__: `(falsey-values)`
+
 
 
 ------------------------

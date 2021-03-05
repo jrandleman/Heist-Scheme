@@ -708,7 +708,7 @@ namespace heist {
       for(size_type i = 0, n = obj->method_names.size(); i < n; ++i) {
         if(obj->method_names[i] == "self=" || obj->method_names[i] == eq_name) {
           data eq_result = apply_dynamic_method(obj,scm_list(1,rhs),obj->method_values[i].fcn);
-          result = (eq_result.type != types::bol || eq_result.bol.val);
+          result = eq_result.is_truthy();
           return true;
         }
       }
@@ -717,7 +717,7 @@ namespace heist {
         if(obj->proto->method_names[i] == "self=" || obj->proto->method_names[i] == eq_name) {
           obj->method_names.push_back(obj->proto->method_names[i]), obj->method_values.push_back(obj->proto->method_values[i]);
           data eq_result = apply_dynamic_method(obj,scm_list(1,rhs),obj->method_values[i].fcn);
-          result = (eq_result.type != types::bol || eq_result.bol.val);
+          result = eq_result.is_truthy();
           return true;
         }
       }

@@ -753,7 +753,7 @@ namespace heist {
   // primitive "not" procedure:
   data primitive_NOT(scm_list& args) {
     confirm_given_one_arg(args,"not");
-    return data(boolean(args[0].is_type(types::bol) && !args[0].bol.val));
+    return data(boolean(args[0].is_falsey()));
   }
 
   /******************************************************************************
@@ -5102,7 +5102,7 @@ namespace heist {
         "\n     (set-nansi! <optional-bool>)" << FCN_ERR("set-nansi!",args));
     bool original_setting_status = !G.USING_ANSI_ESCAPE_SEQUENCES;
     G.USING_ANSI_ESCAPE_SEQUENCES = false;
-    if(!args.empty()) G.USING_ANSI_ESCAPE_SEQUENCES = !is_true(args[0]);
+    if(!args.empty()) G.USING_ANSI_ESCAPE_SEQUENCES = args[0].is_falsey();
     return boolean(original_setting_status);
   }
 
@@ -6058,6 +6058,63 @@ namespace heist {
   }
 
   /******************************************************************************
+  * FALSINESS MANIPULATION PRIMITIVES
+  ******************************************************************************/
+
+  data primitive_SET_FALSEY_BANG(scm_list& args) {
+    if(args.empty()) return GLOBALS::VOID_DATA_OBJECT;
+    // Verify not adding #t as a falsey value
+    for(auto& arg : args) {
+      if(arg.is_type(types::bol) && arg.bol.val) {
+        THROW_ERR("'set-falsey! can't set #t to be falsey!"
+          "\n     (set-falsey! <datum> ...)" << FCN_ERR("set-falsey!",args));
+      }
+    }
+    // Register falsey values
+    for(auto& arg : args) {
+      bool found = false;
+      for(auto& val : G.FALSEY_VALUES) {
+        if(val.equal(arg)) {
+          found = true;
+          break;
+        }
+      }
+      if(!found) G.FALSEY_VALUES.push_back(arg.copy());
+    }
+    return GLOBALS::VOID_DATA_OBJECT;
+  }
+
+
+  data primitive_SET_TRUTHY_BANG(scm_list& args) {
+    if(args.empty()) return GLOBALS::VOID_DATA_OBJECT;
+    // Verify not adding #f as a truthy value
+    for(auto& arg : args) {
+      if(arg.is_type(types::bol) && !arg.bol.val) {
+        THROW_ERR("'set-truthy! can't set #f to be truthy!"
+          "\n     (set-truthy! <datum> ...)" << FCN_ERR("set-truthy!",args));
+      }
+    }
+    // Remove truthy values from set of false values
+    for(auto& arg : args) {
+      for(size_type i = 0; i < G.FALSEY_VALUES.size();) {
+        if(G.FALSEY_VALUES[i].equal(arg)) {
+          G.FALSEY_VALUES.erase(G.FALSEY_VALUES.begin()+i);
+        } else {
+          ++i;
+        }
+      }
+    }
+    return GLOBALS::VOID_DATA_OBJECT;
+  }
+
+
+  data primitive_FALSEY_VALUES(scm_list& args) {
+    if(!args.empty())
+      THROW_ERR("'falsey-values doesn't accept any args!" << FCN_ERR("falsey-values",args));
+    return primitive_LIST_to_CONS_constructor(G.FALSEY_VALUES.begin(),G.FALSEY_VALUES.end());
+  }
+
+  /******************************************************************************
   * REGISTRY OF PRIMITIVES ALSO REQUIRING AN ENVIRONMENT (TO APPLY A PROCEDURE)
   ******************************************************************************/
 
@@ -6725,6 +6782,10 @@ namespace heist {
     std::make_pair(primitive_HEIST_CORE_UNIVERSE_EVAL, "heist:core:universe:eval"),
 
     std::make_pair(primitive_HEIST_CORE_APPLY_WITH_CONTINUATION, "heist:core:apply-with-continuation"),
+
+    std::make_pair(primitive_SET_FALSEY_BANG, "set-falsey!"),
+    std::make_pair(primitive_SET_TRUTHY_BANG, "set-truthy!"),
+    std::make_pair(primitive_FALSEY_VALUES,   "falsey-values"),
   };
 
   frame_vals primitive_procedure_objects()noexcept{

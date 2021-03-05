@@ -310,11 +310,11 @@ namespace heist {
   struct oport {
     size_type port_idx;
     oport(const size_type& idx = 1)   noexcept : port_idx(idx) {}
-    oport(const oport& ip)            noexcept = default;
-    oport(oport&& ip)                 noexcept = default;
+    oport(const oport& op)            noexcept = default;
+    oport(oport&& op)                 noexcept = default;
     ~oport()                          noexcept = default;
-    oport& operator=(const oport& ip) noexcept = default;
-    oport& operator=(oport&& ip)      noexcept = default;
+    oport& operator=(const oport& op) noexcept = default;
+    oport& operator=(oport&& op)      noexcept = default;
     bool is_open() const noexcept {return GLOBALS::PORT_REGISTRY[port_idx] != nullptr;}
     FILE*& port()  const noexcept {return GLOBALS::PORT_REGISTRY[port_idx];}
   };
@@ -406,6 +406,8 @@ namespace heist {
   // data_obj.is_self_evaluating()  => core evaluator should reflect datum
   // data_obj.copy()                => deep-cpy vector|string|pair|hmap|object
   // data_obj.shallow_copy()        => shallow-cpy vector|string|pair|hmap|object
+  // data_obj.is_falsey()           => <data_obj> is a falsey value
+  // data_obj.is_truthy()           => <data_obj> is NOT a falsey value
   struct data {
     // current type & value held by data object
     types type = types::undefined;
@@ -698,6 +700,10 @@ namespace heist {
     bool is_self_evaluating() const noexcept { // for the core evaluator
       return type != types::exp && type != types::sym;
     }
+
+    bool is_falsey() const;
+
+    bool is_truthy() const {return !is_falsey();}
 
     // constructors
     data()                          noexcept {}
@@ -1070,6 +1076,12 @@ namespace heist {
 
     scm_string dot = "."; // see the "set-dot!" primitive
 
+    /******************************************************************************
+    * FALSINESS VECTOR
+    ******************************************************************************/
+
+    scm_list FALSEY_VALUES = scm_list(1,boolean(false));
+
   }; // End of struct process_invariants_t
 
   /******************************************************************************
@@ -1077,6 +1089,16 @@ namespace heist {
   ******************************************************************************/
 
   process_invariants_t G;
+
+  /******************************************************************************
+  * DETERMINE DATA FALSINESS
+  ******************************************************************************/
+
+  bool data::is_falsey() const {
+    for(const auto& d : G.FALSEY_VALUES)
+      if(equal(d)) return true;
+    return false;
+  }
 
 } // End of namespace heist
 
@@ -1142,7 +1164,7 @@ namespace heist {
     }
 
     bool param_boolean_mismatch(const sym_type& sym, const data& arg)noexcept{ 
-      return (sym == "#f") ^ (arg.is_type(types::bol) && !arg.bol.val);
+      return (sym == "#f") ^ arg.is_falsey();
     }
 
     bool param_is_symbol_literal(const data& d)noexcept{

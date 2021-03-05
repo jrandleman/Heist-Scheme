@@ -432,15 +432,6 @@ namespace heist {
   }
 
 
-  // -- PREDICATE TESTING
-  bool is_true(const data& d)noexcept{ // true is not false
-    return !d.is_type(types::bol) || d.bol.val;
-  }
-  bool is_false(const data& d)noexcept{ // false is false
-    return d.is_type(types::bol) && !d.bol.val;
-  }
-
-
   // -- ANALYSIS
   void confirm_valid_if(const scm_list& exp) {
     if(exp.size() < 3) 
@@ -462,7 +453,7 @@ namespace heist {
     auto aproc = scm_analyze(if_alternative(exp),tail_call,cps_block);
     return [pproc=std::move(pproc),cproc=std::move(cproc),
             aproc=std::move(aproc)](env_type& env){
-      if(is_true(pproc(env))) 
+      if(pproc(env).is_truthy()) 
         return cproc(env);
       return aproc(env);
     };
@@ -1460,7 +1451,7 @@ namespace heist {
     // has no body
     if(exp.size() == 2) {
       return [return_exe=std::move(return_exe),condition_exe=std::move(condition_exe)](env_type& env){
-        while(is_true(condition_exe(env)));
+        while(condition_exe(env).is_truthy());
         return return_exe(env);
       };
     }
@@ -1471,7 +1462,7 @@ namespace heist {
     exe_fcn_t body_exe = scm_analyze(std::move(body_exps));
     return [return_exe=std::move(return_exe),condition_exe=std::move(condition_exe),
             body_exe=std::move(body_exe)](env_type& env){
-      while(is_true(condition_exe(env))) body_exe(env);
+      while(condition_exe(env).is_truthy()) body_exe(env);
       return return_exe(env);
     };
   }

@@ -211,6 +211,8 @@ namespace help::logic {
       query = "lambda";
     else if(query == "*dot" || query == "dot*") 
       query = "*dot*";
+    else if(query == "truthiness") 
+      query = "falsiness";
     else if(is_scar_scdr_composition(query) || query == "scaar...scddddr")
       query = "scaar ... scddddr";
     else if(is_car_cdr_composition(query) || query == "caar...cddddr")
@@ -249,7 +251,7 @@ namespace help::logic {
       "exit-failure","o","e","pi","phi","euler","+inf","inf","inf.0","-inf","-nan.0","nan.0","nan","+nan","-nan","seq","coro","expr","sym","str","hash-map",
       "hashmap","heist-interop","heist-cpp-interop","heist-c++-interop","cpp-interop","c++-interop","heist-cpp","heist-c++","heist_cpp_interop","cpp_interop",
       "interop","readme","install","license.md","associative-list","association-list","universes","new-universe","universe?","universe-eval","\\","*dot","dot*",
-      "scaar","scadr","scdar","scddr","scaaar","scaadr","scadar","scaddr","scdaar","scdadr","scddar","scdddr","scaaaar","scaaadr","scaadar","scaaddr",
+      "truthiness","scaar","scadr","scdar","scddr","scaaar","scaadr","scadar","scaddr","scdaar","scdadr","scddar","scdddr","scaaaar","scaaadr","scaadar","scaaddr",
       "scadaar","scadadr","scaddar","scadddr","scdaaar","scdaadr","scdadar","scdaddr","scddaar","scddadr","scdddar","scddddr","scaar...scddddr","caar",
       "cadr","cdar","cddr","caaar","caadr","cadar","caddr","cdaar","cdadr","cddar","cdddr","caaaar","caaadr","caadar","caaddr","cadaar","cadadr","caddar",
       "cadddr","cdaaar","cdaadr","cdadar","cdaddr","cddaar","cddadr","cdddar","cddddr","caar...cddddr"

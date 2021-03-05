@@ -79,7 +79,7 @@ static constexpr const char* HELP_MENU_PROCEDURES[] = {
   "evalapply",    "copying",     "delayforce",      "coercion",   "output",
   "formatoutput", "input",       "files",           "ports",      "sysinterface", 
   "invariants",   "controlflow", "call/cc",         "syntax",     "json",
-  "csv",          "gensyms",     "compose-bind-id",
+  "csv",          "gensyms",     "compose-bind-id", "falsiness", 
 };
 
 static constexpr char** HELP_MENU_SUBMENUS[] = {
@@ -310,6 +310,10 @@ static constexpr const char* HELP_MENU_PROCEDURES_COMPOSEBINDID[] = {
   "compose", "bind", "id", 
 };
 
+static constexpr const char* HELP_MENU_PROCEDURES_FALSINESS[] = {
+  "set-falsey!", "set-truthy!", "falsey-values", 
+};
+
 static constexpr char** HELP_MENU_PROCEDURES_SUBMENU[] = {
   (char**)HELP_MENU_PROCEDURES_HELP, // help => direct link
   (char**)HELP_MENU_PROCEDURES_BUILD,       (char**)HELP_MENU_PROCEDURES_OBJECTS,       (char**)HELP_MENU_PROCEDURES_PROTOTYPES,   (char**)HELP_MENU_PROCEDURES_COROUTINES, 
@@ -320,6 +324,7 @@ static constexpr char** HELP_MENU_PROCEDURES_SUBMENU[] = {
   (char**)HELP_MENU_PROCEDURES_INPUT,       (char**)HELP_MENU_PROCEDURES_FILES,         (char**)HELP_MENU_PROCEDURES_PORTS,        (char**)HELP_MENU_PROCEDURES_SYSINTERFACE, 
   (char**)HELP_MENU_PROCEDURES_INVARIANTS,  (char**)HELP_MENU_PROCEDURES_CONTROLFLOW,   (char**)HELP_MENU_PROCEDURES_CALLCC,       (char**)HELP_MENU_PROCEDURES_SYNTAX,
   (char**)HELP_MENU_PROCEDURES_JSON,        (char**)HELP_MENU_PROCEDURES_CSV,           (char**)HELP_MENU_PROCEDURES_GENSYM,       (char**)HELP_MENU_PROCEDURES_COMPOSEBINDID, 
+  (char**)HELP_MENU_PROCEDURES_FALSINESS, 
 };
 
 static constexpr size_type HELP_MENU_PROCEDURES_SUBMENU_LENGTH[] = {
@@ -340,6 +345,7 @@ static constexpr size_type HELP_MENU_PROCEDURES_SUBMENU_LENGTH[] = {
   0, /* call/cc => direct link */                                                         sizeof(HELP_MENU_PROCEDURES_SYNTAX)/sizeof(HELP_MENU_PROCEDURES_SYNTAX[0]),
   sizeof(HELP_MENU_PROCEDURES_JSON)/sizeof(HELP_MENU_PROCEDURES_JSON[0]),                 sizeof(HELP_MENU_PROCEDURES_CSV)/sizeof(HELP_MENU_PROCEDURES_CSV[0]),
   sizeof(HELP_MENU_PROCEDURES_GENSYM)/sizeof(HELP_MENU_PROCEDURES_GENSYM[0]),             sizeof(HELP_MENU_PROCEDURES_COMPOSEBINDID)/sizeof(HELP_MENU_PROCEDURES_COMPOSEBINDID[0]), 
+  sizeof(HELP_MENU_PROCEDURES_FALSINESS)/sizeof(HELP_MENU_PROCEDURES_FALSINESS[0]), 
 };
 
 static constexpr char** HELP_MENU_PROCEDURES_DIRECT_LINKS[] = {
@@ -365,8 +371,9 @@ static constexpr const char* HELP_ENTRIES[][4] = { // {{name, classification, si
 R"()",
 R"(
 The empty list '(), terminating all 'proper lists', & the only value for which 
-"null?" returns true. Unlike CL or Clojure, '() is 'truthy' in Heist Scheme.
-  *) Only #f (boolean false) is falsey in Heist Scheme.
+"null?" returns true. Unlike CL or Clojure, '() is 'truthy' in Heist Scheme by default.
+  *) Only #f (boolean false) is falsey by default in Heist Scheme.
+  *) See "set-falsey!" and "set-truthy!" to change this!
 )",
 
 
@@ -512,7 +519,10 @@ Also Supports Named Chars and Hex Chars:
 R"()",
 R"(
 True:  #t
-False: #f ; NOTE: In Heist Scheme, ONLY #f IS EVER FALSEY!
+False: #f
+
+By default, only #f is falsey and all other values are truthy in Heist Scheme.
+  *) See "set-falsey!" and "set-truthy!" to change this!
 )",
 
 
@@ -1469,7 +1479,8 @@ R"(
 R"(
 Conditional branching! 
   *) Use "begin" for multiple <consequent> and/or <alternative> expressions!
-  *) Only #f is falsey in Heist Scheme:
+  *) Only #f is falsey (by default) in Heist Scheme:
+     => See "set-falsey!" and "set-truthy!" to change this!
 
      (if  0  "true!" "false!") ; "true!"
      (if '() "true!" "false!") ; "true!"
@@ -2733,7 +2744,8 @@ The "true" boolean literal.
 "Object (Value Semantics)",
 R"()",
 R"(
-The "false" boolean literal. Distinct from '() (which is "truthy").
+The "false" boolean literal. Distinct from '() (which is "truthy" by default).
+  *) See "set-falsey!" and "set-truthy!" to change this!
 )",
 
 
@@ -10360,6 +10372,72 @@ Return whether <obj> is a valid CSV datum candidate.
 
 Other CSV procedures include: 
   "csv->vector", "csv->list", "list->csv", & "vector->csv"
+)",
+
+
+
+
+
+}, {
+"set-falsey!",
+"Procedure",
+R"(
+(set-falsey! <datum> ...)
+)",
+R"(
+Register <datum> ... as falsey values.
+  *) Note that "#t" can NEVER be set as falsey!
+  *) By default, only "#f" is falsey in Heist Scheme.
+  *) Falsey values are identified internally via "equal?".
+  *) Falsey values are DEEP-COPIED via "copy" internally to the set of falsey values.
+     Thus:
+
+     (define l '(1 2 3))
+     (set-falsey! l)
+     (if l 1 0) ; 0
+     (set-car! l 0)
+     (if l 1 0) ; 1
+
+Other falsiness/truthiness procedures include: 
+  "set-truthy!" & "falsey-values"
+)",
+
+
+
+
+
+}, {
+"set-truthy!",
+"Procedure",
+R"(
+(set-truthy! <datum> ...)
+)",
+R"(
+Register <datum> ... as truthy values.
+  *) Note that "#f" can NEVER be set as truthy!
+  *) Effectively removes <datum> ... from the set of falsey values.
+  *) By default, everything EXCEPT "#f" is truthy in Heist Scheme.
+
+Other falsiness/truthiness procedures include: 
+  "set-falsey!" & "falsey-values"
+)",
+
+
+
+
+
+}, {
+"falsey-values",
+"Procedure",
+R"(
+(falsey-values)
+)",
+R"(
+Get a list of the current values registered as "falsey" by Heist Scheme.
+  *) Returned falsey values are NOT deep-copied to the generated list!
+
+Other falsiness/truthiness procedures include: 
+  "set-falsey!" & "set-truthy!"
 )",
 
 

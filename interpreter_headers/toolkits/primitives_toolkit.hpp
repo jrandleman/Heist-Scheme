@@ -21,7 +21,6 @@ namespace heist {
 
 
   //       -- FROM THE EVALUATOR
-  bool     is_true(const data& exp)noexcept;
   bool     is_non_escaped_double_quote(size_type i, const scm_string& input)noexcept;
   bool     prepare_string_for_AST_generation(scm_string& input);
   bool     data_is_continuation_parameter(const data& d)noexcept;
@@ -237,21 +236,21 @@ namespace heist {
 
   // (apply procedure args) == true
   bool is_true_scm_condition(data& procedure,scm_list& args,env_type& env = G.GLOBAL_ENVIRONMENT_POINTER){
-    return is_true(execute_application(procedure,args,env));
+    return execute_application(procedure,args,env).is_truthy();
   }
 
   bool is_true_scm_condition(data&& procedure,scm_list& args,env_type& env = G.GLOBAL_ENVIRONMENT_POINTER){
-    return is_true(execute_application(procedure,args,env));
+    return execute_application(procedure,args,env).is_truthy();
   }
 
 
   // (apply procedure args) == false
   bool is_false_scm_condition(data& procedure,scm_list& args,env_type& env = G.GLOBAL_ENVIRONMENT_POINTER){
-    return !is_true(execute_application(procedure,args,env));
+    return execute_application(procedure,args,env).is_falsey();
   }
 
   bool is_false_scm_condition(data&& procedure,scm_list& args,env_type& env = G.GLOBAL_ENVIRONMENT_POINTER){
-    return !is_true(execute_application(procedure,args,env));
+    return execute_application(procedure,args,env).is_falsey();
   }
 
 
@@ -2204,7 +2203,7 @@ namespace heist {
       }
       // If set of elements is true
       auto result = execute_application(procedure,any_args);
-      if(is_true(result)) return result; // return element set
+      if(result.is_truthy()) return result; // return element set
     }
     return GLOBALS::FALSE_DATA_BOOLEAN; // else return false
   }
@@ -2238,7 +2237,7 @@ namespace heist {
       }
       // If set of elements is false
       auto result = execute_application(procedure,every_args);
-      if(!is_true(result))  return GLOBALS::FALSE_DATA_BOOLEAN; // return false
+      if(result.is_falsey())  return GLOBALS::FALSE_DATA_BOOLEAN; // return false
       if(i+1 == min_length) return result; // else return last <predicate> result
     }
     return GLOBALS::FALSE_DATA_BOOLEAN; // else return false
@@ -3687,12 +3686,12 @@ namespace heist {
           if(!args[i].is_type(types::chr)) THROW_BAD_FORMAT_ARG("character");
           formatted += args[i].write(); break;
         case sprintf_token_t::token_t::b: 
-          if(!args[i].is_type(types::bol) || args[i].bol.val) formatted += "#t";
-          else                                                formatted += "#f";
+          if(args[i].is_truthy()) formatted += "#t";
+          else                    formatted += "#f";
           break;
         case sprintf_token_t::token_t::wb: 
-          if(!args[i].is_type(types::bol) || args[i].bol.val) formatted += "true";
-          else                                                formatted += "false";
+          if(args[i].is_truthy()) formatted += "true";
+          else                    formatted += "false";
           break;
         case sprintf_token_t::token_t::n: 
           if(!args[i].is_type(types::num)) THROW_BAD_FORMAT_ARG("number");
@@ -4680,7 +4679,7 @@ namespace heist {
         << name << " <optional-bool>)" << FCN_ERR(name,args));
     bool original_setting_status = setting;
     setting = true;
-    if(!args.empty()) setting = is_true(args[0]);
+    if(!args.empty()) setting = args[0].is_truthy();
     return boolean(original_setting_status);
   }
 
@@ -4860,7 +4859,7 @@ namespace heist {
   data prm_recursively_deep_expand_macros(data& d,env_type& env) {
     if(!d.is_type(types::par)) return d;
     auto expanded = prm_shallow_expand_pair(d,env);
-    if(!expanded.is_type(types::bol) || expanded.bol.val)
+    if(expanded.is_truthy())
       return prm_recursively_deep_expand_macros(expanded,env);
     return prm_recursively_deep_expand_macros_exp(d,env);
   }
