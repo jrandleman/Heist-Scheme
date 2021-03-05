@@ -108,12 +108,12 @@
      * [Prototype Primitives](#Prototype-Primitives)
    - [Coroutine Handling Primitives](#Coroutine-Handling-Primitives)
    - [Stream Primitives](#Stream-Primitives)
-   - [Type Predicates, Undefined, & Void](#Type-Predicates-Undefined--Void)
-   - [Eval & Apply](#eval--apply)
-   - [Copying](#copying)
-   - [Compose, Bind, & Id](#compose-bind--id)
    - [Delay Predicate & Force](#Delay-Predicate--Force)
+   - [Type Predicates, Undefined, & Void](#Type-Predicates-Undefined--Void)
    - [Type Coercion](#Type-Coercion)
+   - [Copying](#copying)
+   - [Eval & Apply](#eval--apply)
+   - [Compose, Bind, & Id](#compose-bind--id)
    - [Output Procedures](#Output-Procedures)
    - [Formatted Output Procedures](#Formatted-Output-Procedures)
      * [Formatting Stringification & Output](#Formatting-Stringification--Output)
@@ -126,8 +126,8 @@
    - [System Interface Procedures](#System-Interface-Procedures)
    - [Interpreter Invariants Manipulation](#Interpreter-Invariants-Manipulation)
    - [Control Flow Procedures](#Control-Flow-Procedures)
-   - [Gensym & Symbol-Append](#Gensym--symbol-append)
    - [Call/cc](#Callcc)
+   - [Gensym & Symbol-Append](#Gensym--symbol-append)
    - [Syntax Procedures](#Syntax-Procedures)
    - [JSON Interop](#JSON-Interop)
    - [CSV Interop](#CSV-Interop)
@@ -2601,6 +2601,14 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
+## Delay Predicate & Force:
+0. __Delay Predicate__: `(delay? <obj>)`
+
+1. __Force a Delayed Expression__: `(force <delayed-expression>)`
+
+
+
+------------------------
 ## Type Predicates, Undefined, & Void:
 0. __Get Typename Symbol__: `(typeof <obj>)`
 
@@ -2670,58 +2678,6 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
-## Eval & Apply:
-0. __Eval__: Run quoted data as code
-   * `(eval <data> <optional-environment>)`
-   * _Pass `*null-environment*` to `eval` in an empty environment!_
-   * _Pass `*local-environment*` to `eval` in the local environment (default)!_
-   * _Pass `*global-environment*` to `eval` in the global environment!_
-
-1. __Cps-Eval__: Alternative to `eval` for [`scm->cps`](#Scm-Cps) blocks (evals in CPS)!
-   * `(cps-eval <data> <optional-environment> <continuation>)`
-   * _Pass `*null-environment*` to `cps-eval` in an empty environment!_
-   * _Pass `*local-environment*` to `cps-eval` in the local environment (default)!_
-   * _Pass `*global-environment*` to `cps-eval` in the global environment!_
-
-2. __Apply `<callable>` to List of Args__: `(apply <callable> <argument-list>)`
-
-
-
-------------------------
-## Copying:
-0. __Deep-Copy Datum__: `(copy <obj>)`
-   * Deep-copy vectors, strings, proper/dotted/circular lists, hmaps, & objects!
-
-1. __Shallow-Copy Datum__: `(shallow-copy <obj>)`
-   * Shallow-copy vectors, strings, proper/dotted/circular lists, hmaps, & objects!
-   * Note that this performs _structural_ allocation w/ shallow content copying
-     - Hence `copy` and `shallow-copy` are effectively identical for strings!
-
-
-
-------------------------
-## Compose, Bind, & Id:
-0. __Compose N `<callable>`s__: `(compose <callable-1> ... <callable-N>)`
-   * _Aliased as `o` for composition shorthand!_
-   * _Generates a procedure of N args that applies them to the callable composition!_
-
-1. __Bind N args to `<callable>`: `(bind <callable> <val-1> ... <val-N>)`__
-   * _Generates a procedure that when invoked calls the arg-bound `<callable>`!_
-   * _Example: `((bind map even?) '(1 2 3))` is equivalent to `(map even? '(1 2 3))`_
-
-2. __Identity__: `(id <obj>)`
-
-
-
-------------------------
-## Delay Predicate & Force:
-0. __Delay Predicate__: `(delay? <obj>)`
-
-1. __Force a Delayed Expression__: `(force <delayed-expression>)`
-
-
-
-------------------------
 ## Type Coercion:
 0. __Char to Integer__: `(char->integer <char>)`
 
@@ -2762,6 +2718,50 @@ Other primitives of this nature include:<br>
 17. __Object Members to Alist__: `(object->alist <object>)`
 
 18. __Functor to Procedure__: `(functor->procedure <functor>)`
+
+
+
+------------------------
+## Copying:
+0. __Deep-Copy Datum__: `(copy <obj>)`
+   * Deep-copy vectors, strings, proper/dotted/circular lists, hmaps, & objects!
+
+1. __Shallow-Copy Datum__: `(shallow-copy <obj>)`
+   * Shallow-copy vectors, strings, proper/dotted/circular lists, hmaps, & objects!
+   * Note that this performs _structural_ allocation w/ shallow content copying
+     - Hence `copy` and `shallow-copy` are effectively identical for strings!
+
+
+
+------------------------
+## Eval & Apply:
+0. __Eval__: Run quoted data as code
+   * `(eval <data> <optional-environment>)`
+   * _Pass `*null-environment*` to `eval` in an empty environment!_
+   * _Pass `*local-environment*` to `eval` in the local environment (default)!_
+   * _Pass `*global-environment*` to `eval` in the global environment!_
+
+1. __Cps-Eval__: Alternative to `eval` for [`scm->cps`](#Scm-Cps) blocks (evals in CPS)!
+   * `(cps-eval <data> <optional-environment> <continuation>)`
+   * _Pass `*null-environment*` to `cps-eval` in an empty environment!_
+   * _Pass `*local-environment*` to `cps-eval` in the local environment (default)!_
+   * _Pass `*global-environment*` to `cps-eval` in the global environment!_
+
+2. __Apply `<callable>` to List of Args__: `(apply <callable> <argument-list>)`
+
+
+
+------------------------
+## Compose, Bind, & Id:
+0. __Compose N `<callable>`s__: `(compose <callable-1> ... <callable-N>)`
+   * _Aliased as `o` for composition shorthand!_
+   * _Generates a procedure of N args that applies them to the callable composition!_
+
+1. __Bind N args to `<callable>`: `(bind <callable> <val-1> ... <val-N>)`__
+   * _Generates a procedure that when invoked calls the arg-bound `<callable>`!_
+   * _Example: `((bind map even?) '(1 2 3))` is equivalent to `(map even? '(1 2 3))`_
+
+2. __Identity__: `(id <obj>)`
 
 
 
@@ -3106,6 +3106,15 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
+## Call/cc:
+0. __Call With Current Continuation__: 
+   * `(call/cc <unary-continuation-callable>)`
+   * `(call-with-current-continuation <unary-continuation-callable>)`
+   * Note: only valid in [CPS contexts](#Scm-cps)!
+
+
+
+------------------------
 ## Gensym & Symbol-Append:
 0. __Generate a Unique Symbol__: `(gensym <optional-instance-#-to-reference>)`
    * `(gensym 1)` refers to the symbol generated by the last `(gensym)` invocation
@@ -3116,15 +3125,6 @@ Other primitives of this nature include:<br>
    * `<seed>` = number | symbol | boolean
 
 2. __Append Symbols__: `(symbol-append <symbol-1> ... <symbol-N>)`
-
-
-
-------------------------
-## Call/cc:
-0. __Call With Current Continuation__: 
-   * `(call/cc <unary-continuation-callable>)`
-   * `(call-with-current-continuation <unary-continuation-callable>)`
-   * Note: only valid in [CPS contexts](#Scm-cps)!
 
 
 
