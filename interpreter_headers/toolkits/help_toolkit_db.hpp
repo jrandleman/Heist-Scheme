@@ -2239,9 +2239,8 @@ Convert code to CPS & evaluate the result!
         version would at -O0
 
 Danger zone:
-  *) With CPS, avoid macros/eval/load expanding to a "define" in the current envrionment!
+  *) With CPS, avoid runtime-macros/eval/load expanding to a "define" in the current envrionment!
      => Lazy expansion breaks this functionality (may expand to localized bindings though!)
-     => Includes "defn", "define-module", & "define-overload" (manually write expansion)
   *) CPS procedures applied in non-CPS contexts have <id> bound as their continuation!
 
 Author's Advice:
@@ -2509,7 +2508,7 @@ Danger Zone:
   0. Nesting "define-coroutine" instances (or use in "scm->cps") is undefined behavior!
   1. Using "jump!" or "catch-jump" in "define-coroutine" is undefined behavior (used by "yield")!
   2. The "id" procedure is returned if no expressions exist after the last "yield"!
-  3. Like "scm->cps", avoid macros/eval/load expanding to a "define" in the current environment!
+  3. Like "scm->cps", avoid runtime-macros/eval/load expanding to a "define" in the current environment!
 
 Examples:
 

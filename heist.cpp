@@ -504,7 +504,7 @@ namespace heist {
       auto value_proc = scm_analyze(assignment_value(exp),false,cps_block);
       return [var=std::move(var),value_proc=std::move(value_proc)](env_type& env){
         set_variable_value(var,value_proc(env),env);
-        return GLOBALS::VOID_DATA_OBJECT; // return is undefined
+        return GLOBALS::VOID_DATA_OBJECT; // return is void
       };
     }
     scm_list set_call(4);
@@ -563,7 +563,7 @@ namespace heist {
       auto value_proc = scm_analyze(definition_value(exp),false,cps_block);
       return [var=std::move(var),value_proc=std::move(value_proc)](env_type& env){
         define_variable(var,value_proc(env),env);
-        return GLOBALS::VOID_DATA_OBJECT; // return is undefined
+        return GLOBALS::VOID_DATA_OBJECT; // return is void
       };
     }
     return scm_analyze(convert_obj_property_defintion_to_method_call(exp),false,cps_block);
@@ -2009,6 +2009,15 @@ namespace heist {
   }
 
   /******************************************************************************
+  * CONTINUATION PASSING STYLE CORE SYNTAX EXPANSION HELPERS
+  ******************************************************************************/
+
+  // Expand data's core syntax macros
+  data cps_recursively_deep_expand_core_macros(const data& d) {
+    return recursively_deep_expand_syntax_macros(d,G.GLOBAL_ENVIRONMENT_POINTER,true);
+  }
+
+  /******************************************************************************
   * CONTINUATION-PASSING-STYLE EXPANSION OPTIMIZATION -- PASS 1
   ******************************************************************************/
 
@@ -2352,7 +2361,7 @@ namespace heist {
     // Cps-ify non-atomic values, passing a lambda as a continuation that in 
     //   turn sets the received value & passes such to the continuation given here as an arg
     } else {
-      set_exp[0] = generate_fundamental_form_cps(val,false);
+      set_exp[0] = generate_fundamental_form_cps(val,false,false);
       set_exp[1] = scm_list(3);
       set_exp[1].exp[0] = symconst::lambda;
       set_exp[1].exp[1] = scm_list(1,generate_unique_cps_value_hash()); // "defn-val"
@@ -2401,7 +2410,7 @@ namespace heist {
       cps_defn[2].exp[0].exp[2].exp[1].exp[2].exp[1] = rest_exp;
     // Else CPS-ify <rest_exp> of expression & pass it the topmost continuation
     } else {
-      cps_defn[2].exp[0].exp[2].exp[1].exp[2].exp[0] = generate_fundamental_form_cps(rest_exp,false);
+      cps_defn[2].exp[0].exp[2].exp[1].exp[2].exp[0] = generate_fundamental_form_cps(rest_exp,false,false);
       cps_defn[2].exp[0].exp[2].exp[1].exp[2].exp[1] = cps_defn[1].exp[0];
     }
     return cps_defn;
@@ -2417,7 +2426,7 @@ namespace heist {
       rest_cont[1] = rest_exp;
     // Else CPS-ify <rest_exp> of expression & pass it the topmost continuation
     } else {
-      rest_cont[0] = generate_fundamental_form_cps(rest_exp,false);
+      rest_cont[0] = generate_fundamental_form_cps(rest_exp,false,false);
       rest_cont[1] = continuation;
     }
     return rest_cont;
@@ -2442,7 +2451,7 @@ namespace heist {
       return cps_defn;
     }
     cps_defn[2] = scm_list(2);
-    cps_defn[2].exp[0] = generate_fundamental_form_cps(defn_exp[2],false);
+    cps_defn[2].exp[0] = generate_fundamental_form_cps(defn_exp[2],false,false);
     cps_defn[2].exp[1] = scm_list(4);
     cps_defn[2].exp[1].exp[0] = symconst::lambda;
     cps_defn[2].exp[1].exp[1] = scm_list(1,generate_unique_cps_value_hash()); // "syntax-object"
@@ -2489,7 +2498,7 @@ namespace heist {
         lambda_cps[2].exp[0] = *lambda_cps[1].exp.rbegin(); // DYNAMIC CONTINUATION
         lambda_cps[2].exp[1] = lambda_exp[2];
       } else {
-        lambda_cps[2].exp[0] = generate_fundamental_form_cps(lambda_exp[2],false);
+        lambda_cps[2].exp[0] = generate_fundamental_form_cps(lambda_exp[2],false,false);
         lambda_cps[2].exp[1] = *lambda_cps[1].exp.rbegin(); // DYNAMIC CONTINUATION
       }
     // If multi-expression body, WRAP W/ "BEGIN"
@@ -2498,7 +2507,7 @@ namespace heist {
       begin_recur[0] = symconst::begin;
       std::copy(lambda_exp.begin()+2,lambda_exp.end(),begin_recur.begin()+1);
       lambda_cps[2] = scm_list(2);
-      lambda_cps[2].exp[0] = generate_fundamental_form_cps(begin_recur,false);
+      lambda_cps[2].exp[0] = generate_fundamental_form_cps(begin_recur,false,false);
       lambda_cps[2].exp[1] = *lambda_cps[1].exp.rbegin();
     }
   }
@@ -2536,7 +2545,7 @@ namespace heist {
       consequent[0] = continuation;
       consequent[1] = code.exp[2];
     } else { // ((cps <consequent>) k)
-      consequent[0] = generate_fundamental_form_cps(code.exp[2],false);
+      consequent[0] = generate_fundamental_form_cps(code.exp[2],false,false);
       consequent[1] = continuation;
     }
     return consequent;
@@ -2549,7 +2558,7 @@ namespace heist {
       alternative[0] = continuation;
       alternative[1] = code.exp[3];
     } else { // ((cps <alternative>) k)
-      alternative[0] = generate_fundamental_form_cps(code.exp[3],false);
+      alternative[0] = generate_fundamental_form_cps(code.exp[3],false,false);
       alternative[1] = continuation;
     }
     return alternative;
@@ -2600,7 +2609,7 @@ namespace heist {
       cps_defn_syn[2].exp[1].exp[2] = code.exp[2];
       return cps_defn_syn;
     }
-    cps_defn_syn[2].exp[0] = generate_fundamental_form_cps(code.exp[2],false);
+    cps_defn_syn[2].exp[0] = generate_fundamental_form_cps(code.exp[2],false,false);
     cps_defn_syn[2].exp[1] = scm_list(3);
     cps_defn_syn[2].exp[1].exp[0] = symconst::lambda;
     cps_defn_syn[2].exp[1].exp[1] = scm_list(1,generate_unique_cps_value_hash()); // "syntax-object"
@@ -2617,7 +2626,11 @@ namespace heist {
 
 
   // NOTE: <topmost_call> signals to optimize the result prior returning
-  scm_list generate_fundamental_form_cps(const data& code,const bool topmost_call){
+  scm_list generate_fundamental_form_cps(const data& code,const bool topmost_call,const bool core_unexpanded){
+    // EXPAND CORE SYNTAX 
+    if(core_unexpanded)
+      return generate_fundamental_form_cps(cps_recursively_deep_expand_core_macros(code),topmost_call,false);
+
     // ATOMIC DATUM OR EXPRESSION
     if(data_is_cps_atomic(code)) {
       scm_list lambda(3);
@@ -2649,7 +2662,7 @@ namespace heist {
           begin_expr[j].exp[2].exp[1] = stripped_property_names[i];
           begin_expr[j].exp[3] = stripped_property_values[i];
         }
-        return generate_fundamental_form_cps(begin_expr,topmost_call);
+        return generate_fundamental_form_cps(begin_expr,topmost_call,false);
       // No external definitions needed! Treat as if cps-atomic.
       } else {
         scm_list lambda(3);
@@ -2681,7 +2694,7 @@ namespace heist {
         lambda[2].exp[1] = code.exp;
         return lambda;
       }
-      lambda[2].exp[0] = generate_fundamental_form_cps(code.exp[2],false);
+      lambda[2].exp[0] = generate_fundamental_form_cps(code.exp[2],false,false);
       lambda[2].exp[1] = scm_list(3);
       lambda[2].exp[1].exp[0] = symconst::lambda;
       lambda[2].exp[1].exp[1] = scm_list(1,generate_unique_cps_value_hash()); // "value"
@@ -2710,7 +2723,7 @@ namespace heist {
           lambda[2].exp[0] = lambda[1].exp[0];
           lambda[2].exp[1] = code.exp[1];
         } else {
-          lambda[2].exp[0] = generate_fundamental_form_cps(code.exp[1],false);
+          lambda[2].exp[0] = generate_fundamental_form_cps(code.exp[1],false,false);
           lambda[2].exp[1] = lambda[1].exp[0];
         }
       // N Args
@@ -2732,7 +2745,7 @@ namespace heist {
             if(topmost_call) optimize_CPS_code_generation(lambda);
             return lambda;
           } else {
-            lambda[2].exp[0] = generate_fundamental_form_cps(code.exp[1],false);
+            lambda[2].exp[0] = generate_fundamental_form_cps(code.exp[1],false,false);
           }
         } else {
           lambda[2].exp[1] = code.exp[1];
@@ -2748,7 +2761,7 @@ namespace heist {
           data begin_recur(scm_list(code.exp.size()-1));
           begin_recur.exp[0] = symconst::begin;
           std::copy(code.exp.begin()+2, code.exp.end(), begin_recur.exp.begin()+1);
-          lambda[2].exp[rec_idx].exp[2].exp[0] = generate_fundamental_form_cps(begin_recur,false);
+          lambda[2].exp[rec_idx].exp[2].exp[0] = generate_fundamental_form_cps(begin_recur,false,false);
           lambda[2].exp[rec_idx].exp[2].exp[1] = lambda[1].exp[0];
         }
       }
@@ -2758,7 +2771,7 @@ namespace heist {
     // LAMBDA
     } else if(is_tagged_list(code.exp,symconst::lambda)) {
       if(is_opt_arg_lambda(code.exp)) // convert optional-args <lambda> to a <fn>
-        return generate_fundamental_form_cps(convert_lambda_opt_args_to_fn(code.exp),topmost_call);
+        return generate_fundamental_form_cps(convert_lambda_opt_args_to_fn(code.exp),topmost_call,false);
       scm_list lambda(3);
       generate_cps_lambda_form(code,lambda);
       if(topmost_call) optimize_CPS_code_generation(lambda);
@@ -2806,7 +2819,7 @@ namespace heist {
       }
       // Non-Atomic IF test
       lambda[2] = scm_list(2);
-      lambda[2].exp[0] = generate_fundamental_form_cps(code.exp[1],false);
+      lambda[2].exp[0] = generate_fundamental_form_cps(code.exp[1],false,false);
       lambda[2].exp[1] = scm_list(3);
       lambda[2].exp[1].exp[0] = symconst::lambda;
       lambda[2].exp[1].exp[1] = scm_list(1,generate_unique_cps_value_hash()); // "test-result"
@@ -2825,7 +2838,7 @@ namespace heist {
     } else if(is_tagged_list(code.exp,symconst::define)) {
       confirm_valid_definition(code.exp);
       if(is_obj_property_definition(code.exp)) { // DYNAMIC PROPERTY ADDITION
-        return generate_fundamental_form_cps(convert_obj_property_defintion_to_method_call(code.exp),topmost_call);
+        return generate_fundamental_form_cps(convert_obj_property_defintion_to_method_call(code.exp),topmost_call,false);
       } else if(!code.exp[1].is_type(types::exp)) { // DEFINING VARIABLE
         scm_list cps_defn(3);
         cps_defn[0] = symconst::lambda;
@@ -2839,7 +2852,7 @@ namespace heist {
         if(topmost_call) optimize_CPS_code_generation(cps_defn);
         return cps_defn;
       } else { // DEFINING PROCEDURE
-        auto cps_defn = generate_fundamental_form_cps(convert_proc_defn_to_lambda_defn(code.exp),false); // cps lambda defn
+        auto cps_defn = generate_fundamental_form_cps(convert_proc_defn_to_lambda_defn(code.exp),false,false); // cps lambda defn
         if(topmost_call) optimize_CPS_code_generation(cps_defn);
         return cps_defn;
       }

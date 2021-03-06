@@ -5291,7 +5291,7 @@ namespace heist {
     // Atomics can't be macro applications
     if(!args[0].is_type(types::par)) return args[0];
     // Expand Macros as needed
-    return prm_recursively_deep_expand_macros(args[0],env,false);
+    return recursively_deep_expand_datum_macros(args[0],env,false);
   }
 
   // Returns quoted list of data core-syntax-expanded (returns data as-is if not a macro):
@@ -5302,7 +5302,7 @@ namespace heist {
     // Atomics can't be macro applications
     if(!args[0].is_type(types::par)) return args[0];
     // Expand Core Macros as needed
-    return prm_recursively_deep_expand_macros(args[0],G.GLOBAL_ENVIRONMENT_POINTER,true);
+    return recursively_deep_expand_datum_macros(args[0],G.GLOBAL_ENVIRONMENT_POINTER,true);
   }
 
   // Invoke <proc> w/ args & trace the application (esp. helpful to trace recursion)

@@ -30,7 +30,7 @@ namespace heist {
   void     skip_string_literal(size_type& i, const scm_string& input)noexcept;
   void     set_default_global_environment();
   data     scm_eval(data&& datum, env_type& env);
-  scm_list generate_fundamental_form_cps(const data& code,const bool topmost_call=true);
+  scm_list generate_fundamental_form_cps(const data& code,const bool topmost_call=true,const bool core_unexpanded=true);
   scm_list read_user_input(FILE* outs,FILE* ins,const bool& in_repl=true);
   exe_fcn_t scm_analyze(data&& datum,const bool tail_call=false,const bool cps_block=false);
   size_type is_expandable_reader_macro(const scm_string&, const size_type)noexcept;
@@ -2596,7 +2596,7 @@ namespace heist {
 
   // [ EVAL ] Converts the given pair into an expression ('deep' b/c it 
   //   also recursively converts ALL nested pairs into expressions too)
-  void deep_unpack_list_into_exp(data& curr_pair, scm_list& args_list)noexcept{
+  void deep_unpack_list_into_exp(const data& curr_pair, scm_list& args_list)noexcept{
     if(curr_pair.is_type(types::par)) {
       // Recursively unpack nested lists
       if(curr_pair.par->first.is_type(types::par)) {
@@ -2668,7 +2668,7 @@ namespace heist {
 
 
   // [ EVAL ] converts scm list of quoted data to its AST repn
-  scm_list prm_EVAL_convert_list_to_AST(data& par_data)noexcept{
+  scm_list prm_EVAL_convert_list_to_AST(const data& par_data)noexcept{
     scm_list par_as_exp;
     deep_unpack_list_into_exp(par_data, par_as_exp);
     return par_as_exp;
@@ -4825,9 +4825,6 @@ namespace heist {
   * MACRO EXPANSION HELPERS
   ******************************************************************************/
 
-  data prm_recursively_deep_expand_macros(data&,env_type&,const bool);
-
-
   bool symbol_is_a_core_syntax_label(const sym_type& sym)noexcept{
     return std::find(G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.begin(),
                      G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.end(),
@@ -4835,41 +4832,37 @@ namespace heist {
   }
 
 
-  // Expand a confirmed pair & w/ symbol as the 1st arg
-  data prm_shallow_expand_pair(data& d, env_type& env, const bool core_only) {
-    scm_list expanded, par_as_exp = prm_EVAL_convert_list_to_AST(d);
-    if(!par_as_exp.empty() && par_as_exp[0].is_type(types::sym) && 
-       (!core_only || symbol_is_a_core_syntax_label(par_as_exp[0].sym)) &&
-       expand_macro_if_in_env(par_as_exp[0].sym,scm_list(par_as_exp.begin()+1,par_as_exp.end()),env,expanded)){
-      data quoted = scm_list(2);
-      quoted.exp[0] = symconst::quote;
-      quoted.exp[1] = std::move(expanded);
-      return scm_eval(std::move(quoted),env);
+  // Expand a confirmed expression & w/ symbol as the 1st arg
+  data shallow_expand_syntax_macro_instance(const scm_list& exp, env_type& env, const bool core_only) {
+    scm_list expanded;
+    if(!exp.empty() && exp[0].is_type(types::sym) && 
+       (!core_only || symbol_is_a_core_syntax_label(exp[0].sym)) &&
+       expand_macro_if_in_env(exp[0].sym,scm_list(exp.begin()+1,exp.end()),env,expanded)){
+      return expanded;
     }
-    return GLOBALS::FALSE_DATA_BOOLEAN;
+    return data();
   }
 
 
-  // Expand expression
-  data prm_recursively_deep_expand_macros_exp(data& d,env_type& env, const bool core_only) {
-    if(!d.is_type(types::par)) return d;
-    data pair = data(make_par());
-    if(d.par->first.is_type(types::par))
-      pair.par->first = prm_recursively_deep_expand_macros(d.par->first,env,core_only);
-    else
-      pair.par->first = d.par->first;
-    pair.par->second = prm_recursively_deep_expand_macros_exp(d.par->second,env,core_only);
-    return pair;
+  // Expand <d>'s macros
+  data recursively_deep_expand_syntax_macros(const data& d, env_type& env, const bool core_only) {
+    if(!d.is_type(types::exp)) return d;
+    if(auto expanded = shallow_expand_syntax_macro_instance(d.exp,env,core_only); !expanded.is_type(types::undefined))
+      return recursively_deep_expand_syntax_macros(expanded,env,core_only);
+    const auto n = d.exp.size();
+    scm_list expr(n);
+    for(size_type i = 0; i < n; ++i)
+      expr[i] = recursively_deep_expand_syntax_macros(d.exp[i],env,core_only);
+    return expr;
   }
 
 
-  // Expand data
-  data prm_recursively_deep_expand_macros(data& d,env_type& env,const bool core_only) {
+  data recursively_deep_expand_datum_macros(const data& d,env_type& env,const bool core_only) {
     if(!d.is_type(types::par)) return d;
-    auto expanded = prm_shallow_expand_pair(d,env,core_only);
-    if(expanded.is_truthy())
-      return prm_recursively_deep_expand_macros(expanded,env,core_only);
-    return prm_recursively_deep_expand_macros_exp(d,env,core_only);
+    data quoted = scm_list(2);
+    quoted.exp[0] = symconst::quote;
+    quoted.exp[1] = recursively_deep_expand_syntax_macros(prm_EVAL_convert_list_to_AST(d),env,core_only);
+    return scm_eval(std::move(quoted),env);
   }
 
   /******************************************************************************
