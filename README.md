@@ -932,7 +932,7 @@ Other primitives of this nature include:<br>
 
 #### Use: ___True Iteration Construct!___
 * _Note: `for` is actually a macro directly defined **in** Heist Scheme!_
-* _Identical interface as [`do`](#Do) but expands to a `while`!_
+* _Identical interface as [`do`](#Do) but expands to a [`while`](#while)!_
 
 #### Form:
 ```scheme
