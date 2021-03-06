@@ -1318,6 +1318,7 @@ Other primitives of this nature include:<br>
 #### Danger Zone:
 * With CPS, avoid [runtime-macros](#define-syntax-let-syntax-letrec-syntax)/[eval](#eval--apply)/[load](#system-interface-procedures) expanding to a [`define`](#define) in the current envrionment!
   - Lazy expansion breaks this functionality (may expand to localized bindings though!)
+  - May use [analysis-time macros](#core-syntax) expanding to [`define`](#define)s though (hence [`defn`](#defn) etc. are fine)!
 * CPS procedures applied in non-CPS contexts have `id` bound as their continuation!
 
 #### Author's Advice:

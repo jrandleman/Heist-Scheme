@@ -2241,6 +2241,7 @@ Convert code to CPS & evaluate the result!
 Danger zone:
   *) With CPS, avoid runtime-macros/eval/load expanding to a "define" in the current envrionment!
      => Lazy expansion breaks this functionality (may expand to localized bindings though!)
+     => May use analysis-time macros expanding to "define"s though (hence "defn" etc. are fine)!
   *) CPS procedures applied in non-CPS contexts have <id> bound as their continuation!
 
 Author's Advice:
