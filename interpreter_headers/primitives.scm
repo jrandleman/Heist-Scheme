@@ -816,15 +816,20 @@
 ;; =========== OPTIMIZED MACRO EXPANSION (UNWRAPPED UNARY BEGINS) ===========
 ;; ==========================================================================
 
+(define (heist:core:expand*:unexpandable? d)
+  (or (eq? d 'quote)         (eq? d 'quasiquote)    (eq? d 'cps-quote) 
+      (eq? d 'core-syntax)   (eq? d 'define-syntax) (eq? d 'syntax-rules)))
+
+(define (heist:core:expand*:unwrap-begins datum)
+  (if (and (pair? datum) (not (heist:core:expand*:unexpandable? (car datum))))
+      (if (and (= (length datum) 2) (eq? (car datum) 'begin))
+          (heist:core:expand*:unwrap-begins (cadr datum))
+          (map heist:core:expand*:unwrap-begins datum))
+      datum))
+
 (define (expand* heist:core:expand*:datum)
-  (define (heist:core:expand*:unexpandable? d)
-    (or (eq? d 'quote)         (eq? d 'quasiquote)    (eq? d 'cps-quote) 
-        (eq? d 'core-syntax)   (eq? d 'define-syntax) (eq? d 'syntax-rules)))
-  (define (heist:core:expand*:unwrap-begins datum)
-    (if (and (pair? datum) (not (heist:core:expand*:unexpandable? (car datum))))
-        (if (and (= (length datum) 2) (eq? (car datum) 'begin))
-            (heist:core:expand*:unwrap-begins (cadr datum))
-            (map heist:core:expand*:unwrap-begins datum))
-        datum))
   (heist:core:expand*:unwrap-begins (expand heist:core:expand*:datum)))
 (set! expand* (lexical-scope->dynamic-scope expand*)) ; enable "expand" to capture localized "define-syntax" bindings
+
+(define (core-expand* heist:core:core-expand*:datum)
+  (heist:core:expand*:unwrap-begins (core-expand heist:core:core-expand*:datum)))

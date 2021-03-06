@@ -4825,13 +4825,21 @@ namespace heist {
   * MACRO EXPANSION HELPERS
   ******************************************************************************/
 
-  data prm_recursively_deep_expand_macros(data&,env_type&);
+  data prm_recursively_deep_expand_macros(data&,env_type&,const bool);
+
+
+  bool symbol_is_a_core_syntax_label(const sym_type& sym)noexcept{
+    return std::find(G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.begin(),
+                     G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.end(),
+                     sym) != G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.end();
+  }
 
 
   // Expand a confirmed pair & w/ symbol as the 1st arg
-  data prm_shallow_expand_pair(data& d, env_type& env) {
+  data prm_shallow_expand_pair(data& d, env_type& env, const bool core_only) {
     scm_list expanded, par_as_exp = prm_EVAL_convert_list_to_AST(d);
     if(!par_as_exp.empty() && par_as_exp[0].is_type(types::sym) && 
+       (!core_only || symbol_is_a_core_syntax_label(par_as_exp[0].sym)) &&
        expand_macro_if_in_env(par_as_exp[0].sym,scm_list(par_as_exp.begin()+1,par_as_exp.end()),env,expanded)){
       data quoted = scm_list(2);
       quoted.exp[0] = symconst::quote;
@@ -4843,25 +4851,25 @@ namespace heist {
 
 
   // Expand expression
-  data prm_recursively_deep_expand_macros_exp(data& d,env_type& env) {
+  data prm_recursively_deep_expand_macros_exp(data& d,env_type& env, const bool core_only) {
     if(!d.is_type(types::par)) return d;
     data pair = data(make_par());
     if(d.par->first.is_type(types::par))
-      pair.par->first = prm_recursively_deep_expand_macros(d.par->first,env);
+      pair.par->first = prm_recursively_deep_expand_macros(d.par->first,env,core_only);
     else
       pair.par->first = d.par->first;
-    pair.par->second = prm_recursively_deep_expand_macros_exp(d.par->second,env);
+    pair.par->second = prm_recursively_deep_expand_macros_exp(d.par->second,env,core_only);
     return pair;
   }
 
 
   // Expand data
-  data prm_recursively_deep_expand_macros(data& d,env_type& env) {
+  data prm_recursively_deep_expand_macros(data& d,env_type& env,const bool core_only) {
     if(!d.is_type(types::par)) return d;
-    auto expanded = prm_shallow_expand_pair(d,env);
+    auto expanded = prm_shallow_expand_pair(d,env,core_only);
     if(expanded.is_truthy())
-      return prm_recursively_deep_expand_macros(expanded,env);
-    return prm_recursively_deep_expand_macros_exp(d,env);
+      return prm_recursively_deep_expand_macros(expanded,env,core_only);
+    return prm_recursively_deep_expand_macros_exp(d,env,core_only);
   }
 
   /******************************************************************************

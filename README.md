@@ -3160,26 +3160,30 @@ Other primitives of this nature include:<br>
 
 ------------------------
 ## Syntax Procedures:
-0. __Expand Macro__: `(expand <quoted-macro-exp>)`
+0. __Expand Macros__: `(expand <quoted-macro-exp>)`
    * Expands both [analysis-time](#Core-Syntax) & [run-time](#Define-Syntax-Let-Syntax-Letrec-Syntax) macros!
    * Does ***not*** expand any new macros defined in `<quoted-macro-exp>`!
    * Use `expand*` to expand while also auto-unwrapping unary begins!
 
-1. __Core-Syntax?__: Determine if a symbol was defined by [`core-syntax`](#Core-Syntax)
+1. __Expand Core Macros__: `(core-expand <quoted-macro-exp>)`
+   * Does ***not*** expand any new macros defined in `<quoted-macro-exp>`!
+   * Use `core-expand*` to core-expand while also auto-unwrapping unary begins!
+
+2. __Core-Syntax?__: Determine if a symbol was defined by [`core-syntax`](#Core-Syntax)
    * `(core-syntax? <symbol>)`
 
-2. __Runtime-Syntax?__: Determine if a symbol was defined by [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax)
+3. __Runtime-Syntax?__: Determine if a symbol was defined by [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax)
    * `(runtime-syntax? <symbol>)`
 
-3. __Reader-Alias?__: Determine if a symbol was defined by [`define-reader-alias`](#Define-Reader-Alias)
+4. __Reader-Alias?__: Determine if a symbol was defined by [`define-reader-alias`](#Define-Reader-Alias)
    * `(reader-alias? <string>)`
    * Must be a string to avoid conversion by the reader if **IS** an alias!
 
-4. __Reader-Syntax?__: Determine if a symbol was defined by `define-reader-syntax`
+5. __Reader-Syntax?__: Determine if a symbol was defined by `define-reader-syntax`
    * `(reader-syntax? <string>)`
    * Must be a string to avoid expansion by the reader if **IS** syntax!
 
-5. __Define Reader Shorthand Syntax__: 
+6. __Define Reader Shorthand Syntax__: 
    * `(define-reader-syntax <shorthand-string> <optional-longhand-string>)`
    * Have the reader expand `<shorthand-string>` around objects into `<longhand-string>`
      - _Internally, `'` works as if interpreted `(define-reader-syntax "'" "quote")`!_
@@ -3205,18 +3209,18 @@ Other primitives of this nature include:<br>
            ; >>> Hence `%1` didn't get expanded to `(display 1)` by the reader!
    ```
 
-6. __Get Alist of Reader Syntax Shorthands & Longhands__: `(reader-syntax-list)`
+7. __Get Alist of Reader Syntax Shorthands & Longhands__: `(reader-syntax-list)`
 
-7. __Get Alist of Reader Aliases & Names__: `(reader-alias-list)`
+8. __Get Alist of Reader Aliases & Names__: `(reader-alias-list)`
 
-8. __Get Alist of Infix Symbols, Associativity, & Precedence__: `(infix-list)`
+9. __Get Alist of Infix Symbols, Associativity, & Precedence__: `(infix-list)`
 
-9. __Mutate Core Syntax__: `(set-core-syntax! <old-name-symbol> <optional-new-name-symbol>)`
-   * Only old name: ___DELETES___ `<old-name-symbol>` as core-syntax
-   * Both old & new name: ___RENAMES___ syntax's old name to new name
-     - _NOTE: also recursively renames all recursive calls to the macro in its templates!_
+10. __Mutate Core Syntax__: `(set-core-syntax! <old-name-symbol> <optional-new-name-symbol>)`
+    * Only old name: ___DELETES___ `<old-name-symbol>` as core-syntax
+    * Both old & new name: ___RENAMES___ syntax's old name to new name
+      - _NOTE: also recursively renames all recursive calls to the macro in its templates!_
 
-10. __Mutate Runtime Syntax__: `(set-runtime-syntax! <old-name-symbol> <optional-new-name-symbol>)`
+11. __Mutate Runtime Syntax__: `(set-runtime-syntax! <old-name-symbol> <optional-new-name-symbol>)`
     * Only old name: ___DELETES___ `<old-name-symbol>` as runtime-syntax
     * Both old & new name: ___RENAMES___ syntax's old name to new name
       - _NOTE: also recursively renames all recursive calls to the macro in its templates!_

@@ -5290,8 +5290,19 @@ namespace heist {
         "\n     (expand <quoted-macro-exp>)" << FCN_ERR("expand",args));
     // Atomics can't be macro applications
     if(!args[0].is_type(types::par)) return args[0];
-    // Expand Macro as needed
-    return prm_recursively_deep_expand_macros(args[0],env);
+    // Expand Macros as needed
+    return prm_recursively_deep_expand_macros(args[0],env,false);
+  }
+
+  // Returns quoted list of data core-syntax-expanded (returns data as-is if not a macro):
+  data primitive_CORE_EXPAND(scm_list& args) {
+    if(args.size() != 1)
+      THROW_ERR("'core-expand expects 1 arg: (core-expand <quoted-macro-exp>)"
+        "\n     (core-expand <quoted-macro-exp>)" << FCN_ERR("core-expand",args));
+    // Atomics can't be macro applications
+    if(!args[0].is_type(types::par)) return args[0];
+    // Expand Core Macros as needed
+    return prm_recursively_deep_expand_macros(args[0],G.GLOBAL_ENVIRONMENT_POINTER,true);
   }
 
   // Invoke <proc> w/ args & trace the application (esp. helpful to trace recursion)
@@ -6633,6 +6644,7 @@ namespace heist {
     std::make_pair(primitive_JUMP_BANG,                              "jump!"),
     std::make_pair(primitive_CATCH_JUMP,                             "catch-jump"),
     std::make_pair(primitive_EXPAND,                                 "expand"),
+    std::make_pair(primitive_CORE_EXPAND,                            "core-expand"),
     std::make_pair(primitive_TRACE,                                  "trace"),
 
     std::make_pair(primitive_GENSYM,      "gensym"),
