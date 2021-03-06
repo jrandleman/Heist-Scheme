@@ -3166,6 +3166,7 @@ Other primitives of this nature include:<br>
    * Use `expand*` to expand while also auto-unwrapping unary begins!
 
 1. __Expand Core Macros__: `(core-expand <quoted-macro-exp>)`
+   * Only expands [analysis-time](#Core-Syntax) macros!
    * Does ***not*** expand any new macros defined in `<quoted-macro-exp>`!
    * Use `core-expand*` to core-expand while also auto-unwrapping unary begins!
 
