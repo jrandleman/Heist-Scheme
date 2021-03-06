@@ -289,9 +289,9 @@ static constexpr const char* HELP_MENU_PROCEDURES_CONTROLFLOW[] = {
 static constexpr const char* HELP_MENU_PROCEDURES_CALLCC[] = {}; // direct link
 
 static constexpr const char* HELP_MENU_PROCEDURES_SYNTAX[] = {
-  "expand",           "core-syntax?",         "runtime-syntax?",    "reader-alias?", 
-  "reader-syntax?",   "define-reader-syntax", "reader-syntax-list", "reader-alias-list", 
-  "set-core-syntax!", "set-runtime-syntax!",  "infix-list", 
+  "expand",            "expand*",          "core-syntax?",         "runtime-syntax?",
+  "reader-alias?",     "reader-syntax?",   "define-reader-syntax", "reader-syntax-list", 
+  "reader-alias-list", "set-core-syntax!", "set-runtime-syntax!",  "infix-list", 
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_JSON[] = {
@@ -10040,7 +10040,26 @@ R"(
 (expand <quoted-macro-exp>)
 )",
 R"(
-Expand <quoted-macro-exp>.
+Expand <quoted-macro-exp> based on the current macro bindings.
+  *) Expands both analysis-time (core) & run-time macros!
+  *) Does NOT expand any new macros defined in <quoted-macro-exp>!
+  *) See "expand*" for an unary-begin optimizing alternative!
+)",
+
+
+
+
+
+}, {
+"expand*",
+"Procedure",
+R"(
+(expand* <quoted-macro-exp>)
+)",
+R"(
+Equivalent to "expand" but ALSO automatically unwraps unary begins!
+  *) Expands both analysis-time (core) & run-time macros!
+  *) Does NOT expand any new macros defined in <quoted-macro-exp>!
 )",
 
 

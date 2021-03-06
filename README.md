@@ -3131,6 +3131,9 @@ Other primitives of this nature include:<br>
 ------------------------
 ## Syntax Procedures:
 0. __Expand Macro__: `(expand <quoted-macro-exp>)`
+   * Expands both [analysis-time](#Core-Syntax) & [run-time](#Define-Syntax-Let-Syntax-Letrec-Syntax) macros!
+   * Does ***not*** expand any new macros defined in `<quoted-macro-exp>`!
+   * Use `expand*` to expand while also auto-unwrapping unary begins!
 
 1. __Core-Syntax?__: Determine if a symbol was defined by [`core-syntax`](#Core-Syntax)
    * `(core-syntax? <symbol>)`
