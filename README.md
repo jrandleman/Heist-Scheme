@@ -238,7 +238,7 @@ Wraps scheme code in a [`scm->cps`](#scm-cps) block automatically, hence:
 
 ------------------------
 # Heist Primitive Data Types
-0. Symbol (quoted syntax label, `'hello`)
+0. Symbol ([quoted](#Quote) syntax label, `'hello`)
 1. Number ([see numerics section](#Heist-Numerics))
 2. Pair ([quoted](#Quote) expression `'(1 2 3)`, [list](#ListPair-Procedures) `(list 1 2 3)`, or [cons](#ListPair-Procedures) `(cons 1 (cons 2 (cons 3 '())))`)
 3. String (wrapped by `""`, `"hello"`)
