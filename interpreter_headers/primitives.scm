@@ -24,6 +24,7 @@
 ; defn
 ; while
 ; do
+; for
 
 (core-syntax and
   (syntax-rules ()
@@ -213,17 +214,14 @@
                       (begin body ... (set! var update) ... (heist:core:do-call var ...))))))
               (heist:core:do-call val ...)))
     ; no returns nor body
-    ((_ ((var val update) ...)
-        (break-test))
+    ((_ ((var val update) ...) (break-test))
       (letrec ((heist:core:do-call 
                 (lambda (var ...)
                   (if (not break-test)
                       (begin (set! var update) ... (heist:core:do-call var ...))))))
               (heist:core:do-call val ...)))
     ; no params (implies a body)
-    ((_ ()
-        (break-test returns ...)
-        body ...)
+    ((_ () (break-test returns ...) body ...)
       (letrec ((heist:core:do-call 
                 (lambda ()
                   (if break-test 
@@ -231,13 +229,51 @@
                       (begin body ... (heist:core:do-call))))))
               (heist:core:do-call)))
     ; no params nor returns (implies a body)
-    ((_ ()
-        (break-test)
-        body ...)
+    ((_ () (break-test) body ...)
       (letrec ((heist:core:do-call 
                 (lambda () 
                   (if (not break-test) (begin body ... (heist:core:do-call))))))
               (heist:core:do-call)))))
+
+
+(core-syntax for
+  (syntax-rules ()
+    ((_ ((var val update) ...)
+        (break-test returns ...)
+        body ...)
+      (let ()
+        (define var val) ...
+        (while ((not break-test) returns ...)
+          body ...
+          (set! var update) ...)))
+    ; no body
+    ((_ ((var val update) ...)
+        (break-test returns ...))
+      (let ()
+        (define var val) ...
+        (while ((not break-test) returns ...)
+          (set! var update) ...)))
+    ; no returns
+    ((_ ((var val update) ...)
+        (break-test)
+        body ...)
+      (let ()
+        (define var val) ...
+        (while ((not break-test))
+          body ...
+          (set! var update) ...)))
+    ; no returns nor body
+    ((_ ((var val update) ...) (break-test))
+      (let ()
+        (define var val) ...
+        (while ((not break-test))
+          (set! var update) ...)))
+    ; no params (implies a body)
+    ((_ () (break-test returns ...) body ...)
+      (while ((not break-test) returns ...) body ...))
+    ; no params nor returns (implies a body)
+    ((_ () (break-test) body ...)
+      (while ((not break-test)) body ...))))
 
 ;; =========================================================
 ;; =========== "NEW" MACRO FOR ANONYMOUS OBJECTS ===========

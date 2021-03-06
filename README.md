@@ -59,7 +59,7 @@
    - [If](#If), [And](#And), [Or](#Or)
    - [Cond](#Cond), [Case](#Case)
    - [Let](#Let), [Let\*](#Let-1), [Letrec](#Letrec), [Letrec\*](#Letrec-1)
-   - [Do](#Do), [While](#While)
+   - [Do](#Do), [While](#While), [For](#For)
    - [Delay](#Delay), [Scons](#Scons), [Stream](#Stream)
    - [Vector-Literal](#Vector-Literal), [Hmap-Literal](#Hmap-Literal)
    - [Core-Syntax](#Core-Syntax), [Define-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax), [Let-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax), [Letrec-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax)
@@ -924,6 +924,36 @@ Other primitives of this nature include:<br>
 (define x 0)
 (while ((< x 10)) (set! x (+ x 1)))
 (display x) ; 10 (as expected)
+```
+
+
+------------------------
+## For:
+
+#### Use: ___True Iteration Construct!___
+* _Note: `for` is actually a macro directly defined **in** Heist Scheme!_
+* _Identical interface as [`do`](#Do) but expands to a `while`!_
+
+#### Form:
+```scheme
+(for ((<var> <initial-val> <update>) ...)
+  (<break-test> <return-exp1> <return-exp2> ...) ; returns are optional (<void> by default)!
+  <body> ...)
+```
+
+#### Derivation Using [`while`](#while):
+```scheme
+(for ((<var> <initial-val> <update>) ...)
+     (<break-test> <return-exp1> <return-exp2> ...)
+     <body> ...)
+
+;; Becomes =>
+
+(let ()
+  (define <var> <initial-val>) ...
+  (while ((not <break-test>) <return-exp1> <return-exp2> ...)
+    <body> ...
+    (set! <var> <update>) ...))
 ```
 
 

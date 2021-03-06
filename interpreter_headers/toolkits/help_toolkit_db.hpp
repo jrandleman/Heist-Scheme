@@ -61,15 +61,15 @@ static constexpr const char* HELP_MENU_TYPES[] = {
 };
 
 static constexpr const char* HELP_MENU_SPECIALS[] = { 
-  "quote",               "quasiquote",    "lambda",           "fn",            "define",
-  "set!",                "defn",          "defined?",         "delete!",       "begin",
-  "if",                  "and",           "or",               "cond",          "case",
-  "let",                 "let*",          "letrec",           "letrec*",       "do",
-  "while",               "delay",         "scons",            "stream",        "vector-literal",
-  "hmap-literal",        "define-syntax", "syntax-rules",     "syntax-hash",   "core-syntax",
-  "define-reader-alias", "scm->cps",      "cps-quote",        "using-cps?",    "curry",
-  "defclass",            "new",           "define-coroutine", "define-module", "define-overload",
-  "infix!",              "unfix!",
+  "quote",           "quasiquote",          "lambda",        "fn",               "define",
+  "set!",            "defn",                "defined?",      "delete!",          "begin",
+  "if",              "and",                 "or",            "cond",             "case",
+  "let",             "let*",                "letrec",        "letrec*",          "do",
+  "while",           "for",                 "delay",         "scons",            "stream",
+  "vector-literal",  "hmap-literal",        "define-syntax", "syntax-rules",     "syntax-hash",
+  "core-syntax",     "define-reader-alias", "scm->cps",      "cps-quote",        "using-cps?",
+  "curry",           "defclass",            "new",           "define-coroutine", "define-module", 
+  "define-overload", "infix!",              "unfix!",
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES[] = { 
@@ -1785,6 +1785,36 @@ Examples:
   (define x 0)
   (while ((< x 10)) (set! x (+ x 1)))
   (display x) ; 10 (as expected)
+)",
+
+
+
+
+
+}, {
+"for",
+"Macro",
+R"(
+(for ((<var> <initial-val> <update>) ...)
+  (<break-test> <return-exp1> <return-exp2> ...) ; optional returns (<void> by default)
+  <body> ...)
+)",
+R"(
+True iteration construct!
+Identical interface as "do", but expands to "while"!
+Derivation using "while":
+
+  (for ((<var> <initial-val> <update>) ...)
+       (<break-test> <return-exp1> <return-exp2> ...)
+       <body> ...)
+
+  ; BECOMES
+
+  (let ()
+    (define <var> <initial-val>) ...
+    (while ((not <break-test>) <return-exp1> <return-exp2> ...)
+      <body> ...
+      (set! <var> <update>) ...))
 )",
 
 
