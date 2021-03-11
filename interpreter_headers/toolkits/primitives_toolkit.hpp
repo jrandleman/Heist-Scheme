@@ -277,6 +277,103 @@ namespace heist {
   }
 
   /******************************************************************************
+  * DATA->SYNTAX TRANSFORMATION (USED BY eval, cps-eval, & SYNTAX TRANSFORMERS)
+  ******************************************************************************/
+
+  bool convert_data_to_evaluable_syntax(const data&,data&)noexcept;
+
+
+  // Determine if data is self-evaluating for <eval>
+  bool data_is_self_evaluating_for_EVAL(const data& d)noexcept{
+    return d.is_type(types::num) || d.is_type(types::str) || 
+           d.is_type(types::chr) || d.is_type(types::bol);
+  }
+
+
+  bool data_is_circular_list(const data& d)noexcept{
+    return d.is_type(types::par) && primitive_list_is_acyclic_and_null_terminated(d) == list_status::cyclic;
+  }
+
+
+  // Converts the given pair into an expression
+  // Returns whether succeeded in transformation
+  bool deep_unpack_data_list_into_syntax_expr(const data& p, scm_list& data_as_syntax)noexcept{
+    if(p.is_type(types::par)) {
+      data_as_syntax.push_back(data());
+      return convert_data_to_evaluable_syntax(p.par->first,*data_as_syntax.rbegin()) && 
+             deep_unpack_data_list_into_syntax_expr(p.par->second, data_as_syntax);
+    } else if(!data_is_the_empty_list(p)) {
+      data_as_syntax.push_back(symconst::dot);
+      data_as_syntax.push_back(data());
+      return convert_data_to_evaluable_syntax(p,*data_as_syntax.rbegin());
+    }
+    return true;
+  }
+
+
+  // Converts the given vector into an expression
+  // Returns whether succeeded in transformation
+  bool deep_unpack_data_vector_into_syntax_expr(const data& v, scm_list& data_as_syntax)noexcept{
+    data_as_syntax.push_back(symconst::vec_literal);
+    for(const auto& e : *v.vec) {
+      data_as_syntax.push_back(data());
+      if(!convert_data_to_evaluable_syntax(e,*data_as_syntax.rbegin()))
+        return false;
+    }
+    return true;
+  }
+
+
+  // Converts the given hmap into an expression
+  // Returns whether succeeded in transformation
+  bool deep_unpack_data_hmap_into_syntax_expr(const data& m, scm_list& data_as_syntax)noexcept{
+    data_as_syntax.push_back(symconst::map_literal);
+    for(auto& keyvalue : m.map->val) {
+      data_as_syntax.push_back(data());
+      if(!convert_data_to_evaluable_syntax(scm_map::unhash_key(keyvalue.first),*data_as_syntax.rbegin()))
+        return false;
+      data_as_syntax.push_back(data());
+      if(!convert_data_to_evaluable_syntax(keyvalue.second,*data_as_syntax.rbegin()))
+        return false;
+    }
+    return true;
+  }
+
+
+  bool convert_data_to_evaluable_syntax(const data& d, data& data_as_syntax)noexcept{
+    // Primitive non-container atomics evaluate to themselves
+    if(data_is_self_evaluating_for_EVAL(d)) {
+      data_as_syntax = d;
+      return true;
+    }
+    // Nil is syntax, & all non-nil symbols are evaluable
+    if(d.is_type(types::sym)) {
+      if(d.sym == symconst::emptylist) {
+        data_as_syntax = exp_type();
+      } else {
+        data_as_syntax = d;
+      }
+      return true;
+    }
+    // Pairs become expressions
+    if(d.is_type(types::par) && !data_is_circular_list(d)) {
+      data_as_syntax = exp_type();
+      return deep_unpack_data_list_into_syntax_expr(d,data_as_syntax.exp);
+    }
+    // Vectors revert to s-expressions using the "vector-literal" tag
+    if(d.is_type(types::vec)) {
+      data_as_syntax = exp_type();
+      return deep_unpack_data_vector_into_syntax_expr(d,data_as_syntax.exp);
+    }
+    // Hmaps revert to s-expressions using the "hmap-literal" tag
+    if(d.is_type(types::map)) {
+      data_as_syntax = exp_type();
+      return deep_unpack_data_hmap_into_syntax_expr(d,data_as_syntax.exp);
+    }
+    return false;
+  }
+
+  /******************************************************************************
   * NUMERIC PRIMITIVE HELPERS
   ******************************************************************************/
 
@@ -2594,30 +2691,6 @@ namespace heist {
   * EVAL/APPLY PRIMITIVE HELPERS
   ******************************************************************************/
 
-  // [ EVAL ] Converts the given pair into an expression ('deep' b/c it 
-  //   also recursively converts ALL nested pairs into expressions too)
-  void deep_unpack_list_into_exp(const data& curr_pair, scm_list& args_list)noexcept{
-    if(curr_pair.is_type(types::par)) {
-      // Recursively unpack nested lists
-      if(curr_pair.par->first.is_type(types::par)) {
-        scm_list nested_list;
-        deep_unpack_list_into_exp(curr_pair.par->first, nested_list);
-        args_list.push_back(nested_list);
-      // Convert the empty list to an empty expression
-      } else if(data_is_the_empty_list(curr_pair.par->first)) {
-        args_list.push_back(scm_list());
-      // Unpack atomic obj
-      } else {
-        args_list.push_back(curr_pair.par->first);
-      }
-      deep_unpack_list_into_exp(curr_pair.par->second, args_list); 
-    } else if(!data_is_the_empty_list(curr_pair)) {
-      args_list.push_back(symconst::dot);
-      args_list.push_back(curr_pair);
-    }
-  }
-
-
   // [ EVAL ] Confirms correct # of args given
   void prm_EVAL_confirm_correct_number_of_args(scm_list& args, bool& must_reset_global_env, 
                           env_type& local_env, env_type& env, const char* name, const char* format){
@@ -2657,21 +2730,6 @@ namespace heist {
     // confirm the correct # of arguments were passed
     if(args.size() != 1)
       THROW_ERR('\''<<name<<" received incorrect # of arguments:" << format << FCN_ERR(name, args));
-  }
-
-
-  // [ EVAL ] Confirms data needs no further evaluation
-  bool prm_EVAL_data_is_self_evaluating(const data& d)noexcept{
-    return d.is_type(types::num) || d.is_type(types::str) || 
-           d.is_type(types::chr) || d.is_type(types::bol);
-  }
-
-
-  // [ EVAL ] converts scm list of quoted data to its AST repn
-  scm_list prm_EVAL_convert_list_to_AST(const data& par_data)noexcept{
-    scm_list par_as_exp;
-    deep_unpack_list_into_exp(par_data, par_as_exp);
-    return par_as_exp;
   }
 
 
@@ -4858,10 +4916,11 @@ namespace heist {
 
 
   data recursively_deep_expand_datum_macros(const data& d,env_type& env,const bool core_only) {
-    if(!d.is_type(types::par)) return d;
+    data d_as_syntax;
+    if(!convert_data_to_evaluable_syntax(d,d_as_syntax)) return d;
     data quoted = scm_list(2);
     quoted.exp[0] = symconst::quote;
-    quoted.exp[1] = recursively_deep_expand_syntax_macros(prm_EVAL_convert_list_to_AST(d),env,core_only);
+    quoted.exp[1] = recursively_deep_expand_syntax_macros(d_as_syntax,env,core_only);
     return scm_eval(std::move(quoted),env);
   }
 
