@@ -24,7 +24,7 @@ namespace heist {
   bool     is_non_escaped_double_quote(size_type i, const scm_string& input)noexcept;
   bool     prepare_string_for_AST_generation(scm_string& input);
   bool     data_is_continuation_parameter(const data& d)noexcept;
-  bool     expand_macro_if_in_env(const sym_type&,const scm_list&,env_type&,scm_list&);
+  bool     expand_macro_if_in_env(const sym_type&,scm_list,env_type&,scm_list&);
   bool     seek_call_value_in_local_object(data& value, const scm_string& property, bool& is_member);
   void     parse_input_exp(scm_string&& input, scm_list& abstract_syntax_tree);
   void     skip_string_literal(size_type& i, const scm_string& input)noexcept;

@@ -3752,6 +3752,39 @@ namespace heist {
   }
 
   /******************************************************************************
+  * MACRO SYNTACTIC EXTENSIONS -- ELLIPSIS HASHING & UNHASHING
+  ******************************************************************************/
+
+  bool data_is_hashable_ellipsis(const data& d)noexcept{
+    return data_is_ellipsis(d) || datum_is_an_escaped_variadic_token(d);
+  }
+
+  bool data_is_hashed_ellipsis(const data& d)noexcept{
+    return d.is_type(types::sym) && string_begins_with(d.sym,symconst::ellipsis_hash);
+  }
+
+  void hash_all_ellipsis_in_macro_args(exp_type& args)noexcept{
+    for(size_type i = 0, n = args.size(); i < n; ++i) {
+      if(args[i].is_type(types::exp)) {
+        hash_all_ellipsis_in_macro_args(args[i].exp);
+      } else if(data_is_hashable_ellipsis(args[i])) {
+        args[i].sym = symconst::ellipsis_hash + args[i].sym;
+      }
+    }
+  }
+
+  void unhash_all_ellipsis_in_macro_args(exp_type& args)noexcept{
+    static const size_type ellipsis_hash_prefix_length = strlen(symconst::ellipsis_hash);
+    for(size_type i = 0, n = args.size(); i < n; ++i) {
+      if(args[i].is_type(types::exp)) {
+        unhash_all_ellipsis_in_macro_args(args[i].exp);
+      } else if(data_is_hashed_ellipsis(args[i])) {
+        args[i].sym = args[i].sym.substr(ellipsis_hash_prefix_length);
+      }
+    }
+  }
+
+  /******************************************************************************
   * MACRO SYNTACTIC EXTENSIONS -- EXPANSION MAIN FUNCTIONS
   ******************************************************************************/
 
@@ -3789,12 +3822,15 @@ namespace heist {
 
   // Returns whether the given label & args form a macro found in 'env'.
   // If true, it also transforms the macro by expanding it into 'expanded_exp'
-  bool expand_macro_if_in_env(const sym_type& label,const scm_list& args, 
+  bool expand_macro_if_in_env(const sym_type& label, scm_list args, 
                               env_type& env,scm_list& expanded_exp){
     env_type env_iterator = env;
+    hash_all_ellipsis_in_macro_args(args);
     while(env_iterator != nullptr) {
-      if(handle_macro_transformation(label,args,env_iterator->macros(),expanded_exp))
+      if(handle_macro_transformation(label,args,env_iterator->macros(),expanded_exp)) {
+        unhash_all_ellipsis_in_macro_args(expanded_exp);
         return true;
+      }
       env_iterator = env_iterator->parent;
     }
     return false;

@@ -124,6 +124,7 @@ namespace heist {
     constexpr const char * const begin             = "begin";
     constexpr const char * const if_t              = "if";
     constexpr const char * const ellipsis          = "...";
+    constexpr const char * const ellipsis_hash     = "heist:core:ellipsis-hash:";
     constexpr const char * const true_t            = "#t";
     constexpr const char * const false_t           = "#f";
     constexpr const char * const append            = "append";
