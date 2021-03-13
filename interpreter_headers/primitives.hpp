@@ -5272,7 +5272,7 @@ namespace heist {
     if(!args[0].is_type(types::num) && !args[0].is_type(types::sym) && !args[0].is_type(types::bol))
       THROW_ERR("'sown-gensym arg "<<PROFILE(args[0])<<" isn't a valid 'sown-gensym key!" 
         << format << FCN_ERR("sown-gensym",args));
-    return symconst::gensym_prefix + scm_string("SOWN-") + args[0].write();
+    return symconst::gensym_prefix + scm_string("sown-") + args[0].write();
   }
 
   /******************************************************************************
