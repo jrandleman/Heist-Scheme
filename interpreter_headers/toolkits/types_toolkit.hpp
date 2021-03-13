@@ -205,7 +205,7 @@ namespace heist {
       cio_acyclic_list_str_recur<to_str>(list_str, pair_object.par->second);
     } else if(is_not_THE_EMPTY_LIST(pair_object.par->second)){// don't store last '()
       // store ' . ' since not a null-terminated list
-      list_str += ". " + (pair_object.par->second.*to_str)();
+      list_str += G.dot + ' ' + (pair_object.par->second.*to_str)();
     }
   }
 
@@ -248,7 +248,7 @@ namespace heist {
         cio_acyclic_list_str_recur<to_str>(list_str, slow.par->second);
     } else if(is_not_THE_EMPTY_LIST(slow.par->second)){// don't store last '()
       // store ' . ' since not a null-terminated list
-      list_str += ". " + (slow.par->second.*to_str)();
+      list_str += G.dot + ' ' + (slow.par->second.*to_str)();
     }
   }
 
