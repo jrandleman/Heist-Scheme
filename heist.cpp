@@ -187,7 +187,7 @@ namespace heist {
     const size_type n = vars.size();
     // variadic (.) arg must have a label afterwards
     if(n != 0 && symbol_is_dot_operator(vars[n-1].sym))
-      THROW_ERR("Expected one item after variadic dot (.)! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+      THROW_ERR("Expected one item after variadic dot ("<<G.dot<<")! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
     // Search the vars list of the fcn's args for improper (.) use & duplicate arg names
     for(size_type i = 0; i < n; ++i) {
       if(!vars[i].is_type(types::sym)) // args must be symbols
@@ -195,7 +195,7 @@ namespace heist {
       if(i+2 != n && symbol_is_dot_operator(vars[i].sym)) { // variadic (.) must come just prior the last arg
         if(i+3 == n && string_begins_with(vars[i+2].sym, symconst::continuation))
           continue; // allow continuations after variadic
-        THROW_ERR("More than one item found after variadic dot (.)! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+        THROW_ERR("More than one item found after variadic dot ("<<G.dot<<")! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
       }
       for(size_type j = i+1; j < n; ++j)
         if(vars[i].sym == vars[j].sym) // duplicate arg name detected
@@ -642,7 +642,7 @@ namespace heist {
   bool is_quoted_cons(scm_list& exp, const sym_type& quote_name) {
     // Confirm (.) does not terminate the list
     if(!exp.empty() && data_is_dot_operator(*exp.rbegin()))
-      THROW_ERR("Unexpected dot (.) terminated the quoted list! -- ANALYZE_QUOTED"
+      THROW_ERR("Unexpected dot ("<<G.dot<<") terminated the quoted list! -- ANALYZE_QUOTED"
         << EXP_ERR('(' << quote_name << ' ' << data(exp).write() << ')'));
     // Iff exp begins w/ (.) & has a length of 2, it may be a valid instance of 
     //   quoting a variadic lambda [ ie '(lambda (. l) l) ] -- thus such is valid
@@ -652,7 +652,7 @@ namespace heist {
     for(size_type i = 0, n = exp.size(); i+2 < n; ++i) {
       if(data_is_dot_operator(exp[i])) {
         if(is_variadic_cps_procedure_signature(i,n,exp)) return false;
-        THROW_ERR("Unexpected dot (.) at position #"<<i+1<<" in quotation! -- ANALYZE_QUOTED"
+        THROW_ERR("Unexpected dot ("<<G.dot<<") at position #"<<i+1<<" in quotation! -- ANALYZE_QUOTED"
           << EXP_ERR('(' << quote_name << ' ' << data(exp).write() << ')'));
       }
     }
@@ -670,7 +670,7 @@ namespace heist {
   exe_fcn_t analyze_quoted_vh_literal(scm_list& exp, const char* name) {
     scm_list args(exp.begin()+1,exp.end());
     if(is_quoted_cons(args, symconst::quote))
-      THROW_ERR('\''<<name<<" had an unexpected dot (.)!"<<EXP_ERR(exp));
+      THROW_ERR('\''<<name<<" had an unexpected dot ("<<G.dot<<")!"<<EXP_ERR(exp));
     // return an empty vector if given no args
     if(args.empty()) {
       if constexpr (IS_VECTOR_LITERAL)
@@ -807,7 +807,7 @@ namespace heist {
     const size_type n = vars.size();
     // variadic (.) arg must have a label afterwards
     if(n != 0 && data_is_dot_operator(vars[n-1]))
-      THROW_ERR("Expected one item after variadic dot (.)! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+      THROW_ERR("Expected one item after variadic dot ("<<G.dot<<")! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
     // Search the vars list of the fcn's args for improper (.) use & duplicate arg names
     bool found_opt_arg = false;
     for(size_type i = 0; i < n; ++i) {
@@ -817,7 +817,7 @@ namespace heist {
           if(i+3 == n && vars[i+2].is_type(types::sym) && string_begins_with(vars[i+2].sym, symconst::continuation)) 
             return; // allow continuations after variadic
           if(i+2 != n) 
-            THROW_ERR("More than one item found after variadic dot (.)! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+            THROW_ERR("More than one item found after variadic dot ("<<G.dot<<")! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
           if(!vars[i+1].is_type(types::sym))
             THROW_ERR("Variadic arg can't accept optional values! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
           return;
@@ -1590,8 +1590,8 @@ namespace heist {
     const bool is_hmap        = is_hmap_literal(quoted_exp);
     const bool is_dotted_list = is_quoted_cons(quoted_exp,symconst::quasiquote);
     if(is_dotted_list && (is_hmap || is_vector)) {
-      if(is_vector) THROW_ERR("'quasiquote found unexpected dot (.) in 'vector-literal! -- ANALYZE_QUOTE_VECTOR"<<EXP_ERR(exp));
-      THROW_ERR("'quasiquote found unexpected dot (.) in 'hmap-literal! -- ANALYZE_QUOTE_HMAP"<<EXP_ERR(exp));
+      if(is_vector) THROW_ERR("'quasiquote found unexpected dot ("<<G.dot<<") in 'vector-literal! -- ANALYZE_QUOTE_VECTOR"<<EXP_ERR(exp));
+      THROW_ERR("'quasiquote found unexpected dot ("<<G.dot<<") in 'hmap-literal! -- ANALYZE_QUOTE_HMAP"<<EXP_ERR(exp));
     }
     if(is_vector) {
       quoted_exp.erase(quoted_exp.begin(),quoted_exp.begin()+1); // erase 'vector-literal tag
