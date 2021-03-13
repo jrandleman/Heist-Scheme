@@ -4070,41 +4070,20 @@ namespace heist {
   }
 
 
-  bool must_evaluate_2nd_arg_for_syntax_rules_object(scm_list& exp) {
-    confirm_valid_define_syntax(exp);
-    // If given a syntax-rules expression, immediately evaluate (no need for environment)
-    if(exp[2].is_type(types::exp) && !exp[2].exp.empty() && 
-      is_tagged_list(exp[2].exp,symconst::syn_rules)) {
-      env_type nil_env = nullptr;
-      exp[2] = scm_analyze(data(exp[2]))(nil_env);
-      return false;
-    }
-    return !exp[2].is_type(types::syn);
-  }
-
-
   exe_fcn_t analyze_define_syntax(scm_list& exp,const bool cps_block=false,const bool core_syntax=false) {
-    if(must_evaluate_2nd_arg_for_syntax_rules_object(exp)) { 
-      if(!core_syntax) confirm_is_not_core_syntax_label(exp);
-      auto syntax_rules_obj_proc = scm_analyze(data(exp[2]),false,cps_block);
-      return [syntax_rules_obj_proc=std::move(syntax_rules_obj_proc),
-        exp=std::move(exp)](env_type& env)mutable{
-        data mac = syntax_rules_obj_proc(env);
-        if(!mac.is_type(types::syn)) 
-          THROW_ERR("'define-syntax 2nd arg "<<PROFILE(exp[2])
-            <<" isn't a syntax-rules object:\n     (define-syntax "
-              "<label> <syntax-rules-object>)"<<EXP_ERR(exp));
-        mac.syn.label = exp[1].sym;     // assign macro label
-        register_symbol_iff_new(G.MACRO_LABEL_REGISTRY,exp[1].sym);
-        define_syntax_extension(mac.syn,env); // establish in environment
-        return GLOBALS::VOID_DATA_OBJECT;
-      };
-    }
+    confirm_valid_define_syntax(exp);
     if(!core_syntax) confirm_is_not_core_syntax_label(exp);
-    exp[2].syn.label = exp[1].sym; // assign macro label
-    register_symbol_iff_new(G.MACRO_LABEL_REGISTRY,exp[1].sym);
-    return [mac = std::move(exp[2].syn)](env_type& env){
-      define_syntax_extension(mac,env); // establish in environment
+    auto syntax_rules_obj_proc = scm_analyze(data(exp[2]),false,cps_block);
+    return [syntax_rules_obj_proc=std::move(syntax_rules_obj_proc),
+      exp=std::move(exp)](env_type& env)mutable{
+      data mac = syntax_rules_obj_proc(env);
+      if(!mac.is_type(types::syn)) 
+        THROW_ERR("'define-syntax 2nd arg "<<PROFILE(exp[2])
+          <<" isn't a syntax-rules object:\n     (define-syntax "
+            "<label> <syntax-rules-object>)"<<EXP_ERR(exp));
+      mac.syn.label = exp[1].sym;     // assign macro label
+      register_symbol_iff_new(G.MACRO_LABEL_REGISTRY,exp[1].sym);
+      define_syntax_extension(mac.syn,env); // establish in environment
       return GLOBALS::VOID_DATA_OBJECT;
     };
   }
