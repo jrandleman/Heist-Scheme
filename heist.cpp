@@ -4081,7 +4081,7 @@ namespace heist {
         THROW_ERR("'define-syntax 2nd arg "<<PROFILE(exp[2])
           <<" isn't a syntax-rules object:\n     (define-syntax "
             "<label> <syntax-rules-object>)"<<EXP_ERR(exp));
-      mac.syn.label = exp[1].sym;     // assign macro label
+      mac.syn.label = exp[1].sym; // assign macro label
       register_symbol_iff_new(G.MACRO_LABEL_REGISTRY,exp[1].sym);
       define_syntax_extension(mac.syn,env); // establish in environment
       return GLOBALS::VOID_DATA_OBJECT;
