@@ -1,7 +1,7 @@
 <!-- Author: Jordan Randleman -:- C++ Heist Scheme Interpreter's README -->
 
 # Heist-Scheme
-## Souped-Up R4RS Scheme Interpreter Written in C++!
+## Souped-Up R4RS Scheme Interpreter Written in C++17!
 ### Written in as much C++ and as little Scheme as possible for runtime speed!
 
 
