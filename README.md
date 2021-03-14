@@ -357,7 +357,7 @@ Macros are identical to procedures, except for 3 key features:<br>
      - ___NOTE__: Such is an indication of a **USER** error however, and **NOT** an interpreter error!_
 
 
-### Syntax Transformers:
+## Syntax Transformers:
 Either a [`syntax-rules`](#syntax-rules) object, or an unary callable:
 * Syntax-rules objects have the expression matched against a pattern, then expanded into a template
 * Callables are passed the macro expression as a quoted datum, and must return an evaluable datum
