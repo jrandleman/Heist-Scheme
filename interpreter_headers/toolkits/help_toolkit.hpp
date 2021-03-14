@@ -133,8 +133,10 @@ namespace help::logic {
       query = "quasiquote";
     else if(query == "named-let" || query == "nameless-let") 
       query = "let";
-    else if(query == "macro" || query == "define-macro" || query == "let-syntax" || query == "letrec-syntax") 
+    else if(query == "macro" || query == "let-syntax" || query == "letrec-syntax") 
       query = "define-syntax";
+    else if(query == "syntax-transform" || query == "syntax-transformers") 
+      query = "syntax-transformer";
     else if(query == "syntax-obj" || query == "syntax-object") 
       query = "syntax-rules";
     else if(query == "reader-alias" || query == "alias")
@@ -254,8 +256,8 @@ namespace help::logic {
       "","null","empty-list","()","'()","nihil","numeric","num","character","bool","&&","||","class","prototype","class-proto","proto",
       "function","fcn","flags","command-line-flags","cmd-line","cmd-line-flags","cmd","-cps","continuation-passing-style","continuation",
       "continuations","call-with-current-continuation","call-with-current-environment","comment","commenting",";","#||#","#|","|#","unquote",
-      "unquote-splicing","named-let","nameless-let","macro","define-macro","let-syntax","letrec-syntax","syntax-obj","syntax-object","reader-alias",
-      "alias","define-class","define-prototype","define-class-prototype","self","super","anonymous-object","anon-object","anonymous-obj","anon-obj",
+      "unquote-splicing","named-let","nameless-let","macro","syntax-transform","syntax-transformers","let-syntax","letrec-syntax","syntax-obj","syntax-object",
+      "reader-alias","alias","define-class","define-prototype","define-class-prototype","self","super","anonymous-object","anon-object","anonymous-obj","anon-obj",
       "make-coroutine","overload","polymorphism","polymorphic","infixr!","infix","infixr","operator","infix-operator","infixr-operator","true","t","false",
       "min-infix-precedence","min-precedence","max-infix-precedence","max-precedence","null-environment","null-env","local-environment","local-env",
       "global-environment","global-env","argc","argv","heist-platform","platform","heist-exact-platform","exact-platform","heist-dirname","exit-success",

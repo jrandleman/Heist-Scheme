@@ -152,7 +152,7 @@ namespace heist {
 
   using frame_var  = std::string;
   using frame_val  = struct data;
-  using frame_mac  = struct scm_macro;
+  using frame_mac  = struct data;
   using frame_vars = std::vector<frame_var>;
   using frame_vals = std::vector<frame_val>;
   using frame_macs = std::vector<frame_mac>;
@@ -182,11 +182,9 @@ namespace heist {
     bool has_variable(const frame_var& var)const noexcept;
     bool erase_variable(const frame_var& var)noexcept;
     bool erase_macro(const scm_string& label)noexcept;
-    bool relabel_macro(const scm_string& old_label, const scm_string& new_label)noexcept;
 
   private:
-    // <relabel_macro> helper function
-    void relabel_recursive_calls_in_macro_template(const scm_string& old_label,const scm_string& new_label,scm_list& templ8)noexcept;
+    bool macro_has_label(const frame_mac& mac, const scm_string& label)const noexcept;
   };
 
   /******************************************************************************
@@ -1479,9 +1477,11 @@ namespace heist {
   }
 
   void environment::define_macro(const frame_mac& mac_val)noexcept{
+    // extract macro name (either a syntax-rules-object or a syntax-transformer-procedure)
+    const auto& mac_name = mac_val.is_type(types::syn) ? mac_val.syn.label : mac_val.fcn.name;
     auto& macs = macros();
     for(auto& mac : macs) {
-      if(mac.label == mac_val.label) {
+      if(macro_has_label(mac,mac_name)) {
         mac = mac_val;
         return;
       }
@@ -1505,7 +1505,7 @@ namespace heist {
 
   bool environment::has_macro(const scm_string& label)const noexcept{
     for(const auto& mac : macros())
-      if(label == mac.label) return true;
+      if(macro_has_label(mac,label)) return true;
     return parent && parent->has_macro(label);
   }
 
@@ -1533,7 +1533,7 @@ namespace heist {
   bool environment::erase_macro(const scm_string& label)noexcept{
     auto& macs = macros();
     for(size_type i = 0, n = macs.size(); i < n; ++i) {
-      if(label == macs[i].label) {
+      if(macro_has_label(macs[i],label)) {
         macs.erase(macs.begin()+i);
         return true;
       }
@@ -1541,28 +1541,9 @@ namespace heist {
     return parent && parent->erase_macro(label);
   }
 
-  // Returns whether found
-  bool environment::relabel_macro(const scm_string& old_label, const scm_string& new_label)noexcept{
-    for(auto& mac : macros()) {
-      if(old_label == mac.label) {
-        mac.label = new_label;
-        for(auto& templ8 : mac.templates)
-          relabel_recursive_calls_in_macro_template(old_label,new_label,templ8);
-        return true;
-      }
-    }
-    return parent && parent->relabel_macro(old_label,new_label);
-  }
-
-
-  // <relabel_macro> helper function
-  void environment::relabel_recursive_calls_in_macro_template(const scm_string& old_label,const scm_string& new_label,scm_list& templ8)noexcept{
-    for(auto& datum : templ8) {
-      if(datum.is_type(types::exp))
-        relabel_recursive_calls_in_macro_template(old_label,new_label,datum.exp);
-      else if(datum.is_type(types::sym) && datum.sym == old_label)
-        datum.sym = new_label;
-    }
+  bool environment::macro_has_label(const frame_mac& mac, const scm_string& label)const noexcept{
+    return (mac.is_type(types::syn) && mac.syn.label == label) ||
+           (mac.is_type(types::fcn) && mac.fcn.name == label);
   }
 }; // End of namespace heist
 

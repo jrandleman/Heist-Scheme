@@ -48,6 +48,7 @@
    - [4 Number Types](#4-Number-Types)
    - [2 Prefix Types](#2-Prefix-Types)
 4. [Heist Macro System, Procedures vs. Macros](#Heist-Macro-System-Procedures-vs-Macros)
+   - [Syntax Transformers](#Syntax-Transformers)
 5. [Heist Commenting](#Heist-Commenting)
 6. [CPS: Continuation Passing Style](#CPS-Continuation-Passing-Style)
 7. [Heist Special Forms](#Heist-Special-Forms)
@@ -354,6 +355,13 @@ Macros are identical to procedures, except for 3 key features:<br>
 2. They do _NOT_ have a recursive expansion limit (as does procedural non-tail-recursion)
    - Hence recursive expansions _MAY_ cause a segmentation fault if they infinitely expand
      - ___NOTE__: Such is an indication of a **USER** error however, and **NOT** an interpreter error!_
+
+
+## Syntax Transformers:
+Either a [`syntax-rules`](#syntax-rules) object, or an unary callable:
+* Syntax-rules objects have the expression matched against a pattern, then expanded into a template
+* Callables are passed the macro expression as a quoted datum, and must return an evaluable datum
+  - Note: transformers defined in [cps contexts](#scm-cps) have [`id`](#compose-bind--id) bound as their continuation!
 
 
 
@@ -1102,26 +1110,25 @@ Other primitives of this nature include:<br>
 ## Define-Syntax, Let-Syntax, Letrec-Syntax:
 
 #### Use: ___Create a Run-Time Macro (Bind a Label to a Syntax Object)!___
-* _Note: create a `<syntax-object>` via the [`syntax-rules`](#syntax-rules) special form below!_
 * _Note: Run-Time macros are expanded **at run-time**, ie each time they're invoked!_
   - _See [`core-syntax`](#core-syntax) for an **analysis-time** macro alternative!_
 * _Note: `let-syntax` & `letrec-syntax` are actually macros directly defined **in** Heist Scheme!_
 
 #### Forms:
-0. `(define-syntax <label> <syntax-object>)`
-1. `(let-syntax ((<label> <syntax-object>) ...) <body> ...)`
-2. `(letrec-syntax ((<label> <syntax-object>) ...) <body> ...)`
+0. `(define-syntax <label> <syntax-transformer>)`
+1. `(let-syntax ((<label> <syntax-transformer>) ...) <body> ...)`
+2. `(letrec-syntax ((<label> <syntax-transformer>) ...) <body> ...)`
 
 #### Derivation Using [`let`](#let):
 ```scheme
-(let-syntax ((<label> <syntax-object>) ...) <body> ...)
+(let-syntax ((<label> <syntax-transformer>) ...) <body> ...)
 
-(letrec-syntax ((<label> <syntax-object>) ...) <body> ...)
+(letrec-syntax ((<label> <syntax-transformer>) ...) <body> ...)
 
 ;; Both Become (letrec style macro evaluation is default) =>
 
 (let ()
-  (define-syntax <label> <syntax-object>) ...
+  (define-syntax <label> <syntax-transformer>) ...
   <body> ...)
 ```
 
@@ -1253,7 +1260,7 @@ Other primitives of this nature include:<br>
 
 #### Use: ___Construct an Analysis-Time Macro in the GLOBAL Scope!___
 
-#### Form: `(core-syntax <label> <syntax-object>)`
+#### Form: `(core-syntax <label> <syntax-transformer>)`
 
 #### Analysis-Time Advantanges:
 * Interpreter's [`eval`](#eval--apply) seperates expression analysis (declaration) & execution (invocation):
@@ -3214,15 +3221,9 @@ Other primitives of this nature include:<br>
 
 9. __Get Alist of Infix Symbols, Associativity, & Precedence__: `(infix-list)`
 
-10. __Mutate Core Syntax__: `(set-core-syntax! <old-name-symbol> <optional-new-name-symbol>)`
-    * Only old name: ___DELETES___ `<old-name-symbol>` as core-syntax
-    * Both old & new name: ___RENAMES___ syntax's old name to new name
-      - _NOTE: also recursively renames all recursive calls to the macro in its templates!_
+10. __Delete Core Syntax__: `(delete-core-syntax! <macro-name-symbol> ...)`
 
-11. __Mutate Runtime Syntax__: `(set-runtime-syntax! <old-name-symbol> <optional-new-name-symbol>)`
-    * Only old name: ___DELETES___ `<old-name-symbol>` as runtime-syntax
-    * Both old & new name: ___RENAMES___ syntax's old name to new name
-      - _NOTE: also recursively renames all recursive calls to the macro in its templates!_
+11. __Delete Runtime Syntax__: `(delete-runtime-syntax! <macro-name-symbol> ...)`
 
 
 

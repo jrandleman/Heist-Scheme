@@ -5331,44 +5331,22 @@ namespace heist {
   }
 
   /******************************************************************************
-  * SYNTAX MUTATING PRIMITIVES
+  * SYNTAX DELETION PRIMITIVES
   ******************************************************************************/
 
-  data primitive_SET_CORE_SYNTAX_BANG(scm_list& args) {
-    confirm_proper_set_syntax_args(args,"set-core-syntax!",
-      "\n     (set-core-syntax! <old-name-symbol> <optional-new-name-symbol>)" 
-      "\n     => LEAVING OUT <new-name-symbol> DELETES <old-name-symbol>");
-    // Modify the registry
-    size_type i = 0, n = G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.size();
-    for(; i < n; ++i)
-      if(G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY[i] == args[0].sym) {
-        if(args.size() == 1) // Rm from registry
-          G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.erase(G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.begin()+i);
-        else                 // Change name in registry
-          G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY[i] = args[1].sym;
-        break;
-      }
-    if(i == n) return GLOBALS::FALSE_DATA_BOOLEAN; // not found
-    // Delete core syntax as needed
-    if(args.size() == 1) return boolean(G.GLOBAL_ENVIRONMENT_POINTER->erase_macro(args[0].sym));
-    // Relabel core syntax as needed
-    return boolean(G.GLOBAL_ENVIRONMENT_POINTER->relabel_macro(args[0].sym,args[1].sym));
+  data primitive_DELETE_CORE_SYNTAX_BANG(scm_list& args) {
+    if(args.empty()) return GLOBALS::VOID_DATA_OBJECT;
+    confirm_only_symbol_args(args,"delete-core-syntax!","\n     (delete-core-syntax! <macro-name-symbol> ...)");
+    erase_all_macros_from_core_registry(args);
+    return boolean(erase_all_macro_labels_from_env(args,G.GLOBAL_ENVIRONMENT_POINTER));
   }
 
-
-  data primitive_SET_RUNTIME_SYNTAX_BANG(scm_list& args) {
+  data primitive_DELETE_RUNTIME_SYNTAX_BANG(scm_list& args) {
     auto env = args.rbegin()->env;
     args.pop_back();
-    confirm_proper_set_syntax_args(args,"set-runtime-syntax!",
-      "\n     (set-runtime-syntax! <old-name-symbol> <optional-new-name-symbol>)" 
-      "\n     => LEAVING OUT <new-name-symbol> DELETES <old-name-symbol>");
-    // NOTE: Can't check registry, since same name may be dispersed across environment frames
-    // Delete runtime syntax as needed
-    if(args.size() == 1) return boolean(env->erase_macro(args[0].sym));
-    // Relabel runtime syntax as needed
-    auto result = env->relabel_macro(args[0].sym,args[1].sym);
-    if(result) G.MACRO_LABEL_REGISTRY.push_back(args[1].sym); // if found, add to cumulative registry
-    return boolean(result);
+    if(args.empty()) return GLOBALS::VOID_DATA_OBJECT;
+    confirm_only_symbol_args(args,"delete-runtime-syntax!","\n     (delete-runtime-syntax! <macro-name-symbol> ...)");
+    return boolean(erase_all_macro_labels_from_env(args,env));
   }
 
   /******************************************************************************
@@ -6054,7 +6032,7 @@ namespace heist {
     primitive_EVAL,            primitive_CPS_EVAL,
     primitive_LOAD,            primitive_CPS_LOAD, 
     primitive_GETENV,          primitive_EXPAND,
-    primitive_RUNTIME_SYNTAXP, primitive_SET_RUNTIME_SYNTAX_BANG, 
+    primitive_RUNTIME_SYNTAXP, primitive_DELETE_RUNTIME_SYNTAX_BANG, 
     primitive_APPLY, 
   };
 
@@ -6576,8 +6554,8 @@ namespace heist {
     std::make_pair(primitive_READER_SYNTAXP,  "reader-syntax?"),
     std::make_pair(primitive_READER_ALIASP,   "reader-alias?"),
 
-    std::make_pair(primitive_SET_CORE_SYNTAX_BANG,    "set-core-syntax!"),
-    std::make_pair(primitive_SET_RUNTIME_SYNTAX_BANG, "set-runtime-syntax!"),
+    std::make_pair(primitive_DELETE_CORE_SYNTAX_BANG,    "delete-core-syntax!"),
+    std::make_pair(primitive_DELETE_RUNTIME_SYNTAX_BANG, "delete-runtime-syntax!"),
 
     std::make_pair(primitive_DEFINE_READER_SYNTAX, "define-reader-syntax"),
     std::make_pair(primitive_READER_SYNTAX_LIST,   "reader-syntax-list"),

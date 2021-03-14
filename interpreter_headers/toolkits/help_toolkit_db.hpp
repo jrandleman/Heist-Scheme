@@ -53,11 +53,11 @@ static constexpr const char* HELP_MENU_DOCUMENTATION[] = {
 };
 
 static constexpr const char* HELP_MENU_TYPES[] = { 
-  "nil",             "expression", "symbol",     "string",      "number", 
-  "char",            "boolean",    "list",       "pair",        "vector", 
-  "hmap",            "alist",      "input-port", "output-port", "object", 
-  "class-prototype", "procedure",  "void",       "undefined",   "sequence", 
-  "coroutine",       "universe",   "module",
+  "nil",             "expression", "symbol",     "string",             "number", 
+  "char",            "boolean",    "list",       "pair",               "vector", 
+  "hmap",            "alist",      "input-port", "output-port",        "object", 
+  "class-prototype", "procedure",  "void",       "undefined",          "sequence", 
+  "coroutine",       "universe",   "module",     "syntax-transformer", 
 };
 
 static constexpr const char* HELP_MENU_SPECIALS[] = { 
@@ -1970,34 +1970,33 @@ Transformation:
 "define-syntax",
 "Special Form",
 R"(
-(define-syntax <label> <syntax-object>)
-(let-syntax ((<label> <syntax-object>) ...) <body> ...)
-(letrec-syntax ((<label> <syntax-object>) ...) <body> ...)
+(define-syntax <label> <syntax-transformer>)
+(let-syntax ((<label> <syntax-transformer>) ...) <body> ...)
+(letrec-syntax ((<label> <syntax-transformer>) ...) <body> ...)
 )",
 R"(
 Create a run-time macro (bind a label to a syntax object)!
-  *) Create a <syntax-object> via the "syntax-rules" special form!
   *) Run-Time macros are expanded at run-time, ie each time they're invoked!
   *) See "core-syntax" for an analysis-time macro alternative!
 
 Deriving "let-syntax" & "letrec-syntax" via "let":
   
-  (let-syntax ((<label> <syntax-object>) ...) <body> ...)
-  (letrec-syntax ((<label> <syntax-object>) ...) <body> ...)
+  (let-syntax ((<label> <syntax-transformer>) ...) <body> ...)
+  (letrec-syntax ((<label> <syntax-transformer>) ...) <body> ...)
 
   ; BECOMES (letrec style macro evaluation is default) =>
 
   (let ()
-    (define-syntax <label> <syntax-object>) ...
+    (define-syntax <label> <syntax-transformer>) ...
     <body> ...)
 
 CPS Transformation:
   *) If multiple <rest-of-code> expressions, wrap them in a "begin" block!
 
-  (define-syntax <label> <syntax-object>) <rest-of-code> 
+  (define-syntax <label> <syntax-transformer>) <rest-of-code> 
   ; BECOMES
   (lambda (k)
-    (define-syntax <label> <syntax-object>)
+    (define-syntax <label> <syntax-transformer>)
     ((cps-transform <rest-of-code>) k))
 )",
 
@@ -2016,7 +2015,7 @@ R"(
 <key> ::= <symbolic-literal>
 )",
 R"(
-Create syntax-objects to be assigned via "core-syntax", "define-syntax", 
+Create syntax-rules object to be assigned via "core-syntax", "define-syntax", 
 "let-syntax", or "letrec-syntax"!
   *) Literals & <key>s in patterns must be matched exactly to expand!
   *) "..." and "syntax-hash" are always reserved <key> names!
@@ -2143,7 +2142,7 @@ Example:
 "core-syntax",
 "Special Form",
 R"(
-(core-syntax <label> <syntax-object>)
+(core-syntax <label> <syntax-transformer>)
 )",
 R"(
 Create an analysis-time macro in the GLOBAL scope!
@@ -2176,10 +2175,10 @@ Example Runtime Expansion Degradation Risk:
 CPS Transformation:
   *) If multiple <rest-of-code> expressions, wrap them in a "begin" block!
 
-  (core-syntax <label> <syntax-object>) <rest-of-code> 
+  (core-syntax <label> <syntax-transformer>) <rest-of-code> 
   ; BECOMES
   (lambda (k)
-    (core-syntax <label> <syntax-object>)
+    (core-syntax <label> <syntax-transformer>)
     ((cps-transform <rest-of-code>) k))
 )",
 
@@ -11250,6 +11249,28 @@ Modules can be either anonymous or named:
   *) Anonymous modules directly expose procedures to the enclosing environment.
   *) Named modules package exposed procedures as methods in a module object,
      which is itself in turn exposed to the enclosing environment.
+)",
+
+
+/******************************************************************************
+* SYNTAX-TRANSFORMER TOPIC DESCRIPTION @NEW-SECTION
+******************************************************************************/
+
+
+}, {
+"syntax-transformer",
+"Object",
+R"()",
+R"(
+Valid values for "define-syntax" & "core-syntax". These come in two flavors:
+  0. Syntax-rules objects (created by "syntax-rules"). Designed for high-level macros,
+     syntax-rules objects match the macro expression against a pattern, then expands it
+     into a template. Can leverage "syntax-hash".
+
+  1. Unary callables. Designed for low-level macros, unary callable transformers are 
+     passed the macro expression as a quoted datum value, and must return an evaluable datum.
+     *) NOTE: transformers defined in cps contexts (see "scm->cps" and "cps") have "id" bound
+              as their topmost continuation, hence "call/cc" shouldn't be used in transformers
 )",
 
 

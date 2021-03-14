@@ -4957,17 +4957,46 @@ namespace heist {
   }
 
   /******************************************************************************
-  * SYNTAX MUTATING PRIMITIVE HELPERS
+  * SYNTAX DELETION PRIMITIVE HELPERS
   ******************************************************************************/
 
-  void confirm_proper_set_syntax_args(scm_list& args,const char* name,const char* format){
-    if(args.empty() || args.size() > 2)
-      THROW_ERR('\''<<name<<" didn't receive correct # of args!"
-        << format << FCN_ERR(name,args));
-    for(size_type i = 0, n = args.size(); i < n; ++i)
-      if(!args[i].is_type(types::sym))
-        THROW_ERR('\''<<name<<" arg #" << i+1 << ' ' << PROFILE(args[i])
-          << " isn't a symbol!" << format << FCN_ERR(name,args));
+  void confirm_only_symbol_args(const scm_list& args, const char* name, const char* format) {
+    auto idx = confirm_only_args_of_type(args,types::sym);
+    if(idx == GLOBALS::MAX_SIZE_TYPE) return;
+    THROW_ERR('\'' << name << " arg #" << idx+1 << " isn't a symbol!"
+      << format << FCN_ERR(name,args));
+  }
+
+
+  // PRECONDITION: !args.empty() && confirm_only_symbol_args(args,name,format)
+  bool erase_all_macro_labels_from_env(const scm_list& args, env_type& env)noexcept{
+    bool deleted_all_macros = true;
+    for(const auto& arg : args)
+      deleted_all_macros = deleted_all_macros && env->erase_macro(arg.sym);
+    return deleted_all_macros;
+  }
+
+
+  // PRECONDITION: !args.empty() && confirm_only_symbol_args(args,name,format)
+  void erase_all_macros_from_core_registry(const scm_list& args)noexcept{
+    for(const auto& arg : args) {
+      bool found_in_core_registry = false;
+      for(size_type i = 0; i < G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.size(); ++i) {
+        if(G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY[i] == arg.sym) {
+          G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.erase(G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.begin()+i);
+          found_in_core_registry = true;
+          break;
+        }
+      }
+      if(found_in_core_registry) {
+        for(size_type i = 0; i < G.MACRO_LABEL_REGISTRY.size(); ++i) {
+          if(G.MACRO_LABEL_REGISTRY[i] == arg.sym) {
+            G.MACRO_LABEL_REGISTRY.erase(G.MACRO_LABEL_REGISTRY.begin()+i);
+            break;
+          }
+        }
+      }
+    }
   }
 
   /******************************************************************************

@@ -383,7 +383,7 @@ namespace heist {
   }
 
 
-  // -- MACRO DEFINITION: (define-syntax <label> <syntax-rules>)
+  // -- MACRO DEFINITION: (define-syntax <label> <syntax-transformer>)
   void define_syntax_extension(const frame_mac& mac, env_type& env)noexcept{
     env->define_macro(mac);
   }
@@ -3226,7 +3226,7 @@ namespace heist {
 
 
   // Returns whether the given args correspond to the given macro
-  bool is_macro_match(const scm_list& args, const frame_mac& mac, size_type& match_idx, 
+  bool is_macro_match(const scm_list& args, const syn_type& mac, size_type& match_idx, 
                                             MACRO_ID_VAR_TABLE& MID_VARG_PAIR)noexcept{
     for(size_type i = 0, n = mac.patterns.size(); i < n; ++i) {
       if(is_pattern_match(args, mac.keywords, mac.patterns[i], MID_VARG_PAIR)) {
@@ -3785,6 +3785,59 @@ namespace heist {
   }
 
   /******************************************************************************
+  * MACRO SYNTACTIC EXTENSIONS -- SYNTAX TRANSFORMER APPLICATION/EXECUTION
+  ******************************************************************************/
+
+  exp_type convert_transformer_data_result_to_syntax(data&& result, const scm_list& macro_expr) {
+    data result_as_syntax;
+    if(!convert_data_to_evaluable_syntax(result,result_as_syntax))
+      THROW_ERR("Syntax Transformer Callable for macro \"" << macro_expr 
+        << "\" didn't result in an evaluable datum:\n     " 
+        << PROFILE(result) << EXP_ERR(macro_expr));
+    if(!result_as_syntax.is_type(types::exp)) {
+      exp_type begin_expr(2);
+      begin_expr[0] = symconst::begin;
+      begin_expr[1] = std::move(result_as_syntax);
+      return begin_expr;
+    }
+    return result_as_syntax.exp;
+  }
+
+
+  data derive_quoted_macro_exression(const scm_list& macro_expr,env_type& env) {
+    exp_type quoted_macro_expr(2);
+    quoted_macro_expr[0] = symconst::quote;
+    quoted_macro_expr[1] = macro_expr;
+    return scm_eval(std::move(quoted_macro_expr),env);
+  }
+
+
+  // Expands the given syntax-transformer procedure & returns success status (ie whether matched)
+  void apply_syntax_transformer_callable(const scm_list& args,const fcn_type& mac,
+                                         scm_list& expanded_exp,env_type& env) {
+    exp_type macro_expr(args.size()+1);
+    macro_expr[0] = mac.name;
+    std::copy(args.begin(), args.end(), macro_expr.begin() + 1);
+    exp_type transformer_args(1,derive_quoted_macro_exression(macro_expr,env));
+    expanded_exp = convert_transformer_data_result_to_syntax(execute_application(mac,transformer_args,env),macro_expr);
+  }
+
+
+  // Expands the given syntax-rules object & returns success status (ie whether matched)
+  bool execute_syntax_rules_transform(const scm_list& args,const syn_type& mac,
+                                      scm_list& expanded_exp,MACRO_ID_VAR_TABLE& MID_VARG_PAIR) {
+    size_type match_idx = 0; // idx of the pattern & template w/in 'mac' that the label & args match
+    if(is_macro_match(args, mac, match_idx, MID_VARG_PAIR)) {
+      expanded_exp = mac.templates[match_idx]; // prefilled, then has contents expanded into it
+      if(!mac.hashed_template_ids[match_idx].empty()) // dynamic <syntax-hash> application
+        apply_syntax_hash_to_identifiers(expanded_exp,mac.hashed_template_ids[match_idx]);
+      expand_macro(args, mac.label, expanded_exp, MID_VARG_PAIR);
+      return true;
+    }
+    return false;
+  }
+
+  /******************************************************************************
   * MACRO SYNTACTIC EXTENSIONS -- EXPANSION MAIN FUNCTIONS
   ******************************************************************************/
 
@@ -3802,18 +3855,26 @@ namespace heist {
   // Returns whether the given label & args form a macro found in 'macs'.
   // If true, it also transforms the macro by expanding it into 'expanded_exp'
   bool handle_macro_transformation(const sym_type& label,const scm_list& args, 
-                                   const frame_macs& macs,scm_list& expanded_exp){
+                                   const frame_macs& macs,scm_list& expanded_exp,
+                                   env_type& env){
     //  Map of pattern identifier & expansion value pairs
     MACRO_ID_VAR_TABLE MID_VARG_PAIR;
-    // search for macro matches
+    // Search for macro matches
     for(const auto& mac : macs) {
-      size_type match_idx = 0; // idx of the pattern & template w/in 'mac' that the label & args match
-      if(label == mac.label && is_macro_match(args, mac, match_idx, MID_VARG_PAIR)) {
-        expanded_exp = mac.templates[match_idx]; // prefilled, then has contents expanded into it
-        if(!mac.hashed_template_ids[match_idx].empty()) // dynamic <syntax-hash> application
-          apply_syntax_hash_to_identifiers(expanded_exp,mac.hashed_template_ids[match_idx]);
-        expand_macro(args, mac.label, expanded_exp, MID_VARG_PAIR);
-        return true;
+      // Syntax-rules object
+      if(mac.is_type(types::syn)) {
+        if(label == mac.syn.label && execute_syntax_rules_transform(args,mac.syn,expanded_exp,MID_VARG_PAIR)) return true;
+      // Syntax-transformer procedure (extracted from a callable)
+      } else if(mac.is_type(types::fcn)) {
+        if(label == mac.fcn.name) {
+          apply_syntax_transformer_callable(args,mac.fcn,expanded_exp,env);
+          return true;
+        }
+      // Unkown macro value: ERROR!
+      } else {
+        THROW_ERR("HEIST MACRO EXPANDER: UNKNOWN MACRO VALUE " << PROFILE(mac)
+        << "\n     CURRENTLY ONLY SUPPORTING SYNTAX-RULES OBJECTS & PROCEDURES!" 
+        << FCN_ERR(label,args));
       }
     }
     return false;
@@ -3827,7 +3888,7 @@ namespace heist {
     env_type env_iterator = env;
     hash_all_ellipsis_in_macro_args(args);
     while(env_iterator != nullptr) {
-      if(handle_macro_transformation(label,args,env_iterator->macros(),expanded_exp)) {
+      if(handle_macro_transformation(label,args,env_iterator->macros(),expanded_exp,env)) {
         unhash_all_ellipsis_in_macro_args(expanded_exp);
         return true;
       }
@@ -4036,7 +4097,7 @@ namespace heist {
   }
 
   /******************************************************************************
-  * REPRESENTING SYNTAX EXTENSIONS: (define-syntax <label> <syntax-rules-object>)
+  * REPRESENTING SYNTAX EXTENSIONS: (define-syntax <label> <syntax-transformer>)
   ******************************************************************************/
 
   bool is_define_syntax(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::defn_syn);}
@@ -4055,7 +4116,7 @@ namespace heist {
                  G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.end(),exp[1].sym) != 
        G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.end()) {
       THROW_ERR("'define-syntax label \""<<exp[1].sym<<"\" is already 'core-syntax!"
-        "\n     (define-syntax <label> <syntax-rules-object>)"<<EXP_ERR(exp));
+        "\n     (define-syntax <label> <syntax-transformer>)"<<EXP_ERR(exp));
     }
   }
 
@@ -4063,27 +4124,46 @@ namespace heist {
   void confirm_valid_define_syntax(const scm_list& exp) {
     if(exp.size() != 3)
       THROW_ERR("'define-syntax expects 2 arguments:"
-        "\n     (define-syntax <label> <syntax-rules-object>)"<<EXP_ERR(exp));
+        "\n     (define-syntax <label> <syntax-transformer>)"<<EXP_ERR(exp));
     if(!exp[1].is_type(types::sym))
       THROW_ERR("'define-syntax 1st arg "<<PROFILE(exp[1])
-        <<" isn't a symbolic label:" << EXP_ERR(exp));
+        <<" isn't a symbolic label!" << EXP_ERR(exp));
+  }
+
+
+  data extract_syntax_transformer(data&& mac, const scm_list& exp) {
+    if(mac.is_type(types::syn)) return std::move(mac);
+    if(primitive_data_is_a_callable(mac))
+      return primitive_extract_callable_procedure(mac);
+    THROW_ERR("'define-syntax syntax-transformer 2nd arg "<<PROFILE(exp[2])
+      <<" isn't a syntax-rules object or callable:\n     (define-syntax "
+        "<label> <syntax-transformer>)"<<EXP_ERR(exp));
+  }
+
+
+  void assign_macro_label(data& mac, const scm_string& label)noexcept{
+    if(mac.is_type(types::syn)) {
+      mac.syn.label = label;
+    } else if(mac.is_type(types::fcn)) {
+      mac.fcn.name = label;
+    }
   }
 
 
   exe_fcn_t analyze_define_syntax(scm_list& exp,const bool cps_block=false,const bool core_syntax=false) {
     confirm_valid_define_syntax(exp);
     if(!core_syntax) confirm_is_not_core_syntax_label(exp);
-    auto syntax_rules_obj_proc = scm_analyze(data(exp[2]),false,cps_block);
-    return [syntax_rules_obj_proc=std::move(syntax_rules_obj_proc),
-      exp=std::move(exp)](env_type& env)mutable{
-      data mac = syntax_rules_obj_proc(env);
-      if(!mac.is_type(types::syn)) 
-        THROW_ERR("'define-syntax 2nd arg "<<PROFILE(exp[2])
-          <<" isn't a syntax-rules object:\n     (define-syntax "
-            "<label> <syntax-rules-object>)"<<EXP_ERR(exp));
-      mac.syn.label = exp[1].sym; // assign macro label
+    auto syntax_transformer_exe_proc = scm_analyze(data(exp[2]),false,cps_block);
+    return [syntax_transformer_exe_proc=std::move(syntax_transformer_exe_proc),
+      exp=std::move(exp),core_syntax](env_type& env)mutable{
+      data mac = extract_syntax_transformer(syntax_transformer_exe_proc(env),exp);
+      assign_macro_label(mac,exp[1].sym);
       register_symbol_iff_new(G.MACRO_LABEL_REGISTRY,exp[1].sym);
-      define_syntax_extension(mac.syn,env); // establish in environment
+      if(core_syntax) {
+        define_syntax_extension(mac,G.GLOBAL_ENVIRONMENT_POINTER); // bind in global environment
+      } else {
+        define_syntax_extension(mac,env); // bind in local environment
+      }
       return GLOBALS::VOID_DATA_OBJECT;
     };
   }
@@ -4096,20 +4176,20 @@ namespace heist {
 
   exe_fcn_t analyze_core_syntax(scm_list& exp,const bool cps_block=false) {
     static constexpr const char * const format = 
-      "\n     (core-syntax <label> <syntax-object>)";
+      "\n     (core-syntax <label> <syntax-transformer>)";
     if(exp.size() < 3)
-      THROW_ERR("'core-syntax didn't receive enough args!\n     In expression: " << exp << format);
+      THROW_ERR("'core-syntax didn't receive enough args!"<<format<<EXP_ERR(exp));
     if(!exp[1].is_type(types::sym))
-      THROW_ERR("'core-syntax didn't receive enough args!\n     In expression: " << exp << format);
+      THROW_ERR("'core-syntax 1st arg "<<PROFILE(exp[1])<<" isn't a symbolic label!"<<format<<EXP_ERR(exp));
     // Eval the syntax defn in the global env at runtime
     exp[0] = symconst::defn_syn;
     auto core_syntax_name = exp[1].sym;
     auto core_proc = analyze_define_syntax(exp,cps_block,true);
-    return [core_proc=std::move(core_proc),core_syntax_name=std::move(core_syntax_name)](env_type&){
+    return [core_proc=std::move(core_proc),core_syntax_name=std::move(core_syntax_name)](env_type& env){
       // Register the core-syntax label
       register_symbol_iff_new(G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY,core_syntax_name);
       // Trigger the definition at runtime
-      core_proc(G.GLOBAL_ENVIRONMENT_POINTER);
+      core_proc(env);
       return GLOBALS::VOID_DATA_OBJECT;
     };
   }
