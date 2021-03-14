@@ -109,7 +109,7 @@
    - [Coroutine Handling Primitives](#Coroutine-Handling-Primitives)
    - [Stream Primitives](#Stream-Primitives)
    - [Delay Predicate & Force](#Delay-Predicate--Force)
-   - [Type Predicates, Undefined, & Void](#Type-Predicates-Undefined--Void)
+   - [Type Predicates](#Type-Predicates)
    - [Type Coercion](#Type-Coercion)
    - [Copying](#copying)
    - [Eval & Apply](#eval--apply)
@@ -256,8 +256,8 @@ Wraps scheme code in a [`scm->cps`](#scm-cps) block automatically, hence:
 11. Procedure (via primitives or the [`lambda`](#Lambda)/[`fn`](#Fn) special forms)
 12. Object (see [`defclass`](#Defclass))
 13. Class-Prototype (see [`defclass`](#Defclass))
-14. Void Datum [`(void)`](#Type-Predicates-Undefined--Void)
-15. Undefined Datum [`(undefined)`](#Type-Predicates-Undefined--Void)
+14. Void Datum [`(void)`](#Type-Predicates)
+15. Undefined Datum [`(undefined)`](#Type-Predicates)
 
 
 
@@ -584,8 +584,8 @@ Other primitives of this nature include:<br>
 #### Use: ___Determine if a Symbol is [`define`](#define)d!___
 * Given an [object](#defclass) property-access symbol, returns whether the property exists!
 * Use [`runtime-syntax?`](#Syntax-Procedures), [`core-syntax?`](#Syntax-Procedures), & [`reader-syntax?`](#Syntax-Procedures) to check for macros!
-* WARNING: This is _NOT_ the inverse of the [`undefined?`](#Type-Predicates-Undefined--Void) primitive!
-  - [`undefined?`](#Type-Predicates-Undefined--Void) checks values, `defined?` checks the environment!
+* WARNING: This is _NOT_ the inverse of the [`undefined?`](#Type-Predicates) primitive!
+  - [`undefined?`](#Type-Predicates) checks values, `defined?` checks the environment!
 
 #### Form: `(defined? <symbol>)`
 
@@ -1509,7 +1509,7 @@ Other primitives of this nature include:<br>
 #### Overload Application via Functors:
 0. The `self->procedure` method will automatically be called on any object applied as a procedure!
    - Think `operator()()` in C++!
-   - Check out the primitive [`functor?`](#Type-Predicates-Undefined--Void) predicate!
+   - Check out the primitive [`functor?`](#Type-Predicates) predicate!
    - Convert functors to procedures via the [`functor->procedure`](#Type-Coercion) primitive!
 
 #### Method Access to Object Members:
@@ -2639,71 +2639,69 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
-## Type Predicates, Undefined, & Void:
+## Type Predicates:
 0. __Get Typename Symbol__: `(typeof <obj>)`
 
-1. __Generate an Undefined Object__: `(undefined)`
+1. __Undefined Predicate__: `(undefined? <obj>)`
+   * _Use `(undefined)` to generate an undefined object!_
 
-2. __Undefined Predicate__: `(undefined? <obj>)`
+2. __Void Predicate__: `(void? <obj>)`
+   * _Use `(void)` to generate a void object!_
 
-3. __Generate a Void Object__: `(void)`
+3. __Empty Sequence Predicate__: `(empty? <obj>)`
 
-4. __Void Predicate__: `(void? <obj>)`
+4. __Pair Predicate__: `(pair? <obj>)`
 
-5. __Empty Sequence Predicate__: `(empty? <obj>)`
+5. __Vector Predicate__: `(vector? <obj>)`
 
-6. __Pair Predicate__: `(pair? <obj>)`
+6. __Hash-Map Predicate__: `(hmap? <obj>)`
 
-7. __Vector Predicate__: `(vector? <obj>)`
+7. __Character Predicate__: `(char? <obj>)`
 
-8. __Hash-Map Predicate__: `(hmap? <obj>)`
+8. __Number Predicate__: `(number? <obj>)`
 
-9. __Character Predicate__: `(char? <obj>)`
+9. __Real Predicate__: `(real? <obj>)`
 
-10. __Number Predicate__: `(number? <obj>)`
+10. __Complex Predicate__: `(complex? <obj>)`
 
-11. __Real Predicate__: `(real? <obj>)`
+11. __Rational Number Predicate__: `(rational? <obj>)`
 
-12. __Complex Predicate__: `(complex? <obj>)`
+12. __String Predicate__: `(string? <obj>)`
 
-13. __Rational Number Predicate__: `(rational? <obj>)`
+13. __Symbol Predicate__: `(symbol? <obj>)`
 
-14. __String Predicate__: `(string? <obj>)`
+14. __Boolean Predicate__: `(boolean? <obj>)`
 
-15. __Symbol Predicate__: `(symbol? <obj>)`
+15. __Atom Predicate__: `(atom? <obj>)`
 
-16. __Boolean Predicate__: `(boolean? <obj>)`
+16. __Procedure Predicate__: `(procedure? <obj>)`
 
-17. __Atom Predicate__: `(atom? <obj>)`
-
-18. __Procedure Predicate__: `(procedure? <obj>)`
-
-19. __Functor Predicate__: `(functor? <obj>)`
+17. __Functor Predicate__: `(functor? <obj>)`
     * _Functor = [object](#Defclass) with a `self->procedure` method defined!_
     * _Functors may be called as if a function!_
 
-20. __Callable Predicate__: `(callable? <obj>)`
+18. __Callable Predicate__: `(callable? <obj>)`
     * _Equivalent to: `(or (procedure? <obj>) (functor? <obj>))`_
 
-21. __Input-Port Predicate__: `(input-port? <obj>)`
+19. __Input-Port Predicate__: `(input-port? <obj>)`
 
-22. __Output-Port Predicate__: `(output-port? <obj>)`
+20. __Output-Port Predicate__: `(output-port? <obj>)`
 
-23. __Eof-Object Predicate__: `(eof-object? <obj>)`
+21. __Eof-Object Predicate__: `(eof-object? <obj>)`
 
-24. __Stream-Pair Predicate__: `(stream-pair? <obj>)`
+22. __Stream-Pair Predicate__: `(stream-pair? <obj>)`
 
-25. __Empty-Stream Predicate__: `(stream-null? <obj>)`
+23. __Empty-Stream Predicate__: `(stream-null? <obj>)`
 
-26. __Stream Predicate__: `(stream? <obj>)`
+24. __Stream Predicate__: `(stream? <obj>)`
 
-27. __Syntax-Rules Object Predicate__: `(syntax-rules-object? <obj>)`
+25. __Syntax-Rules Object Predicate__: `(syntax-rules-object? <obj>)`
 
-28. __Sequence Predicate__: `(seq? <obj>)`
+26. __Sequence Predicate__: `(seq? <obj>)`
 
-29. __Object Predicate__: `(object? <obj>)`
+27. __Object Predicate__: `(object? <obj>)`
 
-30. __Class Prototype Predicate__: `(class-prototype? <obj>)`
+28. __Class Prototype Predicate__: `(class-prototype? <obj>)`
 
 
 
@@ -3127,7 +3125,7 @@ Other primitives of this nature include:<br>
 7. __Confirm Callable Uses Lexical Scope__: `(lexical-scope? <callable>)`
 
 8. __Jump/Throw Value__: `(jump! <optional-arg>)`
-   * `<optional-arg>` defaults to [`(void)`](#Type-Predicates-Undefined--Void)
+   * `<optional-arg>` defaults to [`(void)`](#Type-Predicates)
 
 9. __Catch Jumped/Thrown Value__: `(catch-jump <callable> <arg1> ... <argN>)`
 
