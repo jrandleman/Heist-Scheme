@@ -2658,66 +2658,69 @@ Other primitives of this nature include:<br>
 ## Type Predicates:
 0. __Get Typename Symbol__: `(typeof <obj>)`
 
-1. __Undefined Predicate__: `(undefined? <obj>)`
+1. __Get Pointer Address String__: `(pointer-address <obj>)`
+   * _Returns `#f` if `<obj>` is passed by value!_
+
+2. __Undefined Predicate__: `(undefined? <obj>)`
    * _Use `(undefined)` to generate an undefined object!_
 
-2. __Void Predicate__: `(void? <obj>)`
+3. __Void Predicate__: `(void? <obj>)`
    * _Use `(void)` to generate a void object!_
 
-3. __Empty Sequence Predicate__: `(empty? <obj>)`
+4. __Empty Sequence Predicate__: `(empty? <obj>)`
 
-4. __Pair Predicate__: `(pair? <obj>)`
+5. __Pair Predicate__: `(pair? <obj>)`
 
-5. __Vector Predicate__: `(vector? <obj>)`
+6. __Vector Predicate__: `(vector? <obj>)`
 
-6. __Hash-Map Predicate__: `(hmap? <obj>)`
+7. __Hash-Map Predicate__: `(hmap? <obj>)`
 
-7. __Character Predicate__: `(char? <obj>)`
+8. __Character Predicate__: `(char? <obj>)`
 
-8. __Number Predicate__: `(number? <obj>)`
+9. __Number Predicate__: `(number? <obj>)`
 
-9. __Real Predicate__: `(real? <obj>)`
+10. __Real Predicate__: `(real? <obj>)`
 
-10. __Complex Predicate__: `(complex? <obj>)`
+11. __Complex Predicate__: `(complex? <obj>)`
 
-11. __Rational Number Predicate__: `(rational? <obj>)`
+12. __Rational Number Predicate__: `(rational? <obj>)`
 
-12. __String Predicate__: `(string? <obj>)`
+13. __String Predicate__: `(string? <obj>)`
 
-13. __Symbol Predicate__: `(symbol? <obj>)`
+14. __Symbol Predicate__: `(symbol? <obj>)`
 
-14. __Boolean Predicate__: `(boolean? <obj>)`
+15. __Boolean Predicate__: `(boolean? <obj>)`
 
-15. __Atom Predicate__: `(atom? <obj>)`
+16. __Atom Predicate__: `(atom? <obj>)`
 
-16. __Procedure Predicate__: `(procedure? <obj>)`
+17. __Procedure Predicate__: `(procedure? <obj>)`
 
-17. __Functor Predicate__: `(functor? <obj>)`
+18. __Functor Predicate__: `(functor? <obj>)`
     * _Functor = [object](#Defclass) with a `self->procedure` method defined!_
     * _Functors may be called as if a function!_
 
-18. __Callable Predicate__: `(callable? <obj>)`
+19. __Callable Predicate__: `(callable? <obj>)`
     * _Equivalent to: `(or (procedure? <obj>) (functor? <obj>))`_
 
-19. __Input-Port Predicate__: `(input-port? <obj>)`
+20. __Input-Port Predicate__: `(input-port? <obj>)`
 
-20. __Output-Port Predicate__: `(output-port? <obj>)`
+21. __Output-Port Predicate__: `(output-port? <obj>)`
 
-21. __Eof-Object Predicate__: `(eof-object? <obj>)`
+22. __Eof-Object Predicate__: `(eof-object? <obj>)`
 
-22. __Stream-Pair Predicate__: `(stream-pair? <obj>)`
+23. __Stream-Pair Predicate__: `(stream-pair? <obj>)`
 
-23. __Empty-Stream Predicate__: `(stream-null? <obj>)`
+24. __Empty-Stream Predicate__: `(stream-null? <obj>)`
 
-24. __Stream Predicate__: `(stream? <obj>)`
+25. __Stream Predicate__: `(stream? <obj>)`
 
-25. __Syntax-Rules Object Predicate__: `(syntax-rules-object? <obj>)`
+26. __Syntax-Rules Object Predicate__: `(syntax-rules-object? <obj>)`
 
-26. __Sequence Predicate__: `(seq? <obj>)`
+27. __Sequence Predicate__: `(seq? <obj>)`
 
-27. __Object Predicate__: `(object? <obj>)`
+28. __Object Predicate__: `(object? <obj>)`
 
-28. __Class Prototype Predicate__: `(class-prototype? <obj>)`
+29. __Class Prototype Predicate__: `(class-prototype? <obj>)`
 
 
 

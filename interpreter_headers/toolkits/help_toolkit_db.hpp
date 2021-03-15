@@ -204,14 +204,14 @@ static constexpr const char* HELP_MENU_PROCEDURES_SEQUENCES[] = {
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_PREDICATES[] = {
-  "typeof",       "undefined",    "undefined?",       "void", 
-  "void?",        "empty?",       "pair?",            "vector?", 
-  "hmap?",        "char?",        "number?",          "real?", 
-  "complex?",     "rational?",    "string?",          "symbol?", 
-  "boolean?",     "atom?",        "procedure?",       "functor?", 
-  "callable?",    "input-port?",  "output-port?",     "eof-object?",
-  "stream-pair?", "stream-null?", "stream?",          "syntax-rules-object?", 
-  "seq?",         "object?",      "class-prototype?", 
+  "typeof",               "pointer-address", "undefined",    "undefined?",
+  "void",                 "void?",           "empty?",       "pair?",
+  "vector?",              "hmap?",           "char?",        "number?",
+  "real?",                "complex?",        "rational?",    "string?",
+  "symbol?",              "boolean?",        "atom?",        "procedure?",
+  "functor?",             "callable?",       "input-port?",  "output-port?",
+  "eof-object?",          "stream-pair?",    "stream-null?", "stream?",
+  "syntax-rules-object?", "seq?",            "object?",      "class-prototype?", 
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_EVALAPPLY[] = {
@@ -7941,6 +7941,22 @@ R"(
 )",
 R"(
 Get name of <obj>'s type as a symbol.
+)",
+
+
+
+
+
+}, {
+"pointer-address",
+"Procedure",
+R"(
+(pointer-address <obj>)
+)",
+R"(
+Get <obj>'s pointer address as a string.
+  *) Returns "#f" if <obj> is passed by value!
+  *) Useful in custom "class-prototype" printer overloads!
 )",
 
 

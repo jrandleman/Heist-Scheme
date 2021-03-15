@@ -404,6 +404,7 @@ namespace heist {
   // data_obj.shallow_copy()        => shallow-cpy vector|string|pair|hmap|object
   // data_obj.is_falsey()           => <data_obj> is a falsey value
   // data_obj.is_truthy()           => <data_obj> is NOT a falsey value
+  // data_obj.pointer_address()     => ptr address as a string (if exists, else "")
   struct data {
     // current type & value held by data object
     types type = types::undefined;
@@ -630,6 +631,25 @@ namespace heist {
     friend std::ostream& operator<<(std::ostream& outs, const data& d) noexcept {
       outs << d.noexcept_write();
       return outs;
+    }
+
+    // get ptr address as a string (if exists)
+    scm_string pointer_address()const{
+      switch(type) {
+        case types::sym: case types::exp: case types::num: case types::chr: 
+        case types::bol: case types::fcn: case types::syn: case types::dne: 
+        case types::fip: case types::fop: case types::undefined: return "";
+        case types::par: return "0x" + pointer_to_hexstring(par.ptr);
+        case types::str: return "0x" + pointer_to_hexstring(str.ptr);
+        case types::vec: return "0x" + pointer_to_hexstring(vec.ptr);
+        case types::env: return "0x" + pointer_to_hexstring(env.ptr);
+        case types::del: return "0x" + pointer_to_hexstring(del.ptr);
+        case types::map: return "0x" + pointer_to_hexstring(map.ptr);
+        case types::cls: return "0x" + pointer_to_hexstring(cls.ptr);
+        case types::obj: return "0x" + pointer_to_hexstring(obj.ptr);
+        case types::prc: return "0x" + pointer_to_hexstring(prc.ptr);
+        default: return ""; // never triggered
+      }
     }
 
     // get type's name string

@@ -1375,7 +1375,7 @@ namespace heist {
   }
 
   /******************************************************************************
-  * TYPEOF, DEEP-COPYING, & SHALLOW-COPYING PRIMITIVES
+  * TYPEOF & POINTER-ADDRESS PRIMITIVES
   ******************************************************************************/
 
   data primitive_TYPEOF(scm_list& args) {
@@ -1385,6 +1385,20 @@ namespace heist {
     if(data_is_stream_pair(args[0])) return "#<stream>";
     return args[0].type_name();
   }
+
+  data primitive_POINTER_ADDRESS(scm_list& args) {
+    if(args.size() != 1)
+      THROW_ERR("'pointer-address received incorrect # of args!\n     (pointer-address <obj>)" 
+        << FCN_ERR("pointer-address", args));
+    auto pointer_address = args[0].pointer_address();
+    if(pointer_address.empty())
+      return GLOBALS::FALSE_DATA_BOOLEAN;
+    return make_str(pointer_address);
+  }
+
+  /******************************************************************************
+  * DEEP-COPYING & SHALLOW-COPYING PRIMITIVES
+  ******************************************************************************/
 
   data primitive_COPY(scm_list& args) {
     if(args.size() != 1)
@@ -6263,7 +6277,9 @@ namespace heist {
 
     std::make_pair(primitive_SYMBOL_APPEND, "symbol-append"),
 
-    std::make_pair(primitive_TYPEOF,       "typeof"),
+    std::make_pair(primitive_TYPEOF,          "typeof"),
+    std::make_pair(primitive_POINTER_ADDRESS, "pointer-address"),
+
     std::make_pair(primitive_COPY,         "copy"),
     std::make_pair(primitive_SHALLOW_COPY, "shallow-copy"),
 
