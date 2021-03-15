@@ -10,7 +10,6 @@
 ; function         ; procedure definition that can use <return>!
 ; time-operation   ; time an operation!
 ; swap!            ; swap 2 variables
-; tlambda          ; use predicates (including Type checks) on lambda args!
 ; defstruct        ; simple basic vector-based OOP
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -66,47 +65,6 @@
 (core-syntax swap!
   (syntax-rules ()
     ((_ a b) (let ((`@tmp a)) (set! a b) (set! b tmp)))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; TLAMBDA MACRO FOR AUTOMATED PREDICATED LAMBDA ARGUMENTS
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; <tlambda-exp>'s args may be of form <symbol> or <(<pred?> <symbol>)>
-;; where args are default checked against 'pred? (if such is present)
-(define (heist:core:tlambda->lambda tlambda-exp . err-message)
-  (define err-prefix 
-    (if (null? err-message) 
-        "\"" 
-        (append (car err-message) " \"")))
-  (define pred?-errors '())
-  (define (pred?->error pred?)
-    (list 'if (list 'not pred?) 
-              (list 'error ''tlambda (append (write pred? err-prefix) "\" Failed!") (cadr pred?))))
-  (define lambda-args 
-    (map (lambda (arg) 
-            (if (pair? arg)
-                (begin (set! pred?-errors (cons (pred?->error arg) pred?-errors))
-                       (cadr arg))
-                arg))
-         (cadr tlambda-exp)))
-  (if (null? pred?-errors)
-      tlambda-exp
-      (cons 'lambda (cons lambda-args (cons (cons 'begin pred?-errors) (cddr tlambda-exp))))))
-
-
-;; Typed-Lambda Macro to automate predicates on arguments
-(core-syntax tlambda 
-  (syntax-rules ()
-    ((_ () b ...) (lambda () b ...)) ; 0 args
-    ((_ (a ...) b ...)               ; N args
-      (eval (heist:core:tlambda->lambda (cons 'lambda (cons (list 'a ...) '(b ...))))))
-    ((_ err-message (a ...) b ...)  ; optional-descriptor & N args
-      (eval (heist:core:tlambda->lambda (cons 'lambda (cons (list 'a ...) '(b ...))) err-message)))))
-
-
-;; Ex1: ; (tlambda ((string? s) any-arg (number? n)) <body>) ; predicated & arbitrary args
-;; Ex2: ; (tlambda "optional-description" ((string? s) any-arg) <body>) ; optional descriptor
-;; Ex3: ; (tlambda ((string? s) . ((lambda (ns) (every even? ns)) numbers)) <body>) ; predicated variadic 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; DEFSTRUCT MACRO FOR SIMPLE VECTOR-BASED OO
