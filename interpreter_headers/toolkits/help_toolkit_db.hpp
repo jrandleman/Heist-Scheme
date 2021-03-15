@@ -1148,7 +1148,7 @@ CPS Transformation:
 
 }, {
 "quasiquote",
-"Special Form",
+"Macro",
 R"(
 (quasiquote <datum>)
 `<datum>

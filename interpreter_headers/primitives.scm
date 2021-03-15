@@ -275,6 +275,144 @@
     ((_ () (break-test) body ...)
       (while ((not break-test)) body ...))))
 
+;; ================================================================================
+;; =========== "QUASIQUOTE" MACRO SELECTIVE EVALUATION DURING QUOTATION ===========
+;; ================================================================================
+
+(define-reader-syntax "`" "quasiquote")
+(define-reader-syntax "," "unquote")
+(define-reader-syntax ",@" "unquote-splicing")
+
+(define (heist:core:quasiquote:tagged-list? obj tag)
+  (and (eq? (car obj) tag) (not (null? (cdr obj)))))
+
+; Recursively perform an optimization pass
+(define (heist:core:quasiquote:optimization-pass lst optimizable? optimize)
+  (define (iter lst)
+    (if (and (list? lst) (pair? lst))
+      (if (optimizable? lst)
+          (iter (optimize lst))
+          (map iter lst))
+      lst))
+  (iter lst))
+
+; (append <item>) => <item>
+(define (heist:core:quasiquote:unwrap-unary-appends lst)
+  (heist:core:quasiquote:optimization-pass 
+    lst 
+    (lambda (lst) (and (eq? (car lst) 'append) (= (length lst) 2))) 
+    cadr))
+
+; (append) => '()
+(define (heist:core:quasiquote:collapse-nullary-appends lst)
+  (heist:core:quasiquote:optimization-pass 
+    lst 
+    (lambda (lst) (and (eq? (car lst) 'append) (null? (cdr lst)))) 
+    (lambda (lst) ''())))
+
+; (quote <number|string|boolean>) => <number|string|boolean>
+(define (heist:core:quasiquote:quote-atomic? datum)
+  (or (boolean? datum) (string? datum) (number? datum) (char? datum)))
+
+(define (heist:core:quasiquote:unwrap-atomic-quotes lst)
+  (heist:core:quasiquote:optimization-pass 
+    lst 
+    (lambda (lst) (and (eq? (car lst) 'quote) (= (length lst) 2) (heist:core:quasiquote:quote-atomic? (cadr lst)))) 
+    cadr))
+
+; (append (list item ...) ...) => (list item ... ...)
+(define (heist:core:quasiquote:redundant-append? append-exprs)
+  (null? (filter \(not (and (pair? %1) (eq? (car %1) 'list))) append-exprs)))
+
+(define (heist:core:quasiquote:unwrap-redundant-appends lst)
+  (heist:core:quasiquote:optimization-pass 
+    lst 
+    (lambda (lst) (and (eq? (car lst) 'append) (heist:core:quasiquote:redundant-append? (cdr lst)))) 
+    (lambda (lst) (cons 'list (apply append (map cdr (cdr lst)))))))
+
+; Optimize generated code
+(define (heist:core:quasiquote:optimize lst)
+  (heist:core:quasiquote:unwrap-redundant-appends
+    (heist:core:quasiquote:unwrap-atomic-quotes
+      (heist:core:quasiquote:collapse-nullary-appends 
+        (heist:core:quasiquote:unwrap-unary-appends lst)))))
+
+; Convert a list to an hmap
+(define (heist:core:quasiquote:list->hmap lst)
+  (define (list->alist lst)
+    (if (null? lst)
+        '()
+        (cons (list (car lst) (cadr lst)) 
+              (list->alist (cddr lst)))))
+  (alist->hmap (list->alist lst)))
+
+; Convert an hmap to a list
+(define (heist:core:quasiquote:hmap->list hmp)
+  (apply append (hmap->alist hmp)))
+
+; Generate Code
+(define (heist:core:quasiquote->quote lst level)
+  (define (iter lst)
+    (define hd (if (not (atom? lst)) (car lst)))
+          ; finished parsing expression (proper list)
+    (cond ((null? lst) '())
+          ; quasiquote vector literal at end of the expression
+          ((vector? lst)
+            (list (list 'list->vector (heist:core:quasiquote->quote (vector->list lst) level))))
+          ; quasiquote hmap literal at end of the expression
+          ((hmap? lst)
+            (list (list 'heist:core:quasiquote:list->hmap (heist:core:quasiquote->quote (heist:core:quasiquote:hmap->list lst) level))))
+          ; finished parsing expression (dotted list)
+          ((atom? lst)
+            (list (list 'quote lst)))
+          ; unquote rest of list
+          ((heist:core:quasiquote:tagged-list? lst 'unquote)
+            (if (= level 0)
+                (list (cadr lst)) 
+                (list (list 'list ''unquote (heist:core:quasiquote->quote (cadr lst) (- level 1)))))) ; *there*: recursively parse, in nested quasiquote))
+          ; quasiquote vector literal
+          ((vector? hd)
+            (cons (list 'list (list 'list->vector (heist:core:quasiquote->quote (vector->list hd) level)))
+                  (iter (cdr lst))))
+          ; quasiquote hmap literal
+          ((hmap? hd)
+            (cons (list 'list (list 'heist:core:quasiquote:list->hmap (heist:core:quasiquote->quote (heist:core:quasiquote:hmap->list hd) level)))
+                  (iter (cdr lst))))
+          ; quote atom
+          ((atom? hd)
+            (cons (list 'list (list 'quote hd))
+                  (iter (cdr lst))))
+          ; unquote datum
+          ((heist:core:quasiquote:tagged-list? hd 'unquote)
+            (if (= level 0)
+                (cons (list 'list (cadr hd)) 
+                      (iter (cdr lst)))
+                (cons (list 'list (heist:core:quasiquote->quote hd level)) ; recursively parse, in nested quasiquote (level will be decremented *there*)
+                      (iter (cdr lst)))))
+          ; unquote & signal should splice element
+          ((heist:core:quasiquote:tagged-list? hd 'unquote-splicing)
+            (if (= level 0)
+                (cons (cadr hd) ; evaluate datum & append to the expression
+                      (iter (cdr lst)))
+                (cons (list 'list (heist:core:quasiquote->quote hd (- level 1))) ; recursively parse, in nested quasiquote
+                      (iter (cdr lst)))))
+          ; nested quasiquote
+          ((heist:core:quasiquote:tagged-list? hd 'quasiquote)
+            (cons (list 'list (heist:core:quasiquote->quote hd (+ level 1))) ; recursively parse, in nested quasiquote
+                  (iter (cdr lst))))
+          ; quasiquote expression
+          (else
+            (cons (list 'list (heist:core:quasiquote->quote hd level))
+                  (iter (cdr lst))))))
+  (cons 'append (iter lst)))
+
+
+(core-syntax quasiquote
+  (lambda (heist:core:quasiquote-expr)
+    (if (= (length heist:core:quasiquote-expr) 2)
+        (heist:core:quasiquote:optimize (heist:core:quasiquote->quote (cadr heist:core:quasiquote-expr) 0))
+        (syntax-error 'quasiquote "Quasiquote wasn't given exactly 1 arg!" heist:core:quasiquote-expr))))
+
 ;; =========================================================
 ;; =========== "NEW" MACRO FOR ANONYMOUS OBJECTS ===========
 ;; =========================================================
@@ -817,8 +955,8 @@
 ;; ==========================================================================
 
 (define (heist:core:expand*:unexpandable? d)
-  (or (eq? d 'quote)         (eq? d 'quasiquote)    (eq? d 'cps-quote) 
-      (eq? d 'core-syntax)   (eq? d 'define-syntax) (eq? d 'syntax-rules)))
+  (or (eq? d 'quote)         (eq? d 'cps-quote)    (eq? d 'core-syntax)
+      (eq? d 'define-syntax) (eq? d 'syntax-rules)))
 
 (define (heist:core:expand*:unwrap-begins datum)
   (if (and (pair? datum) (not (heist:core:expand*:unexpandable? (car datum))))

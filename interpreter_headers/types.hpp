@@ -112,9 +112,6 @@ namespace heist {
     constexpr const char * const map_literal       = "hmap-literal";
     constexpr const char * const delay             = "delay";
     constexpr const char * const quote             = "quote";
-    constexpr const char * const quasiquote        = "quasiquote";
-    constexpr const char * const unquote           = "unquote";
-    constexpr const char * const unquo_splice      = "unquote-splicing";
     constexpr const char * const set               = "set!";
     constexpr const char * const core_syn          = "core-syntax";
     constexpr const char * const defn_syn          = "define-syntax";

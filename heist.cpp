@@ -90,7 +90,6 @@
  *                     3) USERS CAN DEFINE THEIR OWN SPECIAL FORMS VIA MACROS
  *       - EXAMPLES:
  *         * quote               ; SYMBOLIZE ARGS (CONVERT CODE TO DATA)
- *         * quasiquote          ; SELECTIVELY eval AND SYMBOLIZE CODE
  *         * define-syntax       ; RUN-TIME MACRO DEFINITION
  *         * core-syntax         ; ANALYSIS-TIME GLOBAL MACRO DEFINITION
  *         * syntax-rules        ; SYNTAX OBJECT
@@ -101,8 +100,6 @@
  *         * begin               ; SEQUENTIALLY eval ARGS
  *         * delay               ; DELAY ARG eval (RETURNS PROMISE)
  *         * if                  ; ARG1 ? ARG2 : ARG3
- *         * and                 ; ALL ARGS ARE TRUE
- *         * or                  ; NOT ALL ARGS ARE FALSE
  *         * defclass            ; CLASS PROTOTYPE DEFINITION
  *         * defined?            ; DETERMINE IF A VARIABLE/OBJECT-PROPERTY-ACCESS EXISTS
  *         * delete!             ; DELETE A VARIABLE/OBJECT-PROPERTY-ACCESS IF EXISTS
@@ -1468,271 +1465,6 @@ namespace heist {
   }
 
   /******************************************************************************
-  * REPRESENTING QUASIQUOTE, UNQUOTE, UNQUOTE-SPLICING
-  ******************************************************************************/
-
-  bool is_quasiquote(const scm_list& exp)      noexcept{return is_tagged_list(exp,symconst::quasiquote);}
-  bool is_unquote(const scm_list& exp)         noexcept{return is_tagged_list(exp,symconst::unquote);}
-  bool is_unquote_splicing(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::unquo_splice);}
-
-  // Returns a data object containing the unquoted data. If the data is an 
-  //   expression, it ought to be analyzed by scm_analyze in order to convert 
-  //   its token strings into scheme code objects
-  data process_unquoted(const scm_list& exp) {
-    if(exp.size() != 2)
-      THROW_ERR("'unquote expects one argument: (unquote <expression>)"
-        << EXP_ERR(exp));
-    return exp[1];
-  }
-
-
-  // Requotes data if symbolic
-  data unquote_splicing_atom(const data& d)noexcept{
-    if(d.is_type(types::sym)) {
-      scm_list quoted_sym(2);
-      quoted_sym[0] = symconst::quote, quoted_sym[1] = d;
-      return data(quoted_sym);
-    }
-    return d;
-  }
-
-
-  // Confirm whether 'd' is the AST's empty-list representation
-  bool data_is_the_AST_empty_list(const data& d)noexcept{
-    return d.is_type(types::exp) && d.exp.size() == 2 && 
-           d.exp[0].is_type(types::sym) && 
-           d.exp[0].sym == symconst::quote && 
-           d.exp[1].is_type(types::sym) && 
-           d.exp[1].sym == symconst::emptylist;
-  }
-
-
-  // Expands the given pair into a scm expression. 
-  //   => Helper fcn for processing ,@
-  //   => Returns whether pair sequence was NOT null-terminated.
-  // PRECONDITION: 'pair_object' MUST BE ACYCLIC
-  bool expand_list_into_exp(par_type& pair_object,scm_list& exp)noexcept{
-    // unpack car
-    exp.push_back(unquote_splicing_atom(pair_object->first));
-    // unpack cdr
-    if(pair_object->second.is_type(types::par))
-      return expand_list_into_exp(pair_object->second.par, exp);
-    // don't push the terminating '() if at the end of the list/pair-sequence
-    else if(is_not_THE_EMPTY_LIST(pair_object->second)) {
-      exp.push_back(unquote_splicing_atom(pair_object->second));
-      return true;
-    }
-    return false;
-  }
-
-
-  // Returns an expression object containing the unquoted list/vector's elements.
-  //   => Returns whether the expanded sequence was NOT null-terminated.
-  enum class unsplice_status {list_star, list, atom};
-  unsplice_status process_unquote_splicing(const scm_list& exp, env_type& env, scm_list& spliceable_data) {
-    if(exp.size() != 2)
-      THROW_ERR("'unquote-splicing didn't receive 1 arg!"
-        "\n     (unquote-splicing <spliceable-expression>)"
-        << EXP_ERR(exp));
-    data eval_result = scm_eval(data(exp[1]),env);
-    // if splicing a non-pair
-    if(!eval_result.is_type(types::par)) {
-      spliceable_data.push_back(unquote_splicing_atom(eval_result)); // add as-is
-      return unsplice_status::atom;                                  // trigger 'append'
-    }
-    // confirm an acyclic pair sequence otherwise
-    if(primitive_list_is_acyclic_and_null_terminated(eval_result) == list_status::cyclic)
-      THROW_ERR("'unquote-splicing "<<PROFILE(eval_result)<<" can't be spliced in with a cycle!"<<EXP_ERR(exp));
-    return expand_list_into_exp(eval_result.par,spliceable_data) ? unsplice_status::list_star : unsplice_status::list;
-  }
-
-
-  // Handle appending 'atomic' or 'list_star' data to a quasiquote expression
-  scm_list quasiquote_append_non_list(scm_list& spliceable_data, scm_list& quote_val,
-                                      const scm_list& exp,        const bool& is_dotted_list, 
-                                      const bool& quoting_vector, const bool& quoting_hmap, 
-                                      const bool& not_last_elt) {
-    static constexpr const char * const bad_vector = 
-      "'quasiquote can't append [via ,@] an improper list to a vector!\n     Tried to splice in: ";
-    static constexpr const char * const bad_hmap = 
-      "'quasiquote can't append [via ,@] an improper list to an hmap!\n     Tried to splice in: ";
-    static constexpr const char * const mid_splice = 
-      "'quasiquote can't splice [via ,@] an improper list into the middle of a list!\n     Tried to splice in: ";
-    // confirm not splicing a list_star/atomic into a vector nor mid-list
-    if(quoting_vector) {
-      if(is_dotted_list) THROW_ERR(bad_vector<<"(list_star "<<spliceable_data[0]<<' '<<spliceable_data[1]<<')'<<EXP_ERR(exp));
-      THROW_ERR(bad_vector<<spliceable_data[0]<<" of type \""<<spliceable_data[0].type_name()<<'"'<<EXP_ERR(exp));
-    }
-    if(quoting_hmap) {
-      if(is_dotted_list) THROW_ERR(bad_hmap<<"(list_star "<<spliceable_data[0]<<' '<<spliceable_data[1]<<')'<<EXP_ERR(exp));
-      THROW_ERR(bad_hmap<<spliceable_data[0]<<" of type \""<<spliceable_data[0].type_name()<<'"'<<EXP_ERR(exp));
-    }
-    if(not_last_elt && is_dotted_list)
-      THROW_ERR(mid_splice<<"(list_star "<<spliceable_data[0]<<' '<<spliceable_data[1]<<')'<<EXP_ERR(exp));
-    if(not_last_elt)
-      THROW_ERR(mid_splice<<spliceable_data[0]<<" of type \""<<spliceable_data[0].type_name()<<'"'<<EXP_ERR(exp));
-    // return the current expression as an 'append' to the quasiquote expression
-    scm_list appended_exp(3);
-    appended_exp[0] = symconst::append, appended_exp[1] = quote_val;
-    if(is_dotted_list) {
-      spliceable_data.insert(spliceable_data.begin(), symconst::list_star);
-      appended_exp[2] = spliceable_data;
-      return appended_exp;
-    }
-    appended_exp[2] = spliceable_data[0];
-    return appended_exp;
-  }
-
-
-  // Tag <quote_val> w/ 'vector 'list* or 'list as per <quoted_exp>
-  void tag_quote_val(scm_list& quoted_exp, scm_list& quote_val, const scm_list& exp) {
-    const bool is_vector      = is_vector_literal(quoted_exp);
-    const bool is_hmap        = is_hmap_literal(quoted_exp);
-    const bool is_dotted_list = is_quoted_cons(quoted_exp,symconst::quasiquote);
-    if(is_dotted_list && (is_hmap || is_vector)) {
-      if(is_vector) THROW_ERR("'quasiquote found unexpected dot ("<<G.dot<<") in 'vector-literal! -- ANALYZE_QUOTE_VECTOR"<<EXP_ERR(exp));
-      THROW_ERR("'quasiquote found unexpected dot ("<<G.dot<<") in 'hmap-literal! -- ANALYZE_QUOTE_HMAP"<<EXP_ERR(exp));
-    }
-    if(is_vector) {
-      quoted_exp.erase(quoted_exp.begin(),quoted_exp.begin()+1); // erase 'vector-literal tag
-      quote_val.push_back(symconst::vector);
-    } else if(is_hmap) {
-      quoted_exp.erase(quoted_exp.begin(),quoted_exp.begin()+1); // erase 'hmap-literal tag
-      quote_val.push_back(symconst::hmap);
-    } else if(is_dotted_list) {
-      quote_val.push_back(symconst::list_star);
-    } else {
-      quote_val.push_back(symconst::list);
-    }
-  }
-
-
-  // Recursively unquotes/unquote-splices data as needed w/in quasiquote templates.
-  // Also quotes each piece of data as needed.
-  void unquote_quasiquote_template(scm_list& quote_val, scm_list& quoted_exp, env_type& env, 
-                                   const scm_list& exp, const size_type& nested_level){
-    // Account for whether splicing into a vector/hmap
-    bool quoting_a_vector = (quote_val[0].sym == symconst::vector);
-    bool quoting_an_hmap  = (quote_val[0].sym == symconst::hmap);
-    
-    // Wrap 'quote' around each obj in the expression, and expand unquote/unquote-splicing instances
-    for(size_type i = 0, n = quoted_exp.size(); i < n; ++i) {
-      // if quoting an empty expression, push the empty list 
-      if(quoted_exp[i].is_type(types::exp) && quoted_exp[i].exp.empty()) {
-        quote_val.push_back(scm_list(2));
-        quote_val.rbegin()->exp[0] = symconst::quote;
-        quote_val.rbegin()->exp[1] = symconst::emptylist;
-
-
-      // UNQUOTE
-      } else if(quoted_exp[i].is_type(types::exp) && is_unquote(quoted_exp[i].exp)) {
-        if(!nested_level) { // if , add the data as-is
-          quote_val.push_back(quoted_exp[i].exp[1]);
-        } else { // in a nested quasiquote, recursively parse the unquote expression 1 level removed
-          scm_list inner_exp;
-          tag_quote_val(quoted_exp[i].exp, inner_exp, exp);
-          unquote_quasiquote_template(inner_exp, quoted_exp[i].exp, env, exp, nested_level - 1);
-          quote_val.push_back(inner_exp);
-        }
-      
-
-      // UNQUOTE-SPLICING      
-      } else if(quoted_exp[i].is_type(types::exp) && is_unquote_splicing(quoted_exp[i].exp)) {
-        if(!nested_level) { // if ,@ eval the expression & splice in the resulting list's elts
-          scm_list spliceable_data;
-          auto unsplice_stat = process_unquote_splicing(quoted_exp[i].exp, env, spliceable_data);
-          // If splicing the empty list, continue (does nothing)
-          if(unsplice_stat == unsplice_status::atom && data_is_the_AST_empty_list(spliceable_data[0]))
-            continue;
-          // If splicing in a list_star or atom
-          if(unsplice_stat == unsplice_status::list_star || unsplice_stat == unsplice_status::atom) {
-            quote_val = quasiquote_append_non_list(spliceable_data, quote_val, exp,
-                        (unsplice_stat == unsplice_status::list_star), quoting_a_vector, quoting_an_hmap, (i != n-1));
-            return;
-          // Otherwise (splicing a list), splice in data as-is
-          } else {
-            quote_val.insert(quote_val.end(), spliceable_data.begin(), spliceable_data.end());
-          }
-        } else { // in a nested quasiquote, recursively parse the unquote-splicing expression 1 level removed
-          scm_list inner_exp;
-          tag_quote_val(quoted_exp[i].exp, inner_exp, exp);
-          unquote_quasiquote_template(inner_exp, quoted_exp[i].exp, env, exp, nested_level - 1);
-          quote_val.push_back(inner_exp);
-        }
-        
-        
-      // else, quote the nested data
-      } else {
-        // if other expression, also recursively analyze for unquotes
-        if(quoted_exp[i].is_type(types::exp)) {
-          scm_list inner_exp;
-          // tag <inner_exp> as needed w/ either 'vector, 'list_star, or 'list
-          auto nested_expression_level = is_quasiquote(quoted_exp[i].exp) + nested_level;
-          tag_quote_val(quoted_exp[i].exp, inner_exp, exp);
-          // propagate quotations throughout the sub-expression
-          unquote_quasiquote_template(inner_exp, quoted_exp[i].exp, env, exp, nested_expression_level);
-          quote_val.push_back(inner_exp);
-        
-
-        // if atomic, simply quote the atom
-        } else {
-          quote_val.push_back(scm_list(2));
-          quote_val.rbegin()->exp[0] = symconst::quote;
-          quote_val.rbegin()->exp[1] = quoted_exp[i];
-        }
-      }
-    }
-  }
-
-
-  // Works similarly to 'analyze_quoted', except that quoted 'unquote's are
-  //   (wait for it) unquoted (BAYUM), and quoted 'unquote-splicing's are both
-  //   unquoted & expanded.
-  exe_fcn_t analyze_quasiquote(scm_list& exp,const bool cps_block=false) {
-    if(exp.size() != 2)
-      THROW_ERR("'quasiquote expects one argument: (quasiquote <expression>)"<<EXP_ERR(exp));
-    // Get quasiquoted data
-    auto quoted_data = text_of_quotation(exp);
-    
-    // If quasiquoted data is atomic, return as-is
-    if(!quoted_data.is_type(types::exp)) {
-      if(cps_block) return scm_analyze(generate_fundamental_form_cps(quoted_data),false,cps_block);
-      return [unquoted_exp=std::move(quoted_data)](env_type&){return unquoted_exp;};
-    }
-
-    // If quoting an empty expression, return the empty list
-    if(quoted_data.exp.empty()) {
-      if(cps_block) {
-        data quote_expr(scm_list(2));
-        quote_expr.exp[0] = symconst::quote, quote_expr.exp[1] = scm_list();
-        return scm_analyze(generate_fundamental_form_cps(quote_expr),false,cps_block);
-      }
-      return [](env_type&){return symconst::emptylist;};
-    }
-
-    // If quasiquoted an unquote, unpack its data
-    if(is_unquote(quoted_data.exp)) {
-      data unquoted_data = process_unquoted(quoted_data.exp);
-      // return the exec proc of its evaluation
-      if(cps_block) return scm_analyze(generate_fundamental_form_cps(unquoted_data),false,cps_block);
-      return scm_analyze(std::move(unquoted_data));
-    }
-
-    // If quasiquoted an expression, expand such into a list/list_star of quoted data
-    return [quoted_exp=std::move(quoted_data.exp),exp=std::move(exp),cps_block=std::move(cps_block)]
-      (env_type& env) {
-        // Unquote/Splice-In data as needed throughout the quasiquote template
-        scm_list quote_val, mutable_quoted_exp = quoted_exp;
-        // tag <quote_val> as needed w/ either 'vector, 'list_star, or 'list
-        tag_quote_val(mutable_quoted_exp, quote_val, exp);
-        // propagate quotations throughout the sub-expression
-        unquote_quasiquote_template(quote_val,mutable_quoted_exp,env,exp,0);
-        if(cps_block) return scm_analyze(generate_fundamental_form_cps(quote_val),false,true)(env);
-        return scm_eval(std::move(quote_val),env);
-      };
-  }
-
-  /******************************************************************************
   * REPRESENTING infix! infixr! unfix! SPECIAL FORMS: READER MANIPULATION
   ******************************************************************************/
 
@@ -2277,8 +2009,7 @@ namespace heist {
   // Heist-specific checker to not prefix C++ derived special forms w/ application tag
   bool is_HEIST_cpp_derived_special_form(const sym_type& app)noexcept{
     return app == symconst::cps_quote || app == symconst::scm_cps    || app == symconst::map_literal ||
-           app == symconst::while_t   || app == symconst::quasiquote || app == symconst::vec_literal || 
-           app == symconst::unquote   || app == symconst::unquo_splice;
+           app == symconst::while_t   || app == symconst::vec_literal;
   }
 
 
@@ -4687,7 +4418,6 @@ namespace heist {
     else if(is_scm_cps(datum.exp))           return analyze_scm_cps(datum.exp);
     else if(is_cps_quote(datum.exp))         return analyze_cps_quote(datum.exp,cps_block);
     else if(is_using_cpsp(datum.exp))        return analyze_using_cpsp(datum.exp,cps_block);
-    else if(is_quasiquote(datum.exp))        return analyze_quasiquote(datum.exp,cps_block);
     else if(is_core_syntax(datum.exp))       return analyze_core_syntax(datum.exp,cps_block);
     else if(is_define_syntax(datum.exp))     return analyze_define_syntax(datum.exp,cps_block);
     else if(is_syntax_rules(datum.exp))      return analyze_syntax_rules(datum.exp);
