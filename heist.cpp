@@ -3873,8 +3873,8 @@ namespace heist {
       // Unkown macro value: ERROR!
       } else {
         THROW_ERR("HEIST MACRO EXPANDER: UNKNOWN MACRO VALUE " << PROFILE(mac)
-        << "\n     CURRENTLY ONLY SUPPORTING SYNTAX-RULES OBJECTS & PROCEDURES!" 
-        << FCN_ERR(label,args));
+          << "\n     CURRENTLY ONLY SUPPORTING SYNTAX-RULES OBJECTS & PROCEDURES!" 
+          << FCN_ERR(label,args));
       }
     }
     return false;
@@ -3883,7 +3883,7 @@ namespace heist {
 
   // Returns whether the given label & args form a macro found in 'env'.
   // If true, it also transforms the macro by expanding it into 'expanded_exp'
-  bool expand_macro_if_in_env(const sym_type& label, scm_list args, 
+  bool expand_macro_if_in_env(const sym_type& label,scm_list args, 
                               env_type& env,scm_list& expanded_exp){
     env_type env_iterator = env;
     hash_all_ellipsis_in_macro_args(args);
