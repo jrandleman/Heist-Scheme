@@ -150,15 +150,15 @@ static constexpr const char* HELP_MENU_PROCEDURES_CHARS[] = {
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_STRINGS[] = {
-  "string",           "make-string",       "string-unfold",     "string-unfold-right", 
-  "string-pad",       "string-pad-right",  "string-trim",       "string-trim-right", 
-  "string-trim-both", "string-replace",    "string-contains",   "string-contains-right", 
-  "string-join",      "string-split",      "string-swap!",      "string-push!", 
-  "string-pop!",      "string-empty?",     "string-copy!",      "string=?",
-  "string<?",         "string>?",          "string<=?",         "string>=?",
-  "string-ci=?",      "string-ci<?",       "string-ci>?",       "string-ci<=?",
-  "string-ci>=?",     "regex-replace",     "regex-replace-all", "regex-match",
-  "regex-split", 
+  "string",             "make-string",      "string-unfold",     "string-unfold-right", 
+  "string-pad",         "string-pad-right", "string-trim",       "string-trim-right", 
+  "string-trim-both",   "string-replace",   "string-contains",   "string-contains-right", 
+  "string-join",        "string-split",     "string-swap!",      "string-push-back!", 
+  "string-push-front!", "string-pop-back!", "string-pop-front!", "string-empty?",
+  "string-copy!",       "string=?",         "string<?",          "string>?",
+  "string<=?",          "string>=?",        "string-ci=?",       "string-ci<?",
+  "string-ci>?",        "string-ci<=?",     "string-ci>=?",      "regex-replace",
+  "regex-replace-all",  "regex-match",      "regex-split", 
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_PAIRS[] = {
@@ -172,10 +172,10 @@ static constexpr const char* HELP_MENU_PROCEDURES_PAIRS[] = {
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_VECTORS[] = {
-  "vector",                      "make-vector",   "vector-push!",        "vector-pop!", 
-  "vector-iota",                 "vector-unfold", "vector-unfold-right", "vector-grow",
-  "vector-empty?",               "vector-copy!",  "vector-swap!",        "vector-binary-search", 
-  "vector-get-all-combinations", 
+  "vector",              "make-vector",          "vector-push-back!",           "vector-push-front!", 
+  "vector-pop-back!",    "vector-pop-front!",    "vector-iota",                 "vector-unfold", 
+  "vector-unfold-right", "vector-grow",          "vector-empty?",               "vector-copy!",  
+  "vector-swap!",        "vector-binary-search", "vector-get-all-combinations", 
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_HMAPS[] = {
@@ -5467,10 +5467,10 @@ Swap string pointers.
 
 
 }, {
-"string-push!",
+"string-push-back!",
 "Procedure",
 R"(
-(string-push! <string> <char>)
+(string-push-back! <string> <char>)
 )",
 R"(
 Mutate <string> by pushing <char> to its end.
@@ -5481,13 +5481,41 @@ Mutate <string> by pushing <char> to its end.
 
 
 }, {
-"string-pop!",
+"string-push-front!",
 "Procedure",
 R"(
-(string-pop! <string>)
+(string-push-front! <string> <char>)
+)",
+R"(
+Mutate <string> by pushing <char> to its front.
+)",
+
+
+
+
+
+}, {
+"string-pop-back!",
+"Procedure",
+R"(
+(string-pop-back! <string>)
 )",
 R"(
 Mutate <string> by popping its last character.
+)",
+
+
+
+
+
+}, {
+"string-pop-front!",
+"Procedure",
+R"(
+(string-pop-front! <string>)
+)",
+R"(
+Mutate <string> by popping its first character.
 )",
 
 
@@ -6149,10 +6177,10 @@ Create a vector of length <size> with values initialized to <fill-value>.
 
 
 }, {
-"vector-push!",
+"vector-push-back!",
 "Procedure",
 R"(
-(vector-push! <vector> <obj>)
+(vector-push-back! <vector> <obj>)
 )",
 R"(
 Mutatate <vector> by pushing <obj> to its end.
@@ -6163,13 +6191,41 @@ Mutatate <vector> by pushing <obj> to its end.
 
 
 }, {
-"vector-pop!",
+"vector-push-front!",
 "Procedure",
 R"(
-(vector-pop! <vector>)
+(vector-push-front! <vector> <obj>)
+)",
+R"(
+Mutatate <vector> by pushing <obj> to its front.
+)",
+
+
+
+
+
+}, {
+"vector-pop-back!",
+"Procedure",
+R"(
+(vector-pop-back! <vector>)
 )",
 R"(
 Mutatate <vector> by popping its last value.
+)",
+
+
+
+
+
+}, {
+"vector-pop-front!",
+"Procedure",
+R"(
+(vector-pop-front! <vector>)
+)",
+R"(
+Mutatate <vector> by popping its first value.
 )",
 
 

@@ -1177,34 +1177,64 @@ namespace heist {
     return GLOBALS::VOID_DATA_OBJECT;
   }
 
-  // primitive "string-push!" procedure:
-  data primitive_STRING_PUSH_BANG(scm_list& args) {
+  // primitive "string-push-back!" procedure:
+  data primitive_STRING_PUSH_BACK_BANG(scm_list& args) {
     static constexpr const char * const format = 
-      "\n     (string-push! <string> <char>)";
-    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-push!",primitive_STRING_PUSH_BANG,args);
+      "\n     (string-push-back! <string> <char>)";
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-push-back!",primitive_STRING_PUSH_BACK_BANG,args);
     if(args.size() != 2)
-      THROW_ERR("'string-push! received incorrect # of args (given " 
+      THROW_ERR("'string-push-back! received incorrect # of args (given " 
         << args.size() << "):" << format 
-        << FCN_ERR("string-push!", args));
+        << FCN_ERR("string-push-back!", args));
     if(!args[0].is_type(types::str))
-      THROW_ERR("'string-push! 1st arg "<<PROFILE(args[0])<<" isn't a string:" 
-        << format << FCN_ERR("string-push!", args));
+      THROW_ERR("'string-push-back! 1st arg "<<PROFILE(args[0])<<" isn't a string:" 
+        << format << FCN_ERR("string-push-back!", args));
     if(!args[1].is_type(types::chr))
-      THROW_ERR("'string-push! 2nd arg "<<PROFILE(args[1])<<" isn't a character:" 
-        << format << FCN_ERR("string-push!", args));
+      THROW_ERR("'string-push-back! 2nd arg "<<PROFILE(args[1])<<" isn't a character:" 
+        << format << FCN_ERR("string-push-back!", args));
     args[0].str->push_back(char(args[1].chr));
     return GLOBALS::VOID_DATA_OBJECT;
   }
 
-  // primitive "string-pop!" procedure:
-  data primitive_STRING_POP_BANG(scm_list& args) {
-    primitive_confirm_valid_string_arg(args, 1, "string-pop!", "\n     (string-pop! <string>)");
+  // primitive "string-push-front!" procedure:
+  data primitive_STRING_PUSH_FRONT_BANG(scm_list& args) {
+    static constexpr const char * const format = 
+      "\n     (string-push-front! <string> <char>)";
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-push-front!",primitive_STRING_PUSH_FRONT_BANG,args);
+    if(args.size() != 2)
+      THROW_ERR("'string-push-front! received incorrect # of args (given " 
+        << args.size() << "):" << format 
+        << FCN_ERR("string-push-front!", args));
+    if(!args[0].is_type(types::str))
+      THROW_ERR("'string-push-front! 1st arg "<<PROFILE(args[0])<<" isn't a string:" 
+        << format << FCN_ERR("string-push-front!", args));
+    if(!args[1].is_type(types::chr))
+      THROW_ERR("'string-push-front! 2nd arg "<<PROFILE(args[1])<<" isn't a character:" 
+        << format << FCN_ERR("string-push-front!", args));
+    *args[0].str = char(args[1].chr) + *args[0].str;
+    return GLOBALS::VOID_DATA_OBJECT;
+  }
+
+  // primitive "string-pop-back!" procedure:
+  data primitive_STRING_POP_BACK_BANG(scm_list& args) {
+    primitive_confirm_valid_string_arg(args, 1, "string-pop-back!", "\n     (string-pop-back! <string>)");
     if(args[0].str->empty())
-      THROW_ERR("'string-pop! can't pop chars from an empty string!"
-        "\n     (string-pop! <string>)" << FCN_ERR("string-pop!",args));
+      THROW_ERR("'string-pop-back! can't pop chars from an empty string!"
+        "\n     (string-pop-back! <string>)" << FCN_ERR("string-pop-back!",args));
     data last_item = chr_type(*args[0].str->rbegin());
     args[0].str->pop_back();
     return last_item;
+  }
+
+  // primitive "string-pop-front!" procedure:
+  data primitive_STRING_POP_FRONT_BANG(scm_list& args) {
+    primitive_confirm_valid_string_arg(args, 1, "string-pop-front!", "\n     (string-pop-front! <string>)");
+    if(args[0].str->empty())
+      THROW_ERR("'string-pop-front! can't pop chars from an empty string!"
+        "\n     (string-pop-front! <string>)" << FCN_ERR("string-pop-front!",args));
+    data first_item = chr_type(*args[0].str->begin());
+    args[0].str->erase(args[0].str->begin());
+    return first_item;
   }
 
   // primitive "string-empty?" procedure:
@@ -2119,23 +2149,42 @@ namespace heist {
     return vect;
   }
 
-  // primitive "vector-push!" procedure:
-  data primitive_VECTOR_PUSH_BANG(scm_list& args) {
-    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("vector-push!",primitive_VECTOR_PUSH_BANG,args);
-    primitive_confirm_valid_vector_arg(args, 2, "vector-push!", "\n     (vector-push! <vector> <obj>)");
+  // primitive "vector-push-back!" procedure:
+  data primitive_VECTOR_PUSH_BACK_BANG(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("vector-push-back!",primitive_VECTOR_PUSH_BACK_BANG,args);
+    primitive_confirm_valid_vector_arg(args, 2, "vector-push-back!", "\n     (vector-push-back! <vector> <obj>)");
     args[0].vec->push_back(args[1]);
     return GLOBALS::VOID_DATA_OBJECT;
   }
 
-  // primitive "vector-pop!" procedure:
-  data primitive_VECTOR_POP_BANG(scm_list& args) {
-    primitive_confirm_valid_vector_arg(args, 1, "vector-pop!", "\n     (vector-pop! <vector>)");
+  // primitive "vector-push-front!" procedure:
+  data primitive_VECTOR_PUSH_FRONT_BANG(scm_list& args) {
+    if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("vector-push-front!",primitive_VECTOR_PUSH_FRONT_BANG,args);
+    primitive_confirm_valid_vector_arg(args, 2, "vector-push-front!", "\n     (vector-push-front! <vector> <obj>)");
+    args[0].vec->insert(args[0].vec->begin(), args[1]);
+    return GLOBALS::VOID_DATA_OBJECT;
+  }
+
+  // primitive "vector-pop-back!" procedure:
+  data primitive_VECTOR_POP_BACK_BANG(scm_list& args) {
+    primitive_confirm_valid_vector_arg(args, 1, "vector-pop-back!", "\n     (vector-pop-back! <vector>)");
     if(args[0].vec->empty())
-      THROW_ERR("'vector-pop! can't pop items from an empty vector!"
-        "\n     (vector-pop! <vector>)" << FCN_ERR("vector-pop!",args));
+      THROW_ERR("'vector-pop-back! can't pop items from an empty vector!"
+        "\n     (vector-pop-back! <vector>)" << FCN_ERR("vector-pop-back!",args));
     data last_item = *args[0].vec->rbegin();
     args[0].vec->pop_back();
     return last_item;
+  }
+
+  // primitive "vector-pop-front!" procedure:
+  data primitive_VECTOR_POP_FRONT_BANG(scm_list& args) {
+    primitive_confirm_valid_vector_arg(args, 1, "vector-pop-front!", "\n     (vector-pop-front! <vector>)");
+    if(args[0].vec->empty())
+      THROW_ERR("'vector-pop-front! can't pop items from an empty vector!"
+        "\n     (vector-pop-front! <vector>)" << FCN_ERR("vector-pop-front!",args));
+    data first_item = *args[0].vec->begin();
+    args[0].vec->erase(args[0].vec->begin());
+    return first_item;
   }
 
   // primitive "vector-iota" procedure:
@@ -6179,25 +6228,27 @@ namespace heist {
     std::make_pair(primitive_CHAR_UPCASE,        "char-upcase"),
     std::make_pair(primitive_CHAR_DOWNCASE,      "char-downcase"),
 
-    std::make_pair(primitive_MAKE_STRING,           "make-string"),
-    std::make_pair(primitive_STRING,                "string"),
-    std::make_pair(primitive_STRING_UNFOLD,         "string-unfold"),
-    std::make_pair(primitive_STRING_UNFOLD_RIGHT,   "string-unfold-right"),
-    std::make_pair(primitive_STRING_PAD,            "string-pad"),
-    std::make_pair(primitive_STRING_PAD_RIGHT,      "string-pad-right"),
-    std::make_pair(primitive_STRING_TRIM,           "string-trim"),
-    std::make_pair(primitive_STRING_TRIM_RIGHT,     "string-trim-right"),
-    std::make_pair(primitive_STRING_TRIM_BOTH,      "string-trim-both"),
-    std::make_pair(primitive_STRING_REPLACE,        "string-replace"),
-    std::make_pair(primitive_STRING_CONTAINS,       "string-contains"),
-    std::make_pair(primitive_STRING_CONTAINS_RIGHT, "string-contains-right"),
-    std::make_pair(primitive_STRING_JOIN,           "string-join"),
-    std::make_pair(primitive_STRING_SPLIT,          "string-split"),
-    std::make_pair(primitive_STRING_SWAP_BANG,      "string-swap!"),
-    std::make_pair(primitive_STRING_PUSH_BANG,      "string-push!"),
-    std::make_pair(primitive_STRING_POP_BANG,       "string-pop!"),
-    std::make_pair(primitive_STRING_EMPTYP,         "string-empty?"),
-    std::make_pair(primitive_STRING_COPY_BANG,      "string-copy!"),
+    std::make_pair(primitive_MAKE_STRING,            "make-string"),
+    std::make_pair(primitive_STRING,                 "string"),
+    std::make_pair(primitive_STRING_UNFOLD,          "string-unfold"),
+    std::make_pair(primitive_STRING_UNFOLD_RIGHT,    "string-unfold-right"),
+    std::make_pair(primitive_STRING_PAD,             "string-pad"),
+    std::make_pair(primitive_STRING_PAD_RIGHT,       "string-pad-right"),
+    std::make_pair(primitive_STRING_TRIM,            "string-trim"),
+    std::make_pair(primitive_STRING_TRIM_RIGHT,      "string-trim-right"),
+    std::make_pair(primitive_STRING_TRIM_BOTH,       "string-trim-both"),
+    std::make_pair(primitive_STRING_REPLACE,         "string-replace"),
+    std::make_pair(primitive_STRING_CONTAINS,        "string-contains"),
+    std::make_pair(primitive_STRING_CONTAINS_RIGHT,  "string-contains-right"),
+    std::make_pair(primitive_STRING_JOIN,            "string-join"),
+    std::make_pair(primitive_STRING_SPLIT,           "string-split"),
+    std::make_pair(primitive_STRING_SWAP_BANG,       "string-swap!"),
+    std::make_pair(primitive_STRING_PUSH_BACK_BANG,  "string-push-back!"),
+    std::make_pair(primitive_STRING_PUSH_FRONT_BANG, "string-push-front!"),
+    std::make_pair(primitive_STRING_POP_BACK_BANG,   "string-pop-back!"),
+    std::make_pair(primitive_STRING_POP_FRONT_BANG,  "string-pop-front!"),
+    std::make_pair(primitive_STRING_EMPTYP,          "string-empty?"),
+    std::make_pair(primitive_STRING_COPY_BANG,       "string-copy!"),
 
     std::make_pair(primitive_STRING_EQP,    "string=?"),
     std::make_pair(primitive_STRING_LT,     "string<?"),
@@ -6296,8 +6347,10 @@ namespace heist {
 
     std::make_pair(primitive_VECTOR,                      "vector"),
     std::make_pair(primitive_MAKE_VECTOR,                 "make-vector"),
-    std::make_pair(primitive_VECTOR_PUSH_BANG,            "vector-push!"),
-    std::make_pair(primitive_VECTOR_POP_BANG,             "vector-pop!"),
+    std::make_pair(primitive_VECTOR_PUSH_BACK_BANG,       "vector-push-back!"),
+    std::make_pair(primitive_VECTOR_PUSH_FRONT_BANG,      "vector-push-front!"),
+    std::make_pair(primitive_VECTOR_POP_BACK_BANG,        "vector-pop-back!"),
+    std::make_pair(primitive_VECTOR_POP_FRONT_BANG,       "vector-pop-front!"),
     std::make_pair(primitive_VECTOR_IOTA,                 "vector-iota"),
     std::make_pair(primitive_VECTOR_EMPTYP,               "vector-empty?"),
     std::make_pair(primitive_VECTOR_GROW,                 "vector-grow"),
