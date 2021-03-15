@@ -289,10 +289,10 @@ static constexpr const char* HELP_MENU_PROCEDURES_CONTROLFLOW[] = {
 static constexpr const char* HELP_MENU_PROCEDURES_CALLCC[] = {}; // direct link
 
 static constexpr const char* HELP_MENU_PROCEDURES_SYNTAX[] = {
-  "expand",               "expand*",            "core-expand",       "core-expand*",
-  "core-syntax?",         "runtime-syntax?",    "reader-alias?",     "reader-syntax?",
-  "define-reader-syntax", "reader-syntax-list", "reader-alias-list", "set-core-syntax!", 
-  "set-runtime-syntax!",  "infix-list", 
+  "expand",                 "expand*",            "core-expand",       "core-expand*",
+  "core-syntax?",           "runtime-syntax?",    "reader-alias?",     "reader-syntax?",
+  "define-reader-syntax",   "reader-syntax-list", "reader-alias-list", "delete-core-syntax!", 
+  "delete-runtime-syntax!", "infix-list", 
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_JSON[] = {
@@ -10256,16 +10256,13 @@ Get an alist of the current reader aliases & names!
 
 
 }, {
-"set-core-syntax!",
+"delete-core-syntax!",
 "Procedure",
 R"(
-(set-core-syntax! <old-name-symbol> <optional-new-name-symbol>)
+(delete-core-syntax! <macro-name-symbol> ...)
 )",
 R"(
-Mutate core syntax labels (that were defined by "core-syntax")!
-  *) If given only old name: DELETES <old-name-symbol> as core-syntax
-  *) If given both old & new name: RENAMES syntax's old name to new name
-     => Also recursively renames all recursive calls to the macro in its templates!
+Delete core syntax labels (that were defined by "core-syntax")!
 )",
 
 
@@ -10273,16 +10270,13 @@ Mutate core syntax labels (that were defined by "core-syntax")!
 
 
 }, {
-"set-runtime-syntax!",
+"delete-runtime-syntax!",
 "Procedure",
 R"(
-(set-runtime-syntax! <old-name-symbol> <optional-new-name-symbol>)
+(delete-runtime-syntax! <macro-name-symbol> ...)
 )",
 R"(
-Mutate runtime syntax labels (that were defined by "define-syntax")!
-  *) If given only old name: DELETES <old-name-symbol> as runtime-syntax
-  *) If given both old & new name: RENAMES syntax's old name to new name
-     => Also recursively renames all recursive calls to the macro in its templates!
+Delete runtime syntax labels (that were defined by "define-syntax")!
 )",
 
 
