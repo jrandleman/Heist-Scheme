@@ -507,8 +507,8 @@ namespace help {
     puts("\nWelcome to Heist Scheme's help menu!\n\n"
          "Enter a query/language-feature in order to get more details about it.\n"
          "Enter \"quit\" to quit.\n\n"
-         "To get a list of topics, documentation, types, constants, special forms,\n"
-         "primitive variables, or primitive procedures, type \"topics\", \"documentation\"\n"
+         "To get a list of topics, documentation, types, math constants, special forms,\n"
+         "primitive variables, or primitive procedures, type \"topics\", \"documentation\",\n"
          "\"types\", \"constants\", \"specials\", \"variables\", or \"procedures\".\n");
     menu::menu_driver_loop();
   }
