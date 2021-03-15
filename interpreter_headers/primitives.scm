@@ -303,23 +303,6 @@
     (lambda (lst) (and (eq? (car lst) 'append) (= (length lst) 2))) 
     cadr))
 
-; (append) => '()
-(define (heist:core:quasiquote:collapse-nullary-appends lst)
-  (heist:core:quasiquote:optimization-pass 
-    lst 
-    (lambda (lst) (and (eq? (car lst) 'append) (null? (cdr lst)))) 
-    (lambda (lst) ''())))
-
-; (quote <number|string|boolean>) => <number|string|boolean>
-(define (heist:core:quasiquote:quote-atomic? datum)
-  (or (boolean? datum) (string? datum) (number? datum) (char? datum)))
-
-(define (heist:core:quasiquote:unwrap-atomic-quotes lst)
-  (heist:core:quasiquote:optimization-pass 
-    lst 
-    (lambda (lst) (and (eq? (car lst) 'quote) (= (length lst) 2) (heist:core:quasiquote:quote-atomic? (cadr lst)))) 
-    cadr))
-
 ; (append (list item ...) ...) => (list item ... ...)
 (define (heist:core:quasiquote:redundant-append? append-exprs)
   (null? (filter \(not (and (pair? %1) (eq? (car %1) 'list))) append-exprs)))
@@ -333,9 +316,7 @@
 ; Optimize generated code
 (define (heist:core:quasiquote:optimize lst)
   (heist:core:quasiquote:unwrap-redundant-appends
-    (heist:core:quasiquote:unwrap-atomic-quotes
-      (heist:core:quasiquote:collapse-nullary-appends 
-        (heist:core:quasiquote:unwrap-unary-appends lst)))))
+    (heist:core:quasiquote:unwrap-unary-appends lst)))
 
 ; Convert a list to an hmap
 (define (heist:core:quasiquote:list->hmap lst)
