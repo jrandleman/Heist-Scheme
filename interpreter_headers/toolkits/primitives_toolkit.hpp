@@ -4999,6 +4999,20 @@ namespace heist {
     }
   }
 
+
+  // PRECONDITION: !args.empty() && confirm_only_symbol_args(args,name,format)
+  void remove_args_referencing_core_syntax(scm_list& args)noexcept{
+    for(size_type i = 0; i < args.size();) {
+      if(std::find(G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.begin(),
+                   G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.end(),
+                   args[i].sym) != G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.end()) {
+        args.erase(args.begin()+i);
+      } else {
+        ++i;
+      }
+    }
+  }
+
   /******************************************************************************
   * READER MACRO DEFINITION / DELETION PRIMITIVE HELPER
   ******************************************************************************/

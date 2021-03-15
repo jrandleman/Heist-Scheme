@@ -5344,8 +5344,9 @@ namespace heist {
   data primitive_DELETE_RUNTIME_SYNTAX_BANG(scm_list& args) {
     auto env = args.rbegin()->env;
     args.pop_back();
-    if(args.empty()) return GLOBALS::VOID_DATA_OBJECT;
     confirm_only_symbol_args(args,"delete-runtime-syntax!","\n     (delete-runtime-syntax! <macro-name-symbol> ...)");
+    remove_args_referencing_core_syntax(args);
+    if(args.empty()) return GLOBALS::VOID_DATA_OBJECT;
     return boolean(erase_all_macro_labels_from_env(args,env));
   }
 

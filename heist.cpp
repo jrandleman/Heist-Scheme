@@ -4103,7 +4103,7 @@ namespace heist {
   bool is_define_syntax(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::defn_syn);}
 
 
-  void register_symbol_iff_new(std::vector<sym_type>& registry, const sym_type& label) {
+  void register_symbol_iff_new(std::vector<sym_type>& registry, const sym_type& label)noexcept{
     for(const auto& macro_label : registry)
       if(macro_label == label)
         return;
