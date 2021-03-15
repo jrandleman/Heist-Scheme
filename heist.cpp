@@ -4108,7 +4108,7 @@ namespace heist {
   }
 
   /******************************************************************************
-  * APPLICATION
+  * APPLICATION EXECUTION
   ******************************************************************************/
 
   // -- STACK TRACE REGISTRATION
@@ -4340,14 +4340,8 @@ namespace heist {
   }
 
   /******************************************************************************
-  * ANALYSIS & EVALUATION
+  * APPLICATION
   ******************************************************************************/
-
-  // -- EVAL 
-  data scm_eval(data&& datum, env_type& env) { // evaluate expression environment
-    return scm_analyze(std::move(datum))(env);
-  }
-
 
   // Analyzes the operator & operands, then returns an exec proc passing 
   //   both the operator/operand proc exec's to 'execute-application'
@@ -4400,6 +4394,14 @@ namespace heist {
     };
   }
 
+  /******************************************************************************
+  * ANALYSIS & EVALUATION
+  ******************************************************************************/
+
+  // -- EVAL 
+  data scm_eval(data&& datum, env_type& env) { // evaluate expression environment
+    return scm_analyze(std::move(datum))(env);
+  }
 
   // -- ANALYZE (SYNTAX)
   exe_fcn_t scm_analyze(data&& datum,const bool tail_call,const bool cps_block) { // analyze expression
