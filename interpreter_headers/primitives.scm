@@ -408,7 +408,7 @@
 (define (heist:oo:anon:methods=? lhs rhs pred?) ; checks NAME equality
   (pred? (hmap-keys (object-methods lhs)) (hmap-keys (object-methods rhs))))
 
-(define (heist:oo:anon:equality self obj pred?)
+(define (heist:oo:anon:equal? self obj pred?)
   (and (object? obj) 
        (eq? 'heist:oo:anon:prototype (proto-name obj.prototype))
        (heist:oo:anon:methods=? self obj pred?)
@@ -422,9 +422,9 @@
         (defclass heist:oo:anon:prototype ()
           (name value) ...
           ((equal? obj) ; structural equality (w/o prototype)
-            (heist:oo:anon:equality self obj equal?))
+            (heist:oo:anon:equal? self obj equal?))
           ((eqv? obj) ; structural equality (w/o prototype)
-            (heist:oo:anon:equality self obj eqv?)))
+            (heist:oo:anon:equal? self obj eqv?)))
         (new-heist:oo:anon:prototype)))))
 
 ;; ==================================================================
