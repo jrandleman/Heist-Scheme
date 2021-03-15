@@ -42,7 +42,11 @@
 (infix! 3 &&)
 (infix! 2 ||)
 
-(define-reader-alias -> lambda)
+(core-syntax ->
+  (syntax-rules ()
+    ((_ () b ...) (lambda () b ...))
+    ((_ (a ...) b ...) (lambda (a ...) b ...))
+    ((_ a b ...) (lambda (a) b ...))))
 (infix! 1 ->)
 
 (core-syntax    = (syntax-rules () ((_ n v) (define n v))))
