@@ -3979,9 +3979,9 @@ namespace heist {
 
     // Confirm just appended a valid open/close paren to 'input'
     bool is_valid_open_exp(const scm_string &input,  const size_type& paren_count,
-                           const bool& possible_vect,const bool& found_non_reader_syntax_data)noexcept{
+                           const bool& possible_vect,const bool& possible_hmap,const bool& found_non_reader_syntax_data)noexcept{
       return IS_OPEN_PAREN(*input.rbegin()) && !input_ends_with_char_prefix(input,1)
-                                            && (paren_count || !found_non_reader_syntax_data || possible_vect);
+                                            && (paren_count || !found_non_reader_syntax_data || possible_vect || possible_hmap);
     }
 
 
@@ -4015,7 +4015,7 @@ namespace heist {
     // input parsing variables & status trackers
     scm_string input;
     int ch;
-    bool in_a_string   = false, possible_vect=false,  found_non_reader_syntax_data=false;
+    bool in_a_string   = false, possible_vect=false,  possible_hmap=false, found_non_reader_syntax_data=false;
     bool possible_char = false, confirmed_char=false, parsing_a_char=false;
     bool possible_multi_line_comment_end=false, in_a_single_line_comment=false;
     bool possible_multi_line_comment=false,     in_a_multi_line_comment=false;
@@ -4106,6 +4106,8 @@ namespace heist {
       if(possible_char && ch != '\\') possible_char = false;
       // check whether at a vector
       if(possible_vect && !IS_OPEN_PAREN(ch)) possible_vect = false;
+      // check whether at an hmap
+      if(possible_hmap && !IS_OPEN_PAREN(ch)) possible_hmap = false;
 
       // check if at a string
       if(ch == '"' && !read_port::input_ends_with_char_prefix(input,1) && 
@@ -4119,7 +4121,7 @@ namespace heist {
       }
 
       // check if at an expression or vector => PARSES BOTH!
-      else if(read_port::is_valid_open_exp(input,paren_count,possible_vect,
+      else if(read_port::is_valid_open_exp(input,paren_count,possible_vect,possible_hmap,
                                                        found_non_reader_syntax_data))
         possible_vect = false, ++paren_count;
       // check if at a closing expression
@@ -4142,6 +4144,10 @@ namespace heist {
 
       // continue parsing if in an expression
       else if(paren_count) continue;
+
+      // check if at an hmap
+      else if(ch == '$' && !found_non_reader_syntax_data)
+        possible_hmap = true;
 
       // check if at a char, vector
       else if(ch == '#' && !found_non_reader_syntax_data) 
