@@ -144,7 +144,7 @@ namespace heist {
 
 
   bool primitive_data_is_a_callable(const data& d)noexcept{
-    return d.is_type(types::fcn) || primitive_data_is_a_functor(d);
+    return d.is_type(types::fcn) || d.is_type(types::cls) || primitive_data_is_a_functor(d);
   }
 
 
@@ -166,6 +166,8 @@ namespace heist {
 
   // PRECONDITION: primitive_data_is_a_callable(d)
   data primitive_extract_callable_procedure(data& d)noexcept{
+    // handle class prototypes (constructors)
+    if(d.is_type(types::cls)) return d.cls->user_ctor;
     // handle primitive or compound procedure
     if(!d.is_type(types::obj)) return d;
     // handle functor
@@ -5888,9 +5890,9 @@ namespace heist {
 
   void throw_too_many_values_in_OO_initialization(scm_list& args, cls_type& class_proto_obj, object_type& obj, 
                                                               const char* format, const char* container_name){
-    THROW_ERR("'make-"<< class_proto_obj->class_name<<' '<<container_name<<' '<< args[1] << " has more values than"
+    THROW_ERR('\''<< class_proto_obj->class_name<<' '<<container_name<<' '<< args[1] << " has more values than"
       "\n     " << data(class_proto_obj) << " has members (has "<<obj.member_values.size()
-      <<" members)!" << format << FCN_ERR("'make-"+class_proto_obj->class_name,args));
+      <<" members)!" << format << FCN_ERR('\''+class_proto_obj->class_name,args));
   }
 
 
@@ -5899,17 +5901,17 @@ namespace heist {
     for(auto& keyval : args[1].map->val) {
       auto key = scm_map::unhash_key(keyval.first);
       if(!key.is_type(types::sym))
-        THROW_ERR("'make-"<< class_proto_obj->class_name<<" member-name key "<<PROFILE(key) 
-          << " isn't a symbol!" << format << FCN_ERR("'make-"+class_proto_obj->class_name,args));
+        THROW_ERR('\''<< class_proto_obj->class_name<<" member-name key "<<PROFILE(key) 
+          << " isn't a symbol!" << format << FCN_ERR('\''+class_proto_obj->class_name,args));
       for(size_type i = 0; i < total_members; ++i) {
         if(obj.member_names[i] == key.sym) {
           obj.member_values[i] = keyval.second;
           goto next_member;
         }
       }
-      THROW_ERR("'make-"<<class_proto_obj->class_name<<" member-name key "<<PROFILE(key) 
+      THROW_ERR('\''<<class_proto_obj->class_name<<" member-name key "<<PROFILE(key) 
         << " isn't a member name in class-obj "<<PROFILE(args[0])<<'!' 
-        << format << FCN_ERR("'make-"+class_proto_obj->class_name,args));
+        << format << FCN_ERR('\''+class_proto_obj->class_name,args));
       next_member: continue;
     }
     return make_obj(std::move(obj));
@@ -5927,8 +5929,8 @@ namespace heist {
 
   data initialize_OO_ctord_object_LIST(scm_list& args, cls_type& class_proto_obj, object_type& obj, const char* format){
     if(!data_is_proper_list(args[1]))
-      THROW_ERR("'make-"<< class_proto_obj->class_name<<" arg "<<PROFILE(args[1]) 
-        << " isn't a proper list!" << format << FCN_ERR("'make-"+class_proto_obj->class_name,args));
+      THROW_ERR('\''<< class_proto_obj->class_name<<" arg "<<PROFILE(args[1]) 
+        << " isn't a proper list!" << format << FCN_ERR('\''+class_proto_obj->class_name,args));
     const size_type n = obj.member_values.size();
     size_type i = 0;
     data iter = args[1];

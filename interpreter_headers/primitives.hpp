@@ -5711,9 +5711,9 @@ namespace heist {
       case types::vec: return initialize_OO_ctord_object_VECT(args,class_proto_obj,obj,format);
       case types::par: return initialize_OO_ctord_object_LIST(args,class_proto_obj,obj,format);
       default:
-        THROW_ERR("'make-"<< class_proto_obj->class_name<<" arg "<<PROFILE(args[1]) 
+        THROW_ERR('\''<< class_proto_obj->class_name<<" arg "<<PROFILE(args[1]) 
           << " isn't a container of member values!" << format 
-          << FCN_ERR("'make-"+class_proto_obj->class_name,args));
+          << FCN_ERR('\''+class_proto_obj->class_name,args));
     }
     return data(); // never triggered
   }

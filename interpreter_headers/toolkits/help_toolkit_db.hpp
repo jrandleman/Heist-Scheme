@@ -741,6 +741,9 @@ R"(
 Meta-objects outlining structure of objects. Enables single-inheritance,
 members, methods, a ctor, and limited polymorphism. Created via "defclass".
 
+Polymorphic upon application with the user-defined "defclass" constructor.
+If constructor is undefined by user, it will be generated.
+
 Analyze prototypes via the "proto-name" "proto-members" "proto-methods" & 
 "proto-super" primitives. Dynamically add properties to prototypes via the 
 "proto-add-property!" primitive.
@@ -752,6 +755,9 @@ Analyze prototypes via the "proto-name" "proto-members" "proto-methods" &
 NOTE: "coroutine" is a class prototype under the hood, and "define-coroutine"
       simply serves to manipute the coro body & use it generate a coroutine
       object, which is then passed back to the user to control coro execution!
+
+NOTE: "module" is simply a class prototype under the hood too, with 
+      "define-module" serving to generate objects with exposed procedures!
 
 NOTE: "universe" is also a class prototype under the hood, though it leverages
       a reserved primitive in order to achieve its sandboxing of environments.
@@ -2333,8 +2339,8 @@ R"(
                                  | (<method-name> <procedure-value>)
                                  | ((<method-name> <arg1> <arg2> ...) <body> ...)
                                  |
-                                 | ((make-<class-name> <arg> ...) <body> ...) ; constructor
-                                 | (make-<class-name> ((<arg> ...) <body> ...) ...) ; fn ctor
+                                 | ((<class-name> <arg> ...) <body> ...) ; constructor
+                                 | (<class-name> ((<arg> ...) <body> ...) ...) ; fn ctor
                                  |
                                  | ((eq? <obj>) <body> ...)    ; overload eq?
                                  | ((eqv? <obj>) <body> ...)   ; overload eqv?
@@ -2355,7 +2361,7 @@ Define class prototypes for object-oriented programming!
   *) "defclass" creates a class prototype (think JavaScript) from which objects are made!
 
 Constructor:
-  0. User-defined "make-<class-name>" ctor is optional, if undefined will be generated
+  0. User-defined "<class-name>" ctor is optional, if undefined will be generated
      *) Generated ctor is either nullary, or accepts a container to initialize member values:
         => container = name-value "hash-map", or value "list"/"vector"!
      *) Default ctor is always available via "new-<class-name>"
@@ -2418,8 +2424,8 @@ Example:
     ((leaf?)
       (and (null? self.left) (null? self.right))))
 
-  (define root (make-node))
-  (set! root.left (make-node))
+  (define root (node))
+  (set! root.left (node))
   (set! root.left.val 42)
 
   (display root.val) ; 0
@@ -7679,7 +7685,7 @@ R"(
 )",
 R"(
 Procedure predicate.
-  *) Note: prefer "callable?" to also accept functors!
+  *) Note: prefer "callable?" to also accept functors and class-prototypes!
 )",
 
 
@@ -7695,7 +7701,7 @@ R"(
 R"(
 Functor predicate. Functors are any <object> constructed from a class prototype w/
 a <self->procedure> method defined. Note that these are distinct from procedures!
-  *) Use "callable?" to check for either functors or procedures at once!
+  *) Use "callable?" to check for either functors or class-prototypes or procedures at once!
 )",
 
 
@@ -7709,9 +7715,9 @@ R"(
 (callable? <obj>)
 )",
 R"(
-Callable predicate. Callables are defined as either procedures or functors.
-  *) Use "procedure?" or "functor?" to check explicitly for either type, BUT
-     prefer "callable?" for writing more generic code!
+Callable predicate. Callables are defined as either procedures or class-prototypes or functors.
+  *) Use "procedure?" or "functor?" or "class-prototype?" to check explicitly for either type, 
+     BUT prefer "callable?" for writing more generic code!
 )",
 
 

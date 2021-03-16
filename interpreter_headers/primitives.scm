@@ -433,7 +433,7 @@
 
 (defclass module ()
   (heist:core:module:name #f)
-  ((make-module name)
+  ((module name)
     (set! self.heist:core:module:name 
           (append "#<module[" (symbol->string name) "]>")))
   ((self->string)
@@ -454,7 +454,7 @@
     ; named module
     ((_ module-name (exposure ...) expression ...)
       (begin 
-        (define module-name (make-module (quote module-name)))
+        (define module-name (module (quote module-name)))
         (let ()
           expression ...
           ((.. module-name 'add-property!) (quote exposure) exposure) ...

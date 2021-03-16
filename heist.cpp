@@ -1058,8 +1058,8 @@ namespace heist {
     "\n     => <member-or-method> ::= (<member-name> <default-value>)"\
     "\n                             | (<method-name> <procedure-value>)"\
     "\n                             | ((<method-name> <arg1> <arg2> ...) <body> ...)"\
-    "\n                             | ((make-<class-name> <arg> ...) <body> ...) ; constructor"\
-    "\n                             | (make-<class-name> ((<arg> ...) <body> ...) ...) ; fn ctor"\
+    "\n                             | ((<class-name> <arg> ...) <body> ...) ; constructor"\
+    "\n                             | (<class-name> ((<arg> ...) <body> ...) ...) ; fn ctor"\
     "\n                             | ((eq? <obj>) <body> ...)    ; overload eq?"\
     "\n                             | ((eqv? <obj>) <body> ...)   ; overload eqv?"\
     "\n                             | ((equal? <obj>) <body> ...) ; overload equal?"\
@@ -1102,7 +1102,7 @@ namespace heist {
       THROW_ERR("'defclass 2nd arg "<<PROFILE(exp[2])<<" has more than 1 inherited prototype (no multi inheritance)!" DEFCLASS_LAYOUT << EXP_ERR(exp));
     if(exp[2].exp.size() == 1 && !exp[2].exp[0].is_type(types::sym))
       THROW_ERR("'defclass 2nd arg (inherited entity) "<<PROFILE(exp[2])<<" isn't a symbolic class prototype name!" DEFCLASS_LAYOUT << EXP_ERR(exp));
-    sym_type ctor_name = "make-"+exp[1].sym;
+    sym_type ctor_name = exp[1].sym;
     for(size_type i = 3, n = exp.size(); i < n; ++i) {
       if(!exp[i].is_type(types::exp) || exp[i].exp.size() < 2)
         THROW_ERR("'defclass invalid <member-or-method-instance> => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
@@ -1242,32 +1242,38 @@ namespace heist {
     scm_eval(std::move(predicate),env);
   }
 
-  // (define (make-<class-name> . <optional-member-value-container>)
-  //   (if (null? <optional-member-value-container>)
-  //       (heist:core:oo:make-object <class-name>)
-  //       (heist:core:oo:make-object <class-name> (car <optional-member-value-container>))))
-  void define_default_prototype_constructor(const scm_string& class_name, env_type& env, const char* name_prefix) {
+  // (fn (() (heist:core:oo:make-object <class-name>))
+  //     ((<member-value-container>) (heist:core:oo:make-object <class-name> <member-value-container>)))
+  scm_list generate_default_prototype_constructor_fn(const scm_string& class_name)noexcept{
     scm_list dflt_ctor(3);
-    dflt_ctor[0] = symconst::define;
-    dflt_ctor[1] = scm_list(3);
-    dflt_ctor[1].exp[0] = name_prefix+class_name;
-    dflt_ctor[1].exp[1] = symconst::dot;
-    dflt_ctor[1].exp[2] = "heist:core:optional-member-value-container";
-    dflt_ctor[2] = scm_list(4);
-    dflt_ctor[2].exp[0] = symconst::if_t;
-    dflt_ctor[2].exp[1] = scm_list(2);
-    dflt_ctor[2].exp[1].exp[0] = "null?";
-    dflt_ctor[2].exp[1].exp[1] = "heist:core:optional-member-value-container";
-    dflt_ctor[2].exp[2] = scm_list(2);
-    dflt_ctor[2].exp[2].exp[0] = "heist:core:oo:make-object";
-    dflt_ctor[2].exp[2].exp[1] = class_name;
-    dflt_ctor[2].exp[3] = scm_list(3);
-    dflt_ctor[2].exp[3].exp[0] = "heist:core:oo:make-object";
-    dflt_ctor[2].exp[3].exp[1] = class_name;
-    dflt_ctor[2].exp[3].exp[2] = scm_list(2);
-    dflt_ctor[2].exp[3].exp[2].exp[0] = "car";
-    dflt_ctor[2].exp[3].exp[2].exp[1] = "heist:core:optional-member-value-container";
-    scm_eval(std::move(dflt_ctor),env);
+    dflt_ctor[0] = symconst::fn;
+    dflt_ctor[1] = scm_list(2); // clause 1: nullary
+    dflt_ctor[1].exp[0] = scm_list();
+    dflt_ctor[1].exp[1] = scm_list(2);
+    dflt_ctor[1].exp[1].exp[0] = "heist:core:oo:make-object";
+    dflt_ctor[1].exp[1].exp[1] = class_name;
+    dflt_ctor[2] = scm_list(2); // clause 2: member-value-container
+    dflt_ctor[2].exp[0] = scm_list(1,"heist:core:oo:member-value-container");
+    dflt_ctor[2].exp[1] = scm_list(3);
+    dflt_ctor[2].exp[1].exp[0] = "heist:core:oo:make-object";
+    dflt_ctor[2].exp[1].exp[1] = class_name;
+    dflt_ctor[2].exp[1].exp[2] = "heist:core:oo:member-value-container";
+    return dflt_ctor;
+  }
+
+  void bind_default_prototype_constructor(class_prototype& proto, env_type& env) {
+    proto.bind_user_ctor(scm_eval(generate_default_prototype_constructor_fn(proto.class_name),env).fcn);
+  }
+
+  // (define new-<class-name>
+  //   (fn (() (heist:core:oo:make-object <class-name>))
+  //       ((<member-value-container>) (heist:core:oo:make-object <class-name> <member-value-container>)))
+  void define_default_prototype_constructor(const scm_string& class_name, env_type& env) {
+    scm_list dflt_ctor_defn(3);
+    dflt_ctor_defn[0] = symconst::define;
+    dflt_ctor_defn[1] = "new-"+class_name;
+    dflt_ctor_defn[2] = generate_default_prototype_constructor_fn(class_name);
+    scm_eval(std::move(dflt_ctor_defn),env);
   }
 
   // Convert user's custom ctor to be in CPS form as needed
@@ -1287,66 +1293,62 @@ namespace heist {
     return custom_ctor_cps;
   }
 
-  // (define (make-<class-name> <... CUSTOM CTOR ARGS HERE ...>)
+  // (lambda (<... CUSTOM CTOR ARGS HERE ...>)
   //   (define self (heist:core:oo:make-object <class-name>))
   //   <... CUSTOM CTOR BODY HERE ...>
   //   self)
-  void define_custom_prototype_constructor(const scm_string& class_name, env_type& env, scm_list& ctor_proc,const bool cps_block) {
+  void bind_custom_prototype_constructor(class_prototype& proto, env_type& env, scm_list& ctor_proc, const bool cps_block) {
     scm_list custom_ctor(3+ctor_proc.size());
-    custom_ctor[0] = symconst::define;
-    custom_ctor[1] = ctor_proc[0].exp;
+    custom_ctor[0] = symconst::lambda;
+    custom_ctor[1] = scm_list(ctor_proc[0].exp.begin()+1,ctor_proc[0].exp.end());
     custom_ctor[2] = scm_list(3);
     custom_ctor[2].exp[0] = symconst::define;
     custom_ctor[2].exp[1] = "self";
     custom_ctor[2].exp[2] = scm_list(2);
     custom_ctor[2].exp[2].exp[0] = "heist:core:oo:make-object";
-    custom_ctor[2].exp[2].exp[1] = class_name;
+    custom_ctor[2].exp[2].exp[1] = proto.class_name;
     std::move(ctor_proc.begin()+1,ctor_proc.end(),custom_ctor.begin()+3);
     *custom_ctor.rbegin() = "self";
     if(cps_block) {
-      scm_analyze(generate_CPS_custom_prototype_constructor(custom_ctor),false,cps_block)(env);
+      proto.bind_user_ctor(scm_analyze(generate_CPS_custom_prototype_constructor(custom_ctor),false,cps_block)(env).fcn);
     } else {
-      scm_eval(std::move(custom_ctor),env);
+      proto.bind_user_ctor(scm_eval(std::move(custom_ctor),env).fcn);
     }
   }
 
-  // (define make-<class-name>
-  //   (fn ((<... CUSTOM CTOR ARGS HERE ...>) 
+  // (fn ((<... CUSTOM CTOR ARGS HERE ...>) 
   //        (define self (heist:core:oo:make-object <class-name>))
   //        <... CUSTOM CTOR BODY HERE ...>
-  //        self) ...))
-  void define_custom_prototype_fn_constructor(const scm_string& class_name, env_type& env, scm_list& ctor_proc,const bool cps_block) {
-    scm_list custom_ctor(3);
-    custom_ctor[0] = symconst::define;
-    custom_ctor[1] = ctor_proc[0];
-    custom_ctor[2] = scm_list(ctor_proc.size());
-    custom_ctor[2].exp[0] = symconst::fn;
+  //        self) ...)
+  void bind_custom_prototype_fn_constructor(class_prototype& proto, env_type& env, scm_list& ctor_proc,const bool cps_block) {
+    scm_list custom_ctor(ctor_proc.size());
+    custom_ctor[0] = symconst::fn;
     for(size_type i = 1, n = ctor_proc.size(); i < n; ++i) {
-      custom_ctor[2].exp[i] = scm_list(ctor_proc[i].exp.size()+2);
-      custom_ctor[2].exp[i].exp[0] = ctor_proc[i].exp[0];
-      custom_ctor[2].exp[i].exp[1] = scm_list(3);
-      custom_ctor[2].exp[i].exp[1].exp[0] = symconst::define;
-      custom_ctor[2].exp[i].exp[1].exp[1] = "self";
-      custom_ctor[2].exp[i].exp[1].exp[2] = scm_list(2);
-      custom_ctor[2].exp[i].exp[1].exp[2].exp[0] = "heist:core:oo:make-object";
-      custom_ctor[2].exp[i].exp[1].exp[2].exp[1] = class_name;
-      std::copy(ctor_proc[i].exp.begin()+1,ctor_proc[i].exp.end(),custom_ctor[2].exp[i].exp.begin()+2);
-      custom_ctor[2].exp[i].exp[ctor_proc[i].exp.size()+1] = "self";
+      const size_type clause_length = ctor_proc[i].exp.size()+2;
+      custom_ctor[i] = scm_list(clause_length);
+      custom_ctor[i].exp[0] = ctor_proc[i].exp[0];
+      custom_ctor[i].exp[1] = scm_list(3);
+      custom_ctor[i].exp[1].exp[0] = symconst::define;
+      custom_ctor[i].exp[1].exp[1] = "self";
+      custom_ctor[i].exp[1].exp[2] = scm_list(2);
+      custom_ctor[i].exp[1].exp[2].exp[0] = "heist:core:oo:make-object";
+      custom_ctor[i].exp[1].exp[2].exp[1] = proto.class_name;
+      std::copy(ctor_proc[i].exp.begin()+1,ctor_proc[i].exp.end(),custom_ctor[i].exp.begin()+2);
+      custom_ctor[i].exp[clause_length-1] = "self";
     }
     if(cps_block) {
       // convert fn defn to CPS notation as needed
-      auto cps_fn_expr = generate_fundamental_form_cps(custom_ctor[2].exp); // (lambda (c) (c <fn-we-want>))
-      custom_ctor[2] = std::move(cps_fn_expr[2].exp[1]);
-      scm_analyze(std::move(custom_ctor),false,cps_block)(env);
+      auto cps_fn_expr = generate_fundamental_form_cps(custom_ctor); // (lambda (c) (c <fn-we-want>))
+      proto.bind_user_ctor(scm_analyze(std::move(cps_fn_expr[2].exp[1]),false,cps_block)(env).fcn);
     } else {
-      scm_eval(std::move(custom_ctor),env);
+      proto.bind_user_ctor(scm_eval(std::move(custom_ctor),env).fcn);
     }
   }
 
   void parse_defclass_expression(scm_list& exp, std::vector<scm_string>& property_names, 
                                                 std::vector<exe_fcn_t>& property_exec_procs, 
                                                 scm_list& ctor_proc,const bool cps_block) {
-    const scm_string ctor_name("make-"+exp[1].sym);
+    const scm_string ctor_name(exp[1].sym);
     for(size_type i = 3, n = exp.size(); i < n; ++i) {
       // parse member
       if(exp[i].exp[0].is_type(types::sym)) {
@@ -1389,7 +1391,6 @@ namespace heist {
             ctor_proc=std::move(ctor_proc),cps_block](env_type& env)mutable{
       proto.defn_env = env;
       // confirm inheriting from class objects & add inherited prototype (if present)
-      // NOTE: THIS ORDERING IS IN PART RESPONSIBLE (ALONG WITH SEARCH) FOR LEFT-PREDECENT INHERITANCE
       validate_inherited_entity(proto,exp,env);
       // evaluate member and method values
       evaluate_method_and_member_exec_procs(proto,property_names,property_exec_procs,env);
@@ -1397,15 +1398,16 @@ namespace heist {
       define_property_setter(proto,env);
       // define dynamic property generator method
       define_dynamic_property_generator(proto,env);
+      // generate the underlying default object ctor
+      define_default_prototype_constructor(proto.class_name,env); // default ctor always available
+      // bind the user-defined ctor (which the prototype is polymorphic for in application)
+      if(ctor_proc.empty()) bind_default_prototype_constructor(proto,env);
+      else if(ctor_proc[0].is_type(types::exp)) bind_custom_prototype_constructor(proto,env,ctor_proc,cps_block);
+      else bind_custom_prototype_fn_constructor(proto,env,ctor_proc,cps_block);
+      // define the class predicate
+      define_class_prototype_predicate(proto.class_name,env);
       // define the class prototype
       define_variable(proto.class_name,make_cls(proto),env);
-      // generate the ctor
-      define_default_prototype_constructor(exp[1].sym,env,"new-"); // default ctor always available
-      if(ctor_proc.empty()) define_default_prototype_constructor(exp[1].sym,env,"make-");
-      else if(ctor_proc[0].is_type(types::exp)) define_custom_prototype_constructor(exp[1].sym,env,ctor_proc,cps_block);
-      else define_custom_prototype_fn_constructor(exp[1].sym,env,ctor_proc,cps_block);
-      // define the class predicate
-      define_class_prototype_predicate(exp[1].sym,env); // exp[1].sym == class_name
       return GLOBALS::VOID_DATA_OBJECT;
     };
   }
@@ -2312,7 +2314,7 @@ namespace heist {
                                                  std::vector<scm_list>& stripped_property_values, 
                                                  std::vector<sym_type>& stripped_property_names) {
     validate_defclass(defclass_expr);
-    const auto ctor_name = "make-"+defclass_expr[1].sym;
+    const auto ctor_name = defclass_expr[1].sym;
     bool requires_outlined_properties = false;
     for(size_type i = 3, n = defclass_expr.size(); i < n; ++i) {
       if(cps_is_non_atomc_defclass_property(defclass_expr[i],ctor_name)) {
@@ -4126,7 +4128,9 @@ namespace heist {
   #define evaluate_operator(OPERATOR_PROC,OPERATOR_ENV)\
     auto proc = OPERATOR_PROC(OPERATOR_ENV);\
     if(proc.is_type(types::obj) && primitive_data_is_a_functor(proc))\
-      proc = primitive_extract_callable_procedure(proc);
+      proc = primitive_extract_callable_procedure(proc);\
+    else if(proc.is_type(types::cls))\
+      proc = proc.cls->user_ctor;
 
 
   // -- APPLYING PRIMITIVE PROCEDURES

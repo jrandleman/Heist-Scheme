@@ -1460,8 +1460,8 @@ Other primitives of this nature include:<br>
                                  | (<method-name> <procedure-value>)
                                  | ((<method-name> <arg1> <arg2> ...) <body> ...)
                                  |
-                                 | ((make-<class-name> <arg> ...) <body> ...) ; constructor
-                                 | (make-<class-name> ((<arg> ...) <body> ...) ...) ; fn ctor
+                                 | ((<class-name> <arg> ...) <body> ...) ; constructor
+                                 | (<class-name> ((<arg> ...) <body> ...) ...) ; fn ctor
                                  |
                                  | ((eq? <obj>) <body> ...)    ; overload eq?
                                  | ((eqv? <obj>) <body> ...)   ; overload eqv?
@@ -1479,7 +1479,7 @@ Other primitives of this nature include:<br>
 ```
 
 #### Constructor:
-0. User-defined `make-<class-name>` ctor is optional, if undefined will be generated
+0. User-defined `<class-name>` ctor is optional, if undefined will be generated
    - Generated ctor is either nullary, or accepts a container to initialize member values:
      * container = name-value [`hash-map`](#Hash-Map-Procedures), or value [`list`](#ListPair-Procedures)/[`vector`](#Vector-Procedures)!
    - Default ctor is always available via `new-<class-name>`
@@ -1541,8 +1541,8 @@ Other primitives of this nature include:<br>
   ((leaf?)
     (and (null? self.left) (null? self.right))))
 
-(define root (make-node))
-(set! root.left (make-node))
+(define root (node))
+(set! root.left (node))
 (set! root.left.val 42)
 
 (display root.val) ; 0
@@ -2700,7 +2700,7 @@ Other primitives of this nature include:<br>
     * _Functors may be called as if a function!_
 
 19. __Callable Predicate__: `(callable? <obj>)`
-    * _Equivalent to: `(or (procedure? <obj>) (functor? <obj>))`_
+    * _Equivalent to: `(or (procedure? <obj>) (functor? <obj>) (class-prototype? <obj>))`_
 
 20. __Input-Port Predicate__: `(input-port? <obj>)`
 

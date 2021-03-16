@@ -848,9 +848,14 @@ namespace heist {
   struct class_prototype {
     cls_type super = nullptr; // inherited proto
     env_type defn_env; // environment of class prototype definition
+    scm_fcn user_ctor; // user-defined ctor (generated if undefined by user)
     scm_string class_name;
     std::vector<scm_string> member_names, method_names;
     scm_list member_values, method_values; // default member values of the proto
+    void bind_user_ctor(const scm_fcn& c)noexcept{
+      user_ctor = c;
+      user_ctor.name = class_name;
+    }
   };
 
   // object structure
