@@ -187,20 +187,20 @@ static constexpr const char* HELP_MENU_PROCEDURES_HMAPS[] = {
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_SEQUENCES[] = {
-  "empty",                 "length",      "length+",              "reverse", 
-  "reverse!",              "fold",        "fold-right",           "map", 
-  "map!",                  "filter",      "for-each",             "seq-copy!", 
-  "count",                 "ref",         "slice",                "set-index!", 
-  "swap-indices!",         "fill!",       "append",               "remove", 
-  "remove-first",          "remove-last", "delete",               "last", 
-  "tail",                  "head",        "init",                 "seq=", 
-  "skip",                  "skip-right",  "index",                "index-right", 
-  "drop",                  "drop-right",  "drop-while",           "drop-right-while", 
-  "take",                  "take-right",  "take-while",           "take-right-while", 
-  "any",                   "every",       "conj",                 "union", 
-  "intersection",          "difference",  "symmetric-difference", "sort", 
-  "sort!",                 "sorted?",     "merge",                "delete-neighbor-dups", 
-  "delete-neighbor-dups!", 
+  "empty",         "length",               "length+",              "reverse", 
+  "reverse!",      "fold",                 "fold-right",           "map", 
+  "map!",          "filter",               "for-each",             "seq-copy!", 
+  "count",         "ref",                  "slice",                "set-index!", 
+  "swap-indices!", "fill!",                "append",               "remove", 
+  "remove-first",  "remove-last",          "delete",               "last", 
+  "tail",          "head",                 "init",                 "seq=", 
+  "skip",          "skip-right",           "index",                "index-right", 
+  "drop",          "drop-right",           "drop-while",           "drop-right-while", 
+  "take",          "take-right",           "take-while",           "take-right-while", 
+  "any",           "every",                "conj",                 "seq->list",
+  "seq->vector",   "seq->string",          "union",                "intersection",
+  "difference",    "symmetric-difference", "sort",                 "sort!",
+  "sorted?",       "merge",                "delete-neighbor-dups", "delete-neighbor-dups!", 
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_PREDICATES[] = {
@@ -7302,6 +7302,52 @@ R"(
 )",
 R"(
 Generic "cons": "cons" for lists, a copying 'push-back' for strings & vectors.
+)",
+
+
+
+
+
+}, {
+"seq->list",
+"Procedure",
+R"(
+(seq->list <sequence>)
+=> <sequence> ::= <list> | <vector> | <string>
+)",
+R"(
+Coerce any sequence to a list.
+)",
+
+
+
+
+
+}, {
+"seq->vector",
+"Procedure",
+R"(
+(seq->vector <sequence>)
+=> <sequence> ::= <list> | <vector> | <string>
+)",
+R"(
+Coerce any sequence to a vector.
+)",
+
+
+
+
+
+}, {
+"seq->string",
+"Procedure",
+R"(
+(seq->string <sequence>)
+=> <sequence> ::= <list> | <vector> | <string>
+)",
+R"(
+Coerce any sequence to a string. 
+  *) NOTE: the sequence MUST only contain character elements!
 )",
 
 

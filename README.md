@@ -102,6 +102,7 @@
    - [Hash-Map Procedures](#Hash-Map-Procedures)
    - [Generic Sequence, List|Vector|String, Algorithmic Procedures](#Generic-Sequence-ListVectorString-Algorithmic-Procedures)
      * [General](#General-3)
+     * [Coercion Procedures](#Coercion-Procedures)
      * [Set Procedures](#Set-Procedures)
      * [Sorting Procedures](#Sorting-Procedures)
    - [OOP Reflection Primitives](#OOP-Reflection-Primitives)
@@ -2507,6 +2508,14 @@ Other primitives of this nature include:<br>
 
 42. __Generic `cons`__: `cons` for lists, a copying `push-back` for strings & vectors
     * `(conj <obj> <sequence>)`
+
+
+### Coercion Procedures:
+0. __Coerce to List__: `(seq->list <sequence>)`
+
+1. __Coerce to Vector__: `(seq->vector <sequence>)`
+
+2. __Coerce to String__: `(seq->string <sequence>)`
 
 
 ### Set Procedures:

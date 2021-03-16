@@ -2349,7 +2349,7 @@ namespace heist {
   }
 
   /******************************************************************************
-  * SET OPERATIONS
+  * SET OPERATION HELPERS
   ******************************************************************************/
 
   void convert_lists_to_exp_matrix(scm_list& args, scm_list& list_exps, const char* name, const char* format){
@@ -2687,6 +2687,60 @@ namespace heist {
       return mutatable_assign_scm_sequence(args[1],
         cast_ast_sequence_to_scheme(seq_type,new_sequence,name,format,args));
     return cast_ast_sequence_to_scheme(seq_type,new_sequence,name,format,args);
+  }
+
+  /******************************************************************************
+  * SEQUENCE COERCION HELPERS
+  ******************************************************************************/
+
+  data prm_convert_string_to_list(const scm_string& str)noexcept{
+    scm_list char_list;
+    for(const auto& ch : str) char_list.push_back(ch);
+    return primitive_LIST_to_CONS_constructor(char_list.begin(),char_list.end());
+  }
+
+  // Returns success status
+  // PRECONDITION: data_is_proper_list(list)
+  bool prm_convert_list_to_string(data& list, data& str)noexcept{
+    scm_list char_list;
+    scm_string char_str;
+    shallow_unpack_list_into_exp(list, char_list);
+    for(const auto& e : char_list) {
+      if(!e.is_type(types::chr)) return false;
+      char_str += char(e.chr);
+    }
+    str = make_str(char_str);
+    return true;
+  }
+
+  data prm_convert_string_to_vector(const scm_string& str)noexcept{
+    scm_list char_vect;
+    for(const auto& ch : str) char_vect.push_back(ch);
+    return make_vec(char_vect);
+  }
+
+  // Returns success status
+  // PRECONDITION: vect.is_type(types::vec)
+  bool prm_convert_vector_to_string(const data& vect, data& str)noexcept{
+    scm_string char_str;
+    for(const auto& e : *vect.vec) {
+      if(!e.is_type(types::chr)) return false;
+      char_str += char(e.chr);
+    }
+    str = make_str(char_str);
+    return true;
+  }
+
+  // PRECONDITION: data_is_proper_list(list)
+  data prm_convert_list_to_vector(data& list)noexcept{
+    data new_vec(make_vec(scm_list()));
+    shallow_unpack_list_into_exp(list, *new_vec.vec);
+    return new_vec;
+  }
+
+  // PRECONDITION: vect.is_type(types::vec)
+  data prm_convert_vector_to_list(data& vect)noexcept{
+    return primitive_LIST_to_CONS_constructor(vect.vec->begin(),vect.vec->end());
   }
 
   /******************************************************************************

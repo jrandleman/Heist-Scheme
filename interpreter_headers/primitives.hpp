@@ -3126,6 +3126,59 @@ namespace heist {
     }
   }
 
+  /******************************************************************************
+  * COERCION PRIMITIVES: FOR SEQUENCES (LISTS, VECTORS, & STRINGS)
+  ******************************************************************************/
+
+  // primitive "seq->list" procedure:
+  data primitive_SEQ_TO_LIST(scm_list& args) {
+    static constexpr const char * const format = "\n     (seq->list <sequence>)" SEQUENCE_DESCRIPTION;
+    if(args.size() != 1) 
+      THROW_ERR("'seq->list didn't receive exactly 1 arg!" << format << FCN_ERR("seq->list",args));
+    switch(is_proper_sequence(args[0],args,"seq->list",format)) {
+      case heist_sequence::vec: return prm_convert_vector_to_list(args[0]);
+      case heist_sequence::str: return prm_convert_string_to_list(*args[0].str);
+      default: return args[0].shallow_copy();
+    }
+  }
+
+  // primitive "seq->vector" procedure:
+  data primitive_SEQ_TO_VECTOR(scm_list& args) {
+    static constexpr const char * const format = "\n     (seq->vector <sequence>)" SEQUENCE_DESCRIPTION;
+    if(args.size() != 1) 
+      THROW_ERR("'seq->vector didn't receive exactly 1 arg!" << format << FCN_ERR("seq->vector",args));
+    switch(is_proper_sequence(args[0],args,"seq->vector",format)) {
+      case heist_sequence::vec: args[0].shallow_copy();
+      case heist_sequence::str: return prm_convert_string_to_vector(*args[0].str);
+      default: return prm_convert_list_to_vector(args[0]);
+    }
+  }
+
+  // primitive "seq->string" procedure:
+  data primitive_SEQ_TO_STRING(scm_list& args) {
+    static constexpr const char * const format = "\n     (seq->string <sequence>)" SEQUENCE_DESCRIPTION;
+    if(args.size() != 1) 
+      THROW_ERR("'seq->string didn't receive exactly 1 arg!" << format << FCN_ERR("seq->string",args));
+    data str;
+    switch(is_proper_sequence(args[0],args,"seq->string",format)) {
+      case heist_sequence::str: return args[0].shallow_copy();
+      case heist_sequence::vec: 
+        if(!prm_convert_vector_to_string(args[0],str))
+          THROW_ERR("'seq->string vector " << args[0] << " has a non-character element!"
+            << format << FCN_ERR("seq->string",args));
+        return str;
+      default: 
+        if(!prm_convert_list_to_string(args[0],str))
+          THROW_ERR("'seq->string list " << args[0] << " has a non-character element!"
+            << format << FCN_ERR("seq->string",args));
+        return str;
+    }
+  }
+
+  /******************************************************************************
+  * SET PRIMITIVES: FOR SEQUENCES (LISTS, VECTORS, & STRINGS)
+  ******************************************************************************/
+
   // primitive "union" procedure:
   data primitive_UNION(scm_list& args) {
     static constexpr const char * const format = 
@@ -4225,69 +4278,46 @@ namespace heist {
   // primitive "vector->list" procedure:
   data primitive_COERCE_VECTOR_TO_LIST(scm_list& args) {
     primitive_confirm_valid_vector_arg(args, 1, "vector->list", "\n     (vector->list <vector>)");
-    return primitive_LIST_to_CONS_constructor(args[0].vec->begin(),args[0].vec->end());
+    return prm_convert_vector_to_list(args[0]);
   }
 
   // primitive "list->vector" procedure:
   data primitive_COERCE_LIST_TO_VECTOR(scm_list& args) {
-    if(primitive_validate_list_and_return_if_empty(args, "list->vector"))
-      return make_vec(scm_list());
-    data new_vec(make_vec(scm_list()));
-    shallow_unpack_list_into_exp(args[0], *new_vec.vec);
-    return new_vec;
+    if(primitive_validate_list_and_return_if_empty(args, "list->vector")) return make_vec(scm_list());
+    return prm_convert_list_to_vector(args[0]);
   }
 
   // primitive "string->vector" procedure:
   data primitive_STRING_TO_VECTOR(scm_list& args) {
     primitive_confirm_valid_string_arg(args, 1, "string->vector", "\n     (string->vector <string>)");
-    scm_list char_vect;
-    for(const auto& ch : *args[0].str)
-      char_vect.push_back(ch);
-    return make_vec(char_vect);
+    return prm_convert_string_to_vector(*args[0].str);
   }
 
   // primitive "vector->string" procedure:
   data primitive_VECTOR_TO_STRING(scm_list& args) {
     primitive_confirm_valid_vector_arg(args, 1, "vector->string", "\n     (vector->string <vector>)");
     if(args[0].vec->empty()) return make_str("");
-    const scm_list& vect = *args[0].vec;
-    scm_string str_val;
-    for(size_type i = 0, n = vect.size(); i < n; ++i) {
-      if(!vect[i].is_type(types::chr)) 
-        THROW_ERR("'vector->string vector item #" << i+1 << ", " << PROFILE(vect[i]) 
-          << ",\n     isn't a character: (vector->string <vector>)" 
-          << FCN_ERR("vector->string", args));
-      str_val += vect[i].chr;
-    }
-    return make_str(str_val);
+    data str;
+    if(!prm_convert_vector_to_string(args[0],str))
+      THROW_ERR("'vector->string vector "<<args[0]<<" has a non-character element!"
+        "\n     (vector->string <char-vector>)" << FCN_ERR("vector->string",args));
+    return str;
   }
 
   // primitive "string->list" procedure:
   data primitive_STRING_TO_LIST(scm_list& args) {
     primitive_confirm_valid_string_arg(args, 1, "string->list", "\n     (string->list <string>)");
-    scm_list char_list;
-    for(const auto& ch : *args[0].str)
-      char_list.push_back(ch);
-    return primitive_LIST_to_CONS_constructor(char_list.begin(),char_list.end());
+    return prm_convert_string_to_list(*args[0].str);
   }
 
   // primitive "list->string" procedure:
   data primitive_LIST_TO_STRING(scm_list& args) {
-    if(primitive_validate_list_and_return_if_empty(args, "list->string"))
-      return make_str("");
-    scm_list char_list;
-    scm_string char_str;
-    shallow_unpack_list_into_exp(args[0], char_list);
-    for(size_type i = 0, n = char_list.size(); i < n; ++i) {
-      if(!char_list[i].is_type(types::chr)) {
-        THROW_ERR("'list->string list item #"<<i+1<<", "<<PROFILE(char_list[i])
-          << " isn't a character!\n     (list->string <char-list>)"
-          << FCN_ERR("list->string",args));
-      } else {
-        char_str += char(char_list[i].chr);
-      }
-    }
-    return make_str(char_str);
+    if(primitive_validate_list_and_return_if_empty(args, "list->string")) return make_str("");
+    data str;
+    if(!prm_convert_list_to_string(args[0],str))
+      THROW_ERR("'list->string list "<<args[0]<<" has a non-character element!"
+        "\n     (list->string <char-list>)" << FCN_ERR("list->string",args));
+    return str;
   }
 
   // primitive "functor->procedure" procedure:
@@ -6377,49 +6407,54 @@ namespace heist {
     std::make_pair(primitive_VECTOR_BINARY_SEARCH,        "vector-binary-search"),
     std::make_pair(primitive_VECTOR_GET_ALL_COMBINATIONS, "vector-get-all-combinations"),
 
-    std::make_pair(primitive_EMPTY,                "empty"),
-    std::make_pair(primitive_LENGTH,               "length"),
-    std::make_pair(primitive_LENGTH_PLUS,          "length+"),
-    std::make_pair(primitive_REVERSE,              "reverse"),
-    std::make_pair(primitive_REVERSE_BANG,         "reverse!"),
-    std::make_pair(primitive_FOLD,                 "fold"),
-    std::make_pair(primitive_FOLD_RIGHT,           "fold-right"),
-    std::make_pair(primitive_FILTER,               "filter"),
-    std::make_pair(primitive_MAP,                  "map"),
-    std::make_pair(primitive_MAP_BANG,             "map!"),
-    std::make_pair(primitive_FOR_EACH,             "for-each"),
-    std::make_pair(primitive_SEQ_COPY_BANG,        "seq-copy!"),
-    std::make_pair(primitive_COUNT,                "count"),
-    std::make_pair(primitive_REF,                  "ref"),
-    std::make_pair(primitive_SLICE,                "slice"),
-    std::make_pair(primitive_SET_INDEX_BANG,       "set-index!"),
-    std::make_pair(primitive_SWAP_INDICES_BANG,    "swap-indices!"),
-    std::make_pair(primitive_FILL_BANG,            "fill!"),
-    std::make_pair(primitive_APPEND,               "append"),
-    std::make_pair(primitive_REMOVE,               "remove"),
-    std::make_pair(primitive_REMOVE_FIRST,         "remove-first"),
-    std::make_pair(primitive_REMOVE_LAST,          "remove-last"),
-    std::make_pair(primitive_DELETE,               "delete"),
-    std::make_pair(primitive_LAST,                 "last"),
-    std::make_pair(primitive_TAIL,                 "tail"),
-    std::make_pair(primitive_HEAD,                 "head"),
-    std::make_pair(primitive_INIT,                 "init"),
-    std::make_pair(primitive_SEQ_EQ,               "seq="),
-    std::make_pair(primitive_SKIP,                 "skip"),
-    std::make_pair(primitive_SKIP_RIGHT,           "skip-right"),
-    std::make_pair(primitive_INDEX,                "index"),
-    std::make_pair(primitive_INDEX_RIGHT,          "index-right"),
-    std::make_pair(primitive_DROP,                 "drop"),
-    std::make_pair(primitive_DROP_RIGHT,           "drop-right"),
-    std::make_pair(primitive_TAKE,                 "take"),
-    std::make_pair(primitive_TAKE_RIGHT,           "take-right"),
-    std::make_pair(primitive_TAKE_WHILE,           "take-while"),
-    std::make_pair(primitive_TAKE_RIGHT_WHILE,     "take-right-while"),
-    std::make_pair(primitive_DROP_WHILE,           "drop-while"),
-    std::make_pair(primitive_DROP_RIGHT_WHILE,     "drop-right-while"),
-    std::make_pair(primitive_ANY,                  "any"),
-    std::make_pair(primitive_EVERY,                "every"),
-    std::make_pair(primitive_CONJ,                 "conj"),
+    std::make_pair(primitive_EMPTY,             "empty"),
+    std::make_pair(primitive_LENGTH,            "length"),
+    std::make_pair(primitive_LENGTH_PLUS,       "length+"),
+    std::make_pair(primitive_REVERSE,           "reverse"),
+    std::make_pair(primitive_REVERSE_BANG,      "reverse!"),
+    std::make_pair(primitive_FOLD,              "fold"),
+    std::make_pair(primitive_FOLD_RIGHT,        "fold-right"),
+    std::make_pair(primitive_FILTER,            "filter"),
+    std::make_pair(primitive_MAP,               "map"),
+    std::make_pair(primitive_MAP_BANG,          "map!"),
+    std::make_pair(primitive_FOR_EACH,          "for-each"),
+    std::make_pair(primitive_SEQ_COPY_BANG,     "seq-copy!"),
+    std::make_pair(primitive_COUNT,             "count"),
+    std::make_pair(primitive_REF,               "ref"),
+    std::make_pair(primitive_SLICE,             "slice"),
+    std::make_pair(primitive_SET_INDEX_BANG,    "set-index!"),
+    std::make_pair(primitive_SWAP_INDICES_BANG, "swap-indices!"),
+    std::make_pair(primitive_FILL_BANG,         "fill!"),
+    std::make_pair(primitive_APPEND,            "append"),
+    std::make_pair(primitive_REMOVE,            "remove"),
+    std::make_pair(primitive_REMOVE_FIRST,      "remove-first"),
+    std::make_pair(primitive_REMOVE_LAST,       "remove-last"),
+    std::make_pair(primitive_DELETE,            "delete"),
+    std::make_pair(primitive_LAST,              "last"),
+    std::make_pair(primitive_TAIL,              "tail"),
+    std::make_pair(primitive_HEAD,              "head"),
+    std::make_pair(primitive_INIT,              "init"),
+    std::make_pair(primitive_SEQ_EQ,            "seq="),
+    std::make_pair(primitive_SKIP,              "skip"),
+    std::make_pair(primitive_SKIP_RIGHT,        "skip-right"),
+    std::make_pair(primitive_INDEX,             "index"),
+    std::make_pair(primitive_INDEX_RIGHT,       "index-right"),
+    std::make_pair(primitive_DROP,              "drop"),
+    std::make_pair(primitive_DROP_RIGHT,        "drop-right"),
+    std::make_pair(primitive_TAKE,              "take"),
+    std::make_pair(primitive_TAKE_RIGHT,        "take-right"),
+    std::make_pair(primitive_TAKE_WHILE,        "take-while"),
+    std::make_pair(primitive_TAKE_RIGHT_WHILE,  "take-right-while"),
+    std::make_pair(primitive_DROP_WHILE,        "drop-while"),
+    std::make_pair(primitive_DROP_RIGHT_WHILE,  "drop-right-while"),
+    std::make_pair(primitive_ANY,               "any"),
+    std::make_pair(primitive_EVERY,             "every"),
+    std::make_pair(primitive_CONJ,              "conj"),
+
+    std::make_pair(primitive_SEQ_TO_LIST,   "seq->list"),
+    std::make_pair(primitive_SEQ_TO_VECTOR, "seq->vector"),
+    std::make_pair(primitive_SEQ_TO_STRING, "seq->string"),
+
     std::make_pair(primitive_UNION,                "union"),
     std::make_pair(primitive_INTERSECTION,         "intersection"),
     std::make_pair(primitive_SYMMETRIC_DIFFERENCE, "symmetric-difference"),
