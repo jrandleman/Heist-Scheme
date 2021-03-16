@@ -2468,13 +2468,13 @@ Other primitives of this nature include:<br>
 
 22. __Delete an Elt__: `(delete <sequence> <index>)`
 
-23. __Get Last Elt__: `(last <sequence> <index>)`
+23. __Get Last Elt__: `(last <sequence>)`
 
-24. __Get All Except Head__: `(tail <sequence> <index>)`
+24. __Get All Except Head__: `(tail <sequence>)`
 
-25. __Get First Elt__: `(head <sequence> <index>)`
+25. __Get First Elt__: `(head <sequence>)`
 
-26. __Get All Except Last__: `(init <sequence> <index>)`
+26. __Get All Except Last__: `(init <sequence>)`
 
 27. __Compare Elts of Sequences__: `(seq= <predicate?> <sequence1> <sequence2> ...)`
 

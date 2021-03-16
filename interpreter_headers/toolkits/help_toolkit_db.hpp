@@ -6994,7 +6994,7 @@ Get copy of <sequence> w/o elt positioned at <index>.
 "last",
 "Procedure",
 R"(
-(last <sequence> <index>)
+(last <sequence>)
 => <sequence> ::= <list> | <vector> | <string>
 )",
 R"(
@@ -7010,7 +7010,7 @@ Get the last elt in <sequence>.
 "tail",
 "Procedure",
 R"(
-(tail <sequence> <index>)
+(tail <sequence>)
 => <sequence> ::= <list> | <vector> | <string>
 )",
 R"(
@@ -7026,7 +7026,7 @@ Get a copy of the sequence w/ every elt except the 1st one.
 "head",
 "Procedure",
 R"(
-(head <sequence> <index>)
+(head <sequence>)
 => <sequence> ::= <list> | <vector> | <string>
 )",
 R"(
@@ -7042,7 +7042,7 @@ Get the 1st elt in <sequence>.
 "init",
 "Procedure",
 R"(
-(init <sequence> <index>)
+(init <sequence>)
 => <sequence> ::= <list> | <vector> | <string>
 )",
 R"(
