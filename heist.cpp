@@ -2303,18 +2303,19 @@ namespace heist {
   }
 
 
-  bool cps_is_non_atomc_defclass_property(const data& d)noexcept{
+  bool cps_is_non_atomc_defclass_property(const data& d, const scm_string& ctor_name)noexcept{
     return d.is_type(types::exp) && d.exp.size() == 2 && 
-           d.exp[0].is_type(types::sym) && d.exp[1].is_type(types::exp);
+           d.exp[0].is_type(types::sym) && d.exp[0].sym != ctor_name && d.exp[1].is_type(types::exp);
   }
 
   bool cps_defclass_requires_outlined_properties(scm_list& defclass_expr, 
                                                  std::vector<scm_list>& stripped_property_values, 
                                                  std::vector<sym_type>& stripped_property_names) {
     validate_defclass(defclass_expr);
+    const auto ctor_name = "make-"+defclass_expr[1].sym;
     bool requires_outlined_properties = false;
-    for(size_type i = 2, n = defclass_expr.size(); i < n; ++i) {
-      if(cps_is_non_atomc_defclass_property(defclass_expr[i])) {
+    for(size_type i = 3, n = defclass_expr.size(); i < n; ++i) {
+      if(cps_is_non_atomc_defclass_property(defclass_expr[i],ctor_name)) {
         stripped_property_names.push_back(defclass_expr[i].exp[0].sym);
         stripped_property_values.push_back(defclass_expr[i].exp[1].exp);
         defclass_expr.erase(defclass_expr.begin()+i);
