@@ -2519,13 +2519,13 @@ Other primitives of this nature include:<br>
 
 
 ### Set Procedures:
-0. __Union__: `(union <predicate?> <sequence1> <sequence2> ...)`
+0. __Union__: `(union <elt=?> <sequence1> <sequence2> ...)`
 
-1. __Intersection__: `(intersection <predicate?> <sequence1> <sequence2> ...)`
+1. __Intersection__: `(intersection <elt=?> <sequence1> <sequence2> ...)`
 
-2. __Difference__: `(difference <predicate?> <sequence1> <sequence2> ...)`
+2. __Difference__: `(difference <elt=?> <sequence1> <sequence2> ...)`
 
-3. __Symmetric Difference__: `(symmetric-difference <predicate?> <sequence1> <sequence2> ...)`
+3. __Symmetric Difference__: `(symmetric-difference <elt=?> <sequence1> <sequence2> ...)`
 
 
 ### Sorting Procedures:
@@ -2537,9 +2537,9 @@ Other primitives of this nature include:<br>
 
 3. __Merge 2 Sequences Sorted With `<predicate?>`__: `(merge <predicate?> <sequence1> <sequence2>)`
 
-4. __Delete Neighboring Duplicates__: `(delete-neighbor-dups <equality-predicate?> <sequence>)`
+4. __Delete Neighboring Duplicates__: `(delete-neighbor-dups <elt=?> <sequence>)`
 
-5. __Mutating Delete Neighboring Duplicates__: `(delete-neighbor-dups! <equality-predicate?> <sequence>)`
+5. __Mutating Delete Neighboring Duplicates__: `(delete-neighbor-dups! <elt=?> <sequence>)`
 
 
 

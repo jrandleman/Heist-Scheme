@@ -7358,11 +7358,12 @@ Coerce any sequence to a string.
 "union",
 "Procedure",
 R"(
-(union <predicate?> <sequence1> <sequence2> ...)
+(union <elt=?> <sequence1> <sequence2> ...)
 => <sequence> ::= <list> | <vector> | <string>
 )",
 R"(
-Set Operation: union of <sequence1> <sequence2> ... satisfying <predicate?>.
+Set Operation: union of <sequence1> <sequence2> ... elements.
+  *) Elements compared for equality using <elt=?>!
   *) Other set operations include "intersection", "difference", & "symmetric-difference"!
 )",
 
@@ -7374,11 +7375,12 @@ Set Operation: union of <sequence1> <sequence2> ... satisfying <predicate?>.
 "intersection",
 "Procedure",
 R"(
-(intersection <predicate?> <sequence1> <sequence2> ...)
+(intersection <elt=?> <sequence1> <sequence2> ...)
 => <sequence> ::= <list> | <vector> | <string>
 )",
 R"(
-Set Operation: intersection of <sequence1> <sequence2> ... satisfying <predicate?>.
+Set Operation: intersection of <sequence1> <sequence2> ... elements.
+  *) Elements compared for equality using <elt=?>!
   *) Other set operations include "union", "difference", & "symmetric-difference"!
 )",
 
@@ -7390,11 +7392,12 @@ Set Operation: intersection of <sequence1> <sequence2> ... satisfying <predicate
 "difference",
 "Procedure",
 R"(
-(difference <predicate?> <sequence1> <sequence2> ...)
+(difference <elt=?> <sequence1> <sequence2> ...)
 => <sequence> ::= <list> | <vector> | <string>
 )",
 R"(
-Set Operation: difference of <sequence1> <sequence2> ... satisfying <predicate?>.
+Set Operation: difference of <sequence1> <sequence2> ... elements.
+  *) Elements compared for equality using <elt=?>!
   *) Other set operations include "union", "intersection", & "symmetric-difference"!
 )",
 
@@ -7406,11 +7409,12 @@ Set Operation: difference of <sequence1> <sequence2> ... satisfying <predicate?>
 "symmetric-difference",
 "Procedure",
 R"(
-(symmetric-difference <predicate?> <sequence1> <sequence2> ...)
+(symmetric-difference <elt=?> <sequence1> <sequence2> ...)
 => <sequence> ::= <list> | <vector> | <string>
 )",
 R"(
-Set Operation: symmetric-difference of <sequence1> <sequence2> ... satisfying <predicate?>.
+Set Operation: symmetric-difference of <sequence1> <sequence2> ... elements.
+  *) Elements compared for equality using <elt=?>!
   *) Other set operations include "union", "intersection", & "difference"!
 )",
 
@@ -7484,11 +7488,11 @@ Merge <sequence1> & <sequence2> ASSUMING they've been sorted using <predicate?>.
 "delete-neighbor-dups",
 "Procedure",
 R"(
-(delete-neighbor-dups <equality-predicate?> <sequence>)
+(delete-neighbor-dups <elt=?> <sequence>)
 => <sequence> ::= <list> | <vector> | <string>
 )",
 R"(
-Delete neighboring duplicates in <sequence> based on <equality-predicate?>.
+Delete neighboring duplicates in <sequence> based on <elt=?>.
 )",
 
 
@@ -7499,11 +7503,11 @@ Delete neighboring duplicates in <sequence> based on <equality-predicate?>.
 "delete-neighbor-dups!",
 "Procedure",
 R"(
-(delete-neighbor-dups! <equality-predicate?> <sequence>)
+(delete-neighbor-dups! <elt=?> <sequence>)
 => <sequence> ::= <list> | <vector> | <string>
 )",
 R"(
-Mutative deletion of neighboring duplicates in <sequence> based on <equality-predicate?>.
+Mutative deletion of neighboring duplicates in <sequence> based on <elt=?>.
 )",
 
 
@@ -11221,16 +11225,16 @@ Term for family of objects: <list> | <vector> | <string>
      (any <predicate?> <sequence1> <sequence2> ...)
      (every <predicate?> <sequence1> <sequence2> ...)
      (conj <obj> <sequence>)
-     (union <predicate?> <sequence1> <sequence2> ...)
-     (intersection <predicate?> <sequence1> <sequence2> ...)
-     (difference <predicate?> <sequence1> <sequence2> ...)
-     (symmetric-difference <predicate?> <sequence1> <sequence2> ...)
+     (union <elt=?> <sequence1> <sequence2> ...)
+     (intersection <elt=?> <sequence1> <sequence2> ...)
+     (difference <elt=?> <sequence1> <sequence2> ...)
+     (symmetric-difference <elt=?> <sequence1> <sequence2> ...)
      (sort <predicate?> <sequence>)
      (sort! <predicate?> <sequence>)
      (sorted? <predicate?> <sequence>)
      (merge <predicate?> <sequence1> <sequence2>)
-     (delete-neighbor-dups <equality-predicate?> <sequence>)
-     (delete-neighbor-dups! <equality-predicate?> <sequence>)
+     (delete-neighbor-dups <elt=?> <sequence>)
+     (delete-neighbor-dups! <elt=?> <sequence>)
 )",
 
 

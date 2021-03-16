@@ -3182,7 +3182,7 @@ namespace heist {
   // primitive "union" procedure:
   data primitive_UNION(scm_list& args) {
     static constexpr const char * const format = 
-      "\n     (union <predicate> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+      "\n     (union <elt=?> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("union",primitive_ANY,args);
     if(args.size() < 2) 
       THROW_ERR("'union received incorrect # of args (given " 
@@ -3199,7 +3199,7 @@ namespace heist {
   // primitive "intersection" procedure:
   data primitive_INTERSECTION(scm_list& args) {
     static constexpr const char * const format = 
-      "\n     (intersection <predicate> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+      "\n     (intersection <elt=?> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("intersection",primitive_ANY,args);
     if(args.size() < 2) 
       THROW_ERR("'intersection received incorrect # of args (given " 
@@ -3216,7 +3216,7 @@ namespace heist {
   // primitive "symmetric-difference" procedure:
   data primitive_SYMMETRIC_DIFFERENCE(scm_list& args) {
     static constexpr const char * const format = 
-      "\n     (symmetric-difference <predicate> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+      "\n     (symmetric-difference <elt=?> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("symmetric-difference",primitive_ANY,args);
     if(args.size() < 2) 
       THROW_ERR("'symmetric-difference received incorrect # of args (given " 
@@ -3233,7 +3233,7 @@ namespace heist {
   // primitive "difference" procedure:
   data primitive_DIFFERENCE(scm_list& args) {
     static constexpr const char * const format = 
-      "\n     (difference <predicate> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
+      "\n     (difference <elt=?> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("difference",primitive_ANY,args);
     if(args.size() < 2) 
       THROW_ERR("'difference received incorrect # of args (given " 
@@ -3339,7 +3339,7 @@ namespace heist {
   data primitive_DELETE_NEIGHBOR_DUPS(scm_list& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("delete-neighbor-dups",primitive_DELETE_NEIGHBOR_DUPS,args);
     return primitive_DELETE_NEIGHBOR_DUPS_template(args,"delete-neighbor-dups",
-      "\n     (delete-neighbor-dups <equality-predicate> <sequence>)"
+      "\n     (delete-neighbor-dups <elt=?> <sequence>)"
       SEQUENCE_DESCRIPTION,false);
   }
 
@@ -3347,7 +3347,7 @@ namespace heist {
   data primitive_DELETE_NEIGHBOR_DUPS_BANG(scm_list& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("delete-neighbor-dups!",primitive_DELETE_NEIGHBOR_DUPS_BANG,args);
     return primitive_DELETE_NEIGHBOR_DUPS_template(args,"delete-neighbor-dups!",
-      "\n     (delete-neighbor-dups! <equality-predicate> <sequence>)"
+      "\n     (delete-neighbor-dups! <elt=?> <sequence>)"
       SEQUENCE_DESCRIPTION,true);
   }
 
