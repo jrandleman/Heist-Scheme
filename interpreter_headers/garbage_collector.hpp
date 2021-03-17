@@ -44,19 +44,25 @@ namespace heist {
 
     // REGISTER & REMOVE PTR FROM TGC
     void register_in_TGC()noexcept{
-      if(!TGC_CAP) { // register the GC's freeing of members
+      // Place in GC (most common)
+      if(TGC_LEN < TGC_CAP) {
+        TYPED_GARBAGE_COLLECTOR[TGC_LEN++] = TGC_ENTRY(ref_count,ptr);
+      // Init GC & register the its freeing of members
+      } else if(!TGC_CAP) {
         TGC_CAP = INIT_TGC_CAPACITY;
         TYPED_GARBAGE_COLLECTOR = new TGC_ENTRY [TGC_CAP];
         GLOBALS::tgc_atexit(FREE_TYPED_GARBAGE_COLLECTOR);
-      } else if(TGC_LEN == TGC_CAP) {
+        TYPED_GARBAGE_COLLECTOR[TGC_LEN++] = TGC_ENTRY(ref_count,ptr);
+      // Expand GC size if TGC_LEN == TGC_CAP
+      } else {
         TGC_CAP *= TGC_CAPACITY_SCALAR;
         TGC_ENTRY* tmp = TYPED_GARBAGE_COLLECTOR;
         TYPED_GARBAGE_COLLECTOR = new TGC_ENTRY [TGC_CAP];
         for(std::size_t i = 0; i < TGC_LEN; ++i)
           TYPED_GARBAGE_COLLECTOR[i] = std::move(tmp[i]);
         delete [] tmp;
+        TYPED_GARBAGE_COLLECTOR[TGC_LEN++] = TGC_ENTRY(ref_count,ptr);
       }
-      TYPED_GARBAGE_COLLECTOR[TGC_LEN++] = TGC_ENTRY(ref_count,ptr);
     }
     void deregister_in_TGC()const noexcept{
       for(std::size_t i = TGC_LEN; i-- > 0;) // optimize search for short ptr lifetimes
