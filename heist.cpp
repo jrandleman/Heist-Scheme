@@ -4198,10 +4198,9 @@ namespace heist {
     if(procedure.fcn.is_using_dynamic_scope()) {
       extended_env->parent = env;
     }
-    // add the 'self' object iff applying a method
+    // add the 'self' object iff applying a method (copy to avoid mving the ".self" member)
     if(procedure.fcn.self) {
-      extended_env->variables().push_back("self");
-      extended_env->values().push_back(procedure.fcn.self);
+      extended_env->define_variable("self",obj_type(procedure.fcn.self));
     }
     // confirm max recursive depth hasn't been exceeded
     auto& recursive_depth = procedure.fcn.recursive_depth();
