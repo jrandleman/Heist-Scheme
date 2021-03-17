@@ -126,7 +126,6 @@ namespace heist {
     constexpr const char * const false_t           = "#f";
     constexpr const char * const append            = "append";
     constexpr const char * const list              = "list";
-    constexpr const char * const list_star         = "list*";
     constexpr const char * const vector            = "vector";
     constexpr const char * const hmap              = "hmap";
     constexpr const char * const definedp          = "defined?";
