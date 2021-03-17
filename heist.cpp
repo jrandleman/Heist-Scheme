@@ -1632,10 +1632,7 @@ namespace heist {
     }
 
     // Returns the ultimate value of the call-chain
-    bool property_chain_is_undefined(scm_string&& call, env_type& env)noexcept{
-      // split the call chain into object series
-      std::vector<scm_string> chain;
-      if(!parse_object_property_chain_sequence(call,chain)) return true;
+    bool property_chain_is_undefined(std::vector<scm_string>&& chain, env_type& env)noexcept{
       // get the first object instance
       if(!env->has_variable(chain[0])) return true;
       data value = lookup_variable_value(chain[0],env);
@@ -1665,8 +1662,11 @@ namespace heist {
         return boolean(env->has_variable(variable));
       };
     // Check if member-access chain is defined in the environment
-    return [variable=std::move(exp[1].sym)](env_type& env)mutable{
-      return boolean(!undefined_determination_helpers::property_chain_is_undefined(std::move(variable),env));
+    std::vector<scm_string> chain; // split the call chain into object series
+    if(!undefined_determination_helpers::parse_object_property_chain_sequence(exp[1].sym,chain)) 
+      return [](env_type&){return GLOBALS::FALSE_DATA_BOOLEAN;};
+    return [chain=std::move(chain)](env_type& env)mutable{
+      return boolean(!undefined_determination_helpers::property_chain_is_undefined(std::move(chain),env));
     };
   }
 
@@ -1699,10 +1699,7 @@ namespace heist {
     }
 
     // Returns the ultimate value of the call-chain
-    void delete_property_chain_if_exists(scm_string&& call, env_type& env)noexcept{
-      // split the call chain into object series
-      std::vector<scm_string> chain;
-      if(!undefined_determination_helpers::parse_object_property_chain_sequence(call,chain)) return;
+    void delete_property_chain_if_exists(std::vector<scm_string>&& chain, env_type& env)noexcept{
       // get the first object instance
       if(!env->has_variable(chain[0])) return;
       data value = lookup_variable_value(chain[0],env);
@@ -1736,8 +1733,11 @@ namespace heist {
         return GLOBALS::VOID_DATA_OBJECT;
       };
     // Check if member-access chain is defined in the environment
-    return [variable=std::move(exp[1].sym)](env_type& env)mutable{
-      delete_variable_helpers::delete_property_chain_if_exists(std::move(variable),env);
+    std::vector<scm_string> chain; // split the call chain into object series
+    if(!undefined_determination_helpers::parse_object_property_chain_sequence(exp[1].sym,chain)) 
+      return [](env_type&){return GLOBALS::VOID_DATA_OBJECT;};
+    return [chain=std::move(chain)](env_type& env)mutable{
+      delete_variable_helpers::delete_property_chain_if_exists(std::move(chain),env);
       return GLOBALS::VOID_DATA_OBJECT;
     };
   }
