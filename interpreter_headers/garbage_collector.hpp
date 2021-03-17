@@ -28,7 +28,7 @@ namespace heist {
     static TGC_ENTRY* TYPED_GARBAGE_COLLECTOR;
     static void FREE_TYPED_GARBAGE_COLLECTOR()noexcept{
       TGC_CAP = 0; // SIGNALS GC FREED & DISABLES ALL INDEPENDANT DTORS
-      for(std::size_t i = 0; i < TGC_LEN; ++i) {
+      for(std::size_t i = TGC_LEN; i-- > 0;) {
         delete TYPED_GARBAGE_COLLECTOR[i].first;
         delete TYPED_GARBAGE_COLLECTOR[i].second;
         TYPED_GARBAGE_COLLECTOR[i].first = nullptr;
