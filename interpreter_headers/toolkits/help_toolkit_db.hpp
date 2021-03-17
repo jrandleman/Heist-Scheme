@@ -879,13 +879,13 @@ Returns Heist Scheme's cmd-line options as a string:
 
 Reader changes with "-compile":
   *) Compilation replaces interpreter's reader, hence:
-     0. Reader-modifying operations must be done in a seperate file and linked with "-l"!
+     0. Reader-modifying operations must be done in a seperate file and loaded with "-l"!
         => These include "infix!", "infixr!", "unfix!", "define-reader-syntax", & "define-reader-alias"!
         => IE: "$ heist -l reader_modifications.scm -compile file_to_compile.scm"
 
 Quirks to account for with "-cps":
   *) Wraps scheme code in a "scm->cps" block automatically, hence:
-     0. Reader-modifying operations must be done in a seperate file and linked with "-l"!
+     0. Reader-modifying operations must be done in a seperate file and loaded with "-l"!
         => These include "infix!", "infixr!", "unfix!", "define-reader-syntax", & "define-reader-alias"!
         => IE: "$ heist -cps -l reader_modifications.scm -script file_to_interpret.scm"
      1. Affects the REPL, "-script", and "-compile"!

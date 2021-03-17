@@ -207,14 +207,14 @@
 ### `-compile` Notes:
 Compilation replaces interpreter's reader, hence:
 
-0. Reader-modifying operations must be done in a seperate file and linked with `-l`!
+0. Reader-modifying operations must be done in a seperate file and loaded with `-l`!
    * These include [`infix!`](#Infix--Infixr), [`infixr!`](#Infix--Infixr), [`unfix!`](#Unfix), [`define-reader-syntax`](#Syntax-Procedures), & [`define-reader-alias`](#Define-Reader-Alias)!
    * IE: `$ heist -l reader_modifications.scm -compile file_to_compile.scm`
 
 ### `-cps` Quirks:
 Wraps scheme code in a [`scm->cps`](#scm-cps) block automatically, hence:
 
-0. Reader-modifying operations must be done in a seperate file and linked with `-l`!
+0. Reader-modifying operations must be done in a seperate file and loaded with `-l`!
    * These include [`infix!`](#Infix--Infixr), [`infixr!`](#Infix--Infixr), [`unfix!`](#Unfix), [`define-reader-syntax`](#Syntax-Procedures), & [`define-reader-alias`](#Define-Reader-Alias)!
    * IE: `$ heist -cps -l reader_modifications.scm -script file_to_interpret.scm`
 1. Affects the REPL, `-script`, and `-compile`!
