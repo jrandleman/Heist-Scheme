@@ -15,7 +15,7 @@ namespace heist {
 
   list_status primitive_list_is_acyclic_and_null_terminated(const data& curr_pair)noexcept;
   scm_string  stack_trace_str         (const scm_string& tab = "  ")noexcept;
-  sym_type    procedure_call_signature(const sym_type& name,const frame_vals& vals)noexcept;
+  sym_type    procedure_call_signature(const sym_type& name,const std::vector<data>& vals)noexcept;
   bool        data_is_stream_pair     (const data& d)noexcept;
   bool        data_is_proper_list     (const data& d)noexcept;
 
@@ -654,8 +654,8 @@ namespace heist {
 
   template<DATA_COMPARER same_as>
   bool prm_compare_SNTXs(const syn_type& s1, const syn_type& s2) {
-    frame_var label;
-    frame_vars keywords;
+    scm_string label;
+    std::vector<scm_string> keywords;
     std::vector<scm_list> patterns;
     std::vector<scm_list> templates;
     if(s1.label != s2.label || s1.patterns.size()  != s2.patterns.size()

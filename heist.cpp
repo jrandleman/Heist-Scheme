@@ -148,15 +148,15 @@ namespace heist {
 
 
   // Generate a call signature from a procedure name & its given values
-  sym_type procedure_call_signature(const sym_type& name,const frame_vals& vals)noexcept{
+  sym_type procedure_call_signature(const sym_type& name,const std::vector<data>& vals)noexcept{
     if(vals.empty()) return '(' + name + ')';
     return '(' + name + ' ' + cio_expr_str<&data::noexcept_write>(vals).substr(1);
   }
 
 
   // Generate an improper procedure call error message
-  sym_type improper_call_alert(sym_type name, const frame_vals& vals,
-                                              const frame_vars& vars)noexcept{
+  sym_type improper_call_alert(sym_type name, const std::vector<data>& vals,
+                                              const std::vector<scm_string>& vars)noexcept{
     if(name.empty()) name = "#<procedure>"; // anonymous lambda
     // Generate the call signature
     auto call_signature = procedure_call_signature(name,vals);
@@ -258,7 +258,7 @@ namespace heist {
   // Transforms the appropriate 'vals' into a list (for the given variadic arg)
   //   => ((lambda (. l) l) <arg1> <arg2> ... <argN>)      [ BECOMES -> ]
   //      ((lambda (l) l) (list <arg1> <arg2> ... <argN>))
-  void transform_variadic_vals_into_a_list(frame_vars& vars,frame_vals& vals,const size_type continuation_offset)noexcept{
+  void transform_variadic_vals_into_a_list(std::vector<scm_string>& vars,std::vector<data>& vals,const size_type continuation_offset)noexcept{
     const size_type va_arg_idx = vars.size()-2-continuation_offset;
     // Transform the arg names & vals as needed
     vars[va_arg_idx] = vars[va_arg_idx+1]; // shift up variadic arg name (erasing '.')
@@ -274,39 +274,38 @@ namespace heist {
 
 
   // Confirm given no args & NOT applying a void-arg fcn & NOT a variadic-arg fcn
-  bool nullary_invocation_of_non_nullary_procedure(const frame_vars& vars,const frame_vals& vals)noexcept{
+  bool nullary_invocation_of_non_nullary_procedure(const std::vector<scm_string>& vars,const std::vector<data>& vals)noexcept{
     return vals.empty() && !vars.empty() && !(vars.size()==2 && symbol_is_dot_operator(vars[0]));
   }
 
 
   // Confirm passing an arg to an argless procedure
-  bool non_nullary_invocation_of_nullary_procedure(const frame_vars& vars,const frame_vals& vals)noexcept{
+  bool non_nullary_invocation_of_nullary_procedure(const std::vector<scm_string>& vars,const std::vector<data>& vals)noexcept{
     return !vals.empty() && vars.empty();
   }
 
 
   // Confirm <vars> is a cps-variadic procedure
-  bool is_cps_variadic_arg_declaration(const frame_vars& vars)noexcept{
+  bool is_cps_variadic_arg_declaration(const std::vector<scm_string>& vars)noexcept{
     return vars.size() > 2 && string_begins_with(vars[vars.size()-1],symconst::continuation) 
                            && symbol_is_dot_operator(vars[vars.size()-3]);
   }
 
 
   // Determine whether proc takes variadic args
-  bool variadic_arg_declaration(const frame_vars& vars, const bool is_cps_variadic)noexcept{
+  bool variadic_arg_declaration(const std::vector<scm_string>& vars, const bool is_cps_variadic)noexcept{
     return (vars.size() > 1 && symbol_is_dot_operator(vars[vars.size()-2])) || is_cps_variadic;
   }
 
 
   // Determine whether enough vals for the variadic arg decl
-  bool invalid_variadic_arg_declaration(const frame_vars& vars, const frame_vals& vals, const bool is_cps_variadic)noexcept{
+  bool invalid_variadic_arg_declaration(const std::vector<scm_string>& vars, const std::vector<data>& vals, const bool is_cps_variadic)noexcept{
     return vals.size() < vars.size() - 2 - is_cps_variadic; // - again if at a continuation
   }
 
 
   // Wrapper composing the above helpers
-  bool confirm_valid_environment_extension(frame_vars& vars, frame_vals& vals, 
-                                                       const sym_type& name){
+  bool confirm_valid_environment_extension(std::vector<scm_string>& vars, std::vector<data>& vals, const sym_type& name){
     if(nullary_invocation_of_non_nullary_procedure(vars,vals))
       THROW_ERR("Too few arguments supplied! -- EXTEND_ENVIRONMENT" 
         << improper_call_alert(name,vals,vars));
@@ -329,12 +328,11 @@ namespace heist {
   ******************************************************************************/
 
   // -- ENVIRONMENTAL EXTENSION
-  env_type extend_environment(frame_vars&& vars, frame_vals& vals, env_type& base_env, 
-                                                             const sym_type& name = ""){
+  env_type extend_environment(std::vector<scm_string>&& vars, std::vector<data>& vals, env_type& base_env, const sym_type& name = ""){
     // If valid extension, return environment w/ a new frame prepended
     if(confirm_valid_environment_extension(vars,vals,name)) {
       env_type extended_env(make_env());
-      extended_env->frame = frame_type(vars,vals,frame_macs());
+      extended_env->frame = create_frame(vars,vals);
       extended_env->parent = base_env;
       return extended_env;
     // Invalid extension
@@ -348,13 +346,13 @@ namespace heist {
   }
 
   // R-value overload is _ONLY_ to launch the global environment
-  env_type extend_environment(frame_vars&& vars, frame_vals&& vals, env_type& base_env){
+  env_type extend_environment(std::vector<scm_string>&& vars, std::vector<data>&& vals, env_type& base_env){
     return extend_environment(std::move(vars),vals,base_env,"");
   }
 
 
   // -- VARIABLE LOOKUP
-  frame_val lookup_variable_value(const frame_var& var, env_type& env) {
+  data lookup_variable_value(const sym_type& var, env_type& env) {
     bool found = false;
     auto val = env->lookup_variable_value(var, found);
     if(found) return val;
@@ -363,7 +361,7 @@ namespace heist {
 
 
   // -- VARIABLE SETTING: (set! <var> <val>)
-  void set_variable_value(const frame_var& var, frame_val&& val, env_type& env) {
+  void set_variable_value(const sym_type& var, data&& val, env_type& env) {
     if(!env->set_variable_value(var, std::move(val))) {
       scm_list invalid_set_call(3);
       invalid_set_call[0] = symconst::set;
@@ -375,7 +373,7 @@ namespace heist {
 
 
   // -- VARIABLE DEFINITION: (define <var> <val>)
-  void define_variable(const frame_var& var, frame_val val, env_type& env)noexcept{
+  void define_variable(const sym_type& var, data val, env_type& env)noexcept{
     env->define_variable(var,std::move(val));
   }
 
@@ -521,7 +519,7 @@ namespace heist {
   bool is_definition(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::define);}
   data make_lambda(scm_list parameters, scm_list body)noexcept; // Lambda ctor
 
-  frame_var& definition_variable(scm_list& exp)noexcept{
+  sym_type& definition_variable(scm_list& exp)noexcept{
     // if defining a variable, else defining a procedure
     if(exp[1].is_type(types::sym)) return exp[1].sym; 
     return exp[1].exp[0].sym;
@@ -2763,7 +2761,7 @@ namespace heist {
 
 
   // Confirm whether the given word is a keyword
-  bool is_keyword(const sym_type& word, const frame_vars& keywords)noexcept{
+  bool is_keyword(const sym_type& word, const std::vector<scm_string>& keywords)noexcept{
     return std::find(keywords.begin(), keywords.end(), word) != keywords.end();
   }
 
@@ -2789,7 +2787,7 @@ namespace heist {
 
 
   // Confirm <pat_entity> is a macro argument (non-keyword) name
-  bool is_macro_argument_label(const data& pat_entity, const frame_vars& keywords)noexcept{
+  bool is_macro_argument_label(const data& pat_entity, const std::vector<scm_string>& keywords)noexcept{
     return is_symbolic_macro_identifier(pat_entity) && !is_keyword(pat_entity.sym, keywords);
   }
 
@@ -2822,12 +2820,12 @@ namespace heist {
   * REPRESENTING MACRO SYNTACTIC EXTENSIONS -- PATTERN MATCHING HELPER FUNCTIONS
   ******************************************************************************/
 
-  bool compare_pattern_args_exp_match(const scm_list&,const scm_list&,const frame_vars&,MACRO_ID_VAR_TABLE&,
+  bool compare_pattern_args_exp_match(const scm_list&,const scm_list&,const std::vector<scm_string>&,MACRO_ID_VAR_TABLE&,
                                                       const size_type&,MacroId_varArg_posPair)noexcept;
   
 
   // Verify if pat_elt is a keyword that arg_elt is the same keyword
-  bool mismatched_keywords(const data& pat_elt, const data& arg_elt, const frame_vars& keywords)noexcept{
+  bool mismatched_keywords(const data& pat_elt, const data& arg_elt, const std::vector<scm_string>& keywords)noexcept{
     if(pat_elt.is_type(types::sym) && is_keyword(pat_elt.sym,keywords))
       return !arg_elt.is_type(types::sym) || arg_elt.sym != pat_elt.sym;
     return false;
@@ -2844,7 +2842,7 @@ namespace heist {
 
 
   // Confirm the 2 given pattern/arg elts are mismatched subexpressions
-  bool mismatched_subexpressions(const data& pat_elt, const data& arg_elt, const frame_vars& keywords, 
+  bool mismatched_subexpressions(const data& pat_elt, const data& arg_elt, const std::vector<scm_string>& keywords, 
                                  MACRO_ID_VAR_TABLE& MID_VARG_PAIR, MacroId_varArg_posPair macId_varArg_vecs, 
                                  const size_type& args_idx, const size_type& pat_idx)noexcept{
     if(!pat_elt.is_type(types::exp) || !arg_elt.is_type(types::exp)) return true;
@@ -2856,7 +2854,7 @@ namespace heist {
 
   // Handle '...' pattern analysis
   bool account_for_pattern_ellipsis_and_return_whether_no_match(const scm_list& args_exp,    size_type& args_idx, const data& pat_obj_prior_ellipsis,
-                                                                const size_type& number_args_left_after_variadic, const frame_vars& keywords,
+                                                                const size_type& number_args_left_after_variadic, const std::vector<scm_string>& keywords,
                                                                 MACRO_ID_VAR_TABLE& MID_VARG_PAIR,MacroId_varArg_posPair macId_varArg_vecs,
                                                                 const size_type& pat_idx)noexcept{
     // Start associating objs based on the first obj prior "..."'s position
@@ -2891,7 +2889,7 @@ namespace heist {
 
 
   // Confirm whether the pattern sub-expression matches the 'args' sub-expression
-  bool compare_pattern_args_exp_match(const scm_list& pat_exp, const scm_list& args_exp, const frame_vars& keywords,
+  bool compare_pattern_args_exp_match(const scm_list& pat_exp, const scm_list& args_exp, const std::vector<scm_string>& keywords,
                                       MACRO_ID_VAR_TABLE& MID_VARG_PAIR,                 const size_type& pat_idx_start, 
                                                                       MacroId_varArg_posPair macId_varArg_vecs)noexcept{
     // Confirm whether <pat_exp> & <args_exp> match one another
@@ -2946,7 +2944,7 @@ namespace heist {
 
 
   // Confirm the given arg combo matches the given pattern (in terms of layout)
-  bool is_pattern_match(const scm_list& args,const frame_vars& keywords,const scm_list& pattern,
+  bool is_pattern_match(const scm_list& args,const std::vector<scm_string>& keywords,const scm_list& pattern,
                                                    MACRO_ID_VAR_TABLE& MID_VARG_PAIR)noexcept{
     if(incompatible_void_arg_use(pattern,args)) return false;
     MacroId_varArg_posPair macId_varArg_vecs;
@@ -3239,8 +3237,8 @@ namespace heist {
   }
 
 
-  void recursively_apply_syntax_hash_to_identifiers(scm_list& expanded_exp, const frame_vars& hashed_ids, 
-                                                                            const frame_vars& to_hash_ids)noexcept{
+  void recursively_apply_syntax_hash_to_identifiers(scm_list& expanded_exp, const std::vector<scm_string>& hashed_ids, 
+                                                                            const std::vector<scm_string>& to_hash_ids)noexcept{
     const auto n = to_hash_ids.size();
     for(auto& datum : expanded_exp) {
       if(datum.is_type(types::sym)) {
@@ -3257,9 +3255,9 @@ namespace heist {
   }
 
 
-  void apply_syntax_hash_to_identifiers(scm_list& expanded_exp, const frame_vars& to_hash_ids)noexcept{
+  void apply_syntax_hash_to_identifiers(scm_list& expanded_exp, const std::vector<scm_string>& to_hash_ids)noexcept{
     // Get the dynamic (runtime) hash of each <syntax-hash> identifier in the macro
-    frame_vars hashed_ids(to_hash_ids.size());
+    std::vector<scm_string> hashed_ids(to_hash_ids.size());
     for(size_type i = 0, n = to_hash_ids.size(); i < n; ++i)
       hashed_ids[i] = safe_expansion_hashed_macro_arg(to_hash_ids[i]);
     recursively_apply_syntax_hash_to_identifiers(expanded_exp,hashed_ids,to_hash_ids);
@@ -3636,14 +3634,14 @@ namespace heist {
   ******************************************************************************/
 
   // Confirm data is an unexpandable syntax-rules macro token
-  bool data_is_literal_or_keyword(const data& pat_entity, const frame_vars& keywords)noexcept{
+  bool data_is_literal_or_keyword(const data& pat_entity, const std::vector<scm_string>& keywords)noexcept{
     return !pat_entity.is_type(types::exp) && !is_macro_argument_label(pat_entity,keywords);
   }
 
 
   // PRECONDITION: is_macro_argument_label(pattern[i],keywords) = true
   void confirm_unique_syntax_rules_pattern_identifier(const scm_list& pattern,const size_type& i,
-                                                      const scm_list& exp, frame_vars& identifiers) {
+                                                      const scm_list& exp, std::vector<scm_string>& identifiers) {
     static constexpr const char * const format = 
       "\n     (syntax-rules (<keyword-list>) <pattern-template-clauses>)"
       "\n     <pattern-template-clause> = ((<pattern>) <template>)";
@@ -3657,7 +3655,7 @@ namespace heist {
 
 
   void confirm_proper_syntax_rules_pattern_layout(const scm_list& pattern,const scm_list& exp,
-                                                  const frame_vars& keywords, frame_vars& identifiers){
+                                                  const std::vector<scm_string>& keywords, std::vector<scm_string>& identifiers){
     static constexpr const char * const format = 
       "\n     (syntax-rules (<keyword-list>) <pattern-template-clauses>)"
       "\n     <pattern-template-clause> = ((<pattern>) <template>)";
@@ -3716,7 +3714,7 @@ namespace heist {
           " by a symbol or expression identifier!\n     " 
           << cio_expr_str<&data::noexcept_write>(exp[i].exp[0].exp) << format << EXP_ERR(exp));
       // Confirm each pattern identifier only appears once
-      frame_vars identifiers;
+      std::vector<scm_string> identifiers;
       confirm_proper_syntax_rules_pattern_layout(exp[i].exp[0].exp,exp,mac.keywords,identifiers);
     }
   }
@@ -3769,7 +3767,7 @@ namespace heist {
 
 
   void recursively_safe_expansion_hash_macro_pattern(scm_list& pattern, scm_list& mac_template, 
-                                                     const frame_vars& keywords, const size_type& start=0)noexcept{
+                                                     const std::vector<scm_string>& keywords, const size_type& start=0)noexcept{
     for(size_type i = start, n = pattern.size(); i < n; ++i) {
       if(pattern[i].is_type(types::exp)) {
         recursively_safe_expansion_hash_macro_pattern(pattern[i].exp, mac_template, keywords);
@@ -3792,7 +3790,7 @@ namespace heist {
   }
 
 
-  void parse_macro_template_for_syntax_hashed_identifiers(frame_vars& hashed_id_registry, 
+  void parse_macro_template_for_syntax_hashed_identifiers(std::vector<scm_string>& hashed_id_registry, 
                                                           scm_list& mac_template, 
                                                           const scm_list& exp){
     for(size_type i = 0, n = mac_template.size(); i < n; ++i) {
@@ -3814,7 +3812,7 @@ namespace heist {
       mac.patterns.push_back(exp[i].exp[0].exp);
       // Wrap 'begin' around templates prior evaluation (for multi-exp bodies)
       mac.templates.push_back(scm_list(exp[i].exp.size()));
-      mac.hashed_template_ids.push_back(frame_vars());
+      mac.hashed_template_ids.push_back(std::vector<scm_string>());
       mac.templates.rbegin()->operator[](0) = symconst::begin;
       std::copy(exp[i].exp.begin()+1, 
                 exp[i].exp.end(), 

@@ -6804,17 +6804,17 @@ namespace heist {
     std::make_pair(primitive_FALSEY_VALUES,   "falsey-values"),
   };
 
-  frame_vals primitive_procedure_objects()noexcept{
+  std::vector<data> primitive_procedure_objects()noexcept{
     constexpr const auto n = sizeof(primitive_procedure_declarations) / sizeof(primitive_procedure_declarations[0]);
-    frame_vals primitive_procedures(n);
+    std::vector<data> primitive_procedures(n);
     for(size_type i = 0; i < n; ++i)
       primitive_procedures[i] = scm_fcn(primitive_procedure_declarations[i].second,primitive_procedure_declarations[i].first);
     return primitive_procedures;
   }
 
-  frame_vars primitive_procedure_names()noexcept{
+  std::vector<scm_string> primitive_procedure_names()noexcept{
     constexpr const auto n = sizeof(primitive_procedure_declarations) / sizeof(primitive_procedure_declarations[0]);
-    frame_vars names(n);
+    std::vector<scm_string> names(n);
     for(size_type i = 0; i < n; ++i)
       names[i] = primitive_procedure_declarations[i].second;
     return names;

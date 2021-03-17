@@ -43,7 +43,7 @@ namespace heist {
   void        define_setter_method_for_member(OBJECT_TYPE& proto, env_type& env, const scm_string& member_name);
   void        shallow_unpack_list_into_exp(data& curr_pair, scm_list& args_list)noexcept;
   void        primitive_UNFOLD_template(scm_list&,scm_list&,const char*,const char* format);
-  frame_var   procedure_name(const scm_list& p)noexcept;
+  scm_string  procedure_name(const scm_list& p)noexcept;
   scm_string  escape_chars(const scm_string& str)noexcept;
   scm_string  unescape_chars(const scm_string& str)noexcept;
   num_type    primitive_guarenteed_list_length(const data& d)noexcept;

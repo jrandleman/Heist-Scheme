@@ -141,50 +141,6 @@ namespace heist {
   } // End namespace symconst
 
   /******************************************************************************
-  * ENVIRONMENT DATA STRUCTURE TYPE ALIASES
-  ******************************************************************************/
-
-  // ENVIRONMENTS AS NODES WITH A FRAME & POINTER TO THEIR ENCLOSING ENVIRONMENT
-  //    => FRAMES AS TUPLE OF VECTORS: VARIABLE NAMES & VALUES, MACRO DEFNS
-
-  using frame_var  = std::string;
-  using frame_val  = struct data;
-  using frame_mac  = struct data;
-  using frame_vars = std::vector<frame_var>;
-  using frame_vals = std::vector<frame_val>;
-  using frame_macs = std::vector<frame_mac>;
-  using frame_type = std::tuple<frame_vars,frame_vals,frame_macs>;
-
-
-  struct environment {
-    // Invariants
-    tgc_ptr<environment> parent = nullptr; // enclosing environment pointer
-    frame_type frame;                      // environment's bindings
-
-    // Getters
-    frame_vars& variables()noexcept{return std::get<0>(frame);}
-    const frame_vars& variables()const noexcept{return std::get<0>(frame);}
-    frame_vals& values()noexcept{return std::get<1>(frame);}
-    const frame_vals& values()const noexcept{return std::get<1>(frame);}
-    frame_macs& macros()noexcept{return std::get<2>(frame);}
-    const frame_macs& macros()const noexcept{return std::get<2>(frame);}
-
-    // Environmental Traversal & Access
-    frame_val lookup_variable_value(const frame_var& var, bool& found)const noexcept;
-    bool set_variable_value(const frame_var& var, frame_val&& val)noexcept;
-    void define_variable(const frame_var& var, frame_val&& val)noexcept;
-    void define_macro(const frame_mac& mac)noexcept;
-    scm_string getenv(const frame_var& var, bool& found)const;
-    bool has_macro(const scm_string& label)const noexcept;
-    bool has_variable(const frame_var& var)const noexcept;
-    bool erase_variable(const frame_var& var)noexcept;
-    bool erase_macro(const scm_string& label)noexcept;
-
-  private:
-    bool macro_has_label(const frame_mac& mac, const scm_string& label)const noexcept;
-  };
-
-  /******************************************************************************
   * DATA TYPE ALIASES & CONSTRUCTORS
   ******************************************************************************/
 
@@ -196,7 +152,7 @@ namespace heist {
   using sym_type = scm_string;                           // symbol
   using vec_type = tgc_ptr<scm_list>;                    // vector
   using bol_type = struct boolean;                       // boolean
-  using env_type = tgc_ptr<environment>;                 // evironment
+  using env_type = tgc_ptr<struct environment>;          // evironment
   using del_type = tgc_ptr<struct scm_delay>;            // delay
   using fcn_type = struct scm_fcn;                       // procedure (compound & primitive)
   using fip_type = struct iport;                         // file input port
@@ -274,7 +230,7 @@ namespace heist {
   bool prm_DYNAMIC_OBJeq(const obj_type&,const data&,const char*,bool&);
 
   /******************************************************************************
-  * DATA TYPE STRUCTS
+  * BOOLEAN, PORT, FUNCTION, & SYNTAX-RULES-OBJECT DATA TYPE STRUCTS
   ******************************************************************************/
 
   // boolean struct (differentiates from 'chr_type')
@@ -317,11 +273,11 @@ namespace heist {
 
   // macro data structure
   struct scm_macro {
-    frame_var label;
-    frame_vars keywords;
-    std::vector<frame_vars> hashed_template_ids; // hashed_template_ids[i] = syntax-hashed vars of templates[i]
+    sym_type label;
+    std::vector<sym_type> keywords;
+    std::vector<std::vector<sym_type>> hashed_template_ids; // hashed_template_ids[i] = syntax-hashed vars of templates[i]
     std::vector<scm_list> patterns, templates;
-    scm_macro(frame_var u_label = "") noexcept : label(u_label) {}
+    scm_macro(sym_type u_label = "") noexcept : label(u_label) {}
     scm_macro(const scm_macro& m)     noexcept {*this = m;}
     scm_macro(scm_macro&& m)          noexcept {*this = std::move(m);}
     ~scm_macro()                      noexcept {}
@@ -359,13 +315,13 @@ namespace heist {
     // tail call wrapper ctor (gets returned up)
     scm_fcn(env_type& e,const exe_fcn_t& b)noexcept:env(e){bodies.push_back(b);}
     // lambda ctor
-    scm_fcn(const exp_type& p,const exe_fcn_t& b,env_type& e,const frame_var& n)noexcept:name(n),env(e),rec_depth(depth_t(size_type(0))){
+    scm_fcn(const exp_type& p,const exe_fcn_t& b,env_type& e,const sym_type& n)noexcept:name(n),env(e),rec_depth(depth_t(size_type(0))){
       param_instances.push_back(p), bodies.push_back(b);
     }
     // fn ctor
-    scm_fcn(const std::vector<exp_type>& ps,const std::vector<exe_fcn_t>& bs,env_type& e,const frame_var& n)noexcept:name(n),param_instances(ps),bodies(bs),
-                                                                                                                     env(e),rec_depth(depth_t(size_type(0))),
-                                                                                                                     flags(0){}
+    scm_fcn(const std::vector<exp_type>& ps,const std::vector<exe_fcn_t>& bs,env_type& e,const sym_type& n)noexcept:name(n),param_instances(ps),bodies(bs),
+                                                                                                                    env(e),rec_depth(depth_t(size_type(0))),
+                                                                                                                    flags(0){}
     scm_fcn(const scm_fcn& f)noexcept{*this = f;}
     scm_fcn(const scm_fcn&& f)noexcept{*this = std::move(f);}
     void operator=(const scm_fcn& f)noexcept;
@@ -380,12 +336,16 @@ namespace heist {
     bool is_cps_procedure()const noexcept{return flags & 4;}
     void set_cps_procedure(bool status)noexcept{if(status) flags |= 4; else flags &= ~4;}
     size_type& recursive_depth()noexcept{return *rec_depth;} // PRECONDITION: rec_depth
-    size_type  recursive_depth()const noexcept{return *rec_depth;} // PRECONDITION: rec_depth
+    size_type recursive_depth()const noexcept{return *rec_depth;} // PRECONDITION: rec_depth
     scm_string str()const noexcept{return name.empty() ? "#<procedure>" : "#<procedure " + name + '>';}
     scm_string printable_procedure_name()const noexcept{return name.empty() ? "#<procedure>" : name;}
-    frame_vars lambda_parameters()const noexcept;
-    env_type   get_extended_environment(exp_type& arguments,exe_fcn_t& body,const bool applying_in_cps);
+    std::vector<scm_string> lambda_parameters()const noexcept;
+    env_type get_extended_environment(exp_type& arguments,exe_fcn_t& body,const bool applying_in_cps);
   };
+
+  /******************************************************************************
+  * CORE SCHEME OBJECT DATA TYPE STRUCT
+  ******************************************************************************/
 
   // data_obj.type                  => current type enum
   // data_obj.type_name()           => current type's name (string)
@@ -789,6 +749,63 @@ namespace heist {
     }
   }; // End struct data
 
+  /******************************************************************************
+  * ENVIRONMENT DATA STRUCTURE TYPE ALIASES
+  ******************************************************************************/
+
+  // ENVIRONMENTS AS NODES WITH A FRAME & POINTER TO THEIR ENCLOSING ENVIRONMENT
+  //    => FRAMES AS PAIRS OF VAR-VAL MAP & MACRO-DEFN VECTOR
+
+  using frame_var  = std::string;
+  using frame_val  = struct data;
+  using frame_mac  = struct data;
+  using frame_objs = std::unordered_map<frame_var,frame_val>;
+  using frame_macs = std::vector<frame_mac>;
+  using frame_type = std::pair<frame_objs,frame_macs>;
+
+
+  // Environment Data Type
+  struct environment {
+    // Invariants
+    tgc_ptr<environment> parent = nullptr; // enclosing environment pointer
+    frame_type frame;                      // environment's bindings
+
+    // Getters
+    frame_objs& objects()noexcept{return frame.first;}
+    const frame_objs& objects()const noexcept{return frame.first;}
+    frame_macs& macros()noexcept{return frame.second;}
+    const frame_macs& macros()const noexcept{return frame.second;}
+
+    // Environmental Traversal & Access
+    frame_val lookup_variable_value(const frame_var& var, bool& found)const noexcept;
+    bool set_variable_value(const frame_var& var, frame_val&& val)noexcept;
+    void define_variable(const frame_var& var, frame_val&& val)noexcept;
+    void define_macro(const frame_mac& mac)noexcept;
+    scm_string getenv(const frame_var& var, bool& found)const;
+    bool has_macro(const scm_string& label)const noexcept;
+    bool has_variable(const frame_var& var)const noexcept;
+    bool erase_variable(const frame_var& var)noexcept;
+    bool erase_macro(const scm_string& label)noexcept;
+
+  private:
+    bool macro_has_label(const frame_mac& mac, const scm_string& label)const noexcept;
+  };
+
+
+  // Frame Generation
+  frame_type create_frame(const std::vector<scm_string>& vars, std::vector<data>& vals) {
+    const size_type n = vars.size();
+    frame_objs objects;
+    objects.reserve(n);
+    for(size_type i = 0; i < n; ++i)
+      objects[vars[i]] = vals[i];
+    return frame_type(std::move(objects),frame_macs());
+  }
+
+  /******************************************************************************
+  * DELAY, HMAP, CLASS-PROTOTYPE, & OBJECT DATA TYPE STRUCTS
+  ******************************************************************************/
+
   // delay structure
   struct scm_delay {
     data datum;
@@ -921,8 +938,8 @@ namespace heist {
   }
 
   // compound procedure parameter list extraction
-  frame_vars scm_fcn::lambda_parameters()const noexcept{
-    frame_vars var_names;
+  std::vector<scm_string> scm_fcn::lambda_parameters()const noexcept{
+    std::vector<scm_string> var_names;
     for(size_type i = 0, n = param_instances[0].size(); i < n; ++i)
       if(param_instances[0][i].is_type(types::sym))
         var_names.push_back(param_instances[0][i].sym);
@@ -1217,10 +1234,10 @@ namespace heist {
     }
 
 
-    bool param_parse_hmap_literal(const data&,data&,exp_type&,frame_vars&)noexcept;
-    bool param_parse_list_literal(const data&,data&,exp_type&,frame_vars&)noexcept;
+    bool param_parse_hmap_literal(const data&,data&,exp_type&,std::vector<scm_string>&)noexcept;
+    bool param_parse_list_literal(const data&,data&,exp_type&,std::vector<scm_string>&)noexcept;
 
-    bool param_parse_vector_literal(const data& vec, data& arg, exp_type& values, frame_vars& unpacked_params)noexcept{
+    bool param_parse_vector_literal(const data& vec, data& arg, exp_type& values, std::vector<scm_string>& unpacked_params)noexcept{
       if(!arg.is_type(types::vec)) return false;
       if(vec.exp.size() != arg.vec->size()+1) return false;
       for(size_type i = 1, j = 0, n = vec.exp.size(); i < n; ++i, ++j) {
@@ -1253,7 +1270,7 @@ namespace heist {
       return true;
     }
 
-    bool param_parse_hmap_literal(const data& map, data& arg, exp_type& values, frame_vars& unpacked_params)noexcept{
+    bool param_parse_hmap_literal(const data& map, data& arg, exp_type& values, std::vector<scm_string>& unpacked_params)noexcept{
       if(!arg.is_type(types::map)) return false;
       if((map.exp.size()-1)/2 != arg.map->val.size()) return false;
       auto iter = arg.map->val.begin();
@@ -1291,7 +1308,7 @@ namespace heist {
       return true;
     }
 
-    bool param_parse_list_literal(const data& lst, data& arg, exp_type& values, frame_vars& unpacked_params)noexcept{
+    bool param_parse_list_literal(const data& lst, data& arg, exp_type& values, std::vector<scm_string>& unpacked_params)noexcept{
       if(lst.exp.empty()) return arg.is_type(types::sym) && arg.sym == symconst::emptylist; // match NIL
       if(!arg.is_type(types::par)) return false;
       size_type i = 0, n = lst.exp.size();
@@ -1364,7 +1381,7 @@ namespace heist {
     // 2. MATCHING SYMBOLS AGAINST QUOTED SYMBOL LITERALS (NOT NIL: FN PARAMETER SHOULD BE () NOT '())
     // 3. MATCHING NON-CONTAINER NON-QUOTED-SYMBOL LITERALS
     // 4. MATCHING & UPPACKING LIST/VECTOR/HMAP CONTAINER LITERALS
-    bool is_fn_call_match(const exp_type& params, exp_type& arguments, exp_type& values, frame_vars& unpacked_params)noexcept{
+    bool is_fn_call_match(const exp_type& params, exp_type& arguments, exp_type& values, std::vector<scm_string>& unpacked_params)noexcept{
       // confirm emptiness match
       if((params.empty() || !data_is_dot_operator(params[0])) && (params.empty() ^ arguments.empty())) {
         return false;
@@ -1410,8 +1427,8 @@ namespace heist {
       return i == n && j == m;
     }
 
-    void match_fn_call_signature(const std::vector<exp_type>& param_instances, const std::vector<exe_fcn_t>& bodies, 
-                                 const scm_string& name,exp_type& arguments, exp_type& values,frame_vars& unpacked_params, exe_fcn_t& body){
+    void match_fn_call_signature(const std::vector<exp_type>& param_instances, const std::vector<exe_fcn_t>& bodies, const scm_string& name,
+                                 exp_type& arguments, exp_type& values, std::vector<scm_string>& unpacked_params, exe_fcn_t& body){
       for(size_type i = 0, n = param_instances.size(); i < n; ++i) {
         if(is_fn_call_match(param_instances[i],arguments,values,unpacked_params)) {
           body = bodies[i];
@@ -1440,13 +1457,13 @@ namespace heist {
     if(is_cps_procedure() && !applying_in_cps)
       arguments.push_back(scm_fcn("id",DEFAULT_TOPMOST_CONTINUATION::id));
     // extend the lambda environment
-    env_type extend_environment(frame_vars&&,frame_vals&,env_type&,const sym_type&);
+    env_type extend_environment(std::vector<scm_string>&&,std::vector<data>&,env_type&,const sym_type&);
     if(is_lambda()) {
       body = bodies[0];
       return extend_environment(lambda_parameters(), arguments, env, name);
     }
     // extend the fn environment
-    frame_vars unpacked_params;
+    std::vector<scm_string> unpacked_params;
     exp_type values;
     fn_param_matching::match_fn_call_signature(param_instances,bodies,printable_procedure_name(),arguments,values,unpacked_params,body);
     return extend_environment(std::move(unpacked_params), values, env, name);
@@ -1458,12 +1475,10 @@ namespace heist {
 
   // Environmental Traversal
   frame_val environment::lookup_variable_value(const frame_var& var, bool& found)const noexcept{
-    const auto& vars = variables();
-    for(size_type i = 0, n = vars.size(); i < n; ++i) {
-      if(var == vars[i]) {
-        found = true;
-        return values()[i];
-      }
+    const auto& objs = objects();
+    if(const auto pos = objs.find(var); pos != objs.end()) {
+      found = true;
+      return pos->second;
     }
     if(parent) return parent->lookup_variable_value(var,found);
     found = false;
@@ -1472,14 +1487,11 @@ namespace heist {
 
   // Returns whether found
   bool environment::set_variable_value(const frame_var& var, frame_val&& val)noexcept{
-    auto& vars = variables();
-    for(size_type i = 0, n = vars.size(); i < n; ++i) {
-      if(var == vars[i]) {
-        // binding anonymous procedures -> named procedure
-        if(val.is_type(types::fcn) && val.fcn.name.empty()) val.fcn.name = var;
-        values()[i] = val;
-        return true;
-      }
+    auto& objs = objects();
+    if(auto pos = objs.find(var); pos != objs.end()) {
+      if(val.is_type(types::fcn) && val.fcn.name.empty()) val.fcn.name = var;
+      pos->second = std::move(val);
+      return true;
     }
     return parent && parent->set_variable_value(var,std::move(val));
   }
@@ -1487,15 +1499,7 @@ namespace heist {
   void environment::define_variable(const frame_var& var, frame_val&& val)noexcept{
     // binding anonymous procedures -> named procedure
     if(val.is_type(types::fcn) && val.fcn.name.empty()) val.fcn.name = var;
-    auto& vars = variables();
-    for(size_type i = 0, n = vars.size(); i < n; ++i) {
-      if(var == vars[i]) {
-        values()[i] = val;
-        return;
-      }
-    }
-    vars.push_back(var);
-    values().push_back(val);
+    objects()[var] = std::move(val);
   }
 
   void environment::define_macro(const frame_mac& mac_val)noexcept{
@@ -1513,12 +1517,10 @@ namespace heist {
 
   // Get variable's name as a string
   scm_string environment::getenv(const frame_var& var, bool& found)const{
-    const auto& vars = variables();
-    for(size_type i = 0, n = vars.size(); i < n; ++i) {
-      if(var == vars[i]) {
-        found = true;
-        return values()[i].write();
-      }
+    const auto& objs = objects();
+    if(const auto pos = objs.find(var); pos != objs.end()) {
+      found = true;
+      return pos->second.write();
     }
     if(parent) return parent->getenv(var,found);
     found = false;
@@ -1532,23 +1534,12 @@ namespace heist {
   }
 
   bool environment::has_variable(const frame_var& var)const noexcept{
-    for(const auto& v : variables())
-      if(var == v) return true;
-    return parent && parent->has_variable(var);
+    return objects().count(var) || (parent && parent->has_variable(var));
   }
 
   // Returns whether found
   bool environment::erase_variable(const frame_var& var)noexcept{
-    auto& vars = variables();
-    for(size_type i = 0, n = vars.size(); i < n; ++i) {
-      if(var == vars[i]) {
-        auto& vals = values();
-        vars.erase(vars.begin()+i);
-        vals.erase(vals.begin()+i);
-        return true;
-      }
-    }
-    return parent && parent->erase_variable(var);
+    return objects().erase(var) || (parent && parent->erase_variable(var));
   }
 
   // Returns whether found
