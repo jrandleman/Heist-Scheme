@@ -4073,10 +4073,7 @@ namespace heist {
 
 
   // Returns the ultimate value of the call-chain
-  data get_object_property_chain_value(scm_string&& call, env_type& env) {
-    // split the call chain into object series
-    std::vector<scm_string> chain;
-    get_object_property_chain_sequence(call,chain);
+  data get_object_property_chain_value(scm_string&& call, std::vector<scm_string>&& chain, env_type& env) {
     // get the first object instance
     data value = lookup_variable_value(chain[0],env);
     // get the call value
@@ -4105,8 +4102,10 @@ namespace heist {
         return lookup_variable_value(variable,env);
       };
     // Object accessing members/methods!
-    return [variable=std::move(variable)](env_type& env)mutable{
-      return get_object_property_chain_value(std::move(variable),env);
+    std::vector<scm_string> chain; // split the call chain into object series
+    get_object_property_chain_sequence(variable,chain);
+    return [variable=std::move(variable),chain=std::move(chain)](env_type& env)mutable{
+      return get_object_property_chain_value(std::move(variable),std::move(chain),env);
     };
   }
 
