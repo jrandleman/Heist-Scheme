@@ -19,7 +19,7 @@ namespace heist {
   // Evaluate Heist Scheme Expression in String
   data eval(std::string exp) noexcept {
     if(!G.GLOBAL_ENVIRONMENT_POINTER) set_default_global_environment(), atexit(close_port_registry);
-    scm_list abstract_syntax_tree;
+    data_vector abstract_syntax_tree;
     try {
       // Evaluate AST if successfully parsed an expression
       // => We wrap evaluated datums in "data" (*)HERE(*) to NOT mv the evaluated datum, 
@@ -84,7 +84,7 @@ namespace heist {
 
 
   // Apply Heist Scheme Callable by Value
-  data apply(data& heist_procedure, scm_list args) noexcept {
+  data apply(data& heist_procedure, data_vector args) noexcept {
     if(!G.GLOBAL_ENVIRONMENT_POINTER) set_default_global_environment(), atexit(close_port_registry);
     if(!primitive_data_is_a_callable(heist_procedure)) {
       PRINT_ERR("Invalid Heist Scheme Callable: " << PROFILE(heist_procedure));
@@ -106,7 +106,7 @@ namespace heist {
   }
 
   // Apply Heist Scheme Callable by Name
-  data apply(const std::string& heist_procedure_name, scm_list args) noexcept {
+  data apply(const std::string& heist_procedure_name, data_vector args) noexcept {
     if(!G.GLOBAL_ENVIRONMENT_POINTER) set_default_global_environment(), atexit(close_port_registry);
     try {
       auto val = lookup_variable_value(heist_procedure_name,G.GLOBAL_ENVIRONMENT_POINTER);

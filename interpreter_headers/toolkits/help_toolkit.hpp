@@ -4,7 +4,7 @@
 ////////////////////////////////////////////////////////////
 // PROVIDES 2 PROCEDURES FOR USE IN primitives.hpp:
 //   0. help::launch_interactive_menu()
-//   1. help::query_datum(const scm_string& query)
+//   1. help::query_datum(const string& query)
 ////////////////////////////////////////////////////////////
 
 #ifndef HELP_TOOLKIT_HPP_
@@ -25,7 +25,7 @@ namespace GLOBALS {
 * HELP EOF SIGNAL HANDLER
 ******************************************************************************/
 
-scm_string handle_help_EOF_signal() {
+string handle_help_EOF_signal() {
   clearerr(stdin);
   puts("");
   fflush(stdout);
@@ -49,8 +49,8 @@ namespace help::logic {
   }
 
 
-  scm_string indent_phrasing(const char* s)noexcept{
-    scm_string str;
+  string indent_phrasing(const char* s)noexcept{
+    string str;
     while(*s) {
       str += *s;
       if(*s == '\n' && *(s+1)) {
@@ -64,7 +64,7 @@ namespace help::logic {
   }
 
 
-  void strip_whitespace(sym_type& query)noexcept{
+  void strip_whitespace(string& query)noexcept{
     if(query.empty() || (!isspace(*query.begin()) && !isspace(*query.rbegin()))) return;
     const auto n = query.size();
     size_type begin = 0, end = n-1;
@@ -77,7 +77,7 @@ namespace help::logic {
   }
 
 
-  bool is_scar_scdr_composition(const sym_type& query)noexcept{
+  bool is_scar_scdr_composition(const string& query)noexcept{
     if(query.size() <= 4 || query[0] != 's' || query[1] != 'c') return false;
     for(unsigned i = 2; i < 6; ++i) {
       if(query[i] != 'a' && query[i] != 'd') return false;
@@ -87,7 +87,7 @@ namespace help::logic {
   }
 
 
-  bool is_car_cdr_composition(const sym_type& query)noexcept{
+  bool is_car_cdr_composition(const string& query)noexcept{
     if(query.size() <= 3 || query[0] != 'c') return false;
     for(unsigned i = 1; i < 5; ++i) {
       if(query[i] != 'a' && query[i] != 'd') return false;
@@ -97,7 +97,7 @@ namespace help::logic {
   }
 
 
-  void prepare_query(sym_type& query)noexcept{
+  void prepare_query(string& query)noexcept{
     // mk query lower-case
     for(auto& ch : query) ch = scm_numeric::mklower(ch);
     // strip whitespace at either end
@@ -233,7 +233,7 @@ namespace help::logic {
   }
 
 
-  size_type longestCommonSubstring(const scm_string& s1, const char* s2, const size_type& n)noexcept{
+  size_type longestCommonSubstring(const string& s1, const char* s2, const size_type& n)noexcept{
     const auto m = s1.size(); // Traditional DP Soln: solve the "longest common suffix" prob instead
     std::vector<std::vector<size_type>> longestCommonSuffix(m+1,std::vector<size_type>(n+1,0));
     size_type longest = 0;
@@ -250,7 +250,7 @@ namespace help::logic {
   }
 
 
-  void print_possibly_intended_queries(const sym_type& query, std::vector<scm_string>& possible_matches)noexcept{
+  void print_possibly_intended_queries(const string& query, str_vector& possible_matches)noexcept{
     size_type minimum_substring_length_match = query.size() < 4 ? query.size() : 4;
     static constexpr const char* ALTERNATIVE_HELP_QUERY_NAMES[] = {
       "","null","empty-list","()","'()","nihil","numeric","num","character","bool","&&","||","class","prototype","class-proto","proto",
@@ -270,7 +270,7 @@ namespace help::logic {
       "cadddr","cdaaar","cdaadr","cdadar","cdaddr","cddaar","cddadr","cdddar","cddddr","caar...cddddr"
     };
     // Store possible matches by decreasing substring match length
-    std::vector<std::pair<size_type,scm_string>> match_map;
+    std::vector<std::pair<size_type,string>> match_map;
     // Continuously try finding possible mismatches of decreasing minimum substring match lengths (until a match is found)
     for(; minimum_substring_length_match > 0; --minimum_substring_length_match) {
       // Match against official entry names
@@ -284,7 +284,7 @@ namespace help::logic {
         auto match_length = longestCommonSubstring(query, alias, strlen(alias));
         if(match_length >= minimum_substring_length_match) {
           // get alias's offical entry name
-          scm_string s(alias);
+          string s(alias);
           prepare_query(s);
           // only keep unique matches
           bool found = false;
@@ -320,11 +320,11 @@ namespace help::logic {
   }
 
 
-  scm_string get_new_help_query(const std::vector<scm_string>& possible_matches)noexcept{
+  string get_new_help_query(const str_vector& possible_matches)noexcept{
     printf("help> ");
     fflush(stdout);
     // get new query
-    scm_string new_query;
+    string new_query;
     int ch;
     while((ch = fgetc(stdin)) != '\n' && ch != EOF) new_query += ch;
     // Quit if given EOF signal
@@ -353,7 +353,7 @@ namespace help::logic {
 
 
   // Returns GLOBALS::EMPTY_ENTRY if no match
-  auto get_entry(sym_type& query)noexcept{
+  auto get_entry(string& query)noexcept{
     prepare_query(query);
     for(const auto& entry : GLOBALS::HELP_ENTRIES)
       if(entry[0] == query) 
@@ -377,15 +377,15 @@ namespace help::logic {
 
 
   // Prints potential intended matches & returns new help query
-  scm_string retry_help_query(const sym_type& query)noexcept{
-    std::vector<scm_string> possible_matches;
+  string retry_help_query(const string& query)noexcept{
+    str_vector possible_matches;
     print_possibly_intended_queries(query,possible_matches);
     return get_new_help_query(possible_matches);
   }
 
 
   // Determines whether entered a valid quit string
-  bool is_quit_string(const scm_string& new_query)noexcept{
+  bool is_quit_string(const string& new_query)noexcept{
     return new_query == "q" || new_query == "quit"  || new_query == ":q";
   }
 } // End of namespace help::logic
@@ -395,10 +395,10 @@ namespace help::logic {
 ******************************************************************************/
 
 namespace help::menu {
-  scm_string get_input()noexcept{
+  string get_input()noexcept{
     printf("help> ");
     fflush(stdout);
-    scm_string new_query;
+    string new_query;
     int ch;
     while((ch = fgetc(stdin)) != '\n' && ch != EOF)
       new_query += (ch >= 'A' && ch <= 'Z' ? ch+32 : ch); // mk lowercase
@@ -419,7 +419,7 @@ namespace help::menu {
 
 
   void print_submenu_item(const char* col_style, const char* ENTRY)noexcept{
-    scm_string str(ENTRY);
+    string str(ENTRY);
     for(auto& ch : str) if(ch >= 'a' && ch <= 'z') ch -= 32; // to uppercase
     printf(col_style, str.c_str());
   }
@@ -427,10 +427,10 @@ namespace help::menu {
 
   void display_submenu(const char *const *const HELP_MENU_SUBMENU, const size_type n)noexcept{
     puts("");
-    const scm_string col0_style = "%-" + std::to_string(get_row_max_width(HELP_MENU_SUBMENU,n,0)) + "s    ";
-    const scm_string col1_style = "%-" + std::to_string(get_row_max_width(HELP_MENU_SUBMENU,n,1)) + "s    ";
-    const scm_string col2_style = "%-" + std::to_string(get_row_max_width(HELP_MENU_SUBMENU,n,2)) + "s    ";
-    const scm_string col3_style = "%-" + std::to_string(get_row_max_width(HELP_MENU_SUBMENU,n,3)) + "s\n";
+    const string col0_style = "%-" + std::to_string(get_row_max_width(HELP_MENU_SUBMENU,n,0)) + "s    ";
+    const string col1_style = "%-" + std::to_string(get_row_max_width(HELP_MENU_SUBMENU,n,1)) + "s    ";
+    const string col2_style = "%-" + std::to_string(get_row_max_width(HELP_MENU_SUBMENU,n,2)) + "s    ";
+    const string col3_style = "%-" + std::to_string(get_row_max_width(HELP_MENU_SUBMENU,n,3)) + "s\n";
     size_type i = 0;
     for(; i < n; ++i) {
       switch(i % 4) {
@@ -447,7 +447,7 @@ namespace help::menu {
   }
 
 
-  bool driver_loop_query_datum(sym_type&& query)noexcept{
+  bool driver_loop_query_datum(string&& query)noexcept{
     const auto entry = logic::get_entry(query); // also prepares "query" for any comparison
     if(entry != GLOBALS::EMPTY_ENTRY) {
       logic::print_entry(entry);
@@ -493,7 +493,7 @@ namespace help::menu {
 ******************************************************************************/
 
 namespace help {
-  void query_datum(sym_type query)noexcept{
+  void query_datum(string query)noexcept{
     const auto entry = logic::get_entry(query);
     if(entry != GLOBALS::EMPTY_ENTRY) {
       logic::print_entry(entry);

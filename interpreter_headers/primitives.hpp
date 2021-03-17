@@ -2,7 +2,7 @@
 // => Defines primitive functions written in C++ for the Heist Scheme Interpreter
 
 // PRIMITIVE FUNCTION MANDATORY TYPE SIGNATURE: 
-// -> struct data(*)(scm_list&)
+// -> struct data(*)(data_vector&)
 
 #ifndef PRIMITIVES_HPP_
 #define PRIMITIVES_HPP_
@@ -16,7 +16,7 @@
 namespace heist {
 
   // primitive "+" procedure
-  data primitive_ADD(scm_list& args) {
+  data primitive_ADD(data_vector& args) {
     confirm_no_numeric_primitive_errors(args, "+", "(+ <num1> <num2> ...)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("+",primitive_ADD,args);
     num_type sum;
@@ -26,7 +26,7 @@ namespace heist {
   }
 
   // primitive "-" procedure: BOTH NEGATION & SUBTRACTION
-  data primitive_SUB(scm_list& args) {
+  data primitive_SUB(data_vector& args) {
     confirm_no_numeric_primitive_errors(args, "-", "(- <num1> <num2> ...)");
     num_type difference = args[0].num;
     if(args.size()==1) return -1 * difference;        // negation
@@ -36,7 +36,7 @@ namespace heist {
   }
 
   // primitive "*" procedure:
-  data primitive_MUL(scm_list& args) {
+  data primitive_MUL(data_vector& args) {
     confirm_no_numeric_primitive_errors(args, "*", "(* <num1> <num2> ...)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("*",primitive_MUL,args);
     num_type product("1");
@@ -46,7 +46,7 @@ namespace heist {
   }
 
   // primitive "/" procedure:
-  data primitive_DIV(scm_list& args) {
+  data primitive_DIV(data_vector& args) {
     confirm_no_numeric_primitive_errors(args, "/", "(/ <num1> <num2> ...)");
     if(args.size()==1) return data(1 / args[0].num);
     num_type dividend = args[0].num;
@@ -60,13 +60,13 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "abs" procedure
-  data primitive_ABS(scm_list& args) {
+  data primitive_ABS(data_vector& args) {
     confirm_unary_real_numeric(args, "abs", "(abs <real>)");
     return data(args[0].num.abs());
   }
 
   // primitive "expt" procedure
-  data primitive_EXPT(scm_list& args) {
+  data primitive_EXPT(data_vector& args) {
     confirm_no_numeric_primitive_errors(args, "expt", "(expt <num1> <num2> ...)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("expt",primitive_EXPT,args);
     if(args.size() < 2)
@@ -79,7 +79,7 @@ namespace heist {
   }
 
   // primitive "expt-mod" procedure [more efficient (modulo (expt x y) z)]
-  data primitive_EXPT_MOD(scm_list& args) {
+  data primitive_EXPT_MOD(data_vector& args) {
     // Confirm valid arguments
     static constexpr const char * const format = "\n     (expt-mod <real1> <real2> <real3>)";
     if(args.empty() || args.size() > 3)
@@ -102,7 +102,7 @@ namespace heist {
   }
 
   // primitive "max" procedure
-  data primitive_MAX(scm_list& args) {
+  data primitive_MAX(data_vector& args) {
     confirm_no_real_numeric_primitive_errors(args, "max", "(max <real1> <real2> ...)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("max",primitive_MAX,args);
     num_type max = args[0].num;
@@ -113,7 +113,7 @@ namespace heist {
   }
 
   // primitive "min" procedure
-  data primitive_MIN(scm_list& args) {
+  data primitive_MIN(data_vector& args) {
     confirm_no_real_numeric_primitive_errors(args, "min", "(min <real1> <real2> ...)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("min",primitive_MIN,args);
     num_type min = args[0].num;
@@ -124,7 +124,7 @@ namespace heist {
   }
 
   // primitive "quotient" procedure
-  data primitive_QUOTIENT(scm_list& args) {
+  data primitive_QUOTIENT(data_vector& args) {
     confirm_no_real_numeric_primitive_errors(args, "quotient", "(quotient <real1> <real2>)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("quotient",primitive_QUOTIENT,args);
     confirm_2_args(args, "quotient", "(quotient <real1> <real2>)");
@@ -132,7 +132,7 @@ namespace heist {
   }
 
   // primitive "remainder" procedure
-  data primitive_REMAINDER(scm_list& args) {
+  data primitive_REMAINDER(data_vector& args) {
     confirm_no_real_numeric_primitive_errors(args, "remainder", "(remainder <real1> <real2>)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("remainder",primitive_REMAINDER,args);
     confirm_2_args(args, "remainder", "(remainder <real1> <real2>)");
@@ -140,7 +140,7 @@ namespace heist {
   }
 
   // primitive "divmod" procedure
-  data primitive_DIVMOD(scm_list& args) {
+  data primitive_DIVMOD(data_vector& args) {
     confirm_no_real_numeric_primitive_errors(args, "divmod", "(divmod <real1> <real2>)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("divmod",primitive_DIVMOD,args);
     confirm_2_args(args, "divmod", "(divmod <real1> <real2>)");
@@ -152,7 +152,7 @@ namespace heist {
   }
 
   // primitive "modulo" procedure
-  data primitive_MODULO(scm_list& args) {
+  data primitive_MODULO(data_vector& args) {
     confirm_no_real_numeric_primitive_errors(args, "modulo", "(modulo <real1> <real2>)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("modulo",primitive_MODULO,args);
     confirm_2_args(args, "modulo", "(modulo <real1> <real2>)");
@@ -160,13 +160,13 @@ namespace heist {
   }
 
   // primitive "exp" procedure
-  data primitive_EXP(scm_list& args) {
+  data primitive_EXP(data_vector& args) {
     confirm_unary_numeric(args, "exp", "(exp <num>)");
     return data(args[0].num.exp());
   }
 
   // primitive "log" procedure -- NATURAL LOGARITHM
-  data primitive_LOG(scm_list& args) {
+  data primitive_LOG(data_vector& args) {
     if(args.empty() || args.size() > 2)
       THROW_ERR("'log didn't receive correct number of args!"
         << "\n     (log <num> <optional-base>)" << FCN_ERR("log", args));
@@ -183,13 +183,13 @@ namespace heist {
   }
 
   // primitive "sqrt" procedure
-  data primitive_SQRT(scm_list& args) {
+  data primitive_SQRT(data_vector& args) {
     confirm_unary_numeric(args, "sqrt", "(sqrt <num>)");
     return data(args[0].num.sqrt());
   }
 
   // primitive "gcd" procedure
-  data primitive_GCD(scm_list& args) {
+  data primitive_GCD(data_vector& args) {
     if(args.empty()) return num_type();
     confirm_no_real_numeric_primitive_errors(args, "gcd", "(gcd <real1> <real2> ...)");
     if(args.size() == 1) return args[0];
@@ -201,7 +201,7 @@ namespace heist {
   }
 
   // primitive "lcm" procedure
-  data primitive_LCM(scm_list& args) {
+  data primitive_LCM(data_vector& args) {
     if(args.empty()) return num_type("1");
     confirm_no_real_numeric_primitive_errors(args, "lcm", "(lcm <real1> <real2> ...)");
     if(args.size() == 1) return args[0];
@@ -214,7 +214,7 @@ namespace heist {
 
   // primitive "modf" procedure
   // (define (modf num) (cons (truncate num) (remainder num (truncate num))))
-  data primitive_MODF(scm_list& args) {
+  data primitive_MODF(data_vector& args) {
     confirm_unary_real_numeric(args, "modf", "(modf <real>)");
     data num_pair = data(make_par());
     if(args[0].num.is_integer()) {
@@ -230,7 +230,7 @@ namespace heist {
   }
 
   //  primitive "npr": P(n,r) = n! / (n - r)!
-  data primitive_NPR(scm_list& args) {
+  data primitive_NPR(data_vector& args) {
     confirm_no_real_numeric_primitive_errors(args, "npr", "(npr <real1> <real2>)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("npr",primitive_NPR,args);
     confirm_2_args(args, "npr", "(npr <real1> <real2>)");
@@ -240,7 +240,7 @@ namespace heist {
   }
 
   //  primitive "ncr": C(n,r) = n! / (r! * (n - r)!)
-  data primitive_NCR(scm_list& args) {
+  data primitive_NCR(data_vector& args) {
     confirm_no_real_numeric_primitive_errors(args, "ncr", "(ncr <real1> <real2>)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("ncr",primitive_NCR,args);
     confirm_2_args(args, "ncr", "(ncr <real1> <real2>)");
@@ -254,7 +254,7 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "make-polar" procedure
-  data primitive_MAKE_POLAR(scm_list& args) {
+  data primitive_MAKE_POLAR(data_vector& args) {
     confirm_no_real_numeric_primitive_errors(args, "make-polar", "(make-polar <real-mag> <real-ang>)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("make-polar",primitive_MAKE_POLAR,args);
     confirm_2_args(args, "make-polar", "(make-polar <real-mag> <real-ang>)");
@@ -262,7 +262,7 @@ namespace heist {
   }
 
   // primitive "make-rectangular" procedure
-  data primitive_MAKE_RECTANGULAR(scm_list& args) {
+  data primitive_MAKE_RECTANGULAR(data_vector& args) {
     confirm_no_real_numeric_primitive_errors(args, "make-rectangular", "(make-polar <real-real> <real-imag>)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("make-rectangular",primitive_MAKE_RECTANGULAR,args);
     confirm_2_args(args, "make-rectangular", "(make-rectangular <real-real> <real-imag>)");
@@ -270,31 +270,31 @@ namespace heist {
   }
 
   // primitive "real-part" procedure
-  data primitive_REAL_PART(scm_list& args) {
+  data primitive_REAL_PART(data_vector& args) {
     confirm_unary_numeric(args, "real-part", "(real-part <num>)");
     return args[0].num.real_part();
   }
 
   // primitive "imag-part" procedure
-  data primitive_IMAG_PART(scm_list& args) {
+  data primitive_IMAG_PART(data_vector& args) {
     confirm_unary_numeric(args, "imag-part", "(imag-part <num>)");
     return args[0].num.imag_part();
   }
 
   // primitive "magnitude" procedure
-  data primitive_MAGNITUDE(scm_list& args) {
+  data primitive_MAGNITUDE(data_vector& args) {
     confirm_unary_numeric(args, "magnitude", "(magnitude <num>)");
     return args[0].num.magnitude();
   }
 
   // primitive "angle" procedure
-  data primitive_ANGLE(scm_list& args) {
+  data primitive_ANGLE(data_vector& args) {
     confirm_unary_numeric(args, "angle", "(angle <num>)");
     return args[0].num.angle();
   }
 
   // primitive "conjugate" procedure
-  data primitive_CONJUGATE(scm_list& args) {
+  data primitive_CONJUGATE(data_vector& args) {
     confirm_unary_numeric(args, "conjugate", "(conjugate <num>)");
     return args[0].num.conjugate();
   }
@@ -304,7 +304,7 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "odd?" procedure
-  data primitive_ODDP(scm_list& args) {
+  data primitive_ODDP(data_vector& args) {
     confirm_unary_real_numeric(args, "odd?", "(odd? <integer>)");
     if(!args[0].num.is_integer())
       THROW_ERR("'odd? " << PROFILE(args[0]) << " isn't an integer!" 
@@ -313,7 +313,7 @@ namespace heist {
   }
 
   // primitive "even?" procedure
-  data primitive_EVENP(scm_list& args) {
+  data primitive_EVENP(data_vector& args) {
     confirm_unary_real_numeric(args, "even?", "(even? <integer>)");
     if(!args[0].num.is_integer())
       THROW_ERR("'even? " << PROFILE(args[0]) << " isn't an integer!" 
@@ -322,57 +322,57 @@ namespace heist {
   }
 
   // primitive "positive?" procedure
-  data primitive_POSITIVEP(scm_list& args) {
+  data primitive_POSITIVEP(data_vector& args) {
     confirm_unary_real_numeric(args, "positive?", "(positive? <real>)");
     return data(boolean(args[0].num.is_pos()));
   }
 
   // primitive "negative?" procedure
-  data primitive_NEGATIVEP(scm_list& args) {
+  data primitive_NEGATIVEP(data_vector& args) {
     confirm_unary_real_numeric(args, "negative?", "(negative? <real>)");
     return data(boolean(args[0].num.is_neg()));
   }
 
   // primitive "zero?" procedure
-  data primitive_ZEROP(scm_list& args) {
+  data primitive_ZEROP(data_vector& args) {
     confirm_unary_numeric(args, "zero?", "(zero? <num>)");
     return data(boolean(args[0].num.is_zero()));
   }
 
   // primitive "not-positive?" procedure
-  data primitive_NOT_POSITIVEP(scm_list& args) {
+  data primitive_NOT_POSITIVEP(data_vector& args) {
     confirm_unary_real_numeric(args, "not-positive?", "(not-positive? <real>)");
     return data(boolean(!args[0].num.is_pos()));
   }
 
   // primitive "not-negative?" procedure
-  data primitive_NOT_NEGATIVEP(scm_list& args) {
+  data primitive_NOT_NEGATIVEP(data_vector& args) {
     confirm_unary_real_numeric(args, "not-negative?", "(not-negative? <real>)");
     return data(boolean(!args[0].num.is_neg()));
   }
 
   // primitive "not-zero?" procedure
-  data primitive_NOT_ZEROP(scm_list& args) {
+  data primitive_NOT_ZEROP(data_vector& args) {
     confirm_unary_numeric(args, "not-zero?", "(not-zero? <num>)");
     return data(boolean(!args[0].num.is_zero()));
   }
 
   // primitive "infinite?" procedure
-  data primitive_INFINITEP(scm_list& args) {
+  data primitive_INFINITEP(data_vector& args) {
     confirm_unary_real_numeric(args, "infinite?", "(infinite? <real>)");
     return data(boolean(args[0].num.is_pos_inf() || 
                         args[0].num.is_neg_inf()));
   }
 
   // primitive "finite?" procedure (same as primitive "real?")
-  data primitive_FINITEP(scm_list& args) {
+  data primitive_FINITEP(data_vector& args) {
     confirm_unary_real_numeric(args, "finite?", "(finite? <real>)");
     return data(boolean(args[0].num.is_real() && !args[0].num.is_nan() && 
                         !args[0].num.is_pos_inf() && !args[0].num.is_neg_inf()));
   }
 
   // primitive "nan?" procedure
-  data primitive_NANP(scm_list& args) {
+  data primitive_NANP(data_vector& args) {
     confirm_unary_real_numeric(args, "nan?", "(nan? <real>)");
     return data(boolean(args[0].num.is_nan()));
   }
@@ -382,25 +382,25 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "ceiling" procedure -- ROUNDS UP
-  data primitive_CEILING(scm_list& args) {
+  data primitive_CEILING(data_vector& args) {
     confirm_unary_real_numeric(args, "ceiling", "(ceiling <real>)");
     return data(args[0].num.ceil());
   }
 
   // primitive "floor" procedure -- ROUNDS DOWN
-  data primitive_FLOOR(scm_list& args) {
+  data primitive_FLOOR(data_vector& args) {
     confirm_unary_real_numeric(args, "floor", "(floor <real>)");
     return data(args[0].num.floor());
   }
 
   // primitive "truncate" procedure -- ROUNDS TOWARDS ZERO
-  data primitive_TRUNCATE(scm_list& args) {
+  data primitive_TRUNCATE(data_vector& args) {
     confirm_unary_real_numeric(args, "truncate", "(truncate <real>)");
     return data(args[0].num.trunc());
   }
 
   // primitive "round" procedure -- ROUNDS TOWARDS THE NEAREST INT
-  data primitive_ROUND(scm_list& args) {
+  data primitive_ROUND(data_vector& args) {
     confirm_unary_real_numeric(args, "round", "(round <real>)");
     return data(args[0].num.round());
   }
@@ -410,61 +410,61 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "inexact->exact" procedure
-  data primitive_COERCE_INEXACT_TO_EXACT(scm_list& args) {
+  data primitive_COERCE_INEXACT_TO_EXACT(data_vector& args) {
     confirm_unary_numeric(args, "inexact->exact", "(inexact->exact <num>)");
     return data(args[0].num.to_exact());
   }
 
   // primitive "exact->inexact" procedure
-  data primitive_COERCE_EXACT_TO_INEXACT(scm_list& args) {
+  data primitive_COERCE_EXACT_TO_INEXACT(data_vector& args) {
     confirm_unary_numeric(args, "exact->inexact", "(exact->inexact <num>)");
     return data(args[0].num.to_inexact());
   }
 
   // primitive "exact?" procedure
-  data primitive_EXACTP(scm_list& args) {
+  data primitive_EXACTP(data_vector& args) {
     confirm_unary_numeric(args, "exact?", "(exact? <num>)");
     return data(boolean(args[0].num.is_exact()));
   }
 
   // primitive "inexact?" procedure
-  data primitive_INEXACTP(scm_list& args) {
+  data primitive_INEXACTP(data_vector& args) {
     confirm_unary_numeric(args, "inexact?", "(inexact? <num>)");
     return data(boolean(args[0].num.is_inexact()));
   }
 
   // primitive "integer?" procedure
-  data primitive_INTEGERP(scm_list& args) {
+  data primitive_INTEGERP(data_vector& args) {
     confirm_unary_numeric(args, "integer?", "(integer? <num>)");
     return data(boolean(args[0].num.is_integer()));
   }
 
   // primitive "bigint?" procedure
-  data primitive_BIGINTP(scm_list& args) {
+  data primitive_BIGINTP(data_vector& args) {
     confirm_unary_numeric(args, "bigint?", "(bigint? <num>)");
     return data(boolean(args[0].num.is_exact() && args[0].num.is_integer()));
   }
 
   // primitive "numerator" procedure
-  data primitive_NUMERATOR(scm_list& args) {
+  data primitive_NUMERATOR(data_vector& args) {
     confirm_unary_real_numeric(args, "numerator", "(numerator <real>)");
     return data(args[0].num.extract_numerator());
   }
 
   // primitive "denominator" procedure
-  data primitive_DENOMINATOR(scm_list& args) {
+  data primitive_DENOMINATOR(data_vector& args) {
     confirm_unary_real_numeric(args, "denominator", "(denominator <real>)");
     return data(args[0].num.extract_denominator());
   }
 
   // primitive "make-log-base" procedure
   // (define (make-log-base n) (lambda (num) (log num n)))
-  data primitive_MAKE_LOG_BASE(scm_list& args) {
+  data primitive_MAKE_LOG_BASE(data_vector& args) {
     confirm_unary_real_numeric(args, "make-log-base", "(make-log-base <real>)");
-    scm_list new_log(3);
+    data_vector new_log(3);
     new_log[0] = symconst::lambda;
-    new_log[1] = scm_list(1,"num");
-    new_log[2] = scm_list(3);
+    new_log[1] = data_vector(1,"num");
+    new_log[2] = data_vector(3);
     new_log[2].exp[0] = "log";
     new_log[2].exp[1] = "num";
     new_log[2].exp[2] = args[0];
@@ -476,37 +476,37 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "sin" procedure
-  data primitive_SIN(scm_list& args) {
+  data primitive_SIN(data_vector& args) {
     confirm_unary_numeric(args, "sin", "(sin <num>)");
     return data(args[0].num.sin());
   }
 
   // primitive "cos" procedure
-  data primitive_COS(scm_list& args) {
+  data primitive_COS(data_vector& args) {
     confirm_unary_numeric(args, "cos", "(cos <num>)");
     return data(args[0].num.cos());
   }
 
   // primitive "tan" procedure
-  data primitive_TAN(scm_list& args) {
+  data primitive_TAN(data_vector& args) {
     confirm_unary_numeric(args, "tan", "(tan <num>)");
     return data(args[0].num.tan());
   }
 
   // primitive "asin" procedure
-  data primitive_ASIN(scm_list& args) {
+  data primitive_ASIN(data_vector& args) {
     confirm_unary_numeric(args, "asin", "(asin <num>)");
     return data(args[0].num.asin());
   }
 
   // primitive "acos" procedure
-  data primitive_ACOS(scm_list& args) {
+  data primitive_ACOS(data_vector& args) {
     confirm_unary_numeric(args, "acos", "(acos <num>)");
     return data(args[0].num.acos());
   }
 
   // primitive "atan" procedure (supports atan2)
-  data primitive_ATAN(scm_list& args) {
+  data primitive_ATAN(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (atan <num>)\n     (atan <real> <real>) ; atan2 in C++";
     if(args.empty() || args.size() > 2)
@@ -520,37 +520,37 @@ namespace heist {
   }
 
   // primitive "sinh" procedure
-  data primitive_SINH(scm_list& args) {
+  data primitive_SINH(data_vector& args) {
     confirm_unary_numeric(args, "sinh", "(sinh <num>)");
     return data(args[0].num.sinh());
   }
 
   // primitive "cosh" procedure
-  data primitive_COSH(scm_list& args) {
+  data primitive_COSH(data_vector& args) {
     confirm_unary_numeric(args, "cosh", "(cosh <num>)");
     return data(args[0].num.cosh());
   }
 
   // primitive "tanh" procedure
-  data primitive_TANH(scm_list& args) {
+  data primitive_TANH(data_vector& args) {
     confirm_unary_numeric(args, "tanh", "(tanh <num>)");
     return data(args[0].num.tanh());
   }
 
   // primitive "asinh" procedure
-  data primitive_ASINH(scm_list& args) {
+  data primitive_ASINH(data_vector& args) {
     confirm_unary_numeric(args, "asinh", "(asinh <num>)");
     return data(args[0].num.asinh());
   }
 
   // primitive "acosh" procedure
-  data primitive_ACOSH(scm_list& args) {
+  data primitive_ACOSH(data_vector& args) {
     confirm_unary_numeric(args, "acosh", "(acosh <num>)");
     return data(args[0].num.acosh());
   }
 
   // primitive "atanh" procedure
-  data primitive_ATANH(scm_list& args) {
+  data primitive_ATANH(data_vector& args) {
     confirm_unary_numeric(args, "atanh", "(atanh <num>)");
     return data(args[0].num.atanh());
   }
@@ -560,7 +560,7 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "logand" procedure
-  data primitive_LOGAND(scm_list& args) {
+  data primitive_LOGAND(data_vector& args) {
     confirm_no_real_numeric_primitive_errors(args, "logand", "(logand <real1> <real2>)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("logand",primitive_LOGAND,args);
     confirm_2_args(args, "logand", "(logand <real1> <real2>)");
@@ -568,7 +568,7 @@ namespace heist {
   }
 
   // primitive "logor" procedure
-  data primitive_LOGOR(scm_list& args) {
+  data primitive_LOGOR(data_vector& args) {
     confirm_no_real_numeric_primitive_errors(args, "logor", "(logor <real1> <real2>)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("logor",primitive_LOGOR,args);
     confirm_2_args(args, "logor", "(logor <real1> <real2>)");
@@ -576,7 +576,7 @@ namespace heist {
   }
 
   // primitive "logxor" procedure
-  data primitive_LOGXOR(scm_list& args) {
+  data primitive_LOGXOR(data_vector& args) {
     confirm_no_real_numeric_primitive_errors(args, "logxor", "(logxor <real1> <real2>)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("logxor",primitive_LOGXOR,args);
     confirm_2_args(args, "logxor", "(logxor <real1> <real2>)");
@@ -584,13 +584,13 @@ namespace heist {
   }
 
   // primitive "lognot" procedure
-  data primitive_LOGNOT(scm_list& args) {
+  data primitive_LOGNOT(data_vector& args) {
     confirm_unary_real_numeric(args, "lognot", "(lognot <real>)");
     return data(~args[0].num);
   }
 
   // primitive "loglsl" procedure
-  data primitive_LOGLSL(scm_list& args) {
+  data primitive_LOGLSL(data_vector& args) {
     confirm_no_real_numeric_primitive_errors(args, "loglsl", "(loglsl <real> <shift-amount>)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("loglsl",primitive_LOGLSL,args);
     confirm_2_args(args, "loglsl", "(loglsl <real> <shift-amount>)");
@@ -598,7 +598,7 @@ namespace heist {
   }
 
   // primitive "loglsr" procedure
-  data primitive_LOGLSR(scm_list& args) {
+  data primitive_LOGLSR(data_vector& args) {
     confirm_no_real_numeric_primitive_errors(args, "loglsr", "(loglsr <real> <shift-amount>)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("loglsr",primitive_LOGLSR,args);
     confirm_2_args(args, "loglsr", "(loglsr <real> <shift-amount>)");
@@ -606,7 +606,7 @@ namespace heist {
   }
 
   // primitive "logasr" procedure
-  data primitive_LOGASR(scm_list& args) {
+  data primitive_LOGASR(data_vector& args) {
     confirm_no_real_numeric_primitive_errors(args, "logasr", "(logasr <real> <shift-amount>)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("logasr",primitive_LOGASR,args);
     confirm_2_args(args, "logasr", "(logasr <real> <shift-amount>)");
@@ -614,7 +614,7 @@ namespace heist {
   }
 
   // primitive "logbit?" procedure
-  data primitive_LOGBITP(scm_list& args) {
+  data primitive_LOGBITP(data_vector& args) {
     confirm_no_real_numeric_primitive_errors(args, "logbit?", "(logbit? <real> <bit-No>)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("logbit?",primitive_LOGBITP,args);
     confirm_2_args(args, "logbit?", "(logbit? <real> <bit-No>)");
@@ -622,7 +622,7 @@ namespace heist {
   }
 
   // primitive "logbit1" procedure
-  data primitive_LOGBIT1(scm_list& args) {
+  data primitive_LOGBIT1(data_vector& args) {
     confirm_no_real_numeric_primitive_errors(args, "logbit1", "(logbit1 <real> <bit-No>)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("logbit1",primitive_LOGBIT1,args);
     confirm_2_args(args, "logbit1", "(logbit1 <real> <bit-No>)");
@@ -630,7 +630,7 @@ namespace heist {
   }
 
   // primitive "logbit0" procedure
-  data primitive_LOGBIT0(scm_list& args) {
+  data primitive_LOGBIT0(data_vector& args) {
     confirm_no_real_numeric_primitive_errors(args, "logbit0", "(logbit0 <real> <bit-No>)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("logbit0",primitive_LOGBIT0,args);
     confirm_2_args(args, "logbit0", "(logbit0 <real> <bit-No>)");
@@ -638,7 +638,7 @@ namespace heist {
   }
 
   // primitive "logbit~" procedure
-  data primitive_LOGBIT_CMPL(scm_list& args) {
+  data primitive_LOGBIT_CMPL(data_vector& args) {
     confirm_no_real_numeric_primitive_errors(args, "logbit~", "(logbit~ <real> <bit-No>)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("logbit~",primitive_LOGBIT_CMPL,args);
     confirm_2_args(args, "logbit~", "(logbit~ <real> <bit-No>)");
@@ -650,7 +650,7 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "random" procedure -- SEED DEFAULTS TO CURRENT TIME SINCE EPOCH
-  data primitive_RANDOM(scm_list& args) {
+  data primitive_RANDOM(data_vector& args) {
     if(args.size() > 1)
       THROW_ERR("'random received more than 1 arg:" 
         "\n     (random <optional-real-numeric-seed>)" << FCN_ERR("random",args));
@@ -667,7 +667,7 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "=" procedure:
-  data primitive_EQ(scm_list& args) {
+  data primitive_EQ(data_vector& args) {
     confirm_no_numeric_primitive_errors(args, "=", "(= <num1> <num2> ...)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("=",primitive_EQ,args);
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
@@ -677,7 +677,7 @@ namespace heist {
   }
 
   // primitive ">" procedure:
-  data primitive_GT(scm_list& args) {
+  data primitive_GT(data_vector& args) {
     confirm_no_real_numeric_primitive_errors(args, ">", "(> <real1> <real2> ...)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL(">",primitive_GT,args);
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
@@ -687,7 +687,7 @@ namespace heist {
   }
 
   // primitive "<" procedure:
-  data primitive_LT(scm_list& args) {
+  data primitive_LT(data_vector& args) {
     confirm_no_real_numeric_primitive_errors(args, "<", "(< <real1> <real2> ...)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("<",primitive_LT,args);
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
@@ -697,7 +697,7 @@ namespace heist {
   }
 
   // primitive ">=" procedure:
-  data primitive_GTE(scm_list& args) {
+  data primitive_GTE(data_vector& args) {
     confirm_no_real_numeric_primitive_errors(args, ">=", "(>= <real1> <real2> ...)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL(">=",primitive_GTE,args);
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
@@ -707,7 +707,7 @@ namespace heist {
   }
 
   // primitive "<=" procedure:
-  data primitive_LTE(scm_list& args) {
+  data primitive_LTE(data_vector& args) {
     confirm_no_real_numeric_primitive_errors(args, "<=", "(<= <real1> <real2> ...)");
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("<=",primitive_LTE,args);
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
@@ -721,7 +721,7 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "eq?" procedure:
-  data primitive_EQP(scm_list& args) {
+  data primitive_EQP(data_vector& args) {
     if(args.empty()) THROW_ERR("'eq? received no arguments: (eq? <obj1> <obj2> ...)" << FCN_ERR("eq?", args));
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("eq?",primitive_EQP,args);
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
@@ -731,7 +731,7 @@ namespace heist {
   }
 
   // primitive "eqv?" procedure:
-  data primitive_EQVP(scm_list& args) {
+  data primitive_EQVP(data_vector& args) {
     if(args.empty()) THROW_ERR("'eqv? received no arguments: (eqv? <obj1> <obj2> ...)" << FCN_ERR("eqv?", args));
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("eqv?",primitive_EQVP,args);
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
@@ -741,7 +741,7 @@ namespace heist {
   }
 
   // primitive "equal?" procedure:
-  data primitive_EQUALP(scm_list& args) {
+  data primitive_EQUALP(data_vector& args) {
     if(args.empty()) THROW_ERR("'equal? received no arguments: (equal? <obj1> <obj2> ...)" << FCN_ERR("equal?", args));
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("equal?",primitive_EQUALP,args);
     for(size_type i = 0, n = args.size(); i+1 < n; ++i)
@@ -751,7 +751,7 @@ namespace heist {
   }
 
   // primitive "not" procedure:
-  data primitive_NOT(scm_list& args) {
+  data primitive_NOT(data_vector& args) {
     confirm_given_one_arg(args,"not");
     return data(boolean(args[0].is_falsey()));
   }
@@ -764,7 +764,7 @@ namespace heist {
   // EOF Generator:
   // --------------
 
-  data primitive_EOF(scm_list& args) {
+  data primitive_EOF(data_vector& args) {
     confirm_no_args_given(args,"eof");
     return chr_type(EOF);
   }
@@ -774,7 +774,7 @@ namespace heist {
   // -----------------
 
   // primitive "char=?" procedure:
-  data primitive_CHAR_EQ(scm_list& args) {
+  data primitive_CHAR_EQ(data_vector& args) {
     confirm_given_char_string_args(args, "char=?", types::chr);
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char=?",primitive_CHAR_EQ,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
@@ -784,7 +784,7 @@ namespace heist {
   }
 
   // primitive "char<?" procedure:
-  data primitive_CHAR_LT(scm_list& args) {
+  data primitive_CHAR_LT(data_vector& args) {
     confirm_given_char_string_args(args, "char<?", types::chr);
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char<?",primitive_CHAR_LT,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
@@ -794,7 +794,7 @@ namespace heist {
   }
 
   // primitive "char>?" procedure:
-  data primitive_CHAR_GT(scm_list& args) {
+  data primitive_CHAR_GT(data_vector& args) {
     confirm_given_char_string_args(args, "char>?", types::chr);
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char>?",primitive_CHAR_GT,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
@@ -804,7 +804,7 @@ namespace heist {
   }
 
   // primitive "char<=?" procedure:
-  data primitive_CHAR_LTE(scm_list& args) {
+  data primitive_CHAR_LTE(data_vector& args) {
     confirm_given_char_string_args(args, "char<=?", types::chr);
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char<=?",primitive_CHAR_LTE,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
@@ -814,7 +814,7 @@ namespace heist {
   }
 
   // primitive "char>=?" procedure:
-  data primitive_CHAR_GTE(scm_list& args) {
+  data primitive_CHAR_GTE(data_vector& args) {
     confirm_given_char_string_args(args, "char>=?", types::chr);
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char>=?",primitive_CHAR_GTE,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
@@ -824,7 +824,7 @@ namespace heist {
   }
 
   // primitive "char-ci=?" procedure:
-  data primitive_CHAR_CI_EQ(scm_list& args) {
+  data primitive_CHAR_CI_EQ(data_vector& args) {
     confirm_given_char_string_args(args, "char-ci=?", types::chr);
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char-ci=?",primitive_CHAR_CI_EQ,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
@@ -834,7 +834,7 @@ namespace heist {
   }
 
   // primitive "char-ci<?" procedure:
-  data primitive_CHAR_CI_LT(scm_list& args) {
+  data primitive_CHAR_CI_LT(data_vector& args) {
     confirm_given_char_string_args(args, "char-ci<?", types::chr);
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char-ci<?",primitive_CHAR_CI_LT,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
@@ -844,7 +844,7 @@ namespace heist {
   }
 
   // primitive "char-ci>?" procedure:
-  data primitive_CHAR_CI_GT(scm_list& args) {
+  data primitive_CHAR_CI_GT(data_vector& args) {
     confirm_given_char_string_args(args, "char-ci>?", types::chr);
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char-ci>?",primitive_CHAR_CI_GT,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
@@ -854,7 +854,7 @@ namespace heist {
   }
 
   // primitive "char-ci<=?" procedure:
-  data primitive_CHAR_CI_LTE(scm_list& args) {
+  data primitive_CHAR_CI_LTE(data_vector& args) {
     confirm_given_char_string_args(args, "char-ci<=?", types::chr);
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char-ci<=?",primitive_CHAR_CI_LTE,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
@@ -864,7 +864,7 @@ namespace heist {
   }
 
   // primitive "char-ci>=?" procedure:
-  data primitive_CHAR_CI_GTE(scm_list& args) {
+  data primitive_CHAR_CI_GTE(data_vector& args) {
     confirm_given_char_string_args(args, "char-ci>=?", types::chr);
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("char-ci>=?",primitive_CHAR_CI_GTE,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
@@ -878,67 +878,67 @@ namespace heist {
   // --------------
 
   // primitive "char-alphabetic?" procedure:
-  data primitive_CHAR_ALPHABETICP(scm_list& args) {
+  data primitive_CHAR_ALPHABETICP(data_vector& args) {
     confirm_given_one_char_arg(args, "char-alphabetic?");
     return boolean(isalpha(args[0].chr));
   }
 
   // primitive "char-numeric?" procedure:
-  data primitive_CHAR_NUMERICP(scm_list& args) {
+  data primitive_CHAR_NUMERICP(data_vector& args) {
     confirm_given_one_char_arg(args, "char-numeric?");
     return boolean(isdigit(args[0].chr));
   }
 
   // primitive "char-whitespace?" procedure:
-  data primitive_CHAR_WHITESPACEP(scm_list& args) {
+  data primitive_CHAR_WHITESPACEP(data_vector& args) {
     confirm_given_one_char_arg(args, "char-whitespace?");
     return boolean(isspace(args[0].chr));
   }
 
   // primitive "char-upper-case?" procedure:
-  data primitive_CHAR_UPPER_CASEP(scm_list& args) {
+  data primitive_CHAR_UPPER_CASEP(data_vector& args) {
     confirm_given_one_char_arg(args, "char-upper-case?");
     return boolean(isupper(args[0].chr));
   }
 
   // primitive "char-lower-case?" procedure:
-  data primitive_CHAR_LOWER_CASEP(scm_list& args) {
+  data primitive_CHAR_LOWER_CASEP(data_vector& args) {
     confirm_given_one_char_arg(args, "char-lower-case?");
     return boolean(islower(args[0].chr));
   }
 
   // primitive "char-alphanumeric?" procedure:
-  data primitive_CHAR_ALHPANUMERICP(scm_list& args) {
+  data primitive_CHAR_ALHPANUMERICP(data_vector& args) {
     confirm_given_one_char_arg(args, "char-alphanumeric?");
     return boolean(isalnum(args[0].chr));
   }
 
   // primitive "char-control?" procedure:
-  data primitive_CHAR_CONTROLP(scm_list& args) {
+  data primitive_CHAR_CONTROLP(data_vector& args) {
     confirm_given_one_char_arg(args, "char-control?");
     return boolean(iscntrl(args[0].chr));
   }
 
   // primitive "char-print?" procedure:
-  data primitive_CHAR_PRINTP(scm_list& args) {
+  data primitive_CHAR_PRINTP(data_vector& args) {
     confirm_given_one_char_arg(args, "char-print?");
     return boolean(isprint(args[0].chr));
   }
 
   // primitive "char-graph?" procedure:
-  data primitive_CHAR_GRAPHP(scm_list& args) {
+  data primitive_CHAR_GRAPHP(data_vector& args) {
     confirm_given_one_char_arg(args, "char-graph?");
     return boolean(isgraph(args[0].chr));
   }
 
   // primitive "char-punctuation?" procedure:
-  data primitive_CHAR_PUNCTUATIONP(scm_list& args) {
+  data primitive_CHAR_PUNCTUATIONP(data_vector& args) {
     confirm_given_one_char_arg(args, "char-punctuation?");
     return boolean(ispunct(args[0].chr));
   }
 
   // primitive "char-xdigit?" procedure:
-  data primitive_CHAR_XDIGITP(scm_list& args) {
+  data primitive_CHAR_XDIGITP(data_vector& args) {
     confirm_given_one_char_arg(args, "char-xdigit?");
     return boolean(isxdigit(args[0].chr));
   }
@@ -948,13 +948,13 @@ namespace heist {
   // ------------------
 
   // primitive "char-upcase" procedure:
-  data primitive_CHAR_UPCASE(scm_list& args) {
+  data primitive_CHAR_UPCASE(data_vector& args) {
     confirm_given_one_char_arg(args, "char-upcase");
     return toupper(args[0].chr);
   }
 
   // primitive "char-downcase" procedure:
-  data primitive_CHAR_DOWNCASE(scm_list& args) {
+  data primitive_CHAR_DOWNCASE(data_vector& args) {
     confirm_given_one_char_arg(args, "char-downcase");
     return tolower(args[0].chr);
   }
@@ -964,7 +964,7 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "make-string" procedure:
-  data primitive_MAKE_STRING(scm_list& args) {
+  data primitive_MAKE_STRING(data_vector& args) {
     // confirm valid length given
     if(args.empty() || args.size() > 2 || (!data_is_zero(args[0]) && !primitive_is_valid_size(args[0])))
       THROW_ERR("'make-string didn't receive a proper positive integer size!"
@@ -978,17 +978,17 @@ namespace heist {
         << FCN_ERR("make-string", args));
     // mk a string w/ the the given reserve size
     size_type n = (size_type)args[0].num.extract_inexact();
-    return make_str(scm_string(n, (args.size()==2 ? args[1].chr : '?')));
+    return make_str(string(n, (args.size()==2 ? args[1].chr : '?')));
   }
 
   // primitive "string" procedure:
-  data primitive_STRING(scm_list& args) {
+  data primitive_STRING(data_vector& args) {
     if(args.empty()) return make_str("");
     if(auto i = confirm_only_args_of_type(args, types::chr, types::str); i != GLOBALS::MAX_SIZE_TYPE)
       THROW_ERR("'string arg #" << i+1 << ", " << PROFILE(args[i]) 
         << ", isn't a character or string:\n     (string <char-or-string1> <char2-or-string> ...)"
         << FCN_ERR("string", args));
-    scm_string str_val;
+    string str_val;
     for(const auto& e : args) {
       if(e.is_type(types::chr)) 
         str_val += e.chr;
@@ -999,62 +999,62 @@ namespace heist {
   }
 
   // primitive "string-unfold" procedure:
-  data primitive_STRING_UNFOLD(scm_list& args) {
+  data primitive_STRING_UNFOLD(data_vector& args) {
     if(!args.empty() && args.size() < 4) return GENERATE_PRIMITIVE_PARTIAL("string-unfold",primitive_STRING_UNFOLD,args);
     return primitive_STRING_UNFOLD_template(args,false,"string-unfold",
       "\n     (string-unfold <break-condition> <map-callable> <successor-callable> <seed>)");
   }
 
   // primitive "string-unfold-right" procedure:
-  data primitive_STRING_UNFOLD_RIGHT(scm_list& args) {
+  data primitive_STRING_UNFOLD_RIGHT(data_vector& args) {
     if(!args.empty() && args.size() < 4) return GENERATE_PRIMITIVE_PARTIAL("string-unfold-right",primitive_STRING_UNFOLD_RIGHT,args);
     return primitive_STRING_UNFOLD_template(args,true,"string-unfold-right",
       "\n     (string-unfold-right <break-condition> <map-callable> <successor-callable> <seed>)");
   }
 
   // primitive "string-pad" procedure:
-  data primitive_STRING_PAD(scm_list& args) {
+  data primitive_STRING_PAD(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-pad",primitive_STRING_PAD,args);
     char padding_character = confirm_valid_string_pad_args(args, "string-pad",
       "\n     (string-pad <string> <length> <optional-character>)");
     const size_type length = (size_type)args[1].num.extract_inexact();
     const size_type n = args[0].str->size();
     if(length > n)
-      return make_str(scm_string(length-n, padding_character) + *args[0].str);
+      return make_str(string(length-n, padding_character) + *args[0].str);
     return make_str(args[0].str->substr(n-length));
   }
 
   // primitive "string-pad-right" procedure:
-  data primitive_STRING_PAD_RIGHT(scm_list& args) {
+  data primitive_STRING_PAD_RIGHT(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-pad-right",primitive_STRING_PAD_RIGHT,args);
     char padding_character = confirm_valid_string_pad_args(args, "string-pad-right",
       "\n     (string-pad-right <string> <length> <optional-character>)");
     const size_type length = (size_type)args[1].num.extract_inexact();
     const size_type n = args[0].str->size();
     if(length > n)
-      return make_str(*args[0].str + scm_string(length-n, padding_character));
+      return make_str(*args[0].str + string(length-n, padding_character));
     return make_str(args[0].str->substr(0, length));
   }
 
   // primitive "string-trim" procedure:
-  data primitive_STRING_TRIM(scm_list& args) {
+  data primitive_STRING_TRIM(data_vector& args) {
     confirm_valid_string_trim_args(args, "string-trim",
       "\n     (string-trim <string> <optional-predicate>)");
     return prm_trim_left_of_string(args);
   }
 
   // primitive "string-trim-right" procedure:
-  data primitive_STRING_TRIM_RIGHT(scm_list& args) {
+  data primitive_STRING_TRIM_RIGHT(data_vector& args) {
     confirm_valid_string_trim_args(args, "string-trim-right",
       "\n     (string-trim-right <string> <optional-predicate>)");
     return prm_trim_right_of_string(args);
   }
 
   // primitive "string-trim-both" procedure:
-  data primitive_STRING_TRIM_BOTH(scm_list& args) {
+  data primitive_STRING_TRIM_BOTH(data_vector& args) {
     confirm_valid_string_trim_args(args, "string-trim-both",
       "\n     (string-trim-both <string> <optional-predicate>)");
-    scm_list right_trim_args;
+    data_vector right_trim_args;
     right_trim_args.push_back(make_str(*prm_trim_left_of_string(args).str));
     if(args.size() == 2)
       right_trim_args.push_back(args[1]);
@@ -1062,7 +1062,7 @@ namespace heist {
   }
 
   // primitive "string-replace" procedure:
-  data primitive_STRING_REPLACE(scm_list& args) {
+  data primitive_STRING_REPLACE(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (string-replace <string1> <string2> <start1> <end1>)";
       if(!args.empty() && args.size() < 4) return GENERATE_PRIMITIVE_PARTIAL("string-replace",primitive_STRING_REPLACE,args);
@@ -1090,24 +1090,24 @@ namespace heist {
   }
 
   // primitive "string-contains" procedure:
-  data primitive_STRING_CONTAINS(scm_list& args) {
+  data primitive_STRING_CONTAINS(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-contains",primitive_STRING_CONTAINS,args);
     return prm_string_contains_template(args, "string-contains", 
       "\n     (string-contains <string> <sub-string>)", true);
   }
 
   // primitive "string-contains-right" procedure:
-  data primitive_STRING_CONTAINS_RIGHT(scm_list& args) {
+  data primitive_STRING_CONTAINS_RIGHT(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-contains-right",primitive_STRING_CONTAINS_RIGHT,args);
     return prm_string_contains_template(args, "string-contains-right", 
       "\n     (string-contains-right <string> <sub-string>)", false);
   }
 
   // primitive "string-join" procedure:
-  data primitive_STRING_JOIN(scm_list& args) {
+  data primitive_STRING_JOIN(data_vector& args) {
     STRING_GRAMMARS grammar = STRING_GRAMMARS::INFIX;
-    scm_string delimiter(""), joined_string("");
-    scm_list strings_list;
+    string delimiter(""), joined_string("");
+    data_vector strings_list;
     confirm_proper_string_join_args(args, grammar, delimiter, strings_list);
     if(!strings_list.empty()) {
       if(grammar == STRING_GRAMMARS::INFIX) {
@@ -1126,19 +1126,19 @@ namespace heist {
   }
 
   // primitive "string-split" procedure:
-  data primitive_STRING_SPLIT(scm_list& args) {
+  data primitive_STRING_SPLIT(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (string-split <target-string> <optional-string-delimiter> <optional-start-index>)";
-    scm_string delimiter("");
-    scm_list strings_list;
+    string delimiter("");
+    data_vector strings_list;
     size_type start_index = 0;
     confirm_proper_string_split_args(args,"string-split",format,delimiter,start_index);
     // split the string into a list of strings
-    const scm_string str(args[0].str->substr(start_index));
+    const string str(args[0].str->substr(start_index));
     const size_type delim_size = delimiter.size();
     if(!delim_size) {
       for(const auto& letter : str)
-        strings_list.push_back(make_str(scm_string(1,letter)));
+        strings_list.push_back(make_str(string(1,letter)));
     } else {
       size_type substr_start = 0;
       for(size_type i = 0, n = str.size(); i < n; ++i) {
@@ -1157,7 +1157,7 @@ namespace heist {
   }
 
   // primitive "string-swap!" procedure:
-  data primitive_STRING_SWAP_BANG(scm_list& args) {
+  data primitive_STRING_SWAP_BANG(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (string-swap! <string> <string>)";
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-swap!",primitive_STRING_SWAP_BANG,args);
@@ -1171,14 +1171,14 @@ namespace heist {
     if(!args[1].is_type(types::str))
       THROW_ERR("'string-swap! 2nd arg "<<PROFILE(args[1])<<" isn't a string:" 
         << format << FCN_ERR("string-swap!", args));
-    scm_string tmp(*args[0].str);
+    string tmp(*args[0].str);
     *args[0].str = *args[1].str;
     *args[1].str = tmp;
     return GLOBALS::VOID_DATA_OBJECT;
   }
 
   // primitive "string-push-back!" procedure:
-  data primitive_STRING_PUSH_BACK_BANG(scm_list& args) {
+  data primitive_STRING_PUSH_BACK_BANG(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (string-push-back! <string> <char>)";
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-push-back!",primitive_STRING_PUSH_BACK_BANG,args);
@@ -1197,7 +1197,7 @@ namespace heist {
   }
 
   // primitive "string-push-front!" procedure:
-  data primitive_STRING_PUSH_FRONT_BANG(scm_list& args) {
+  data primitive_STRING_PUSH_FRONT_BANG(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (string-push-front! <string> <char>)";
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-push-front!",primitive_STRING_PUSH_FRONT_BANG,args);
@@ -1216,7 +1216,7 @@ namespace heist {
   }
 
   // primitive "string-pop-back!" procedure:
-  data primitive_STRING_POP_BACK_BANG(scm_list& args) {
+  data primitive_STRING_POP_BACK_BANG(data_vector& args) {
     primitive_confirm_valid_string_arg(args, 1, "string-pop-back!", "\n     (string-pop-back! <string>)");
     if(args[0].str->empty())
       THROW_ERR("'string-pop-back! can't pop chars from an empty string!"
@@ -1227,7 +1227,7 @@ namespace heist {
   }
 
   // primitive "string-pop-front!" procedure:
-  data primitive_STRING_POP_FRONT_BANG(scm_list& args) {
+  data primitive_STRING_POP_FRONT_BANG(data_vector& args) {
     primitive_confirm_valid_string_arg(args, 1, "string-pop-front!", "\n     (string-pop-front! <string>)");
     if(args[0].str->empty())
       THROW_ERR("'string-pop-front! can't pop chars from an empty string!"
@@ -1238,13 +1238,13 @@ namespace heist {
   }
 
   // primitive "string-empty?" procedure:
-  data primitive_STRING_EMPTYP(scm_list& args) {
+  data primitive_STRING_EMPTYP(data_vector& args) {
     primitive_confirm_valid_string_arg(args, 1, "string-empty?", "\n     (string-empty? <string>)");
     return data(boolean(args[0].str->empty()));
   }
 
   // primitive "string-copy!" procedure:
-  data primitive_STRING_COPY_BANG(scm_list& args) {
+  data primitive_STRING_COPY_BANG(data_vector& args) {
     if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("string-copy!",primitive_STRING_COPY_BANG,args);
     return primitive_STATIC_SEQUENCE_COPY_BANG_template(args, "string-copy!", 
       "\n     (string-copy! <target-string> <target-start-idx> <source-string>)",
@@ -1256,7 +1256,7 @@ namespace heist {
   // -------------------
 
   // primitive "string=?" procedure:
-  data primitive_STRING_EQP(scm_list& args) {
+  data primitive_STRING_EQP(data_vector& args) {
     confirm_given_char_string_args(args, "string=?", types::str);
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string=?",primitive_STRING_EQP,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
@@ -1266,7 +1266,7 @@ namespace heist {
   }
 
   // primitive "string<?" procedure:
-  data primitive_STRING_LT(scm_list& args) {
+  data primitive_STRING_LT(data_vector& args) {
     confirm_given_char_string_args(args, "string<?", types::str);
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string<?",primitive_STRING_LT,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
@@ -1276,7 +1276,7 @@ namespace heist {
   }
 
   // primitive "string>?" procedure:
-  data primitive_STRING_GT(scm_list& args) {
+  data primitive_STRING_GT(data_vector& args) {
     confirm_given_char_string_args(args, "string>?", types::str);
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string>?",primitive_STRING_GT,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
@@ -1286,7 +1286,7 @@ namespace heist {
   }
 
   // primitive "string<=?" procedure:
-  data primitive_STRING_LTE(scm_list& args) {
+  data primitive_STRING_LTE(data_vector& args) {
     confirm_given_char_string_args(args, "string<=?", types::str);
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string<=?",primitive_STRING_LTE,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
@@ -1296,7 +1296,7 @@ namespace heist {
   }
 
   // primitive "string>=?" procedure:
-  data primitive_STRING_GTE(scm_list& args) {
+  data primitive_STRING_GTE(data_vector& args) {
     confirm_given_char_string_args(args, "string>=?", types::str);
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string>=?",primitive_STRING_GTE,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
@@ -1306,7 +1306,7 @@ namespace heist {
   }
 
   // primitive "string-ci=?" procedure:
-  data primitive_STRING_CI_EQ(scm_list& args) {
+  data primitive_STRING_CI_EQ(data_vector& args) {
     confirm_given_char_string_args(args, "string-ci=?", types::str);
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-ci=?",primitive_STRING_CI_EQ,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
@@ -1316,7 +1316,7 @@ namespace heist {
   }
 
   // primitive "string-ci<?" procedure:
-  data primitive_STRING_CI_LT(scm_list& args) {
+  data primitive_STRING_CI_LT(data_vector& args) {
     confirm_given_char_string_args(args, "string-ci<?", types::str);
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-ci<?",primitive_STRING_CI_LT,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
@@ -1326,7 +1326,7 @@ namespace heist {
   }
 
   // primitive "string-ci>?" procedure:
-  data primitive_STRING_CI_GT(scm_list& args) {
+  data primitive_STRING_CI_GT(data_vector& args) {
     confirm_given_char_string_args(args, "string-ci>?", types::str);
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-ci>?",primitive_STRING_CI_GT,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
@@ -1336,7 +1336,7 @@ namespace heist {
   }
 
   // primitive "string-ci<=?" procedure:
-  data primitive_STRING_CI_LTE(scm_list& args) {
+  data primitive_STRING_CI_LTE(data_vector& args) {
     confirm_given_char_string_args(args, "string-ci<=?", types::str);
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-ci<=?",primitive_STRING_CI_LTE,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
@@ -1346,7 +1346,7 @@ namespace heist {
   }
 
   // primitive "string-ci>=?" procedure:
-  data primitive_STRING_CI_GTE(scm_list& args) {
+  data primitive_STRING_CI_GTE(data_vector& args) {
     confirm_given_char_string_args(args, "string-ci>=?", types::str);
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("string-ci>=?",primitive_STRING_CI_GTE,args);
     for(size_type i = 0, n = args.size(); i < n-1; ++i)
@@ -1359,7 +1359,7 @@ namespace heist {
   * SYMBOL-APPEND PRIMITIVE
   ******************************************************************************/
 
-  data primitive_SYMBOL_APPEND(scm_list& args) {
+  data primitive_SYMBOL_APPEND(data_vector& args) {
     if(args.empty())
       THROW_ERR("'symbol-append received incorrect # of args!"
         "\n     (symbol-append <symbol-1> ... <symbol-N>)" 
@@ -1368,7 +1368,7 @@ namespace heist {
       THROW_ERR("'symbol-append arg #" << idx+1 << ' ' << PROFILE(args[idx])
         <<" isn't a symbol!\n     (symbol-append <symbol-1> ... <symbol-N>)" 
         << FCN_ERR("symbol-append", args));
-    scm_string appended_symbol;
+    string appended_symbol;
     for(size_type i = 0, n = args.size(); i < n; ++i)
       appended_symbol += args[i].sym;
     return appended_symbol;
@@ -1378,7 +1378,7 @@ namespace heist {
   * TYPEOF & POINTER-ADDRESS PRIMITIVES
   ******************************************************************************/
 
-  data primitive_TYPEOF(scm_list& args) {
+  data primitive_TYPEOF(data_vector& args) {
     if(args.size() != 1)
       THROW_ERR("'typeof received incorrect # of args!\n     (typeof <obj>)" 
         << FCN_ERR("typeof", args));
@@ -1386,7 +1386,7 @@ namespace heist {
     return args[0].type_name();
   }
 
-  data primitive_POINTER_ADDRESS(scm_list& args) {
+  data primitive_POINTER_ADDRESS(data_vector& args) {
     if(args.size() != 1)
       THROW_ERR("'pointer-address received incorrect # of args!\n     (pointer-address <obj>)" 
         << FCN_ERR("pointer-address", args));
@@ -1400,7 +1400,7 @@ namespace heist {
   * DEEP-COPYING & SHALLOW-COPYING PRIMITIVES
   ******************************************************************************/
 
-  data primitive_COPY(scm_list& args) {
+  data primitive_COPY(data_vector& args) {
     if(args.size() != 1)
       THROW_ERR("'copy received incorrect # of args!\n     (copy <obj>)" 
         "\n     -> Deep-Copy: Vector | String | List/Dotted/Circular | Hmap | Object"
@@ -1408,7 +1408,7 @@ namespace heist {
     return args[0].copy();
   }
 
-  data primitive_SHALLOW_COPY(scm_list& args) {
+  data primitive_SHALLOW_COPY(data_vector& args) {
     if(args.size() != 1)
       THROW_ERR("'shallow-copy received incorrect # of args!\n     (shallow-copy <obj>)" 
         "\n     -> Shallow-Copy: Vector | String | List/Dotted/Circular | Hmap | Object"
@@ -1421,7 +1421,7 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "hmap" (hash-map constructor):
-  data primitive_HMAP(scm_list& args) {
+  data primitive_HMAP(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (hmap <key1> <val1> <key2> <val2> ...)" HEIST_HASH_MAP_KEY_FORMAT;
     if(args.empty()) return make_map(scm_map());
@@ -1439,32 +1439,32 @@ namespace heist {
   }
 
   // primitive "hmap-keys":
-  data primitive_HMAP_KEYS(scm_list& args) {
+  data primitive_HMAP_KEYS(data_vector& args) {
     hmap_confirm_unary_map("hmap-keys","\n     (hmap-keys <hash-map>)",args);
-    scm_list keys_list;
+    data_vector keys_list;
     for(const auto& keyval : args[0].map->val)
       keys_list.push_back(scm_map::unhash_key(keyval.first));
     return primitive_LIST_to_CONS_constructor(keys_list.begin(),keys_list.end());
   }
 
   // primitive "hmap-vals":
-  data primitive_HMAP_VALS(scm_list& args) {
+  data primitive_HMAP_VALS(data_vector& args) {
     hmap_confirm_unary_map("hmap-vals","\n     (hmap-vals <hash-map>)",args);
-    scm_list keys_list;
+    data_vector keys_list;
     for(const auto& keyval : args[0].map->val)
       keys_list.push_back(keyval.second);
     return primitive_LIST_to_CONS_constructor(keys_list.begin(),keys_list.end());
   }
 
   // primitive "hmap-key?":
-  data primitive_HMAP_KEYP(scm_list& args) {
+  data primitive_HMAP_KEYP(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("hmap-key?",primitive_HMAP_KEYP,args);
     hmap_confirm_binary_map_key("hmap-key?","\n     (hmap-key? <hash-map> <key>)",args);
     return boolean(args[0].map->val.count(scm_map::hash_key(args[1])));
   }
 
   // primitive "hmap-hashable?":
-  data primitive_HMAP_HASHABLEP(scm_list& args) {
+  data primitive_HMAP_HASHABLEP(data_vector& args) {
     if(args.size() != 1) 
       THROW_ERR("'hmap-hashable? didn't receive 1 arg!" 
         "\n     (hmap-hashable? <obj>)" << FCN_ERR("hmap-hashable?", args));
@@ -1472,7 +1472,7 @@ namespace heist {
   }
 
   // primitive "hmap-ref":
-  data primitive_HMAP_REF(scm_list& args) {
+  data primitive_HMAP_REF(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("hmap-ref",primitive_HMAP_REF,args);
     hmap_confirm_binary_map_key("hmap-ref","\n     (hmap-ref <hash-map> <key>)",args);
     auto hashed_key = scm_map::hash_key(args[1]);
@@ -1483,7 +1483,7 @@ namespace heist {
   }
 
   // primitive "hmap-set!":
-  data primitive_HMAP_SET_BANG(scm_list& args) {
+  data primitive_HMAP_SET_BANG(data_vector& args) {
     if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("hmap-set!",primitive_HMAP_SET_BANG,args);
     hmap_confirm_ternary_map_key_val("hmap-set!","\n     (hmap-set! <hash-map> <key> <value>)",args);
     (*args[0].map)[args[1]] = args[2];
@@ -1491,26 +1491,26 @@ namespace heist {
   }
 
   // primitive "hmap-delete!":
-  data primitive_HMAP_DELETE_BANG(scm_list& args) {
+  data primitive_HMAP_DELETE_BANG(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("hmap-delete!",primitive_HMAP_DELETE_BANG,args);
     hmap_confirm_binary_map_key("hmap-delete!","\n     (hmap-delete! <hash-map> <key>)",args);
     return boolean(args[0].map->val.erase(scm_map::hash_key(args[1])));
   }
 
   // primitive "hmap-length":
-  data primitive_HMAP_LENGTH(scm_list& args) {
+  data primitive_HMAP_LENGTH(data_vector& args) {
     hmap_confirm_unary_map("hmap-length","\n     (hmap-length <hash-map>)",args);
     return num_type(args[0].map->val.size());
   }
 
   // primitive "hmap-empty?":
-  data primitive_HMAP_EMPTYP(scm_list& args) {
+  data primitive_HMAP_EMPTYP(data_vector& args) {
     hmap_confirm_unary_map("hmap-empty?","\n     (hmap-empty? <hash-map>)",args);
     return boolean(args[0].map->val.empty());
   }
 
   // primitive "hmap-merge":
-  data primitive_HMAP_MERGE(scm_list& args) {
+  data primitive_HMAP_MERGE(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("hmap-merge",primitive_HMAP_MERGE,args);
     hmap_confirm_given_2_or_more_maps("hmap-merge","\n     (hmap-merge <hash-map-1> <hash-map-2> ...)",args);
     scm_map map;
@@ -1521,7 +1521,7 @@ namespace heist {
   }
 
   // primitive "hmap-merge!":
-  data primitive_HMAP_MERGE_BANG(scm_list& args) {
+  data primitive_HMAP_MERGE_BANG(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("hmap-merge!",primitive_HMAP_MERGE_BANG,args);
     hmap_confirm_given_2_or_more_maps("hmap-merge!","\n     (hmap-merge! <hash-map-1> <hash-map-2> ...)",args);
     for(size_type i = 1, n = args.size(); i < n; ++i)
@@ -1535,12 +1535,12 @@ namespace heist {
   // NOTE: WE CREATE A VECTOR OF KEYS THEN ITERATE THRU THAT VECTOR, SO AS TO NOT INVALIDATE
   //       HMAP ITERATORS IN THE LOOP FROM POTENTIALLY DELETING THE KEY IN THE USER'S FCN
   #define GENERATE_HMAP_ITERATION_FCN(FCN_NAME,NAME,...)\
-    data FCN_NAME(scm_list& args) {\
+    data FCN_NAME(data_vector& args) {\
       if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL(NAME,FCN_NAME,args);\
       hmap_confirm_binary_procedure_map(NAME,"\n     (" NAME " <callable> <hash-map>)",args);\
       auto procedure(primitive_extract_callable_procedure(args[0]));\
       size_type n = args[1].map->val.size(), i = 0;\
-      std::vector<scm_string> keys(n);\
+      str_vector keys(n);\
       for(auto& keyvalue : args[1].map->val)\
         keys[i++] = keyvalue.first;\
       for(i = 0; i < n; ++i) {\
@@ -1550,26 +1550,26 @@ namespace heist {
     }
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_FOR_EACH_KEY,"hmap-for-each-key",
-    scm_list arg(1,scm_map::unhash_key(keys[i]));
+    data_vector arg(1,scm_map::unhash_key(keys[i]));
     execute_application(procedure,arg););
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_FOR_EACH_VAL,"hmap-for-each-val",
-    scm_list arg(1,args[1].map->val[keys[i]]);
+    data_vector arg(1,args[1].map->val[keys[i]]);
     execute_application(procedure,arg););
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_FOR_EACH,"hmap-for-each",
     auto p = make_par();
     p->first = scm_map::unhash_key(keys[i]);
     p->second = args[1].map->val[keys[i]];
-    scm_list arg(1,p);
+    data_vector arg(1,p);
     execute_application(procedure,arg););
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_MAP_BANG,"hmap-map!",
-    scm_list arg(1,args[1].map->val[keys[i]]);
+    data_vector arg(1,args[1].map->val[keys[i]]);
     args[1].map->val[keys[i]] = execute_application(procedure,arg););
 
   // primitive "hmap-map"
-  data primitive_HMAP_MAP(scm_list& args) {
+  data primitive_HMAP_MAP(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("hmap-map",primitive_HMAP_MAP,args);
     hmap_confirm_binary_procedure_map("hmap-map","\n     (hmap-map <callable> <hash-map>)",args);
     auto procedure(primitive_extract_callable_procedure(args[0]));
@@ -1577,21 +1577,21 @@ namespace heist {
     // extract all keys, then iterate thru keys (avoids iterator invalidation
     // in case the procedure passed by the user [for some reason] erases elts 
     // from the map being iterated through)
-    std::vector<scm_string> keys(n);
+    str_vector keys(n);
     for(auto& keyvalue : args[1].map->val)
       keys[i++] = keyvalue.first;
     scm_map map;
     for(i = 0; i < n; ++i) {
-      scm_list arg(1,args[1].map->val[keys[i]]);
+      data_vector arg(1,args[1].map->val[keys[i]]);
       map.val[keys[i]] = execute_application(procedure,arg);
     }
     return make_map(std::move(map));
   }
 
   // primitive "hmap->alist"
-  data primitive_HMAP_TO_ALIST(scm_list& args) {
+  data primitive_HMAP_TO_ALIST(data_vector& args) {
     hmap_confirm_unary_map("hmap->alist","\n     (hmap->alist <hash-map>)",args);
-    scm_list alist(args[0].map->val.size());
+    data_vector alist(args[0].map->val.size());
     size_type i = 0;
     for(auto& keyvalue : args[0].map->val) {
       auto p = make_par();
@@ -1605,14 +1605,14 @@ namespace heist {
   }
 
   // primitive "alist->hmap"
-  data primitive_ALIST_TO_HMAP(scm_list& args) {
+  data primitive_ALIST_TO_HMAP(data_vector& args) {
     if(args.size() != 1)
       THROW_ERR("'alist->hmap didn't receive 1 arg!"
         "\n     (alist->hmap <alist>)" << FCN_ERR("alist->hmap",args));
     if(!data_is_proper_list(args[0]))
       THROW_ERR("'alist->hmap arg "<<PROFILE(args[0])<<" isn't an <alist> of proper-list pairs of items!"
         "\n     (alist->hmap <alist>)" << FCN_ERR("alist->hmap",args));
-    scm_list alist_exp;
+    data_vector alist_exp;
     scm_map map;
     shallow_unpack_list_into_exp(args[0],alist_exp);
     for(auto& p : alist_exp) {
@@ -1642,7 +1642,7 @@ namespace heist {
   // --------------
 
   // primitive "cons" procedure:
-  data primitive_CONS(scm_list& args) {
+  data primitive_CONS(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("cons",primitive_CONS,args);
     if(args.size() != 2)
       THROW_ERR("'cons didn't received 2 arguments: (cons <car-obj> <cdr-obj>)"
@@ -1654,25 +1654,25 @@ namespace heist {
   }
 
   // primitive "car" procedure:
-  data primitive_CAR(scm_list& args) {
+  data primitive_CAR(data_vector& args) {
     confirm_given_a_pair_arg(args, "car");
     return args[0].par->first;
   }
 
   // primitive "cdr" procedure:
-  data primitive_CDR(scm_list& args) {
+  data primitive_CDR(data_vector& args) {
     confirm_given_a_pair_arg(args, "cdr");
     return args[0].par->second;
   }
 
   // primitive "null?" procedure:
-  data primitive_NULLP(scm_list& args) {
+  data primitive_NULLP(data_vector& args) {
     confirm_given_one_arg(args,"null?");
     return data(boolean(data_is_the_empty_list(args[0])));
   }
 
   // primitive "set-car!" procedure:
-  data primitive_SETCAR(scm_list& args) {
+  data primitive_SETCAR(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("set-car!",primitive_SETCAR,args);
     if(args.size() != 2)
       THROW_ERR("'set-car! received incorrect # of arguments:"
@@ -1685,7 +1685,7 @@ namespace heist {
   }
 
   // primitive "set-cdr!" procedure:
-  data primitive_SETCDR(scm_list& args) {
+  data primitive_SETCDR(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("set-cdr!",primitive_SETCDR,args);
     if(args.size() != 2)
       THROW_ERR("'set-cdr! received incorrect # of arguments:"
@@ -1698,7 +1698,7 @@ namespace heist {
   }
 
   // primitive "pair-swap!" procedure:
-  data primitive_PAIR_SWAP_BANG(scm_list& args) {
+  data primitive_PAIR_SWAP_BANG(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("pair-swap!",primitive_PAIR_SWAP_BANG,args);
     if(args.size() != 2)
       THROW_ERR("'pair-swap! received incorrect # of args (only "
@@ -1710,7 +1710,7 @@ namespace heist {
     if(!args[1].is_type(types::par))
       THROW_ERR("'pair-swap! 2nd arg "<<PROFILE(args[1])<<" isn't a pair: "
         "\n     (pair-swap! <pair1> <pair2>)" << FCN_ERR("pair-swap!",args));
-    scm_pair tmp(*args[0].par);
+    auto tmp(*args[0].par);
     *args[0].par = *args[1].par;
     *args[1].par = tmp;
     return GLOBALS::VOID_DATA_OBJECT;
@@ -1721,28 +1721,28 @@ namespace heist {
   // ---------------------
 
   // primitive "caar" procedure:
-  data primitive_CAAR(scm_list& args) {
+  data primitive_CAAR(data_vector& args) {
     confirm_given_a_pair_arg(args, "caar");
     confirm_nth_car_is_pair(args[0], "caar", "1st", args);
     return args[0].par->first.par->first;
   }
 
   // primitive "cadr" procedure:
-  data primitive_CADR(scm_list& args) {
+  data primitive_CADR(data_vector& args) {
     confirm_given_a_pair_arg(args, "cadr");
     confirm_nth_cdr_is_pair(args[0], "cadr", "1st", args);
     return args[0].par->second.par->first;
   }
 
   // primitive "cdar" procedure:
-  data primitive_CDAR(scm_list& args) {
+  data primitive_CDAR(data_vector& args) {
     confirm_given_a_pair_arg(args, "cdar");
     confirm_nth_car_is_pair(args[0], "cdar", "1st", args);
     return args[0].par->first.par->second;
   }
 
   // primitive "cddr" procedure:
-  data primitive_CDDR(scm_list& args) {
+  data primitive_CDDR(data_vector& args) {
     confirm_given_a_pair_arg(args, "cddr");
     confirm_nth_cdr_is_pair(args[0], "cddr", "1st", args);
     return args[0].par->second.par->second;
@@ -1751,7 +1751,7 @@ namespace heist {
   // ----------
 
   // primitive "caaar" procedure:
-  data primitive_CAAAR(scm_list& args) {
+  data primitive_CAAAR(data_vector& args) {
     confirm_given_a_pair_arg(args, "caaar");
     confirm_nth_car_is_pair(args[0], "caaar", "1st", args);
     confirm_nth_car_is_pair(args[0].par->first, "caaar", "2nd", args);
@@ -1759,7 +1759,7 @@ namespace heist {
   }
 
   // primitive "caadr" procedure:
-  data primitive_CAADR(scm_list& args) {
+  data primitive_CAADR(data_vector& args) {
     confirm_given_a_pair_arg(args, "caadr");
     confirm_nth_cdr_is_pair(args[0], "caadr", "1st", args);
     confirm_nth_car_is_pair(args[0].par->second, "caadr", "1st", args);
@@ -1767,7 +1767,7 @@ namespace heist {
   }
 
   // primitive "cadar" procedure:
-  data primitive_CADAR(scm_list& args) {
+  data primitive_CADAR(data_vector& args) {
     confirm_given_a_pair_arg(args, "cadar");
     confirm_nth_car_is_pair(args[0], "cadar", "1st", args);
     confirm_nth_cdr_is_pair(args[0].par->first, "cadar", "1st", args);
@@ -1775,7 +1775,7 @@ namespace heist {
   }
 
   // primitive "caddr" procedure:
-  data primitive_CADDR(scm_list& args) {
+  data primitive_CADDR(data_vector& args) {
     confirm_given_a_pair_arg(args, "caddr");
     confirm_nth_cdr_is_pair(args[0], "caddr", "1st", args);
     confirm_nth_cdr_is_pair(args[0].par->second, "caddr", "2nd", args);
@@ -1783,7 +1783,7 @@ namespace heist {
   }
 
   // primitive "cdaar" procedure:
-  data primitive_CDAAR(scm_list& args) {
+  data primitive_CDAAR(data_vector& args) {
     confirm_given_a_pair_arg(args, "cdaar");
     confirm_nth_car_is_pair(args[0], "cdaar", "1st", args);
     confirm_nth_car_is_pair(args[0].par->first, "cdaar", "2nd", args);
@@ -1791,7 +1791,7 @@ namespace heist {
   }
 
   // primitive "cdadr" procedure:
-  data primitive_CDADR(scm_list& args) {
+  data primitive_CDADR(data_vector& args) {
     confirm_given_a_pair_arg(args, "cdadr");
     confirm_nth_cdr_is_pair(args[0], "cdadr", "1st", args);
     confirm_nth_car_is_pair(args[0].par->second, "cdadr", "1st", args);
@@ -1799,7 +1799,7 @@ namespace heist {
   }
 
   // primitive "cddar" procedure:
-  data primitive_CDDAR(scm_list& args) {
+  data primitive_CDDAR(data_vector& args) {
     confirm_given_a_pair_arg(args, "cddar");
     confirm_nth_car_is_pair(args[0], "cddar", "1st", args);
     confirm_nth_cdr_is_pair(args[0].par->first, "cddar", "1st", args);
@@ -1807,7 +1807,7 @@ namespace heist {
   }
 
   // primitive "cdddr" procedure:
-  data primitive_CDDDR(scm_list& args) {
+  data primitive_CDDDR(data_vector& args) {
     confirm_given_a_pair_arg(args, "cdddr");
     confirm_nth_cdr_is_pair(args[0], "cdddr", "1st", args);
     confirm_nth_cdr_is_pair(args[0].par->second, "cdddr", "2nd", args);
@@ -1817,7 +1817,7 @@ namespace heist {
   // ----------
 
   // primitive "caaaar" procedure:
-  data primitive_CAAAAR(scm_list& args) {
+  data primitive_CAAAAR(data_vector& args) {
     confirm_given_a_pair_arg(args, "caaaar");
     confirm_nth_car_is_pair(args[0], "caaaar", "1st", args);
     confirm_nth_car_is_pair(args[0].par->first, "caaaar", "2nd", args);
@@ -1826,7 +1826,7 @@ namespace heist {
   }
 
   // primitive "caaadr" procedure:
-  data primitive_CAAADR(scm_list& args) {
+  data primitive_CAAADR(data_vector& args) {
     confirm_given_a_pair_arg(args, "caaadr");
     confirm_nth_cdr_is_pair(args[0], "caaadr", "1st", args);
     confirm_nth_car_is_pair(args[0].par->second, "caaadr", "1st", args);
@@ -1835,7 +1835,7 @@ namespace heist {
   }
 
   // primitive "caadar" procedure:
-  data primitive_CAADAR(scm_list& args) {
+  data primitive_CAADAR(data_vector& args) {
     confirm_given_a_pair_arg(args, "caadar");
     confirm_nth_car_is_pair(args[0], "caadar", "1st", args);
     confirm_nth_cdr_is_pair(args[0].par->first, "caadar", "1st", args);
@@ -1844,7 +1844,7 @@ namespace heist {
   }
 
   // primitive "caaddr" procedure:
-  data primitive_CAADDR(scm_list& args) {
+  data primitive_CAADDR(data_vector& args) {
     confirm_given_a_pair_arg(args, "caaddr");
     confirm_nth_cdr_is_pair(args[0], "caaddr", "1st", args);
     confirm_nth_cdr_is_pair(args[0].par->second, "caaddr", "2nd", args);
@@ -1853,7 +1853,7 @@ namespace heist {
   }
 
   // primitive "cadaar" procedure:
-  data primitive_CADAAR(scm_list& args) {
+  data primitive_CADAAR(data_vector& args) {
     confirm_given_a_pair_arg(args, "cadaar");
     confirm_nth_car_is_pair(args[0], "cadaar", "1st", args);
     confirm_nth_car_is_pair(args[0].par->first, "cadaar", "2nd", args);
@@ -1862,7 +1862,7 @@ namespace heist {
   }
 
   // primitive "cadadr" procedure:
-  data primitive_CADADR(scm_list& args) {
+  data primitive_CADADR(data_vector& args) {
     confirm_given_a_pair_arg(args, "cadadr");
     confirm_nth_cdr_is_pair(args[0], "cadadr", "1st", args);
     confirm_nth_car_is_pair(args[0].par->second, "cadadr", "1st", args);
@@ -1871,7 +1871,7 @@ namespace heist {
   }
 
   // primitive "caddar" procedure:
-  data primitive_CADDAR(scm_list& args) {
+  data primitive_CADDAR(data_vector& args) {
     confirm_given_a_pair_arg(args, "caddar");
     confirm_nth_car_is_pair(args[0], "caddar", "1st", args);
     confirm_nth_cdr_is_pair(args[0].par->first, "caddar", "1st", args);
@@ -1880,7 +1880,7 @@ namespace heist {
   }
 
   // primitive "cadddr" procedure:
-  data primitive_CADDDR(scm_list& args) {
+  data primitive_CADDDR(data_vector& args) {
     confirm_given_a_pair_arg(args, "cadddr");
     confirm_nth_cdr_is_pair(args[0], "cadddr", "1st", args);
     confirm_nth_cdr_is_pair(args[0].par->second, "cadddr", "2nd", args);
@@ -1890,7 +1890,7 @@ namespace heist {
 
 
   // primitive "cdaaar" procedure:
-  data primitive_CDAAAR(scm_list& args) {
+  data primitive_CDAAAR(data_vector& args) {
     confirm_given_a_pair_arg(args, "cdaaar");
     confirm_nth_car_is_pair(args[0], "cdaaar", "1st", args);
     confirm_nth_car_is_pair(args[0].par->first, "cdaaar", "2nd", args);
@@ -1899,7 +1899,7 @@ namespace heist {
   }
 
   // primitive "cdaadr" procedure:
-  data primitive_CDAADR(scm_list& args) {
+  data primitive_CDAADR(data_vector& args) {
     confirm_given_a_pair_arg(args, "cdaadr");
     confirm_nth_cdr_is_pair(args[0], "cdaadr", "1st", args);
     confirm_nth_car_is_pair(args[0].par->second, "cdaadr", "1st", args);
@@ -1908,7 +1908,7 @@ namespace heist {
   }
 
   // primitive "cdadar" procedure:
-  data primitive_CDADAR(scm_list& args) {
+  data primitive_CDADAR(data_vector& args) {
     confirm_given_a_pair_arg(args, "cdadar");
     confirm_nth_car_is_pair(args[0], "cdadar", "1st", args);
     confirm_nth_cdr_is_pair(args[0].par->first, "cdadar", "1st", args);
@@ -1917,7 +1917,7 @@ namespace heist {
   }
 
   // primitive "cdaddr" procedure:
-  data primitive_CDADDR(scm_list& args) {
+  data primitive_CDADDR(data_vector& args) {
     confirm_given_a_pair_arg(args, "cdaddr");
     confirm_nth_cdr_is_pair(args[0], "cdaddr", "1st", args);
     confirm_nth_cdr_is_pair(args[0].par->second, "cdaddr", "2nd", args);
@@ -1926,7 +1926,7 @@ namespace heist {
   }
 
   // primitive "cddaar" procedure:
-  data primitive_CDDAAR(scm_list& args) {
+  data primitive_CDDAAR(data_vector& args) {
     confirm_given_a_pair_arg(args, "cddaar");
     confirm_nth_car_is_pair(args[0], "cddaar", "1st", args);
     confirm_nth_car_is_pair(args[0].par->first, "cddaar", "2nd", args);
@@ -1935,7 +1935,7 @@ namespace heist {
   }
 
   // primitive "cddadr" procedure:
-  data primitive_CDDADR(scm_list& args) {
+  data primitive_CDDADR(data_vector& args) {
     confirm_given_a_pair_arg(args, "cddadr");
     confirm_nth_cdr_is_pair(args[0], "cddadr", "1st", args);
     confirm_nth_car_is_pair(args[0].par->second, "cddadr", "1st", args);
@@ -1944,7 +1944,7 @@ namespace heist {
   }
 
   // primitive "cdddar" procedure:
-  data primitive_CDDDAR(scm_list& args) {
+  data primitive_CDDDAR(data_vector& args) {
     confirm_given_a_pair_arg(args, "cdddar");
     confirm_nth_car_is_pair(args[0], "cdddar", "1st", args);
     confirm_nth_cdr_is_pair(args[0].par->first, "cdddar", "1st", args);
@@ -1953,7 +1953,7 @@ namespace heist {
   }
 
   // primitive "cddddr" procedure:
-  data primitive_CDDDDR(scm_list& args) {
+  data primitive_CDDDDR(data_vector& args) {
     confirm_given_a_pair_arg(args, "cddddr");
     confirm_nth_cdr_is_pair(args[0], "cddddr", "1st", args);
     confirm_nth_cdr_is_pair(args[0].par->second, "cddddr", "2nd", args);
@@ -1966,19 +1966,19 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "list" procedure:
-  data primitive_LIST(scm_list& args)noexcept{
+  data primitive_LIST(data_vector& args)noexcept{
     if(args.empty()) return data(symconst::emptylist); // (list) = '()
     return primitive_LIST_to_CONS_constructor(args.begin(), args.end());
   }
 
   // primitive "list*" procedure:
-  data primitive_LIST_STAR(scm_list& args)noexcept{
+  data primitive_LIST_STAR(data_vector& args)noexcept{
     if(args.empty()) return data(symconst::emptylist); // (list*) = '()
     return primitive_LIST_STAR_to_CONS_constructor(args.begin(), args.end());
   }
 
   // primitive "make-list" procedure:
-  data primitive_MAKE_LIST(scm_list& args) {
+  data primitive_MAKE_LIST(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("make-list",primitive_MAKE_LIST,args);
     if(args.size() != 2)
       THROW_ERR("'make-list received incorrect # of args (only "
@@ -1991,26 +1991,26 @@ namespace heist {
     // mk a list w/ n copies of the given <fill-value>
     size_type n = (size_type)args[0].num.extract_inexact();
     if(!n) return data(symconst::emptylist);
-    scm_list mk_list_args(n, args[1]);
+    data_vector mk_list_args(n, args[1]);
     return primitive_LIST_to_CONS_constructor(mk_list_args.begin(), 
                                               mk_list_args.end());
   }
 
   // primitive "iota" procedure:
-  data primitive_IOTA(scm_list& args) {
+  data primitive_IOTA(data_vector& args) {
     return primitive_IOTA_generic<true>(args,"iota",
       "\n     (iota <count> <optional-start-number> <optional-step-number>)",
-      primitive_LIST_to_CONS_constructor<scm_node>);
+      primitive_LIST_to_CONS_constructor<data_vector::iterator>);
   }
 
   // primitive "circular-list" procedure:
-  data primitive_CIRCULAR_LIST(scm_list& args)noexcept{
+  data primitive_CIRCULAR_LIST(data_vector& args)noexcept{
     if(args.empty()) return data(symconst::emptylist);
     return primitive_CIRCULAR_LIST_to_CONS_constructor(args.begin(), args.end());
   }
 
   // primitive "circular-list?" procedure:
-  data primitive_CIRCULAR_LISTP(scm_list& args) {
+  data primitive_CIRCULAR_LISTP(data_vector& args) {
     confirm_given_one_arg(args,"circular-list?");
     // if not pair, GUARENTEED not a circular list
     if(!args[0].is_type(types::par))
@@ -2021,7 +2021,7 @@ namespace heist {
   }
 
   // primitive "list*?" procedure:
-  data primitive_LIST_STARP(scm_list& args) {
+  data primitive_LIST_STARP(data_vector& args) {
     confirm_given_one_arg(args, "list*?");
     // if not pair, GUARENTEED not a dotted list
     if(!args[0].is_type(types::par))
@@ -2033,7 +2033,7 @@ namespace heist {
 
   // primitive "list?" procedure:
   //   => where 'list' := finite & null-terminated pair sequence
-  data primitive_LISTP(scm_list& args) {
+  data primitive_LISTP(data_vector& args) {
     confirm_given_one_arg(args,"list?");
     if(data_is_proper_list(args[0]))
       return GLOBALS::TRUE_DATA_BOOLEAN;
@@ -2041,7 +2041,7 @@ namespace heist {
   }
 
   // primitive "alist?" procedure:
-  data primitive_ALISTP(scm_list& args) {
+  data primitive_ALISTP(data_vector& args) {
     confirm_given_one_arg(args, "alist?");
     // if not pair, GUARENTEED not an association list
     if(!args[0].is_type(types::par))
@@ -2053,7 +2053,7 @@ namespace heist {
   }
 
   // primitive "last-pair" procedure:
-  data primitive_LAST_PAIR(scm_list& args) {
+  data primitive_LAST_PAIR(data_vector& args) {
     if(primitive_validate_list_and_return_if_empty(args,"last-pair"))
       THROW_ERR("'last-pair 1st arg " << PROFILE(args[0]) 
         << " isn't a proper null-terminated list:\n     (last-pair <non-empty-list>)"
@@ -2062,35 +2062,35 @@ namespace heist {
   }
 
   // primitive "unfold" procedure:
-  data primitive_UNFOLD(scm_list& args) {
+  data primitive_UNFOLD(data_vector& args) {
     if(!args.empty() && args.size() < 4) return GENERATE_PRIMITIVE_PARTIAL("unfold",primitive_UNFOLD,args);
-    scm_list unfolded;
+    data_vector unfolded;
     primitive_UNFOLD_template(args,unfolded,"unfold",
       "\n     (unfold <break-condition> <map-callable> <successor-callable> <seed>)");
     return primitive_LIST_to_CONS_constructor(unfolded.begin(),unfolded.end());
   }
 
   // primitive "unfold-right" procedure:
-  data primitive_UNFOLD_RIGHT(scm_list& args) {
+  data primitive_UNFOLD_RIGHT(data_vector& args) {
     if(!args.empty() && args.size() < 4) return GENERATE_PRIMITIVE_PARTIAL("unfold-right",primitive_UNFOLD_RIGHT,args);
-    scm_list unfolded;
+    data_vector unfolded;
     primitive_UNFOLD_template(args,unfolded,"unfold-right",
       "\n     (unfold-right <break-condition> <map-callable> <successor-callable> <seed>)");
     return primitive_LIST_to_CONS_constructor(unfolded.rbegin(),unfolded.rend());
   }
 
   // primitive "get-all-combinations" procedure:
-  data primitive_GET_ALL_COMBINATIONS(scm_list& args) {
+  data primitive_GET_ALL_COMBINATIONS(data_vector& args) {
     if(args.size() != 1)
       THROW_ERR("'get-all-combinations didn't receive 1 arg!"
         "\n     (get-all-combinations <proper-list>)" << FCN_ERR("get-all-combinations",args));
     if(!data_is_proper_list(args[0]))
       THROW_ERR("'get-all-combinations arg " << PROFILE(args[0]) << " isn't a proper list!"
           "\n     (get-all-combinations <proper-list>)" << FCN_ERR("get-all-combinations",args));
-    scm_list list_list;
+    data_vector list_list;
     shallow_unpack_list_into_exp(args[0], list_list);
     auto result = prm_all_combos(list_list);
-    scm_list combinations_list;
+    data_vector combinations_list;
     for(auto& lis : result)
       combinations_list.push_back(primitive_LIST_to_CONS_constructor(lis.begin(),lis.end()));
     return primitive_LIST_to_CONS_constructor(combinations_list.begin(),combinations_list.end());
@@ -2101,37 +2101,37 @@ namespace heist {
   // -----------------------
 
   // primitive "memq" procedure:
-  data primitive_MEMQ(scm_list& args) {
+  data primitive_MEMQ(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("memq",primitive_MEMQ,args);
     return primitive_MEM_template(args, "memq", primitive_EQP);
   }
 
   // primitive "memv" procedure:
-  data primitive_MEMV(scm_list& args) {
+  data primitive_MEMV(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("memv",primitive_MEMV,args);
     return primitive_MEM_template(args, "memv", primitive_EQVP);
   }
 
   // primitive "member" procedure:
-  data primitive_MEMBER(scm_list& args) {
+  data primitive_MEMBER(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("member",primitive_MEMBER,args);
     return primitive_MEM_template(args, "member", primitive_EQUALP);
   }
 
   // primitive "assq" procedure:
-  data primitive_ASSQ(scm_list& args) {
+  data primitive_ASSQ(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("assq",primitive_ASSQ,args);
     return primitive_ASSOCIATION_template(args, "assq", primitive_EQP);
   }
 
   // primitive "assv" procedure:
-  data primitive_ASSV(scm_list& args) {
+  data primitive_ASSV(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("assv",primitive_ASSV,args);
     return primitive_ASSOCIATION_template(args, "assv", primitive_EQVP);
   }
 
   // primitive "assoc" procedure:
-  data primitive_ASSOC(scm_list& args) {
+  data primitive_ASSOC(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("assoc",primitive_ASSOC,args);
     return primitive_ASSOCIATION_template(args, "assoc", primitive_EQUALP);
   }
@@ -2141,13 +2141,13 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "vector" procedure:
-  data primitive_VECTOR(scm_list& args)noexcept{
-    if(args.empty()) return data(make_vec(scm_list()));
-    return data(make_vec(scm_list(args.begin(), args.end())));
+  data primitive_VECTOR(data_vector& args)noexcept{
+    if(args.empty()) return data(make_vec(data_vector()));
+    return data(make_vec(data_vector(args.begin(), args.end())));
   }
 
   // primitive "make-vector" procedure:
-  data primitive_MAKE_VECTOR(scm_list& args) {
+  data primitive_MAKE_VECTOR(data_vector& args) {
     // confirm valid length given
     if(args.empty() || args.size() > 2 || (!data_is_zero(args[0]) && !primitive_is_valid_size(args[0])))
       THROW_ERR("'make-vector didn't receive a proper positive integer size!"
@@ -2155,7 +2155,7 @@ namespace heist {
         "\n     <size> range: [0," << GLOBALS::MAX_SIZE_TYPE << ']' << FCN_ERR("make-vector", args));
     // mk a vector w/ the the given reserve size
     size_type n = (size_type)args[0].num.extract_inexact();
-    data vect(make_vec(scm_list(n)));
+    data vect(make_vec(data_vector(n)));
     // fill vector as needed
     if(args.size() == 2)
       for(size_type i = 0; i < n; ++i)
@@ -2164,7 +2164,7 @@ namespace heist {
   }
 
   // primitive "vector-push-back!" procedure:
-  data primitive_VECTOR_PUSH_BACK_BANG(scm_list& args) {
+  data primitive_VECTOR_PUSH_BACK_BANG(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("vector-push-back!",primitive_VECTOR_PUSH_BACK_BANG,args);
     primitive_confirm_valid_vector_arg(args, 2, "vector-push-back!", "\n     (vector-push-back! <vector> <obj>)");
     args[0].vec->push_back(args[1]);
@@ -2172,7 +2172,7 @@ namespace heist {
   }
 
   // primitive "vector-push-front!" procedure:
-  data primitive_VECTOR_PUSH_FRONT_BANG(scm_list& args) {
+  data primitive_VECTOR_PUSH_FRONT_BANG(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("vector-push-front!",primitive_VECTOR_PUSH_FRONT_BANG,args);
     primitive_confirm_valid_vector_arg(args, 2, "vector-push-front!", "\n     (vector-push-front! <vector> <obj>)");
     args[0].vec->insert(args[0].vec->begin(), args[1]);
@@ -2180,7 +2180,7 @@ namespace heist {
   }
 
   // primitive "vector-pop-back!" procedure:
-  data primitive_VECTOR_POP_BACK_BANG(scm_list& args) {
+  data primitive_VECTOR_POP_BACK_BANG(data_vector& args) {
     primitive_confirm_valid_vector_arg(args, 1, "vector-pop-back!", "\n     (vector-pop-back! <vector>)");
     if(args[0].vec->empty())
       THROW_ERR("'vector-pop-back! can't pop items from an empty vector!"
@@ -2191,7 +2191,7 @@ namespace heist {
   }
 
   // primitive "vector-pop-front!" procedure:
-  data primitive_VECTOR_POP_FRONT_BANG(scm_list& args) {
+  data primitive_VECTOR_POP_FRONT_BANG(data_vector& args) {
     primitive_confirm_valid_vector_arg(args, 1, "vector-pop-front!", "\n     (vector-pop-front! <vector>)");
     if(args[0].vec->empty())
       THROW_ERR("'vector-pop-front! can't pop items from an empty vector!"
@@ -2202,20 +2202,20 @@ namespace heist {
   }
 
   // primitive "vector-iota" procedure:
-  data primitive_VECTOR_IOTA(scm_list& args) {
-    return primitive_IOTA_generic<false,vec_type(*)(scm_list&&)>(args,"vector-iota",
+  data primitive_VECTOR_IOTA(data_vector& args) {
+    return primitive_IOTA_generic<false,vec_type(*)(data_vector&&)>(args,"vector-iota",
       "\n     (vector-iota <count> <optional-start-number> <optional-step-number>)",
       make_vec);
   }
 
   // primitive "vector-empty?" procedure:
-  data primitive_VECTOR_EMPTYP(scm_list& args) {
+  data primitive_VECTOR_EMPTYP(data_vector& args) {
     primitive_confirm_valid_vector_arg(args, 1, "vector-empty?", "\n     (vector-empty? <vector>)");
     return data(boolean(args[0].vec->empty()));
   }
 
   // primitive "vector-grow" procedure:
-  data primitive_VECTOR_GROW(scm_list& args) {
+  data primitive_VECTOR_GROW(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("vector-grow",primitive_VECTOR_GROW,args);
     primitive_confirm_valid_vector_arg(args, 2, "vector-grow", "\n     (vector-grow <vector> <size>)");
     if(!primitive_is_valid_size(args[1]))
@@ -2229,31 +2229,31 @@ namespace heist {
         "\n     <size> range: (0," << GLOBALS::MAX_SIZE_TYPE << ']' << FCN_ERR("vector-grow", args));
     if(args[1].num == args[0].vec->size())
       return args[0]; // nothing to expand
-    scm_list expanded_vec((size_type)args[1].num.extract_inexact());
+    data_vector expanded_vec((size_type)args[1].num.extract_inexact());
     std::copy(args[0].vec->begin(), args[0].vec->end(), expanded_vec.begin());
     return make_vec(std::move(expanded_vec));
   }
 
   // primitive "vector-unfold" procedure:
-  data primitive_VECTOR_UNFOLD(scm_list& args) {
+  data primitive_VECTOR_UNFOLD(data_vector& args) {
     if(!args.empty() && args.size() < 4) return GENERATE_PRIMITIVE_PARTIAL("vector-unfold",primitive_VECTOR_UNFOLD,args);
-    scm_list unfolded;
+    data_vector unfolded;
     primitive_UNFOLD_template(args,unfolded,"vector-unfold",
       "\n     (vector-unfold <break-condition> <map-callable> <successor-callable> <seed>)");
     return make_vec(std::move(unfolded));
   }
 
   // primitive "vector-unfold-right" procedure:
-  data primitive_VECTOR_UNFOLD_RIGHT(scm_list& args) {
+  data primitive_VECTOR_UNFOLD_RIGHT(data_vector& args) {
     if(!args.empty() && args.size() < 4) return GENERATE_PRIMITIVE_PARTIAL("vector-unfold-right",primitive_VECTOR_UNFOLD_RIGHT,args);
-    scm_list unfolded;
+    data_vector unfolded;
     primitive_UNFOLD_template(args,unfolded,"vector-unfold-right",
       "\n     (vector-unfold-right <break-condition> <map-callable> <successor-callable> <seed>)");
-    return make_vec(scm_list(unfolded.rbegin(),unfolded.rend()));
+    return make_vec(data_vector(unfolded.rbegin(),unfolded.rend()));
   }
 
   // primitive "vector-copy!" procedure:
-  data primitive_VECTOR_COPY_BANG(scm_list& args) {
+  data primitive_VECTOR_COPY_BANG(data_vector& args) {
     if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("vector-copy!",primitive_VECTOR_COPY_BANG,args);
     return primitive_STATIC_SEQUENCE_COPY_BANG_template(args, "vector-copy!", 
       "\n     (vector-copy! <target-vector> <target-start-idx> <source-vector>)",
@@ -2261,7 +2261,7 @@ namespace heist {
   }
 
   // primitive "vector-swap!" procedure:
-  data primitive_VECTOR_SWAP_BANG(scm_list& args) {
+  data primitive_VECTOR_SWAP_BANG(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("vector-swap!",primitive_VECTOR_SWAP_BANG,args);
     if(args.size() != 2)
       THROW_ERR("'vector-swap! received incorrect # of args (only "
@@ -2273,14 +2273,14 @@ namespace heist {
     if(!args[1].is_type(types::vec))
       THROW_ERR("'vector-swap! 2nd arg "<<PROFILE(args[1])<<" isn't a vector: "
         "\n     (vector-swap! <vector1> <vector2>)" << FCN_ERR("vector-swap!",args));
-    scm_list tmp(*args[0].vec);
+    data_vector tmp(*args[0].vec);
     *args[0].vec = *args[1].vec;
     *args[1].vec = tmp;
     return GLOBALS::VOID_DATA_OBJECT;
   }
 
   // primitive "vector-binary-search" procedure:
-  data primitive_VECTOR_BINARY_SEARCH(scm_list& args) {
+  data primitive_VECTOR_BINARY_SEARCH(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (vector-binary-search <vector> <value> <3-way-comparison>)"
       "\n     ; Suppose values a & b"
@@ -2304,7 +2304,7 @@ namespace heist {
               low     = 0;
     while (low <= high) {
       const auto mid = low + (high-low)/2; // no overflow on mid
-      scm_list bsearch_args(2);
+      data_vector bsearch_args(2);
       bsearch_args[0] = vec[mid], bsearch_args[1] = value;
       auto cmp_result = execute_application(proc,bsearch_args);
       if(!cmp_result.is_type(types::num))
@@ -2324,7 +2324,7 @@ namespace heist {
   }
 
   // primitive "vector-get-all-combinations" procedure:
-  data primitive_VECTOR_GET_ALL_COMBINATIONS(scm_list& args) {
+  data primitive_VECTOR_GET_ALL_COMBINATIONS(data_vector& args) {
     if(args.size() != 1)
       THROW_ERR("'vector-get-all-combinations didn't receive 1 arg!"
         "\n     (vector-get-all-combinations <vector>)" << FCN_ERR("vector-get-all-combinations",args));
@@ -2332,7 +2332,7 @@ namespace heist {
       THROW_ERR("'vector-get-all-combinations arg " << PROFILE(args[0]) << " isn't a vector!"
           "\n     (vector-get-all-combinations <vector>)" << FCN_ERR("vector-get-all-combinations",args));
     auto result = prm_all_combos(*args[0].vec);
-    scm_list combinations_vect;
+    data_vector combinations_vect;
     for(auto& vect : result)
       combinations_vect.push_back(make_vec(vect));
     return make_vec(combinations_vect);
@@ -2347,11 +2347,11 @@ namespace heist {
     "\n     <sequence> ::= <list> | <vector> | <string>"
 
   // primitive "empty" procedure (given <sequence>, return its empty version):
-  data primitive_EMPTY(scm_list& args) {
+  data primitive_EMPTY(data_vector& args) {
     confirm_given_one_sequence_arg(args,"empty");
     if(args[0].is_type(types::par) || data_is_the_empty_list(args[0]))
       return symconst::emptylist;
-    if(args[0].is_type(types::vec)) return make_vec(scm_list());
+    if(args[0].is_type(types::vec)) return make_vec(data_vector());
     if(args[0].is_type(types::str)) return make_str("");
     THROW_ERR("'empty given arg "<<PROFILE(args[0])<<" isn't a proper sequence!" 
         "\n     (empty <sequence>)" SEQUENCE_DESCRIPTION << FCN_ERR("empty",args));
@@ -2359,7 +2359,7 @@ namespace heist {
   }
 
   // primitive "length" procedure:
-  data primitive_LENGTH(scm_list& args) {
+  data primitive_LENGTH(data_vector& args) {
     confirm_given_one_sequence_arg(args,"length");
     return primitive_compute_seq_length(args,"length",
       "\n     (length <sequence>)" SEQUENCE_DESCRIPTION);
@@ -2367,7 +2367,7 @@ namespace heist {
 
   // primitive "length+" procedure:
   // => return #f on circular lists (instead of error)
-  data primitive_LENGTH_PLUS(scm_list& args) {
+  data primitive_LENGTH_PLUS(data_vector& args) {
     confirm_given_one_sequence_arg(args, "length+");
     if(args[0].is_type(types::par) &&
       primitive_list_is_acyclic_and_null_terminated(args[0]) == list_status::cyclic){
@@ -2378,14 +2378,14 @@ namespace heist {
   }
 
   // primitive "reverse" procedure:
-  data primitive_REVERSE(scm_list& args) {
+  data primitive_REVERSE(data_vector& args) {
     confirm_given_one_sequence_arg(args,"reverse");
     switch(is_proper_sequence(args[0],args,"reverse",
       "\n     (reverse <sequence>)" SEQUENCE_DESCRIPTION)) {
       case heist_sequence::vec: 
-        return primitive_reverse_STATIC_SEQUENCE_logic<scm_list,vec_type(*)(scm_list&&)>(args[0],&data::vec,make_vec);
+        return primitive_reverse_STATIC_SEQUENCE_logic<data_vector,vec_type(*)(data_vector&&)>(args[0],&data::vec,make_vec);
       case heist_sequence::str: 
-        return primitive_reverse_STATIC_SEQUENCE_logic<scm_string,str_type(*)(scm_string&&)>(args[0],&data::str,make_str);
+        return primitive_reverse_STATIC_SEQUENCE_logic<string,str_type(*)(string&&)>(args[0],&data::str,make_str);
       case heist_sequence::nul: 
         return args[0];
       default:
@@ -2394,7 +2394,7 @@ namespace heist {
   }
 
   // primitive "reverse!" procedure:
-  data primitive_REVERSE_BANG(scm_list& args) {
+  data primitive_REVERSE_BANG(data_vector& args) {
     confirm_given_one_sequence_arg(args,"reverse!");
     switch(is_proper_sequence(args[0],args,"reverse!",
       "\n     (reverse! <sequence>)" SEQUENCE_DESCRIPTION)) {
@@ -2410,7 +2410,7 @@ namespace heist {
   }
 
   // primitive "fold" procedure:
-  data primitive_FOLD(scm_list& args) {
+  data primitive_FOLD(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (fold <callable> <init> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
     if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("fold",primitive_FOLD,args);
@@ -2433,7 +2433,7 @@ namespace heist {
   }
 
   // primitive "fold-right" procedure:
-  data primitive_FOLD_RIGHT(scm_list& args) {
+  data primitive_FOLD_RIGHT(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (fold-right <callable> <init> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
     if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("fold-right",primitive_FOLD_RIGHT,args);
@@ -2456,7 +2456,7 @@ namespace heist {
   }
 
   // primitive "filter" procedure:
-  data primitive_FILTER(scm_list& args) {
+  data primitive_FILTER(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (filter <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("filter",primitive_FILTER,args);
@@ -2477,7 +2477,7 @@ namespace heist {
   }
 
   // primitive "map" procedure:
-  data primitive_MAP(scm_list& args) {
+  data primitive_MAP(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (map <callable> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("map",primitive_MAP,args);
@@ -2498,7 +2498,7 @@ namespace heist {
   }
 
   // primitive "map!" procedure:
-  data primitive_MAP_BANG(scm_list& args) {
+  data primitive_MAP_BANG(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (map! <callable> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("map!",primitive_MAP_BANG,args);
@@ -2516,7 +2516,7 @@ namespace heist {
           format, types::str, "string", &data::str).str;
         return GLOBALS::VOID_DATA_OBJECT;
       default:
-        scm_list list_heads(args.begin()+1, args.end());
+        data_vector list_heads(args.begin()+1, args.end());
         primitive_confirm_proper_same_sized_lists(list_heads,"map!",format,1,args);
         primitive_MAP_BANG_list_constructor(list_heads, procedure);
         return GLOBALS::VOID_DATA_OBJECT;
@@ -2524,7 +2524,7 @@ namespace heist {
   }
 
   // primitive "for-each" procedure:
-  data primitive_FOR_EACH(scm_list& args) {
+  data primitive_FOR_EACH(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (for-each <callable> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("for-each",primitive_FOR_EACH,args);
@@ -2547,7 +2547,7 @@ namespace heist {
   // primitive "seq-copy!" procedure: 
   // NOTE: Copies elts from <source> over <dest>'s elts. 
   //       <dest>.size() is unaffected.
-  data primitive_SEQ_COPY_BANG(scm_list& args) { // 
+  data primitive_SEQ_COPY_BANG(data_vector& args) { // 
     static constexpr const char * const format = 
       "\n     (seq-copy! <dest-sequence> <source-sequence>)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("seq-copy!",primitive_SEQ_COPY_BANG,args);
@@ -2566,7 +2566,7 @@ namespace heist {
   }
 
   // primitive "count" procedure:
-  data primitive_COUNT(scm_list& args) {
+  data primitive_COUNT(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (count <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("count",primitive_COUNT,args);
@@ -2587,7 +2587,7 @@ namespace heist {
   }
 
   // primitive "ref" procedure:
-  data primitive_REF(scm_list& args) {
+  data primitive_REF(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (ref <sequence> <index>)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("ref",primitive_REF,args);
@@ -2612,7 +2612,7 @@ namespace heist {
   }
 
   // primitive "slice" procedure (generic 'sublist 'subvector 'substring):
-  data primitive_SLICE(scm_list& args) {
+  data primitive_SLICE(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (slice <sequence> <start-index> <optional-length>)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("slice",primitive_SLICE,args);
@@ -2627,7 +2627,7 @@ namespace heist {
   }
 
   // primitive "set-index!" procedure ('vector-set! 'string-set! SRFIs):
-  data primitive_SET_INDEX_BANG(scm_list& args) {
+  data primitive_SET_INDEX_BANG(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (set-index! <sequence> <index> <obj>)" SEQUENCE_DESCRIPTION;
     if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("set-index!",primitive_SET_INDEX_BANG,args);
@@ -2658,7 +2658,7 @@ namespace heist {
   }
 
   // primitive "swap-indices!" procedure:
-  data primitive_SWAP_INDICES_BANG(scm_list& args) {
+  data primitive_SWAP_INDICES_BANG(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (swap-indices! <sequence> <index> <index>)" SEQUENCE_DESCRIPTION;
     if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("swap-indices!",primitive_SWAP_INDICES_BANG,args);
@@ -2685,7 +2685,7 @@ namespace heist {
   }
 
   // primitive "fill!" procedure:
-  data primitive_FILL_BANG(scm_list& args) {
+  data primitive_FILL_BANG(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (fill! <sequence> <fill-value>)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("fill!",primitive_FILL_BANG,args);
@@ -2705,7 +2705,7 @@ namespace heist {
   // (append <obj>) = <obj>
   // (append <empty-sequence1> ... <empty-sequenceN> <obj>) = <obj>
   // (append <sequence1> ... <sequenceN> <obj>) = <sequence1> | ... | <sequenceN> | <obj>
-  data primitive_APPEND(scm_list& args) {
+  data primitive_APPEND(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (append <sequence1> ... <sequenceN> <obj>)" SEQUENCE_DESCRIPTION;
     if(args.empty())     return data(symconst::emptylist);
@@ -2718,7 +2718,7 @@ namespace heist {
   }
 
   // primitive "remove" procedure:
-  data primitive_REMOVE(scm_list& args) {
+  data primitive_REMOVE(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (remove <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("remove",primitive_REMOVE,args);
@@ -2739,7 +2739,7 @@ namespace heist {
   }
 
   // primitive "remove-first" procedure:
-  data primitive_REMOVE_FIRST(scm_list& args) {
+  data primitive_REMOVE_FIRST(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (remove-first <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("remove-first",primitive_REMOVE_FIRST,args);
@@ -2755,7 +2755,7 @@ namespace heist {
       case heist_sequence::str:
         return make_str(prm_remove_first_or_last<true>(procedure,*args[1].str));
       default:
-        scm_list par_as_exp;
+        data_vector par_as_exp;
         shallow_unpack_list_into_exp(args[1],par_as_exp);
         par_as_exp = prm_remove_first_or_last<true>(procedure,par_as_exp);
         return primitive_LIST_to_CONS_constructor(par_as_exp.begin(),par_as_exp.end());
@@ -2763,7 +2763,7 @@ namespace heist {
   }
 
   // primitive "remove-last" procedure:
-  data primitive_REMOVE_LAST(scm_list& args) {
+  data primitive_REMOVE_LAST(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (remove-last <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("remove-last",primitive_REMOVE_LAST,args);
@@ -2779,7 +2779,7 @@ namespace heist {
       case heist_sequence::str:
         return make_str(prm_remove_first_or_last<false>(procedure,*args[1].str));
       default:
-        scm_list par_as_exp;
+        data_vector par_as_exp;
         shallow_unpack_list_into_exp(args[1],par_as_exp);
         par_as_exp = prm_remove_first_or_last<false>(procedure,par_as_exp);
         return primitive_LIST_to_CONS_constructor(par_as_exp.begin(),par_as_exp.end());
@@ -2787,7 +2787,7 @@ namespace heist {
   }
 
   // primitive "delete" procedure:
-  data primitive_DELETE(scm_list& args) {
+  data primitive_DELETE(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (delete <sequence> <index>)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("delete",primitive_DELETE,args);
@@ -2811,7 +2811,7 @@ namespace heist {
   }
 
   // primitive "last" procedure (last elt):
-  data primitive_LAST(scm_list& args) {
+  data primitive_LAST(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (last <sequence>)" SEQUENCE_DESCRIPTION;
       confirm_given_one_sequence_arg(args,"last");
@@ -2826,7 +2826,7 @@ namespace heist {
   }
 
   // primitive "tail" procedure (all except head):
-  data primitive_TAIL(scm_list& args) {
+  data primitive_TAIL(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (tail <sequence>)" SEQUENCE_DESCRIPTION;
     confirm_given_one_sequence_arg(args,"tail");
@@ -2835,16 +2835,16 @@ namespace heist {
         << format << FCN_ERR("tail",args));
     switch(is_proper_sequence(args[0],args,"tail",format)) {
       case heist_sequence::vec:
-        return make_vec(scm_list(args[0].vec->begin()+1,args[0].vec->end()));
+        return make_vec(data_vector(args[0].vec->begin()+1,args[0].vec->end()));
       case heist_sequence::str:
-        return make_str(scm_string(args[0].str->begin()+1,args[0].str->end()));
+        return make_str(string(args[0].str->begin()+1,args[0].str->end()));
       default:
         return primitive_list_copy_logic(args[0].par->second);
     }
   }
 
   // primitive "head" procedure (first elt):
-  data primitive_HEAD(scm_list& args) {
+  data primitive_HEAD(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (head <sequence>)" SEQUENCE_DESCRIPTION;
     confirm_given_one_sequence_arg(args,"head");
@@ -2859,7 +2859,7 @@ namespace heist {
   }
 
   // primitive "init" procedure (all except last):
-  data primitive_INIT(scm_list& args) {
+  data primitive_INIT(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (init <sequence>)" SEQUENCE_DESCRIPTION;
     confirm_given_one_sequence_arg(args,"init");
@@ -2868,16 +2868,16 @@ namespace heist {
         << format << FCN_ERR("init",args));
     switch(is_proper_sequence(args[0],args,"init",format)) {
       case heist_sequence::vec:
-        return make_vec(scm_list(args[0].vec->begin(),args[0].vec->end()-1));
+        return make_vec(data_vector(args[0].vec->begin(),args[0].vec->end()-1));
       case heist_sequence::str:
-        return make_str(scm_string(args[0].str->begin(),args[0].str->end()-1));
+        return make_str(string(args[0].str->begin(),args[0].str->end()-1));
       default:
         return primitive_list_init_logic(args[0]);
     }
   }
 
   // primitive "seq=" procedure:
-  data primitive_SEQ_EQ(scm_list& args) {
+  data primitive_SEQ_EQ(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (seq= <elt=?> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
     if(args.empty()) THROW_ERR("'seq= didn't receive any args:" << format << FCN_ERR("seq=", args));
@@ -2894,7 +2894,7 @@ namespace heist {
   }
 
   // primitive "skip" procedure:
-  data primitive_SKIP(scm_list& args) {
+  data primitive_SKIP(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (skip <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("skip",primitive_SKIP,args);
@@ -2915,7 +2915,7 @@ namespace heist {
   }
 
   // primitive "skip-right" procedure:
-  data primitive_SKIP_RIGHT(scm_list& args) {
+  data primitive_SKIP_RIGHT(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (skip-right <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("skip-right",primitive_SKIP_RIGHT,args);
@@ -2936,7 +2936,7 @@ namespace heist {
   }
 
   // primitive "index" procedure:
-  data primitive_INDEX(scm_list& args) {
+  data primitive_INDEX(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (index <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("index",primitive_INDEX,args);
@@ -2957,7 +2957,7 @@ namespace heist {
   }
 
   // primitive "index-right" procedure:
-  data primitive_INDEX_RIGHT(scm_list& args) {
+  data primitive_INDEX_RIGHT(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (index-right <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("index-right",primitive_INDEX_RIGHT,args);
@@ -2978,7 +2978,7 @@ namespace heist {
   }
 
   // primitive "drop" procedure:
-  data primitive_DROP(scm_list& args) {
+  data primitive_DROP(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("drop",primitive_DROP,args);
     return primitive_take_drop_template 
       <primitive_drop_GENERIC_logic<false>, 
@@ -2988,7 +2988,7 @@ namespace heist {
   }
 
   // primitive "drop-right" procedure:
-  data primitive_DROP_RIGHT(scm_list& args) {
+  data primitive_DROP_RIGHT(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("drop-right",primitive_DROP_RIGHT,args);
     return primitive_take_drop_template 
       <primitive_drop_right_GENERIC_logic<false>, 
@@ -2998,7 +2998,7 @@ namespace heist {
   }
 
   // primitive "take" procedure:
-  data primitive_TAKE(scm_list& args) {
+  data primitive_TAKE(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("take",primitive_TAKE,args);
     return primitive_take_drop_template 
       <primitive_take_GENERIC_logic<false>, 
@@ -3008,7 +3008,7 @@ namespace heist {
   }
 
   // primitive "take-right" procedure:
-  data primitive_TAKE_RIGHT(scm_list& args) {
+  data primitive_TAKE_RIGHT(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("take-right",primitive_TAKE_RIGHT,args);
     return primitive_take_drop_template 
       <primitive_take_right_GENERIC_logic<false>, 
@@ -3018,7 +3018,7 @@ namespace heist {
   }
 
   // primitive "drop-while" procedure:
-  data primitive_DROP_WHILE(scm_list& args) {
+  data primitive_DROP_WHILE(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("drop-while",primitive_DROP_WHILE,args);
     return primitive_take_drop_while_template
       <primitive_drop_while_GENERIC_logic<false>, 
@@ -3028,7 +3028,7 @@ namespace heist {
   }
 
   // primitive "drop-right-while" procedure:
-  data primitive_DROP_RIGHT_WHILE(scm_list& args) {
+  data primitive_DROP_RIGHT_WHILE(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("drop-right-while",primitive_DROP_RIGHT_WHILE,args);
     return primitive_take_drop_while_template 
       <primitive_drop_right_while_GENERIC_logic<false>, 
@@ -3038,7 +3038,7 @@ namespace heist {
   }
 
   // primitive "take-while" procedure:
-  data primitive_TAKE_WHILE(scm_list& args) {
+  data primitive_TAKE_WHILE(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("take-while",primitive_TAKE_WHILE,args);
     return primitive_take_drop_while_template 
       <primitive_take_while_GENERIC_logic<false>, 
@@ -3048,7 +3048,7 @@ namespace heist {
   }
 
   // primitive "take-right-while" procedure:
-  data primitive_TAKE_RIGHT_WHILE(scm_list& args) {
+  data primitive_TAKE_RIGHT_WHILE(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("take-right-while",primitive_TAKE_RIGHT_WHILE,args);
     return primitive_take_drop_while_template 
       <primitive_take_right_while_GENERIC_logic<false>, 
@@ -3058,7 +3058,7 @@ namespace heist {
   }
 
   // primitive "any" procedure:
-  data primitive_ANY(scm_list& args) {
+  data primitive_ANY(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (any <predicate> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("any",primitive_ANY,args);
@@ -3079,7 +3079,7 @@ namespace heist {
   }
 
   // primitive "every" procedure:
-  data primitive_EVERY(scm_list& args) {
+  data primitive_EVERY(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (every <predicate> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("every",primitive_EVERY,args);
@@ -3100,14 +3100,14 @@ namespace heist {
   }
 
   // primitive "conj" procedure:
-  data primitive_CONJ(scm_list& args) {
+  data primitive_CONJ(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (conj <obj> <sequence>)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("conj",primitive_CONJ,args);
     if(args.size() != 2)
       THROW_ERR("'conj received incorrect # of arguments:" 
         << format << FCN_ERR("conj",args));
-    scm_list new_vec;
+    data_vector new_vec;
     switch(is_proper_sequence(args[1],args,"conj",format)) {
       case heist_sequence::vec:
         new_vec.insert(new_vec.end(),args[1].vec->begin(),args[1].vec->end());
@@ -3131,7 +3131,7 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "seq->list" procedure:
-  data primitive_SEQ_TO_LIST(scm_list& args) {
+  data primitive_SEQ_TO_LIST(data_vector& args) {
     static constexpr const char * const format = "\n     (seq->list <sequence>)" SEQUENCE_DESCRIPTION;
     if(args.size() != 1) 
       THROW_ERR("'seq->list didn't receive exactly 1 arg!" << format << FCN_ERR("seq->list",args));
@@ -3143,19 +3143,19 @@ namespace heist {
   }
 
   // primitive "seq->vector" procedure:
-  data primitive_SEQ_TO_VECTOR(scm_list& args) {
+  data primitive_SEQ_TO_VECTOR(data_vector& args) {
     static constexpr const char * const format = "\n     (seq->vector <sequence>)" SEQUENCE_DESCRIPTION;
     if(args.size() != 1) 
       THROW_ERR("'seq->vector didn't receive exactly 1 arg!" << format << FCN_ERR("seq->vector",args));
     switch(is_proper_sequence(args[0],args,"seq->vector",format)) {
-      case heist_sequence::vec: args[0].shallow_copy();
+      case heist_sequence::vec: return args[0].shallow_copy();
       case heist_sequence::str: return prm_convert_string_to_vector(*args[0].str);
       default: return prm_convert_list_to_vector(args[0]);
     }
   }
 
   // primitive "seq->string" procedure:
-  data primitive_SEQ_TO_STRING(scm_list& args) {
+  data primitive_SEQ_TO_STRING(data_vector& args) {
     static constexpr const char * const format = "\n     (seq->string <sequence>)" SEQUENCE_DESCRIPTION;
     if(args.size() != 1) 
       THROW_ERR("'seq->string didn't receive exactly 1 arg!" << format << FCN_ERR("seq->string",args));
@@ -3180,7 +3180,7 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "union" procedure:
-  data primitive_UNION(scm_list& args) {
+  data primitive_UNION(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (union <elt=?> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("union",primitive_ANY,args);
@@ -3197,7 +3197,7 @@ namespace heist {
   }
 
   // primitive "intersection" procedure:
-  data primitive_INTERSECTION(scm_list& args) {
+  data primitive_INTERSECTION(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (intersection <elt=?> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("intersection",primitive_ANY,args);
@@ -3214,7 +3214,7 @@ namespace heist {
   }
 
   // primitive "symmetric-difference" procedure:
-  data primitive_SYMMETRIC_DIFFERENCE(scm_list& args) {
+  data primitive_SYMMETRIC_DIFFERENCE(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (symmetric-difference <elt=?> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("symmetric-difference",primitive_ANY,args);
@@ -3231,7 +3231,7 @@ namespace heist {
   }
 
   // primitive "difference" procedure:
-  data primitive_DIFFERENCE(scm_list& args) {
+  data primitive_DIFFERENCE(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (difference <elt=?> <sequence1> <sequence2> ...)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("difference",primitive_ANY,args);
@@ -3252,7 +3252,7 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "sort" procedure:
-  data primitive_SORT(scm_list& args) {
+  data primitive_SORT(data_vector& args) {
     constexpr const char * const format = 
       "\n     (sort <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("sort",primitive_SORT,args);
@@ -3265,7 +3265,7 @@ namespace heist {
   }
 
   // primitive "sort!" procedure:
-  data primitive_SORT_BANG(scm_list& args) {
+  data primitive_SORT_BANG(data_vector& args) {
     constexpr const char * const format = 
       "\n     (sort! <predicate> <sequence>)" SEQUENCE_DESCRIPTION;
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("sort!",primitive_SORT_BANG,args);
@@ -3279,7 +3279,7 @@ namespace heist {
   }
 
   // primitive "sorted?" procedure:
-  data primitive_SORTEDP(scm_list& args) {
+  data primitive_SORTEDP(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("sorted?",primitive_SORTEDP,args);
     // confirm has a valid argument signature
     primitive_confirm_sortable_sequence(args, "sorted?", 
@@ -3287,13 +3287,13 @@ namespace heist {
     // return if sorting the empty list
     if(args[1].is_type(types::sym)) return GLOBALS::TRUE_DATA_BOOLEAN;
     // unpack the sequence
-    scm_list sequence;
+    data_vector sequence;
     cast_scheme_sequence_to_ast(args[1],sequence);
     // confirm the unpacked sequence is sorted as per the args[0] procedure
     if(sequence.size() > 1) {
       auto procedure = primitive_extract_callable_procedure(args[0]);
       for(size_type i = 0, n = sequence.size(); i+1 < n; ++i) {
-        scm_list args_list(2);
+        data_vector args_list(2);
         args_list[0] = sequence[i], args_list[1] = sequence[i+1];
         if(is_false_scm_condition(procedure,args_list))
           return GLOBALS::FALSE_DATA_BOOLEAN;
@@ -3303,7 +3303,7 @@ namespace heist {
   }
 
   // primitive "merge" procedure:
-  data primitive_MERGE(scm_list& args) { 
+  data primitive_MERGE(data_vector& args) { 
     constexpr const char * const format = 
       "\n     (merge <predicate> <sequence1> <sequence2>)" SEQUENCE_DESCRIPTION;
     if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("merge",primitive_MERGE,args);
@@ -3326,17 +3326,17 @@ namespace heist {
         << PROFILE(args[2]) << "\n     are not matching sequence types!"
         << format << FCN_ERR("merge",args));
     // If merging vectors or strings: 
-    scm_list merged_sequence;
+    data_vector merged_sequence;
     if(!args[1].is_type(types::par)) 
       return primitive_MERGE_vector_string_constructor(args,merged_sequence,format);
     // Else apply the procedure on each list elt & merge args as per the result into a list
-    scm_list list_heads(args.begin()+1, args.end());
+    data_vector list_heads(args.begin()+1, args.end());
     primitive_MERGE_list_constructor(list_heads,procedure,merged_sequence);
     return primitive_LIST_to_CONS_constructor(merged_sequence.begin(),merged_sequence.end());
   }
 
   // primitive "delete-neighbor-dups" procedure:
-  data primitive_DELETE_NEIGHBOR_DUPS(scm_list& args) {
+  data primitive_DELETE_NEIGHBOR_DUPS(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("delete-neighbor-dups",primitive_DELETE_NEIGHBOR_DUPS,args);
     return primitive_DELETE_NEIGHBOR_DUPS_template(args,"delete-neighbor-dups",
       "\n     (delete-neighbor-dups <elt=?> <sequence>)"
@@ -3344,7 +3344,7 @@ namespace heist {
   }
 
   // primitive "delete-neighbor-dups!" procedure:
-  data primitive_DELETE_NEIGHBOR_DUPS_BANG(scm_list& args) {
+  data primitive_DELETE_NEIGHBOR_DUPS_BANG(data_vector& args) {
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("delete-neighbor-dups!",primitive_DELETE_NEIGHBOR_DUPS_BANG,args);
     return primitive_DELETE_NEIGHBOR_DUPS_template(args,"delete-neighbor-dups!",
       "\n     (delete-neighbor-dups! <elt=?> <sequence>)"
@@ -3358,69 +3358,69 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "void" procedure:
-  data primitive_VOID(scm_list&)noexcept{return GLOBALS::VOID_DATA_OBJECT;}
+  data primitive_VOID(data_vector&)noexcept{return GLOBALS::VOID_DATA_OBJECT;}
 
   // primitive "void?" procedure:
-  data primitive_VOIDP(scm_list& args) { 
+  data primitive_VOIDP(data_vector& args) { 
     confirm_given_one_arg(args, "void?");
     return data(boolean(args[0].is_type(types::dne)));
   }
 
   // primitive "undefined" procedure:
-  data primitive_UNDEFINED(scm_list&)noexcept{return data();}
+  data primitive_UNDEFINED(data_vector&)noexcept{return data();}
 
   // primitive "undefined?" procedure:
-  data primitive_UNDEFINEDP(scm_list& args) { 
+  data primitive_UNDEFINEDP(data_vector& args) { 
     confirm_given_one_arg(args, "undefined?");
     return data(boolean(args[0].is_type(types::undefined)));
   }
 
   // primitive "hmap?" procedure:
-  data primitive_HMAPP(scm_list& args) {
+  data primitive_HMAPP(data_vector& args) {
     confirm_given_one_arg(args, "hmap?");
     return data(boolean(args[0].is_type(types::map)));
   }
 
   // primitive "empty?" procedure:
-  data primitive_EMPTYP(scm_list& args) {
+  data primitive_EMPTYP(data_vector& args) {
     confirm_given_one_arg(args, "empty?");
     return data(boolean(data_is_empty(args[0])));
   }
 
   // primitive "pair?" procedure:
-  data primitive_PAIRP(scm_list& args) {
+  data primitive_PAIRP(data_vector& args) {
     confirm_given_one_arg(args, "pair?");
     return data(boolean(args[0].is_type(types::par)));
   }
 
   // primitive "vector?" procedure:
-  data primitive_VECTORP(scm_list& args) {
+  data primitive_VECTORP(data_vector& args) {
     confirm_given_one_arg(args, "vector?");
     return data(boolean(args[0].is_type(types::vec)));
   }
 
   // primitive "char?" procedure:
-  data primitive_CHARP(scm_list& args) {
+  data primitive_CHARP(data_vector& args) {
     confirm_given_one_arg(args, "char?");
     return data(boolean(args[0].is_type(types::chr)));
   }
 
   // primitive "number?" procedure:
-  data primitive_NUMBERP(scm_list& args) {
+  data primitive_NUMBERP(data_vector& args) {
     confirm_given_one_arg(args, "number?");
     return data(boolean(args[0].is_type(types::num) && !args[0].num.is_nan()));
   }
 
   // primitive "real?" procedure:
   // => "real" denotes a non-complex number -> NOTE hence +nan.0 is "real"
-  data primitive_REALP(scm_list& args) {
+  data primitive_REALP(data_vector& args) {
     confirm_given_one_arg(args, "real?");
     return data(boolean(
       args[0].is_type(types::num) && args[0].num.is_real()));
   }
 
   // primitive "complex?" procedure:
-  data primitive_COMPLEXP(scm_list& args) {
+  data primitive_COMPLEXP(data_vector& args) {
     confirm_given_one_arg(args, "complex?");
     return data(boolean(
       args[0].is_type(types::num) && args[0].num.is_complex()));
@@ -3428,63 +3428,63 @@ namespace heist {
 
   // primitive "rational?" procedure:
   // => "rational" denotes a # that inexact->exact won't approximate
-  data primitive_RATIONALP(scm_list& args) {
+  data primitive_RATIONALP(data_vector& args) {
     confirm_given_one_arg(args, "rational?");
     return data(boolean(
       args[0].is_type(types::num) && args[0].num.is_rational()));
   }
 
   // primitive "string?" procedure:
-  data primitive_STRINGP(scm_list& args) {
+  data primitive_STRINGP(data_vector& args) {
     confirm_given_one_arg(args, "string?");
     return data(boolean(args[0].is_type(types::str)));
   }
 
   // primitive "symbol?" procedure:
-  data primitive_SYMBOLP(scm_list& args) {
+  data primitive_SYMBOLP(data_vector& args) {
     confirm_given_one_arg(args, "symbol?");
     return data(boolean(args[0].is_type(types::sym) && 
                         args[0].sym != symconst::emptylist));
   }
 
   // primitive "boolean?" procedure:
-  data primitive_BOOLEANP(scm_list& args) {
+  data primitive_BOOLEANP(data_vector& args) {
     confirm_given_one_arg(args, "boolean?");
     return data(boolean(args[0].is_type(types::bol)));
   }
 
   // primitive "atom?" procedure:
-  data primitive_ATOMP(scm_list& args) {
+  data primitive_ATOMP(data_vector& args) {
     confirm_given_one_arg(args, "atom?");
     return data(boolean(!primitive_PAIRP(args).bol.val));
   }
 
   // primitive "procedure?" procedure:
-  data primitive_PROCEDUREP(scm_list& args) {
+  data primitive_PROCEDUREP(data_vector& args) {
     confirm_given_one_arg(args, "procedure?");
     return data(boolean(args[0].is_type(types::fcn)));
   }
 
   // primitive "input-port?" procedure:
-  data primitive_INPUT_PORTP(scm_list& args) {
+  data primitive_INPUT_PORTP(data_vector& args) {
     confirm_given_one_arg(args, "input-port?");
     return data(boolean(args[0].is_type(types::fip)));
   }
 
   // primitive "output-port?" procedure:
-  data primitive_OUTPUT_PORTP(scm_list& args) {
+  data primitive_OUTPUT_PORTP(data_vector& args) {
     confirm_given_one_arg(args, "output-port?");
     return data(boolean(args[0].is_type(types::fop)));
   }
 
   // primitive "eof-object?" procedure:
-  data primitive_EOF_OBJECTP(scm_list& args) {
+  data primitive_EOF_OBJECTP(data_vector& args) {
     confirm_given_one_arg(args, "eof-object?");
     return data(boolean(args[0].is_type(types::chr) && args[0].chr==EOF));
   }
 
   // primitive "stream-pair?" procedure:
-  data primitive_STREAM_PAIRP(scm_list& args) {
+  data primitive_STREAM_PAIRP(data_vector& args) {
     confirm_given_one_arg(args, "stream-pair?");
     return data(boolean(args[0].is_type(types::par) && 
                         args[0].par->first.is_type(types::del) && 
@@ -3492,13 +3492,13 @@ namespace heist {
   }
 
   // primitive "stream-null?" procedure:
-  data primitive_STREAM_NULLP(scm_list& args) {
+  data primitive_STREAM_NULLP(data_vector& args) {
     confirm_given_one_arg(args, "stream-null?");
     return data(boolean(data_is_the_empty_list(args[0])));
   }
 
   // primitive "stream?" procedure:
-  data primitive_STREAMP(scm_list& args) {
+  data primitive_STREAMP(data_vector& args) {
     confirm_given_one_arg(args, "stream?");
     return data(boolean(data_is_the_empty_list(args[0]) || 
                         (args[0].is_type(types::par) && 
@@ -3507,13 +3507,13 @@ namespace heist {
   }
 
   // primitive "syntax-rules-object?" procedure:
-  data primitive_SYNTAX_RULES_OBJECTP(scm_list& args) {
+  data primitive_SYNTAX_RULES_OBJECTP(data_vector& args) {
     confirm_given_one_arg(args, "syntax-rules-object?");
     return data(boolean(args[0].is_type(types::syn)));
   }
 
   // primitive "seq?" procedure:
-  data primitive_SEQP(scm_list& args) {
+  data primitive_SEQP(data_vector& args) {
     confirm_given_one_arg(args, "seq?");
     return data(boolean(args[0].is_type(types::vec) || 
                         args[0].is_type(types::str) || 
@@ -3521,27 +3521,27 @@ namespace heist {
   }
 
   // primitive "object?" procedure:
-  data primitive_OBJECTP(scm_list& args) {
+  data primitive_OBJECTP(data_vector& args) {
     confirm_given_one_arg(args, "object?");
     return boolean(args[0].is_type(types::obj));
   }
 
   // primitive "class-prototype?" procedure:
-  data primitive_CLASS_PROTOTYPEP(scm_list& args) {
+  data primitive_CLASS_PROTOTYPEP(data_vector& args) {
     confirm_given_one_arg(args, "class-prototype?");
     return boolean(args[0].is_type(types::cls));
   }
 
   // primitive "functor?" procedure:
   // functor = object w/ a "self->procedure" method
-  data primitive_FUNCTORP(scm_list& args) {
+  data primitive_FUNCTORP(data_vector& args) {
     confirm_given_one_arg(args, "functor?");
     return boolean(primitive_data_is_a_functor(args[0]));
   }
 
   // primitive "callable?" procedure:
   // callable = procedure? or functor?
-  data primitive_CALLABLEP(scm_list& args) {
+  data primitive_CALLABLEP(data_vector& args) {
     confirm_given_one_arg(args, "callable?");
     return boolean(primitive_data_is_a_callable(args[0]));
   }
@@ -3551,7 +3551,7 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "eval" procedure:
-  data primitive_EVAL(scm_list& args) {
+  data primitive_EVAL(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (eval <data> <optional-environment>)" 
       "\n     -> Pass *null-environment* to eval in the empty environment!"
@@ -3604,7 +3604,7 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "cps-eval" procedure:
-  data primitive_CPS_EVAL(scm_list& args) {
+  data primitive_CPS_EVAL(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (cps-eval <data> <optional-environment> <continuation>)" 
       "\n     -> Pass *null-environment* to cps-eval in the empty environment!"
@@ -3632,7 +3632,7 @@ namespace heist {
         << PROFILE(args[0]) << format << FCN_ERR("cps-eval", args));
 
     // Continuation for the cps-evaluated expression to be be applied to
-    scm_list cps_eval_args(1,continuation);
+    data_vector cps_eval_args(1,continuation);
 
     // If arg is self-evaluating, return arg
     if(!data_as_syntax.is_type(types::sym) && !data_as_syntax.is_type(types::exp)) {
@@ -3666,7 +3666,7 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "apply" procedure:
-  data primitive_APPLY(scm_list& args) {
+  data primitive_APPLY(data_vector& args) {
     // get whether in a tail call
     bool tail_call = args.rbegin()->bol.val;
     args.pop_back();
@@ -3684,7 +3684,7 @@ namespace heist {
       THROW_ERR("'apply 2nd arg " << PROFILE(args[1]) << " isn't a proper list!"
         << format << FCN_ERR("apply",args));
     // apply arguments in list to the callable
-    scm_list args_list;
+    data_vector args_list;
     shallow_unpack_list_into_exp(args[1], args_list);
     return execute_callable(args[0],args_list,env,tail_call);
   }
@@ -3694,13 +3694,13 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "delay?" predicate procedure:
-  data primitive_DELAYP(scm_list& args) {
+  data primitive_DELAYP(data_vector& args) {
     confirm_given_one_arg(args,"delay?");
     return boolean(args[0].is_type(types::del));
   }
 
   // primitive "force" procedure:
-  data primitive_FORCE(scm_list& args) {
+  data primitive_FORCE(data_vector& args) {
     confirm_given_one_arg(args,"force","<delayed-expression>");
     return force_data_delay(args[0]); // "call-by-need" evaluation
   }
@@ -3710,13 +3710,13 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "scar" procedure:
-  data primitive_SCAR(scm_list& args) {
+  data primitive_SCAR(data_vector& args) {
     confirm_given_a_stream_pair_arg(args, "scar", "\n     (scar <stream-pair>)");
     return force_data_delay(args[0].par->first);
   }
 
   // primitive "scdr" procedure:
-  data primitive_SCDR(scm_list& args) {
+  data primitive_SCDR(data_vector& args) {
     confirm_given_a_stream_pair_arg(args, "scdr", "\n     (scdr <stream-pair>)");
     data cdr_promise = force_data_delay(args[0].par->second);
     if(!data_is_stream(cdr_promise))
@@ -3726,7 +3726,7 @@ namespace heist {
   }
 
   // primitive "stream-length" procedure:
-  data primitive_STREAM_LENGTH(scm_list& args) {
+  data primitive_STREAM_LENGTH(data_vector& args) {
     confirm_given_one_arg(args,"stream-length","<stream>");
     // Length of '() = 0
     if(data_is_the_empty_list(args[0])) return num_type();
@@ -3742,7 +3742,7 @@ namespace heist {
   // -----------------------
 
   // primitive "scaar" procedure:
-  data primitive_SCAAR(scm_list& args) {
+  data primitive_SCAAR(data_vector& args) {
     static constexpr const char * const name   = "scaar";
     static constexpr const char * const format = "\n     (scaar <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3750,7 +3750,7 @@ namespace heist {
   }
 
   // primitive "scadr" procedure:
-  data primitive_SCADR(scm_list& args) {
+  data primitive_SCADR(data_vector& args) {
     static constexpr const char * const name   = "scadr";
     static constexpr const char * const format = "\n     (scadr <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3758,7 +3758,7 @@ namespace heist {
   }
 
   // primitive "scdar" procedure:
-  data primitive_SCDAR(scm_list& args) {
+  data primitive_SCDAR(data_vector& args) {
     static constexpr const char * const name   = "scdar";
     static constexpr const char * const format = "\n     (scdar <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3766,7 +3766,7 @@ namespace heist {
   }
 
   // primitive "scddr" procedure:
-  data primitive_SCDDR(scm_list& args) {
+  data primitive_SCDDR(data_vector& args) {
     static constexpr const char * const name   = "scddr";
     static constexpr const char * const format = "\n     (scddr <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3776,7 +3776,7 @@ namespace heist {
   // ----------
 
   // primitive "scaaar" procedure:
-  data primitive_SCAAAR(scm_list& args) {
+  data primitive_SCAAAR(data_vector& args) {
     static constexpr const char * const name   = "scaaar";
     static constexpr const char * const format = "\n     (scaaar <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3785,7 +3785,7 @@ namespace heist {
   }
 
   // primitive "scaadr" procedure:
-  data primitive_SCAADR(scm_list& args) {
+  data primitive_SCAADR(data_vector& args) {
     static constexpr const char * const name   = "scaadr";
     static constexpr const char * const format = "\n     (scaadr <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3794,7 +3794,7 @@ namespace heist {
   }
 
   // primitive "scadar" procedure:
-  data primitive_SCADAR(scm_list& args) {
+  data primitive_SCADAR(data_vector& args) {
     static constexpr const char * const name   = "scadar";
     static constexpr const char * const format = "\n     (scadar <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3803,7 +3803,7 @@ namespace heist {
   }
 
   // primitive "scaddr" procedure:
-  data primitive_SCADDR(scm_list& args) {
+  data primitive_SCADDR(data_vector& args) {
     static constexpr const char * const name   = "scaddr";
     static constexpr const char * const format = "\n     (scaddr <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3812,7 +3812,7 @@ namespace heist {
   }
 
   // primitive "scdaar" procedure:
-  data primitive_SCDAAR(scm_list& args) {
+  data primitive_SCDAAR(data_vector& args) {
     static constexpr const char * const name   = "scdaar";
     static constexpr const char * const format = "\n     (scdaar <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3821,7 +3821,7 @@ namespace heist {
   }
 
   // primitive "scdadr" procedure:
-  data primitive_SCDADR(scm_list& args) {
+  data primitive_SCDADR(data_vector& args) {
     static constexpr const char * const name   = "scdadr";
     static constexpr const char * const format = "\n     (scdadr <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3830,7 +3830,7 @@ namespace heist {
   }
 
   // primitive "scddar" procedure:
-  data primitive_SCDDAR(scm_list& args) {
+  data primitive_SCDDAR(data_vector& args) {
     static constexpr const char * const name   = "scddar";
     static constexpr const char * const format = "\n     (scddar <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3839,7 +3839,7 @@ namespace heist {
   }
 
   // primitive "scdddr" procedure:
-  data primitive_SCDDDR(scm_list& args) {
+  data primitive_SCDDDR(data_vector& args) {
     static constexpr const char * const name   = "scdddr";
     static constexpr const char * const format = "\n     (scdddr <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3850,7 +3850,7 @@ namespace heist {
   // ----------
 
   // primitive "scaaaar" procedure:
-  data primitive_SCAAAAR(scm_list& args) {
+  data primitive_SCAAAAR(data_vector& args) {
     static constexpr const char * const name   = "scaaaar";
     static constexpr const char * const format = "\n     (scaaaar <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3859,7 +3859,7 @@ namespace heist {
   }
 
   // primitive "scaaadr" procedure:
-  data primitive_SCAAADR(scm_list& args) {
+  data primitive_SCAAADR(data_vector& args) {
     static constexpr const char * const name   = "scaaadr";
     static constexpr const char * const format = "\n     (scaaadr <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3868,7 +3868,7 @@ namespace heist {
   }
 
   // primitive "scaadar" procedure:
-  data primitive_SCAADAR(scm_list& args) {
+  data primitive_SCAADAR(data_vector& args) {
     static constexpr const char * const name   = "scaadar";
     static constexpr const char * const format = "\n     (scaadar <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3877,7 +3877,7 @@ namespace heist {
   }
 
   // primitive "scaaddr" procedure:
-  data primitive_SCAADDR(scm_list& args) {
+  data primitive_SCAADDR(data_vector& args) {
     static constexpr const char * const name   = "scaaddr";
     static constexpr const char * const format = "\n     (scaaddr <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3886,7 +3886,7 @@ namespace heist {
   }
 
   // primitive "scadaar" procedure:
-  data primitive_SCADAAR(scm_list& args) {
+  data primitive_SCADAAR(data_vector& args) {
     static constexpr const char * const name   = "scadaar";
     static constexpr const char * const format = "\n     (scadaar <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3895,7 +3895,7 @@ namespace heist {
   }
 
   // primitive "scadadr" procedure:
-  data primitive_SCADADR(scm_list& args) {
+  data primitive_SCADADR(data_vector& args) {
     static constexpr const char * const name   = "scadadr";
     static constexpr const char * const format = "\n     (scadadr <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3904,7 +3904,7 @@ namespace heist {
   }
 
   // primitive "scaddar" procedure:
-  data primitive_SCADDAR(scm_list& args) {
+  data primitive_SCADDAR(data_vector& args) {
     static constexpr const char * const name   = "scaddar";
     static constexpr const char * const format = "\n     (scaddar <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3913,7 +3913,7 @@ namespace heist {
   }
 
   // primitive "scadddr" procedure:
-  data primitive_SCADDDR(scm_list& args) {
+  data primitive_SCADDDR(data_vector& args) {
     static constexpr const char * const name   = "scadddr";
     static constexpr const char * const format = "\n     (scadddr <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3923,7 +3923,7 @@ namespace heist {
 
 
   // primitive "scdaaar" procedure:
-  data primitive_SCDAAAR(scm_list& args) {
+  data primitive_SCDAAAR(data_vector& args) {
     static constexpr const char * const name   = "scdaaar";
     static constexpr const char * const format = "\n     (scdaaar <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3932,7 +3932,7 @@ namespace heist {
   }
 
   // primitive "scdaadr" procedure:
-  data primitive_SCDAADR(scm_list& args) {
+  data primitive_SCDAADR(data_vector& args) {
     static constexpr const char * const name   = "scdaadr";
     static constexpr const char * const format = "\n     (scdaadr <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3941,7 +3941,7 @@ namespace heist {
   }
 
   // primitive "scdadar" procedure:
-  data primitive_SCDADAR(scm_list& args) {
+  data primitive_SCDADAR(data_vector& args) {
     static constexpr const char * const name   = "scdadar";
     static constexpr const char * const format = "\n     (scdadar <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3950,7 +3950,7 @@ namespace heist {
   }
 
   // primitive "scdaddr" procedure:
-  data primitive_SCDADDR(scm_list& args) {
+  data primitive_SCDADDR(data_vector& args) {
     static constexpr const char * const name   = "scdaddr";
     static constexpr const char * const format = "\n     (scdaddr <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3959,7 +3959,7 @@ namespace heist {
   }
 
   // primitive "scddaar" procedure:
-  data primitive_SCDDAAR(scm_list& args) {
+  data primitive_SCDDAAR(data_vector& args) {
     static constexpr const char * const name   = "scddaar";
     static constexpr const char * const format = "\n     (scddaar <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3968,7 +3968,7 @@ namespace heist {
   }
 
   // primitive "scddadr" procedure:
-  data primitive_SCDDADR(scm_list& args) {
+  data primitive_SCDDADR(data_vector& args) {
     static constexpr const char * const name   = "scddadr";
     static constexpr const char * const format = "\n     (scddadr <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3977,7 +3977,7 @@ namespace heist {
   }
 
   // primitive "scdddar" procedure:
-  data primitive_SCDDDAR(scm_list& args) {
+  data primitive_SCDDDAR(data_vector& args) {
     static constexpr const char * const name   = "scdddar";
     static constexpr const char * const format = "\n     (scdddar <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3986,7 +3986,7 @@ namespace heist {
   }
 
   // primitive "scddddr" procedure:
-  data primitive_SCDDDDR(scm_list& args) {
+  data primitive_SCDDDDR(data_vector& args) {
     static constexpr const char * const name   = "scddddr";
     static constexpr const char * const format = "\n     (scddddr <stream-pair>)";
     confirm_given_a_stream_pair_arg(args,name,format);
@@ -3999,7 +3999,7 @@ namespace heist {
   // ------------------------
 
   // primitive "stream-for-each" procedure:
-  data primitive_STREAM_FOR_EACH(scm_list& args) {
+  data primitive_STREAM_FOR_EACH(data_vector& args) {
     // Confirm given minimum # of args needed
     static constexpr const char * const format = 
       "\n     (stream-for-each <callable> <stream1> <stream2> ...)";
@@ -4008,7 +4008,7 @@ namespace heist {
       THROW_ERR("'stream-for-each received insufficient args (only "
         << args.size() << "):" << format << FCN_ERR("stream-for-each", args));
     // Confirm only given streams
-    scm_list stream_heads(args.begin()+1, args.end());
+    data_vector stream_heads(args.begin()+1, args.end());
     primitive_confirm_only_given_streams(stream_heads,"stream-for-each",format,1,args);
     // Apply the procedure on each elt of each stream
     auto procedure(validate_and_extract_callable(args[0], "stream-for-each", format, args));
@@ -4017,7 +4017,7 @@ namespace heist {
   }
 
   // primitive "stream-ref" procedure:
-  data primitive_STREAM_REF(scm_list& args) {
+  data primitive_STREAM_REF(data_vector& args) {
     // Confirm appropriate # of args given
     static constexpr const char * const format = 
       "\n     (stream-ref <stream-pair> <index>)";
@@ -4045,7 +4045,7 @@ namespace heist {
   }
 
   // primitive "stream-drop" procedure:
-  data primitive_STREAM_DROP(scm_list& args) {
+  data primitive_STREAM_DROP(data_vector& args) {
     // Confirm appropriate # of args given
     static constexpr const char * const format = "\n     (stream-drop <stream> <n>)";
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("stream-drop",primitive_STREAM_DROP,args);
@@ -4060,7 +4060,7 @@ namespace heist {
   }
 
   // primitive "stream-drop-while" procedure:
-  data primitive_STREAM_DROP_WHILE(scm_list& args) {
+  data primitive_STREAM_DROP_WHILE(data_vector& args) {
     static constexpr const char * const format = "\n     (stream-drop-while <predicate> <stream>)";
     // Confirm appropriate # of args given
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("stream-drop-while",primitive_STREAM_DROP_WHILE,args);
@@ -4080,7 +4080,7 @@ namespace heist {
   }
 
   // primitive "stream-take" procedure:
-  data primitive_STREAM_TAKE(scm_list& args){
+  data primitive_STREAM_TAKE(data_vector& args){
     // Confirm appropriate # of args given
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("stream-take",primitive_STREAM_TAKE,args);
     primitive_TEMPLATE_TAKE_DROP_VALIDATION(args, "stream-take", 
@@ -4089,42 +4089,42 @@ namespace heist {
     if(data_is_the_empty_list(args[0])) return args[0];
     const size_type n = (size_type)args[1].num.extract_inexact();
     if(!n) return data(symconst::emptylist);
-    scm_list substream;
+    data_vector substream;
     primitive_TAKE_SUBSTREAM_seeker(std::move(args[0]),n,substream);
     return primitive_STREAM_to_SCONS_constructor(substream.begin(),substream.end());
   }
 
   // primitive "stream-reverse" procedure:
-  data primitive_STREAM_REVERSE(scm_list& args) {
+  data primitive_STREAM_REVERSE(data_vector& args) {
     // Confirm given a single stream arg
     confirm_given_one_arg(args,"stream-reverse","<stream>");
     if(!data_is_stream(args[0]))
       THROW_ERR("'stream-reverse "<<PROFILE(args[0])<<" isn't a stream:" 
         "\n     (stream-reverse <stream>)" << FCN_ERR("stream-reverse",args));
-    // Convert stream to a scm_list, reverse, & revert to a stream
+    // Convert stream to a data_vector, reverse, & revert to a stream
     if(data_is_the_empty_list(args[0])) return args[0];
-    scm_list stream_as_exp;
+    data_vector stream_as_exp;
     unpack_stream_into_exp(std::move(args[0]), stream_as_exp);
     std::reverse(stream_as_exp.begin(),stream_as_exp.end());
     return primitive_STREAM_to_SCONS_constructor(stream_as_exp.begin(),stream_as_exp.end());
   }
 
   // primitive "stream-fold" procedure:
-  data primitive_STREAM_FOLD(scm_list& args) {
+  data primitive_STREAM_FOLD(data_vector& args) {
     if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("stream-fold",primitive_STREAM_FOLD,args);
     return primitive_STREAM_FOLD_template(args, "stream-fold", 
             "\n     (stream-fold <callable> <seed> <stream>)", true);
   }
 
   // primitive "stream-fold-right" procedure:
-  data primitive_STREAM_FOLD_RIGHT(scm_list& args) {
+  data primitive_STREAM_FOLD_RIGHT(data_vector& args) {
     if(!args.empty() && args.size() < 3) return GENERATE_PRIMITIVE_PARTIAL("stream-fold-right",primitive_STREAM_FOLD_RIGHT,args);
     return primitive_STREAM_FOLD_template(args, "stream-fold-right", 
             "\n     (stream-fold-right <callable> <seed> <stream>)", false);
   }
 
   // primitive "stream->list" procedure:
-  data primitive_CONVERT_STREAM_LIST(scm_list& args) {
+  data primitive_CONVERT_STREAM_LIST(data_vector& args) {
     // Confirm given proper args (same signature as stream-drop & stream-take)
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("stream->list",primitive_CONVERT_STREAM_LIST,args);
     primitive_TEMPLATE_TAKE_DROP_VALIDATION(args, "stream->list", 
@@ -4132,13 +4132,13 @@ namespace heist {
     // Invoke stream-take, convert substream -> exp -> list
     if(data_is_the_empty_list(args[0])) return args[0];
     auto substream = primitive_STREAM_TAKE(args);
-    scm_list stream_as_exp;
+    data_vector stream_as_exp;
     unpack_stream_into_exp(std::move(substream), stream_as_exp);
     return primitive_LIST_to_CONS_constructor(stream_as_exp.begin(),stream_as_exp.end());
   }
 
   // primitive "list->stream" procedure:
-  data primitive_CONVERT_LIST_STREAM(scm_list& args) {
+  data primitive_CONVERT_LIST_STREAM(data_vector& args) {
     // Confirm given a single proper list arg
     confirm_given_one_arg(args,"list->stream","<list>");
     if(!data_is_proper_list(args[0]))
@@ -4146,7 +4146,7 @@ namespace heist {
         "\n     (list->stream <list>)" << FCN_ERR("list->stream",args));
     // Convert list -> exp -> stream
     if(data_is_the_empty_list(args[0])) return args[0];
-    scm_list par_as_exp;
+    data_vector par_as_exp;
     shallow_unpack_list_into_exp(args[0], par_as_exp);
     if(par_as_exp.empty()) return data(symconst::emptylist);
     return primitive_STREAM_to_SCONS_constructor(par_as_exp.begin(),par_as_exp.end());
@@ -4157,13 +4157,13 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "char->integer" procedure:
-  data primitive_COERCE_CHAR_TO_INTEGER(scm_list& args) {
+  data primitive_COERCE_CHAR_TO_INTEGER(data_vector& args) {
     confirm_given_one_char_arg(args, "char->integer");
     return num_type(int(args[0].chr));
   }
 
   // primitive "integer->char" procedure:
-  data primitive_COERCE_INTEGER_TO_CHAR(scm_list& args) {
+  data primitive_COERCE_INTEGER_TO_CHAR(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (integer->char <non_negative-integer>)"
       "\n     <non_negative-integer> range: [0,255]";
@@ -4183,7 +4183,7 @@ namespace heist {
   }
 
   // primitive "number->string" procedure:
-  data primitive_COERCE_NUMBER_TO_STRING(scm_list& args) {
+  data primitive_COERCE_NUMBER_TO_STRING(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (number->string <number> <optional-radix> <optional-precision>)"
       "\n     <optional-radix> ::= [2,36]"
@@ -4194,7 +4194,7 @@ namespace heist {
     // No number or invalid radix/precision given
     validate_NUMBER_TO_STRING_args(args,format);
     // Given a radix
-    scm_string number_as_string;
+    string number_as_string;
     if(args.size() > 1) {
       size_type radix = args[1].num.round().extract_inexact();
       if(radix < 2 || radix > 36)
@@ -4214,18 +4214,18 @@ namespace heist {
       THROW_ERR("'number->string only real numbers can be converted using a precision!"
         "\n     => " << PROFILE(args[0]) << " is complex!" << format << FCN_ERR("number->string", args));
     const auto dec_pos = number_as_string.find(".");
-    if(dec_pos == scm_string::npos) return make_str(number_as_string);
+    if(dec_pos == string::npos) return make_str(number_as_string);
     const auto current_precision = number_as_string.size()-dec_pos-1;
     const auto precision = (size_type)args[2].num.extract_inexact();
     if(precision > current_precision) // pad 0s
-      return make_str(number_as_string + scm_string(precision-current_precision,'0'));
+      return make_str(number_as_string + string(precision-current_precision,'0'));
     number_as_string.erase(dec_pos+precision+1); // truncate
     return make_str(number_as_string);
   }
 
   // primitive "string->number" procedure:
-  data primitive_COERCE_STRING_TO_NUMBER(scm_list& args) {
-    bool convert_string_to_scm_number(const scm_string&, num_type&)noexcept; // defined in the input parser
+  data primitive_COERCE_STRING_TO_NUMBER(data_vector& args) {
+    bool convert_string_to_scm_number(const string&, num_type&)noexcept; // defined in the input parser
     if(args.size() > 2 || args.empty())
       THROW_ERR("'string->number received incorrect # of arguments!"
         "\n     (string->number <string> <optional-numeric-radix>)"
@@ -4262,39 +4262,39 @@ namespace heist {
   }
 
   // primitive "symbol->string" procedure:
-  data primitive_COERCE_SYMBOL_TO_STRING(scm_list& args) {
+  data primitive_COERCE_SYMBOL_TO_STRING(data_vector& args) {
     confirm_given_one_arg(args,"symbol->string","<symbol>");
     if(!args[0].is_type(types::sym)) return GLOBALS::FALSE_DATA_BOOLEAN;
     return make_str(convert_symbol_to_string(args[0].sym));
   }
 
   // primitive "string->symbol" procedure:
-  data primitive_COERCE_STRING_TO_SYMBOL(scm_list& args) {
+  data primitive_COERCE_STRING_TO_SYMBOL(data_vector& args) {
     confirm_given_one_arg(args,"string->symbol","<string>");
     if(!args[0].is_type(types::str)) return GLOBALS::FALSE_DATA_BOOLEAN;
     return data(convert_string_to_symbol(*args[0].str)); 
   }
 
   // primitive "vector->list" procedure:
-  data primitive_COERCE_VECTOR_TO_LIST(scm_list& args) {
+  data primitive_COERCE_VECTOR_TO_LIST(data_vector& args) {
     primitive_confirm_valid_vector_arg(args, 1, "vector->list", "\n     (vector->list <vector>)");
     return prm_convert_vector_to_list(args[0]);
   }
 
   // primitive "list->vector" procedure:
-  data primitive_COERCE_LIST_TO_VECTOR(scm_list& args) {
-    if(primitive_validate_list_and_return_if_empty(args, "list->vector")) return make_vec(scm_list());
+  data primitive_COERCE_LIST_TO_VECTOR(data_vector& args) {
+    if(primitive_validate_list_and_return_if_empty(args, "list->vector")) return make_vec(data_vector());
     return prm_convert_list_to_vector(args[0]);
   }
 
   // primitive "string->vector" procedure:
-  data primitive_STRING_TO_VECTOR(scm_list& args) {
+  data primitive_STRING_TO_VECTOR(data_vector& args) {
     primitive_confirm_valid_string_arg(args, 1, "string->vector", "\n     (string->vector <string>)");
     return prm_convert_string_to_vector(*args[0].str);
   }
 
   // primitive "vector->string" procedure:
-  data primitive_VECTOR_TO_STRING(scm_list& args) {
+  data primitive_VECTOR_TO_STRING(data_vector& args) {
     primitive_confirm_valid_vector_arg(args, 1, "vector->string", "\n     (vector->string <vector>)");
     if(args[0].vec->empty()) return make_str("");
     data str;
@@ -4305,13 +4305,13 @@ namespace heist {
   }
 
   // primitive "string->list" procedure:
-  data primitive_STRING_TO_LIST(scm_list& args) {
+  data primitive_STRING_TO_LIST(data_vector& args) {
     primitive_confirm_valid_string_arg(args, 1, "string->list", "\n     (string->list <string>)");
     return prm_convert_string_to_list(*args[0].str);
   }
 
   // primitive "list->string" procedure:
-  data primitive_LIST_TO_STRING(scm_list& args) {
+  data primitive_LIST_TO_STRING(data_vector& args) {
     if(primitive_validate_list_and_return_if_empty(args, "list->string")) return make_str("");
     data str;
     if(!prm_convert_list_to_string(args[0],str))
@@ -4321,7 +4321,7 @@ namespace heist {
   }
 
   // primitive "functor->procedure" procedure:
-  data primitive_FUNCTOR_TO_PROCEDURE(scm_list& args) {
+  data primitive_FUNCTOR_TO_PROCEDURE(data_vector& args) {
     if(args.size() != 1 || !primitive_data_is_a_functor(args[0]))
       THROW_ERR("'functor->procedure not given 1 functor!"
         "\n     (functor->procedure <functor>)" << FCN_ERR("functor->procedure",args));
@@ -4332,7 +4332,7 @@ namespace heist {
   * OUTPUT PRIMITIVES
   ******************************************************************************/
 
-  data primitive_PPRINT(scm_list& args) {
+  data primitive_PPRINT(data_vector& args) {
     FILE* outs = G.CURRENT_OUTPUT_PORT;
     bool is_port = confirm_valid_output_args(args, outs, 1, "pretty-print", 
                     "\n     (pretty-print <obj> <optional-open-output-port-or-string>)");
@@ -4348,7 +4348,7 @@ namespace heist {
     return GLOBALS::VOID_DATA_OBJECT;
   }
 
-  data primitive_WRITE(scm_list& args) {
+  data primitive_WRITE(data_vector& args) {
     FILE* outs = G.CURRENT_OUTPUT_PORT;
     bool is_port = confirm_valid_output_args(args, outs, 1, "write", 
                     "\n     (write <obj> <optional-open-output-port-or-string>)");
@@ -4364,7 +4364,7 @@ namespace heist {
     return GLOBALS::VOID_DATA_OBJECT;
   }
 
-  data primitive_NEWLINE(scm_list& args) {
+  data primitive_NEWLINE(data_vector& args) {
     FILE* outs = G.CURRENT_OUTPUT_PORT;
     bool is_port = confirm_valid_output_args(args, outs, 0, "newline", 
                     "\n     (newline <optional-open-output-port-or-string>)");
@@ -4378,7 +4378,7 @@ namespace heist {
     return GLOBALS::VOID_DATA_OBJECT;
   }
 
-  data primitive_DISPLAY(scm_list& args) {
+  data primitive_DISPLAY(data_vector& args) {
     FILE* outs = G.CURRENT_OUTPUT_PORT;
     bool is_port = confirm_valid_output_args(args, outs, 1, "display", 
                     "\n     (display <obj> <optional-open-output-port-or-string>)");
@@ -4387,7 +4387,7 @@ namespace heist {
     return make_str(*args[1].str + args[0].display());
   }
 
-  data primitive_WRITE_CHAR(scm_list& args) {
+  data primitive_WRITE_CHAR(data_vector& args) {
     FILE* outs = G.CURRENT_OUTPUT_PORT;
     bool is_port = confirm_valid_output_args(args, outs, 1, "write-char", 
                     "\n     (write-char <char> <optional-open-output-port-or-string>)");
@@ -4479,7 +4479,7 @@ namespace heist {
   // -> Parse token stream
   // -> Confirm token stream matches args
   // -> Splice in formatted args and return as a new string
-  data primitive_SPRINTF(scm_list& args) {
+  data primitive_SPRINTF(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (sprintf <formatted-string> <optional-arg1> <optional-arg2> ...)"
       sprintf_formatting_token_format;
@@ -4492,7 +4492,7 @@ namespace heist {
   }
 
   // primitive "displayf":
-  data primitive_DISPLAYF(scm_list& args) {
+  data primitive_DISPLAYF(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (displayf <optional-output-port> <formatted-string> <optional-arg1> ...)"
       sprintf_formatting_token_format;
@@ -4500,7 +4500,7 @@ namespace heist {
   }
 
   // primitive "writef":
-  data primitive_WRITEF(scm_list& args) {
+  data primitive_WRITEF(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (writef <optional-output-port> <formatted-string> <optional-arg1> ...)"
       sprintf_formatting_token_format;
@@ -4508,7 +4508,7 @@ namespace heist {
   }
 
   // primitive "pprintf" & "pretty-printf":
-  data primitive_PPRINTF(scm_list& args) {
+  data primitive_PPRINTF(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (pprintf <optional-output-port> <formatted-string> <optional-arg1> ...)"
       sprintf_formatting_token_format;
@@ -4522,7 +4522,7 @@ namespace heist {
   * INPUT PRIMITIVES
   ******************************************************************************/
 
-  data primitive_READ(scm_list& args) {
+  data primitive_READ(data_vector& args) {
     // Confirm either given an open input port or string or no args
     FILE* outs = G.CURRENT_OUTPUT_PORT, *ins = G.CURRENT_INPUT_PORT;
     bool reading_stdin = (G.CURRENT_INPUT_PORT == stdin), reading_string = false;
@@ -4533,7 +4533,7 @@ namespace heist {
     return primitive_read_from_input_port_logic(outs,ins,reading_stdin);
   }
 
-  data primitive_READ_STRING(scm_list& args) {
+  data primitive_READ_STRING(data_vector& args) {
     // return string w/ next valid scheme expression, if successfully parsed one
     FILE* outs = G.CURRENT_OUTPUT_PORT, *ins = G.CURRENT_INPUT_PORT;
     bool reading_stdin = (G.CURRENT_INPUT_PORT == stdin), reading_string = false;
@@ -4544,7 +4544,7 @@ namespace heist {
     return make_str(primitive_read_from_input_port_logic(outs,ins,reading_stdin).write());
   }
 
-  data primitive_READ_LINE(scm_list& args) {
+  data primitive_READ_LINE(data_vector& args) {
     // Confirm either given an open input port or no args
     FILE* outs = G.CURRENT_OUTPUT_PORT, *ins = G.CURRENT_INPUT_PORT;
     bool reading_stdin = (G.CURRENT_INPUT_PORT == stdin), reading_string = false;
@@ -4556,7 +4556,7 @@ namespace heist {
       args[0].str->erase(0,args[0].str->find('\n'));
       return make_str(line_buffer);
     }
-    scm_string line_buffer;
+    string line_buffer;
     fflush(outs);
     int ch = 0;
     while((ch = fgetc(ins)) != '\n' && ch != EOF) line_buffer += ch;
@@ -4564,7 +4564,7 @@ namespace heist {
     return make_str(line_buffer);
   }
 
-  data primitive_READ_CHAR(scm_list& args) {
+  data primitive_READ_CHAR(data_vector& args) {
     // Confirm either given an open input port or no args
     FILE* outs = G.CURRENT_OUTPUT_PORT, *ins = G.CURRENT_INPUT_PORT;
     bool reading_stdin = (G.CURRENT_INPUT_PORT == stdin), reading_string = false;
@@ -4589,7 +4589,7 @@ namespace heist {
     return chr_type(ch);
   }
 
-  data primitive_PEEK_CHAR(scm_list& args) {
+  data primitive_PEEK_CHAR(data_vector& args) {
     // Confirm either given an open input port or no args
     FILE* outs = G.CURRENT_OUTPUT_PORT, *ins = G.CURRENT_INPUT_PORT;
     bool reading_stdin = (G.CURRENT_INPUT_PORT == stdin), reading_string = false;
@@ -4620,7 +4620,7 @@ namespace heist {
     return chr_type(ch);
   }
 
-  data primitive_CHAR_READYP(scm_list& args) {
+  data primitive_CHAR_READYP(data_vector& args) {
     // Confirm either given an open input port or no args
     FILE* ins = G.CURRENT_INPUT_PORT;
     bool reading_stdin = (G.CURRENT_INPUT_PORT == stdin), reading_string = false;
@@ -4637,7 +4637,7 @@ namespace heist {
   }
 
   // slurp a port's contents into a string
-  data primitive_SLURP_PORT(scm_list& args){
+  data primitive_SLURP_PORT(data_vector& args){
     // confirm given a filename string & slurp file if so
     FILE* ins = G.CURRENT_INPUT_PORT;
     bool reading_stdin = (G.CURRENT_INPUT_PORT == stdin), reading_string = false;
@@ -4645,7 +4645,7 @@ namespace heist {
       return make_str("");
     if(reading_string) return make_str(*args[0].str);
     if(reading_stdin)  return make_str("");
-    scm_string buffer;
+    string buffer;
     int ch = 0;
     while((ch = fgetc(ins)) != EOF) buffer += ch; // slurp entire file
     fclose(ins);
@@ -4653,11 +4653,11 @@ namespace heist {
   }
 
   // slurp a file's contents into a string
-  data primitive_SLURP_FILE(scm_list& args){
+  data primitive_SLURP_FILE(data_vector& args){
     // confirm given a filename string & slurp file if so
     confirm_given_one_arg(args,"slurp-file","<filename-string>");
     FILE* ins = confirm_valid_input_file(args[0],"slurp-file","\n     (slurp-file <filename-string>)",args);
-    scm_string buffer;
+    string buffer;
     int ch = 0;
     while((ch = fgetc(ins)) != EOF) buffer += ch; // slurp entire file
     fclose(ins);
@@ -4669,7 +4669,7 @@ namespace heist {
   ******************************************************************************/
 
   // Returns a string of the current working directory
-  data primitive_GETCWD(scm_list& args) {
+  data primitive_GETCWD(data_vector& args) {
     confirm_no_args_given(args,"getcwd");
     try {
       return make_str(std::filesystem::current_path());  
@@ -4679,7 +4679,7 @@ namespace heist {
   }
 
   // Returns a string of the parent directory of the given path string
-  data primitive_DIRNAME(scm_list& args) {
+  data primitive_DIRNAME(data_vector& args) {
     if(args.size() != 1 || !args[0].is_type(types::str))
       THROW_ERR("'dirname didn't get a path <string> arg:"
         "\n     (dirname <path-string>)" << FCN_ERR("dirname",args));
@@ -4691,7 +4691,7 @@ namespace heist {
   }
 
   // Returns whether successfully created the given directory name
-  data primitive_MKDIR(scm_list& args) {
+  data primitive_MKDIR(data_vector& args) {
     if(args.size() != 1 || !args[0].is_type(types::str))
       THROW_ERR("'mkdir didn't get a directory name <string> arg:"
         "\n     (mkdir <new-directory-name-string>)" << FCN_ERR("mkdir",args));
@@ -4703,7 +4703,7 @@ namespace heist {
   }
 
   // Returns whether successfully changed the current directory
-  data primitive_CHDIR(scm_list& args) {
+  data primitive_CHDIR(data_vector& args) {
     if(args.size() != 1 || !args[0].is_type(types::str))
       THROW_ERR("'chdir didn't get a directory path <string> arg:"
         "\n     (chdir <directory-path-string>)" << FCN_ERR("chdir",args));
@@ -4716,7 +4716,7 @@ namespace heist {
   }
 
   // file predicate
-  data primitive_FILEP(scm_list& args) {
+  data primitive_FILEP(data_vector& args) {
     confirm_given_one_string_arg(args, "file?", "\n     (file? <filename-string>)");
     try {
       return boolean(std::filesystem::exists(*args[0].str));
@@ -4726,7 +4726,7 @@ namespace heist {
   }
 
   // returns whether succeed copying given filename-string
-  data primitive_COPY_FILE(scm_list& args) {
+  data primitive_COPY_FILE(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (copy-file <source-path-string> <destination-path-string>)";
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("copy-file",primitive_COPY_FILE,args);
@@ -4744,7 +4744,7 @@ namespace heist {
   }
 
   // returns whether succeed deleting given filename-string
-  data primitive_DELETE_FILE_BANG(scm_list& args) {
+  data primitive_DELETE_FILE_BANG(data_vector& args) {
     confirm_given_one_string_arg(args, "delete-file!", "\n     (delete-file! <filename-string>)");
     try {
       return boolean(std::filesystem::remove_all(*args[0].str) > 0);
@@ -4754,7 +4754,7 @@ namespace heist {
   }
 
   // returns whether succeed deleting given filename-string
-  data primitive_RENAME_FILE_BANG(scm_list& args) {
+  data primitive_RENAME_FILE_BANG(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (rename-file! <old-name-string> <new-name-string>)";
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("rename-file!",primitive_RENAME_FILE_BANG,args);
@@ -4773,7 +4773,7 @@ namespace heist {
     }
   }
 
-  data primitive_FILE_SIZE(scm_list& args) {
+  data primitive_FILE_SIZE(data_vector& args) {
     confirm_given_one_string_arg(args, "file-size", "\n     (file-size <filename-string>)");
     try {
       return num_type(std::filesystem::file_size(*args[0].str));
@@ -4786,14 +4786,14 @@ namespace heist {
   * PORT PRIMITIVES
   ******************************************************************************/
 
-  data primitive_OPEN_PORTP(scm_list& args) {
+  data primitive_OPEN_PORTP(data_vector& args) {
     confirm_valid_port_predicate_arg(args,"open-port?","\n     (open-port? <port>)");
     if(args[0].is_type(types::fip))
       return data(boolean(args[0].fip.is_open()));
     return data(boolean(args[0].fop.is_open()));
   }
 
-  data primitive_CLOSED_PORTP(scm_list& args) {
+  data primitive_CLOSED_PORTP(data_vector& args) {
     confirm_valid_port_predicate_arg(args,"closed-port?","\n     (closed-port? <port>)");
     if(args[0].is_type(types::fip))
       return data(boolean(!args[0].fip.is_open()));
@@ -4801,7 +4801,7 @@ namespace heist {
   }
 
   // retrieve the current default input & output ports
-  data primitive_CURRENT_INPUT_PORT(scm_list& args){
+  data primitive_CURRENT_INPUT_PORT(data_vector& args){
     confirm_no_args_given(args,"current-input-port");
     for(size_type i = 0, n = GLOBALS::PORT_REGISTRY.size(); i < n; ++i)
       if(G.CURRENT_INPUT_PORT == GLOBALS::PORT_REGISTRY[i]) 
@@ -4809,7 +4809,7 @@ namespace heist {
     return iport();
   }
 
-  data primitive_CURRENT_OUTPUT_PORT(scm_list& args){
+  data primitive_CURRENT_OUTPUT_PORT(data_vector& args){
     confirm_no_args_given(args,"current-output-port");
     for(size_type i = 0, n = GLOBALS::PORT_REGISTRY.size(); i < n; ++i)
       if(G.CURRENT_OUTPUT_PORT == GLOBALS::PORT_REGISTRY[i]) 
@@ -4818,7 +4818,7 @@ namespace heist {
   }
 
   // call an unary procedure with a file's port as its argument
-  data primitive_CALL_WITH_INPUT_FILE(scm_list& args){
+  data primitive_CALL_WITH_INPUT_FILE(data_vector& args){
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("call-with-input-file",primitive_CALL_WITH_INPUT_FILE,args);
     return primitive_CALL_WITH_FILE<iport>(
               args,
@@ -4827,7 +4827,7 @@ namespace heist {
               "\n     <unary-callable> must accept a port as its argument!",
               confirm_valid_input_file);
   }
-  data primitive_CALL_WITH_OUTPUT_FILE(scm_list& args){
+  data primitive_CALL_WITH_OUTPUT_FILE(data_vector& args){
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("call-with-output-file",primitive_CALL_WITH_OUTPUT_FILE,args);
     return primitive_CALL_WITH_FILE<oport>(
               args,
@@ -4838,7 +4838,7 @@ namespace heist {
   }
 
   // call an argless procedure with a file's port as the default port
-  data primitive_WITH_INPUT_FROM_FILE(scm_list& args){
+  data primitive_WITH_INPUT_FROM_FILE(data_vector& args){
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("with-input-from-file",primitive_WITH_INPUT_FROM_FILE,args);
     return primitive_WITH_FILE(
               args,
@@ -4847,7 +4847,7 @@ namespace heist {
               G.CURRENT_INPUT_PORT,
               confirm_valid_input_file);
   }
-  data primitive_WITH_OUTPUT_TO_FILE(scm_list& args){
+  data primitive_WITH_OUTPUT_TO_FILE(data_vector& args){
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("with-output-to-file",primitive_WITH_OUTPUT_TO_FILE,args);
     return primitive_WITH_FILE(
               args,
@@ -4858,7 +4858,7 @@ namespace heist {
   }
 
   // retrieve a port for a file
-  data primitive_OPEN_INPUT_FILE(scm_list& args){
+  data primitive_OPEN_INPUT_FILE(data_vector& args){
     // confirm given a filename string
     confirm_given_one_arg(args,"open-input-file","<filename-string>");
     GLOBALS::PORT_REGISTRY.push_back(confirm_valid_input_file(args[0],"open-input-file",
@@ -4866,7 +4866,7 @@ namespace heist {
     return iport(GLOBALS::PORT_REGISTRY.size()-1);
   }
 
-  data primitive_OPEN_OUTPUT_FILE(scm_list& args){ // open iff filename dne
+  data primitive_OPEN_OUTPUT_FILE(data_vector& args){ // open iff filename dne
     // confirm given a filename string
     confirm_given_one_arg(args,"open-output-file","<filename-string>");
     GLOBALS::PORT_REGISTRY.push_back(confirm_valid_output_file(args[0],"open-output-file",
@@ -4874,7 +4874,7 @@ namespace heist {
     return oport(GLOBALS::PORT_REGISTRY.size()-1);
   }
 
-  data primitive_OPEN_OUTPUT_FILE_PLUS(scm_list& args){ // open via "append"
+  data primitive_OPEN_OUTPUT_FILE_PLUS(data_vector& args){ // open via "append"
     // confirm given a filename string
     confirm_given_one_arg(args,"open-output-file+","<filename-string>");
     GLOBALS::PORT_REGISTRY.push_back(confirm_valid_output_append_file(args[0],"open-output-file+",
@@ -4882,7 +4882,7 @@ namespace heist {
     return oport(GLOBALS::PORT_REGISTRY.size()-1);
   }
 
-  data primitive_OPEN_OUTPUT_FILE_BANG(scm_list& args){ // deletes if exists, and opens anew
+  data primitive_OPEN_OUTPUT_FILE_BANG(data_vector& args){ // deletes if exists, and opens anew
     // confirm given a filename string, & rm file if exists
     confirm_given_one_string_arg(args, "open-output-file!", "\n     (open-output-file! <filename-string>)");
     try { std::filesystem::remove_all(*args[0].str); } catch(...) {}
@@ -4892,7 +4892,7 @@ namespace heist {
   }
 
   // rewind input or output port
-  data primitive_REWIND_PORT_BANG(scm_list& args){
+  data primitive_REWIND_PORT_BANG(data_vector& args){
     confirm_given_1_open_port(args, "rewind-port!");
     if(is_readable_open_input_port(args[0])){
       rewind(args[0].fip.port());
@@ -4902,16 +4902,16 @@ namespace heist {
     return GLOBALS::VOID_DATA_OBJECT;
   }
 
-  data primitive_PORT_SEEK_FRONT_BANG(scm_list& args){
+  data primitive_PORT_SEEK_FRONT_BANG(data_vector& args){
     return prm_PORT_SEEK_template(args,"port-seek-front!",SEEK_SET);
   }
 
-  data primitive_PORT_SEEK_BANG(scm_list& args){
+  data primitive_PORT_SEEK_BANG(data_vector& args){
     return prm_PORT_SEEK_template(args,"port-seek!",SEEK_CUR);
   }
 
   // close input or output port
-  data primitive_CLOSE_PORT(scm_list& args){
+  data primitive_CLOSE_PORT(data_vector& args){
     confirm_given_1_open_port(args, "close-port");
     if(is_readable_open_input_port(args[0])){
       fclose(args[0].fip.port());
@@ -4928,7 +4928,7 @@ namespace heist {
   ******************************************************************************/
 
   // Load a script into the global environment
-  data primitive_LOAD(scm_list& args) {
+  data primitive_LOAD(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (load <filename-string> <optional-environment>)"
       "\n     -> Pass *null-environment* to load in the empty environment!"
@@ -4971,7 +4971,7 @@ namespace heist {
   }
 
   // Load a script into the global environment, convert it to CPS, and pass it to the given continuation
-  data primitive_CPS_LOAD(scm_list& args) {
+  data primitive_CPS_LOAD(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (cps-load <filename-string> <optional-environment> <continuation>)"
       "\n     -> Pass *null-environment* to cps-load in the empty environment!"
@@ -4993,7 +4993,7 @@ namespace heist {
         auto old_invariants = reset_process_invariant_state();
         args.pop_back();
         try {
-          scm_list cps_load_arg = generate_CPS_LOAD_args(continuation);
+          data_vector cps_load_arg = generate_CPS_LOAD_args(continuation);
           // pass the continuation to the loaded file
           auto result = execute_application(
             primitive_CPS_LOAD_interpret_file_contents(args,G.GLOBAL_ENVIRONMENT_POINTER,format),
@@ -5017,25 +5017,25 @@ namespace heist {
       }
     }
     // pass the continuation to the loaded file
-    scm_list cps_load_arg = generate_CPS_LOAD_args(continuation);
+    data_vector cps_load_arg = generate_CPS_LOAD_args(continuation);
     return execute_application(primitive_CPS_LOAD_interpret_file_contents(args,env,format),cps_load_arg,env,false,true);
   }
 
   // Compiles a given filename's file's Heist-Scheme code into a C++ File
-  data primitive_COMPILE(scm_list& args){
+  data primitive_COMPILE(data_vector& args){
     return primitive_COMPILE_TEMPLATE(args,"compile",
       "\n     (compile <filename-string> <optional-compiled-filename>)",false);
   }
 
   // Compiles a given file w/ a ((scm->cps <file-contents>) id) wrapper
-  data primitive_CPS_COMPILE(scm_list& args){
+  data primitive_CPS_COMPILE(data_vector& args){
     return primitive_COMPILE_TEMPLATE(args,"cps-compile",
       "\n     (cps-compile <filename-string> <optional-compiled-filename>)",true);
   }
 
   // Make a system call, returns #f if can't use 'system, 
   //   and the call's success status if can use the system
-  data primitive_SYSTEM(scm_list& args) {
+  data primitive_SYSTEM(data_vector& args) {
     if(args.size() > 1)
       THROW_ERR("'system received incorrect # of args!"
         "\n     (system <optional-system-call-string>)"<<FCN_ERR("system",args));
@@ -5050,7 +5050,7 @@ namespace heist {
   }
 
   // Given a string of a variable name, returns a string of that variable's value
-  data primitive_GETENV(scm_list& args) {
+  data primitive_GETENV(data_vector& args) {
     // extract the environment
     auto env = args.rbegin()->env;
     args.pop_back();
@@ -5065,7 +5065,7 @@ namespace heist {
   }
 
   // Returns a string of Heist Scheme's command-line args & their descriptions
-  data primitive_COMMAND_LINE(scm_list& args) {
+  data primitive_COMMAND_LINE(data_vector& args) {
     confirm_no_args_given(args,"command-line");
     return make_str(HEIST_COMMAND_LINE_ARGS);
   }
@@ -5074,19 +5074,19 @@ namespace heist {
   * CURRENT TIME PRIMITIVES
   ******************************************************************************/
 
-  data primitive_SECONDS_SINCE_EPOCH(scm_list& args) {
+  data primitive_SECONDS_SINCE_EPOCH(data_vector& args) {
     confirm_no_args_given(args,"seconds-since-epoch");
     return num_type(std::chrono::duration_cast<std::chrono::seconds>(
                     std::chrono::system_clock::now().time_since_epoch()).count());
   }
 
-  data primitive_TIME(scm_list& args) {
+  data primitive_TIME(data_vector& args) {
     if(args.empty())
       THROW_ERR("'time received incorrect # of args!"
         "\n     (time <callable> <arg1> ... <argN>)" << FCN_ERR("time",args));
     primitive_confirm_data_is_a_callable(args[0], "time", 
       "\n     (time <callable> <arg1> ... <argN>)", args);
-    scm_list time_args(args.begin()+1,args.end());
+    data_vector time_args(args.begin()+1,args.end());
     auto start = std::chrono::high_resolution_clock::now();
     auto result = execute_callable(args[0],time_args);
     auto end = std::chrono::high_resolution_clock::now();
@@ -5097,7 +5097,7 @@ namespace heist {
     return p;
   }
 
-  data primitive_CURRENT_DATE(scm_list& args) {
+  data primitive_CURRENT_DATE(data_vector& args) {
     if(args.empty()) return make_str(get_current_time_stamp());
     long long s=0, m=0, h=0, d=0, y=0;
     parse_current_date_offsets(args,s,m,h,d,y);
@@ -5110,7 +5110,7 @@ namespace heist {
 
   // Defaults to disabling ANSI escape sequences, if not given a boolean.
   // Returns whether ANSI escapes sequences were disabled prior this call
-  data primitive_SET_NANSI(scm_list& args) {
+  data primitive_SET_NANSI(data_vector& args) {
     if(args.size() > 1)
       THROW_ERR("'set-nansi! received incorrect # of args:"
         "\n     (set-nansi! <optional-bool>)" << FCN_ERR("set-nansi!",args));
@@ -5120,79 +5120,79 @@ namespace heist {
     return boolean(original_setting_status);
   }
 
-  data primitive_NANSIP(scm_list& args) {
+  data primitive_NANSIP(data_vector& args) {
     confirm_no_args_given(args,"nansi?");
     return boolean(!G.USING_ANSI_ESCAPE_SEQUENCES);
   }
 
-  data primitive_CIP(scm_list& args) {
+  data primitive_CIP(data_vector& args) {
     confirm_no_args_given(args,"ci?");
     return boolean(!GLOBALS::USING_CASE_SENSITIVE_SYMBOLS);
   }
 
-  data primitive_SET_PPRINT_COLUMN_WIDTH_BANG(scm_list& args) {
+  data primitive_SET_PPRINT_COLUMN_WIDTH_BANG(data_vector& args) {
     return primitive_TOGGLE_NUMERIC_SETTING(args,"set-pprint-column-width!",
                                             G.PPRINT_MAX_COLUMN_WIDTH);
   }
 
-  data primitive_PPRINT_COLUMN_WIDTH(scm_list& args) {
+  data primitive_PPRINT_COLUMN_WIDTH(data_vector& args) {
     confirm_no_args_given(args,"pprint-column-width");
     return num_type(G.PPRINT_MAX_COLUMN_WIDTH);
   }
 
-  data primitive_SET_MAX_RECURSION_DEPTH_BANG(scm_list& args) {
+  data primitive_SET_MAX_RECURSION_DEPTH_BANG(data_vector& args) {
     return primitive_TOGGLE_NUMERIC_SETTING(args,"set-max-recursion-depth!",
                                             G.MAX_RECURSION_DEPTH);
   }
 
-  data primitive_MAX_RECURSION_DEPTH(scm_list& args) {
+  data primitive_MAX_RECURSION_DEPTH(data_vector& args) {
     confirm_no_args_given(args,"max-recursion-depth");
     return num_type(G.MAX_RECURSION_DEPTH);
   }
 
   // Changes the REPL's line-by-line prompt from the default "> "
-  data primitive_SET_REPL_PROMPT_BANG(scm_list& args) {
+  data primitive_SET_REPL_PROMPT_BANG(data_vector& args) {
     confirm_given_one_arg(args,"set-repl-prompt!","<prompt-string>");
     if(!args[0].is_type(types::str))
       THROW_ERR("'set-repl-prompt! "<<PROFILE(args[0])<<" isn't a string:"
         "\n     (set-repl-prompt! <prompt-string>)" << FCN_ERR("set-repl-prompt!",args));
-    scm_string old_prompt = G.REPL_PROMPT;
+    string old_prompt = G.REPL_PROMPT;
     if(args[0].str->empty()) {
       G.REPL_PROMPT = G.REPL_TAB = "";
       return make_str(old_prompt);
     }
     G.REPL_PROMPT = *args[0].str;
-    G.REPL_TAB = scm_string(G.REPL_PROMPT.size(), ' ');
+    G.REPL_TAB = string(G.REPL_PROMPT.size(), ' ');
     return make_str(old_prompt);
   }
 
-  data primitive_REPL_PROMPT(scm_list& args) {
+  data primitive_REPL_PROMPT(data_vector& args) {
     confirm_no_args_given(args,"repl-prompt");
     return make_str(G.REPL_PROMPT);
   }
 
   // Toggles Dynamic Procedure Call Tracing (returns the previous state prior toggle)
-  data primitive_SET_DYNAMIC_CALL_TRACE_BANG(scm_list& args) {
+  data primitive_SET_DYNAMIC_CALL_TRACE_BANG(data_vector& args) {
     return primitive_TOGGLE_BOOLEAN_SETTING(args,"set-dynamic-call-trace!",
                                             G.TRACING_ALL_FUNCTION_CALLS);
   }
 
-  data primitive_DYNAMIC_CALL_TRACEP(scm_list& args) {
+  data primitive_DYNAMIC_CALL_TRACEP(data_vector& args) {
     confirm_no_args_given(args,"dynamic-call-trace?");
     return boolean(G.TRACING_ALL_FUNCTION_CALLS);
   }
 
   // Toggles Procedure Argument Call Tracing (returns the previous state prior toggle)
-  data primitive_SET_TRACE_ARGS_BANG(scm_list& args) {
+  data primitive_SET_TRACE_ARGS_BANG(data_vector& args) {
     return primitive_TOGGLE_BOOLEAN_SETTING(args,"set-trace-args!",G.TRACE_ARGS);
   }
 
-  data primitive_TRACE_ARGSP(scm_list& args) {
+  data primitive_TRACE_ARGSP(data_vector& args) {
     confirm_no_args_given(args,"trace-args?");
     return boolean(G.TRACE_ARGS);
   }
 
-  data primitive_SET_DOT_BANG(scm_list& args) {
+  data primitive_SET_DOT_BANG(data_vector& args) {
     if(args.size() != 1 || !args[0].is_type(types::sym))
       THROW_ERR("'set-dot! didn't receive 1 symbol!"
         "\n     (set-dot! <symbol>)" << FCN_ERR("set-dot!",args));
@@ -5201,7 +5201,7 @@ namespace heist {
     return original_dot;
   }
 
-  data primitive_DOT(scm_list& args) {
+  data primitive_DOT(data_vector& args) {
     if(!args.empty())
       THROW_ERR("'dot doesn't accept any args: (dot)" << FCN_ERR("dot",args));
     return data(G.dot);
@@ -5211,7 +5211,7 @@ namespace heist {
   * CONTROL-FLOW PRIMITIVES: EXITING, ERROR HANDLING, INLINING, & JUMPING
   ******************************************************************************/
 
-  data primitive_EXIT(scm_list& args) {
+  data primitive_EXIT(data_vector& args) {
     static constexpr const auto MAX_INT = std::numeric_limits<int>::max();
     static constexpr const auto MIN_INT = std::numeric_limits<int>::min();
     if(args.size() > 1)
@@ -5235,37 +5235,37 @@ namespace heist {
     return data();
   }
 
-  data primitive_ERROR(scm_list& args) {
+  data primitive_ERROR(data_vector& args) {
     primitive_error_template(args,"error","Exception",AFMT_131);
     return data();
   }
 
-  data primitive_SYNTAX_ERROR(scm_list& args) {
+  data primitive_SYNTAX_ERROR(data_vector& args) {
     primitive_error_template(args,"syntax-error","Invalid Syntax",AFMT_135);
     return data();
   }
 
-  data primitive_CONVERT_LEXICAL_SCOPE_TO_DYNAMIC_SCOPE(scm_list& args) {
+  data primitive_CONVERT_LEXICAL_SCOPE_TO_DYNAMIC_SCOPE(data_vector& args) {
     return prm_convert_callable_scope(args, true, "lexical-scope->dynamic-scope", 
       "\n     (lexical-scope->dynamic-scope <callable>)");
   }
 
-  data primitive_CONVERT_DYNAMIC_SCOPE_TO_LEXICAL_SCOPE(scm_list& args) {
+  data primitive_CONVERT_DYNAMIC_SCOPE_TO_LEXICAL_SCOPE(data_vector& args) {
     return prm_convert_callable_scope(args, false, "dynamic-scope->lexical-scope", 
       "\n     (dynamic-scope->lexical-scope <callable>)");
   }
 
-  data primitive_DYNAMIC_SCOPEP(scm_list& args) {
+  data primitive_DYNAMIC_SCOPEP(data_vector& args) {
     return prm_check_callable_scope(args,true,"dynamic-scope?",
       "\n     (dynamic-scope? <callable>)");
   }
 
-  data primitive_LEXICAL_SCOPEP(scm_list& args) {
+  data primitive_LEXICAL_SCOPEP(data_vector& args) {
     return prm_check_callable_scope(args,false,"lexical-scope?",
       "\n     (lexical-scope? <callable>)");
   }
 
-  data primitive_JUMP_BANG(scm_list& args) {
+  data primitive_JUMP_BANG(data_vector& args) {
     if(args.size() > 1)
       THROW_ERR("'jump! received incorrect # of args!"
         "\n     (jump! <optional-arg>)" << FCN_ERR("jump!",args));
@@ -5277,13 +5277,13 @@ namespace heist {
     return data();
   }
 
-  data primitive_CATCH_JUMP(scm_list& args) {
+  data primitive_CATCH_JUMP(data_vector& args) {
     if(args.empty())
       THROW_ERR("'catch-jump received incorrect # of args!"
         "\n     (catch-jump <callable> <arg1> ... <argN>)" << FCN_ERR("catch-jump",args));
     primitive_confirm_data_is_a_callable(args[0], "catch-jump", 
       "\n     (catch-jump <callable> <arg1> ... <argN>)", args);
-    scm_list catch_jump_args(args.begin()+1,args.end());
+    data_vector catch_jump_args(args.begin()+1,args.end());
     try {
       return execute_callable(args[0],catch_jump_args);
     } catch(const SCM_EXCEPT& jump_error) {
@@ -5295,7 +5295,7 @@ namespace heist {
   }
 
   // Returns quoted list of data macro-expanded (returns data as-is if not a macro):
-  data primitive_EXPAND(scm_list& args) {
+  data primitive_EXPAND(data_vector& args) {
     // Extract the environment
     auto env = args.rbegin()->env;
     args.pop_back();
@@ -5309,7 +5309,7 @@ namespace heist {
   }
 
   // Returns quoted list of data core-syntax-expanded (returns data as-is if not a macro):
-  data primitive_CORE_EXPAND(scm_list& args) {
+  data primitive_CORE_EXPAND(data_vector& args) {
     if(args.size() != 1)
       THROW_ERR("'core-expand expects 1 arg: (core-expand <quoted-macro-exp>)"
         "\n     (core-expand <quoted-macro-exp>)" << FCN_ERR("core-expand",args));
@@ -5321,13 +5321,13 @@ namespace heist {
 
   // Invoke <proc> w/ args & trace the application (esp. helpful to trace recursion)
   // NOTE: The procedure MUST be a NAMED procedure (no anonymous lambda tracing support)!
-  data primitive_TRACE(scm_list& args) {
+  data primitive_TRACE(data_vector& args) {
     if(args.empty())
       THROW_ERR("'trace received incorrect # of args!"
         "\n     (trace <procedure> <arg1> ... <argN>)" << FCN_ERR("trace",args));
     primitive_confirm_data_is_a_procedure(args[0], "trace", 
       "\n     (trace <procedure> <arg1> ... <argN>)", args);
-    scm_list trace_args(args.begin()+1,args.end());
+    data_vector trace_args(args.begin()+1,args.end());
     // Set name of the function to trace
     G.TRACED_FUNCTION_NAME = args[0].fcn.name;
     auto result = execute_application(args[0],trace_args);
@@ -5339,7 +5339,7 @@ namespace heist {
   * GENSYM PRIMITIVES
   ******************************************************************************/
 
-  data primitive_GENSYM(scm_list& args) {
+  data primitive_GENSYM(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (gensym <optional-instance-#-to-reference>)"
       "\n     => (gensym n) refers to the symbol generated by the nth last (gensym) call!";
@@ -5355,7 +5355,7 @@ namespace heist {
   }
 
 
-  data primitive_SOWN_GENSYM(scm_list& args) {
+  data primitive_SOWN_GENSYM(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (sown-gensym <seed>)"
       "\n     => <seed> = number | symbol | boolean";
@@ -5365,14 +5365,14 @@ namespace heist {
     if(!args[0].is_type(types::num) && !args[0].is_type(types::sym) && !args[0].is_type(types::bol))
       THROW_ERR("'sown-gensym arg "<<PROFILE(args[0])<<" isn't a valid 'sown-gensym key!" 
         << format << FCN_ERR("sown-gensym",args));
-    return symconst::gensym_prefix + scm_string("sown-") + args[0].write();
+    return symconst::gensym_prefix + string("sown-") + args[0].write();
   }
 
   /******************************************************************************
   * SYNTAX PREDICATE PRIMITIVES
   ******************************************************************************/
 
-  data primitive_CORE_SYNTAXP(scm_list& args) {
+  data primitive_CORE_SYNTAXP(data_vector& args) {
     if(args.size() != 1 || !args[0].is_type(types::sym))
       THROW_ERR("'core-syntax? didn't receive 1 symbolic arg!"
         "\n     (core-syntax? <symbol>)" << FCN_ERR("core-syntax?",args));
@@ -5383,7 +5383,7 @@ namespace heist {
   }
 
 
-  data primitive_RUNTIME_SYNTAXP(scm_list& args) {
+  data primitive_RUNTIME_SYNTAXP(data_vector& args) {
     auto env = args.rbegin()->env;
     args.pop_back();
     if(args.size() != 1 || !args[0].is_type(types::sym))
@@ -5398,7 +5398,7 @@ namespace heist {
   }
 
 
-  data primitive_READER_SYNTAXP(scm_list& args) {
+  data primitive_READER_SYNTAXP(data_vector& args) {
     if(args.size() != 1 || !args[0].is_type(types::str))
       THROW_ERR("'reader-syntax? didn't receive 1 string arg!"
         "\n     => Must be a string to avoid expansion by the reader if IS syntax!"
@@ -5411,7 +5411,7 @@ namespace heist {
   }
 
 
-  data primitive_READER_ALIASP(scm_list& args) {
+  data primitive_READER_ALIASP(data_vector& args) {
     if(args.size() != 1 || !args[0].is_type(types::str))
       THROW_ERR("'reader-alias? didn't receive 1 string arg!"
         "\n     => Must be a string to avoid expansion by the reader if IS syntax!"
@@ -5427,14 +5427,14 @@ namespace heist {
   * SYNTAX DELETION PRIMITIVES
   ******************************************************************************/
 
-  data primitive_DELETE_CORE_SYNTAX_BANG(scm_list& args) {
+  data primitive_DELETE_CORE_SYNTAX_BANG(data_vector& args) {
     if(args.empty()) return GLOBALS::VOID_DATA_OBJECT;
     confirm_only_symbol_args(args,"delete-core-syntax!","\n     (delete-core-syntax! <macro-name-symbol> ...)");
     erase_all_macros_from_core_registry(args);
     return boolean(erase_all_macro_labels_from_env(args,G.GLOBAL_ENVIRONMENT_POINTER));
   }
 
-  data primitive_DELETE_RUNTIME_SYNTAX_BANG(scm_list& args) {
+  data primitive_DELETE_RUNTIME_SYNTAX_BANG(data_vector& args) {
     auto env = args.rbegin()->env;
     args.pop_back();
     confirm_only_symbol_args(args,"delete-runtime-syntax!","\n     (delete-runtime-syntax! <macro-name-symbol> ...)");
@@ -5447,7 +5447,7 @@ namespace heist {
   * READER MACRO/ALIAS DEFINITION & ANALYSIS PRIMITIVE
   ******************************************************************************/
 
-  data primitive_DEFINE_READER_SYNTAX(scm_list& args) {
+  data primitive_DEFINE_READER_SYNTAX(data_vector& args) {
     if(args.empty() || args.size() > 2 || !args[0].is_type(types::str) || 
       (args.size() == 2 && !args[1].is_type(types::str)))
       THROW_ERR("'define-reader-syntax improper arg signature!"
@@ -5466,9 +5466,9 @@ namespace heist {
     return GLOBALS::VOID_DATA_OBJECT;
   }
 
-  data primitive_READER_SYNTAX_LIST(scm_list& args) {
+  data primitive_READER_SYNTAX_LIST(data_vector& args) {
     confirm_no_args_given(args,"reader-syntax-list");
-    scm_list pairs;
+    data_vector pairs;
     for(size_type i = 0, n = G.SHORTHAND_READER_MACRO_REGISTRY.size(); i < n; ++i) {
       pairs.push_back(make_par());
       pairs[i].par->first = make_str(G.SHORTHAND_READER_MACRO_REGISTRY[i]);
@@ -5477,9 +5477,9 @@ namespace heist {
     return primitive_LIST_to_CONS_constructor(pairs.begin(),pairs.end());
   }
 
-  data primitive_READER_ALIAS_LIST(scm_list& args) {
+  data primitive_READER_ALIAS_LIST(data_vector& args) {
     confirm_no_args_given(args,"reader-alias-list");
-    scm_list pairs;
+    data_vector pairs;
     for(size_type i = 0, n = G.SHORTHAND_READER_ALIAS_REGISTRY.size(); i < n; ++i) {
       pairs.push_back(make_par());
       pairs[i].par->first = make_str(G.SHORTHAND_READER_ALIAS_REGISTRY[i]);
@@ -5492,7 +5492,7 @@ namespace heist {
   * INFIX TABLE ALIST
   ******************************************************************************/
 
-  data primitive_INFIX_LIST(scm_list& args) {
+  data primitive_INFIX_LIST(data_vector& args) {
     confirm_no_args_given(args,"infix-list");
     return get_infix_list();
   }
@@ -5509,14 +5509,14 @@ namespace heist {
   // [...]          -> [vector ...]
   // <string>:<obj> -> (list <string> <obj>)
 
-  data primitive_JSON_TO_SCM(scm_list& args) {
+  data primitive_JSON_TO_SCM(data_vector& args) {
     if(args.size() != 1 || !args[0].is_type(types::str))
       THROW_ERR("'json->scm didn't receive 1 string arg!" 
         "\n     (json->scm <string>)" << FCN_ERR("json->scm", args));
     if(args[0].str->empty()) return GLOBALS::VOID_DATA_OBJECT;
-    scm_string input = *args[0].str;
+    string input = *args[0].str;
     try { // Try parsing the converted json expression, & throw an error as needed
-      scm_list abstract_syntax_tree;
+      data_vector abstract_syntax_tree;
       // Return AST if successfully parsed an expression
       parse_input_exp(heist_json_parser::convert_json_to_scm(*args[0].str,input),abstract_syntax_tree);
       if(abstract_syntax_tree.empty()) return GLOBALS::VOID_DATA_OBJECT;
@@ -5535,7 +5535,7 @@ namespace heist {
   }
 
 
-  data primitive_SCM_TO_JSON(scm_list& args) {
+  data primitive_SCM_TO_JSON(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (scm->json <obj> <optional-indent-width>)"
       "\n     <obj> ::= <string>"
@@ -5558,7 +5558,7 @@ namespace heist {
   }
 
 
-  data primitive_JSON_DATUMP(scm_list& args) {
+  data primitive_JSON_DATUMP(data_vector& args) {
     confirm_given_one_arg(args,"json-datum?");
     return boolean(is_valid_json_datum(args[0]));
   }
@@ -5567,7 +5567,7 @@ namespace heist {
   * CSV PARSING AND GENERATION PRIMITIVES
   ******************************************************************************/
 
-  data primitive_LIST_TO_CSV(scm_list& args) {
+  data primitive_LIST_TO_CSV(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (list->csv <list-of-lists-of-csv-data> <optional-delimiter-char>)"
       "\n     <csv-data> ::= <string> | <number>";
@@ -5583,13 +5583,13 @@ namespace heist {
     }
     if(args[0].is_type(types::sym) && args[0].sym == symconst::emptylist) // given nil
       return make_str("");
-    std::vector<scm_list> csv_matrix;
+    std::vector<data_vector> csv_matrix;
     confirm_proper_LIST_csv_datum<true>(csv_matrix,args[0],args,"list->csv",format);
     return generate_csv(csv_matrix,delimiter);
   }
 
 
-  data primitive_VECTOR_TO_CSV(scm_list& args) {
+  data primitive_VECTOR_TO_CSV(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (vector->csv <vector-of-vectors-of-csv-data> <optional-delimiter-char>)"
       "\n     <csv-data> ::= <string> | <number>";
@@ -5605,37 +5605,37 @@ namespace heist {
     }
     if(args[0].is_type(types::vec) && args[0].vec->empty()) // empty vector
       return make_str("");
-    std::vector<scm_list> csv_matrix;
+    std::vector<data_vector> csv_matrix;
     confirm_proper_VECTOR_csv_datum<true>(csv_matrix,args[0],args,"vector->csv",format);
     return generate_csv(csv_matrix,delimiter);
   }
 
 
-  data primitive_CSV_TO_LIST(scm_list& args) {
+  data primitive_CSV_TO_LIST(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (csv->list <csv-string> <optional-delimiter-char>)"
       "\n     <csv-data> ::= <string> | <number>";
     char delimiter = validate_csv_parsing_args(args,"csv->list",format);
-    std::vector<scm_list> csv_matrix;
+    std::vector<data_vector> csv_matrix;
     return parse_csv("(list ", delimiter, *args[0].str);
   }
 
 
-  data primitive_CSV_TO_VECTOR(scm_list& args) {
+  data primitive_CSV_TO_VECTOR(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (csv->vector <csv-string> <optional-delimiter-char>)"
       "\n     <csv-data> ::= <string> | <number>";
     char delimiter = validate_csv_parsing_args(args,"csv->vector",format);
-    std::vector<scm_list> csv_matrix;
+    std::vector<data_vector> csv_matrix;
     return parse_csv("(vector ", delimiter, *args[0].str);
   }
 
 
-  data primitive_CSV_DATUMP(scm_list& args) {
+  data primitive_CSV_DATUMP(data_vector& args) {
     static constexpr const char * const format = "\n     (csv-datum? <datum>)";
     if(args.size() != 1)
       THROW_ERR("'csv-datum? not given ! arg!" << format << FCN_ERR("csv-datum?",args));
-    std::vector<scm_list> csv_matrix;
+    std::vector<data_vector> csv_matrix;
     return boolean(confirm_proper_LIST_csv_datum<false>(csv_matrix,args[0],args,"csv-datum?",format) || 
                    confirm_proper_VECTOR_csv_datum<false>(csv_matrix,args[0],args,"csv-datum?",format));
   }
@@ -5645,7 +5645,7 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "regex-replace": replaces 1st instance w/ a string or using the given callable
-  data primitive_REGEX_REPLACE(scm_list& args) {
+  data primitive_REGEX_REPLACE(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (regex-replace <target-string> <regex-string> <replacement-string>)"
       "\n     (regex-replace <target-string> <regex-string> <callable>)"
@@ -5657,7 +5657,7 @@ namespace heist {
 
 
   // primitive "regex-replace-all": replaces all instances w/ a string or using the given callable
-  data primitive_REGEX_REPLACE_ALL(scm_list& args) {
+  data primitive_REGEX_REPLACE_ALL(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (regex-replace-all <target-string> <regex-string> <replacement-string>)"
       "\n     (regex-replace-all <target-string> <regex-string> <callable>)"
@@ -5671,7 +5671,7 @@ namespace heist {
   // primitive "regex-match"
   // => returns an alist of the matched substrings
   //    -> each sublist begins with the position, followed by all match
-  data primitive_REGEX_MATCH(scm_list& args) {
+  data primitive_REGEX_MATCH(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (regex-match <target-string> <regex-string>)";
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("regex-match",primitive_REGEX_MATCH,args);
@@ -5685,10 +5685,10 @@ namespace heist {
 
 
   // primitive "regex-split" procedure:
-  data primitive_REGEX_SPLIT(scm_list& args) {
+  data primitive_REGEX_SPLIT(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (regex-split <target-string> <optional-regex-string> <optional-start-index>)";
-    scm_string delimiter("");
+    string delimiter("");
     size_type start_index = 0;
     confirm_proper_string_split_args(args,"regex-split",format,delimiter,start_index);
     // split the string into a list of strings
@@ -5704,7 +5704,7 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "heist:core:oo:set-property!" procedure:
-  data primitive_HEIST_CORE_OO_SET_PROPERTY_BANG(scm_list& args) {
+  data primitive_HEIST_CORE_OO_SET_PROPERTY_BANG(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (heist:core:oo:set-property! <object> <property-name-symbol> <value>)";
     validate_oo_member_setter(args,"set-property!",format);
@@ -5717,7 +5717,7 @@ namespace heist {
 
 
   // primitive "heist:core:oo:make-object" procedure:
-  data primitive_HEIST_CORE_OO_MAKE_OBJECT(scm_list& args) {
+  data primitive_HEIST_CORE_OO_MAKE_OBJECT(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (heist:core:oo:make-object <class-type-object> <optional-container>)"
       "\n     <optional-container> ::= <member-val-hmap>"
@@ -5750,7 +5750,7 @@ namespace heist {
 
 
   // primitive "heist:core:oo:add-property!" procedure:
-  data primitive_HEIST_CORE_OO_ADD_PROPERTY_BANG(scm_list& args) {
+  data primitive_HEIST_CORE_OO_ADD_PROPERTY_BANG(data_vector& args) {
     validate_oo_member_setter(args,"add-property!",
       "\n     (heist:core:oo:add-property! <object> <property-name-symbol> <procedure-value>)");
     if(args[2].is_type(types::fcn))
@@ -5762,7 +5762,7 @@ namespace heist {
   * DEFCLASS OO GENERAL OBJECT ANALYSIS PRIMITIVES
   ******************************************************************************/
 
-  data primitive_OBJECT_MEMBERS(scm_list& args) {
+  data primitive_OBJECT_MEMBERS(data_vector& args) {
     confirm_given_unary_object_arg(args,"object-members");
     populate_obj_with_new_dynamic_proto_properties(args[0].obj);
     scm_map m;
@@ -5771,7 +5771,7 @@ namespace heist {
     return make_map(std::move(m));
   }
 
-  data primitive_OBJECT_METHODS(scm_list& args) {
+  data primitive_OBJECT_METHODS(data_vector& args) {
     confirm_given_unary_object_arg(args,"object-methods");
     populate_obj_with_new_dynamic_proto_properties(args[0].obj);
     scm_map m;
@@ -5781,7 +5781,7 @@ namespace heist {
   }
 
   // primitive ".." procedure:
-  data primitive_HEIST_CORE_OO_MEMBER_ACCESS(scm_list& args) {
+  data primitive_HEIST_CORE_OO_MEMBER_ACCESS(data_vector& args) {
     static constexpr const char * const format = "\n     (.. <object> <property-1> ...)";
     if(args.size() == 1) return GENERATE_PRIMITIVE_PARTIAL("..",primitive_HEIST_CORE_OO_MEMBER_ACCESS,args);
     if(args.size() < 2)
@@ -5809,17 +5809,17 @@ namespace heist {
   }
 
   // NOTE: recursively converts object member values into hashmaps as well
-  data primitive_OBJECT_TO_HMAP(scm_list& args) {
+  data primitive_OBJECT_TO_HMAP(data_vector& args) {
     confirm_given_unary_object_arg(args,"object->hmap");
     return prm_recursively_convert_OBJ_to_HMAP<false>(args[0]);
   }
 
-  data primitive_OBJECT_TO_ALIST(scm_list& args) {
+  data primitive_OBJECT_TO_ALIST(data_vector& args) {
     confirm_given_unary_object_arg(args,"object->alist");
     return prm_recursively_convert_HMAP_to_ALIST(prm_recursively_convert_OBJ_to_HMAP<false>(args[0]));
   }
 
-  data primitive_OBJECT_TO_JSON(scm_list& args) {
+  data primitive_OBJECT_TO_JSON(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (object->json <object> <optional-indent-width>)";
     if(args.empty() || args.size() > 2)
@@ -5843,34 +5843,34 @@ namespace heist {
   * DEFCLASS OO GENERAL CLASS-PROTOTYPE ANALYSIS PRIMITIVES
   ******************************************************************************/
 
-  data primitive_PROTO_NAME(scm_list& args) {
+  data primitive_PROTO_NAME(data_vector& args) {
     confirm_given_unary_class_prototype_arg(args,"proto-name");
     return args[0].cls->class_name;
   }
 
-  data primitive_PROTO_MEMBERS(scm_list& args) {
+  data primitive_PROTO_MEMBERS(data_vector& args) {
     confirm_given_unary_class_prototype_arg(args,"proto-members");
-    scm_list member_names;
+    data_vector member_names;
     for(const auto& name : args[0].cls->member_names)
       member_names.push_back(name);
     return primitive_LIST_to_CONS_constructor(member_names.begin(),member_names.end());
   }
 
-  data primitive_PROTO_METHODS(scm_list& args) {
+  data primitive_PROTO_METHODS(data_vector& args) {
     confirm_given_unary_class_prototype_arg(args,"proto-methods");
-    scm_list method_names;
+    data_vector method_names;
     for(const auto& name : args[0].cls->method_names)
       method_names.push_back(name);
     return primitive_LIST_to_CONS_constructor(method_names.begin(),method_names.end());
   }
 
-  data primitive_PROTO_SUPER(scm_list& args) {
+  data primitive_PROTO_SUPER(data_vector& args) {
     confirm_given_unary_class_prototype_arg(args,"proto-super");
     if(!args[0].cls->super) return GLOBALS::FALSE_DATA_BOOLEAN;
     return args[0].cls->super;
   }
 
-  data primitive_PROTO_ADD_PROPERTY_BANG(scm_list& args) {
+  data primitive_PROTO_ADD_PROPERTY_BANG(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (proto-add-property! <class-property> <property-name-symbol> <procedure-value>)";
     confirm_proper_new_property_args(args,"proto-add-property!",format);
@@ -5899,7 +5899,7 @@ namespace heist {
   //     (cycle (map (lambda (c) (if (coroutine? c) (c.next) (jump! c)))
   //                 coroutines)))
   //   (catch-jump cycle coroutines))
-  data primitive_CYCLE_COROUTINES_BANG(scm_list& args) {
+  data primitive_CYCLE_COROUTINES_BANG(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (cycle-coroutines! <coroutine-1> <coroutine-2> ...)";
     auto coro_proto = prm_get_coroutine_class_prototype(args,format);
@@ -5923,14 +5923,14 @@ namespace heist {
   * STRING->ART PRIMITIVES
   ******************************************************************************/
 
-  data primitive_STRING_TO_ASCII_ART(scm_list& args) { 
+  data primitive_STRING_TO_ASCII_ART(data_vector& args) { 
     if(args.size() != 1 || !args[0].is_type(types::str))
       THROW_ERR("'string->ascii-art didn't receive 1 string arg!"
         "\n     (string->ascii-art <string>)" << FCN_ERR("string->ascii-art",args));
     return make_str(heist_fmt::convert_to_ascii_art(*args[0].str));
   }
 
-  data primitive_STRING_TO_SPACE_ART(scm_list& args) { 
+  data primitive_STRING_TO_SPACE_ART(data_vector& args) { 
     if(args.size() != 1 || !args[0].is_type(types::str))
       THROW_ERR("'string->space-art didn't receive 1 string arg!"
         "\n     (string->space-art <string>)\n     => <nansi> must be inactive!" 
@@ -5948,12 +5948,12 @@ namespace heist {
 
   void evaluate_primitives_written_in_heist_scheme() {
     FILE* ins = std::fopen(HEIST_DIRECTORY_FILE_PATH "/interpreter_headers/primitives.scm", "r");
-    scm_string heist_prim_exp;
+    string heist_prim_exp;
     char buffer[1001];
     while(std::fgets(buffer,1000,ins))
       heist_prim_exp += buffer;
     std::fclose(ins);
-    scm_list heist_scheme_prim_defns;
+    data_vector heist_scheme_prim_defns;
     parse_input_exp(std::move(heist_prim_exp), heist_scheme_prim_defns);
     for(auto& primitive_scm_prim_defn : heist_scheme_prim_defns)
       scm_eval(std::move(primitive_scm_prim_defn),G.GLOBAL_ENVIRONMENT_POINTER);
@@ -5965,7 +5965,7 @@ namespace heist {
 
   #include "toolkits/help_toolkit.hpp"
 
-  data primitive_HELP(scm_list& args) {
+  data primitive_HELP(data_vector& args) {
     if(args.empty()) {
       help::launch_interactive_menu();
     } else {
@@ -5990,7 +5990,7 @@ namespace heist {
   * UNIVERSE EVALUATION PRIMITIVE
   ******************************************************************************/
 
-  data primitive_HEIST_CORE_UNIVERSE_EVAL(scm_list& args) {
+  data primitive_HEIST_CORE_UNIVERSE_EVAL(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (heist:core:universe:eval <datum> <universe-object>)";
     if(args.size() != 2)
@@ -6012,7 +6012,7 @@ namespace heist {
         G = std::move(*args[1].obj->member_values[i].prc);
         try {
           // eval in new universe
-          scm_list eval_args(3);
+          data_vector eval_args(3);
           eval_args[0] = args[0];
           eval_args[1] = symconst::global_env;
           eval_args[2] = G.GLOBAL_ENVIRONMENT_POINTER; // ignored
@@ -6048,7 +6048,7 @@ namespace heist {
   ******************************************************************************/
 
   // Designed for use with "heist:core:pass-continuation-" procedures!
-  data primitive_HEIST_CORE_APPLY_WITH_CONTINUATION(scm_list& args) {
+  data primitive_HEIST_CORE_APPLY_WITH_CONTINUATION(data_vector& args) {
     static constexpr const char * const format = 
       "\n     (heist:core:apply-with-continuation <callable> <optional-arg> ... <continuation-callable>)";
     if(args.size() < 2)
@@ -6057,7 +6057,7 @@ namespace heist {
     // confirm given callable to apply, & a callable continuation
     primitive_confirm_data_is_a_callable(args[0], "heist:core:apply-with-continuation", format, args);
     primitive_confirm_data_is_a_callable(*args.rbegin(),"heist:core:apply-with-continuation",format,args);
-    scm_list application_args(args.begin()+1,args.end());
+    data_vector application_args(args.begin()+1,args.end());
     return execute_callable_callable_with_continuation(args[0],application_args);
   }
 
@@ -6065,7 +6065,7 @@ namespace heist {
   * FALSINESS MANIPULATION PRIMITIVES
   ******************************************************************************/
 
-  data primitive_SET_FALSEY_BANG(scm_list& args) {
+  data primitive_SET_FALSEY_BANG(data_vector& args) {
     if(args.empty()) return GLOBALS::VOID_DATA_OBJECT;
     // Verify not adding #t as a falsey value
     for(auto& arg : args) {
@@ -6089,7 +6089,7 @@ namespace heist {
   }
 
 
-  data primitive_SET_TRUTHY_BANG(scm_list& args) {
+  data primitive_SET_TRUTHY_BANG(data_vector& args) {
     if(args.empty()) return GLOBALS::VOID_DATA_OBJECT;
     // Verify not adding #f as a truthy value
     for(auto& arg : args) {
@@ -6112,7 +6112,7 @@ namespace heist {
   }
 
 
-  data primitive_FALSEY_VALUES(scm_list& args) {
+  data primitive_FALSEY_VALUES(data_vector& args) {
     if(!args.empty())
       THROW_ERR("'falsey-values doesn't accept any args!" << FCN_ERR("falsey-values",args));
     return primitive_LIST_to_CONS_constructor(G.FALSEY_VALUES.begin(),G.FALSEY_VALUES.end());
@@ -6804,17 +6804,17 @@ namespace heist {
     std::make_pair(primitive_FALSEY_VALUES,   "falsey-values"),
   };
 
-  std::vector<data> primitive_procedure_objects()noexcept{
+  data_vector primitive_procedure_objects()noexcept{
     constexpr const auto n = sizeof(primitive_procedure_declarations) / sizeof(primitive_procedure_declarations[0]);
-    std::vector<data> primitive_procedures(n);
+    data_vector primitive_procedures(n);
     for(size_type i = 0; i < n; ++i)
       primitive_procedures[i] = scm_fcn(primitive_procedure_declarations[i].second,primitive_procedure_declarations[i].first);
     return primitive_procedures;
   }
 
-  std::vector<scm_string> primitive_procedure_names()noexcept{
+  str_vector primitive_procedure_names()noexcept{
     constexpr const auto n = sizeof(primitive_procedure_declarations) / sizeof(primitive_procedure_declarations[0]);
-    std::vector<scm_string> names(n);
+    str_vector names(n);
     for(size_type i = 0; i < n; ++i)
       names[i] = primitive_procedure_declarations[i].second;
     return names;

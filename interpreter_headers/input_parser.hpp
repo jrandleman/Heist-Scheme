@@ -20,7 +20,7 @@ namespace heist {
            (c=='#' && (c2=='\\' || IS_OPEN_PAREN(c2))));
   }
 
-  bool string_begins_with(const scm_string& str, const char* substr, size_type begin = 0)noexcept{
+  bool string_begins_with(const string& str, const char* substr, size_type begin = 0)noexcept{
     const size_type n = str.size();
     if(begin >= n) return false;
     const char* p = substr;
@@ -30,8 +30,7 @@ namespace heist {
   }
 
   // Check whether data is at the long-hand name of a character
-  std::pair<chr_type,scm_string> data_is_named_char(const size_type& i, 
-                                                    const scm_string& input)noexcept{
+  std::pair<chr_type,string> data_is_named_char(const size_type& i, const string& input)noexcept{
     // char long-hand names & their respective 'char' representations
     static constexpr const char * const char_names[] = {
       "nul",    "space", "newline", "tab",       "vtab",   "page", 
@@ -42,7 +41,7 @@ namespace heist {
     };
     static constexpr const size_type n = sizeof(char_names) / sizeof(char*);
     // current name candidate
-    const scm_string name = input.substr(i,9); // "backspace".size() (largest name)
+    const string name = input.substr(i,9); // "backspace".size() (largest name)
     // seek a long-hand char name instance
     for(size_type j = 0; j < n; ++j)
       if(string_begins_with(name,char_names[j]))
@@ -58,7 +57,7 @@ namespace heist {
   }
 
   // Determine whether input[i] = a non-escaped double-quote char 
-  bool is_non_escaped_double_quote(size_type i, const scm_string& input) noexcept {
+  bool is_non_escaped_double_quote(size_type i, const string& input) noexcept {
     if(input[i] != '"') return false;
     if(!i)              return true;
     --i; // mv prior '"'
@@ -69,42 +68,42 @@ namespace heist {
   }
 
   // Determine whether at a paren that isn't a character
-  bool is_non_char_open_paren(const size_type& i, const scm_string& input) noexcept {
+  bool is_non_char_open_paren(const size_type& i, const string& input) noexcept {
     return IS_OPEN_PAREN(input[i]) && (i < 2 || input[i-1] != '\\' || input[i-2] != '#');
   }
-  bool is_non_char_close_paren(const size_type& i, const scm_string& input) noexcept {
+  bool is_non_char_close_paren(const size_type& i, const string& input) noexcept {
     return IS_CLOSE_PAREN(input[i]) && (i < 2 || input[i-1] != '\\' || input[i-2] != '#');
   }
 
   // Determine whether at a comment's start that isn't a character
-  bool is_single_line_comment(const size_type& i, const scm_string& input) noexcept {
+  bool is_single_line_comment(const size_type& i, const string& input) noexcept {
     return (i<2 || input[i-2]!='#' || input[i-1]!='\\') && input[i]==';';
   }
-  bool is_multi_line_comment(const size_type& i, const scm_string& input) noexcept {
+  bool is_multi_line_comment(const size_type& i, const string& input) noexcept {
     return (i<2 || input[i-2]!='#' || input[i-1]!='\\') && input[i]=='#' && input[i+1]=='|';
   }
 
   // Skip past string literal
   // PRECONDITION:  input[i] = '"', at the string's start
   // POSTCONDITION: input[i] = '"', at the string's end
-  void skip_string_literal(size_type& i, const scm_string& input) noexcept {
+  void skip_string_literal(size_type& i, const string& input) noexcept {
     const size_type n = input.size();
     while(i < n && !is_non_escaped_double_quote(++i,input));
   }
 
   // Skip past single-line comment: input[i] ends directly prior '\n'
-  void skip_single_line_comment(size_type& i, const scm_string& input) noexcept {
+  void skip_single_line_comment(size_type& i, const string& input) noexcept {
     while(input[i+1] && input[i+1] != '\n') ++i;
   }
 
   // Skip past multi-line comment: input[i] ends at '#' of "|#"
-  void skip_multi_line_comment(size_type& i, const scm_string& input) noexcept {
+  void skip_multi_line_comment(size_type& i, const string& input) noexcept {
     while(input[i+1] && (input[i]!='|'||input[i+1]!='#')) ++i;
     if(input[i+1]) ++i;
   }
 
   // Remove comments and trim whitespace after open parens
-  void strip_comments_and_redundant_whitespace(scm_string& input) {
+  void strip_comments_and_redundant_whitespace(string& input) {
     for(size_type i = 0; i < input.size();) {
       // Skip past strings & characters
       if(is_non_escaped_double_quote(i,input)) {
@@ -133,7 +132,7 @@ namespace heist {
   }
 
   // Lowercase-ify all non-char & non-string tokens (case-insensitivity)
-  void render_input_cAsE_iNsEnSiTiVe(scm_string& input) noexcept {
+  void render_input_cAsE_iNsEnSiTiVe(string& input) noexcept {
     for(size_type i = 0, n = input.size(); i < n; ++i) {
       if(is_non_escaped_double_quote(i,input)) skip_string_literal(i,input);
       else if(i < n-2 && input[i] == '#' && input[i+1] == '\\') i += 3;
@@ -146,7 +145,7 @@ namespace heist {
   ******************************************************************************/
 
   // Confirms given a valid scheme expression: ie each '(' has a ')'
-  bool confirm_valid_scm_expression(const scm_string& input) {
+  bool confirm_valid_scm_expression(const string& input) {
     long long paren_count = 0;
     for(size_type i = 0, n = input.size(); i < n; ++i) {
       // account for whether at a paren, string literal, or comment
@@ -177,18 +176,18 @@ namespace heist {
   ******************************************************************************/
 
   // Reader macro identification / error-checking helpers
-  bool is_escaped_variadic(const scm_string& input, const size_type i)noexcept{ // do NOT expand \ as a lambda around ...
+  bool is_escaped_variadic(const string& input, const size_type i)noexcept{ // do NOT expand \ as a lambda around ...
     if(input[i] != '\\') return false;
     size_type n = input.size(), j = i;
     while(j < n && input[j] == '\\') ++j;
     return input.compare(j,3,"...") == 0;
   }
 
-  bool input_begins_with_prefix(const scm_string& prefix, const scm_string& input, const size_type i)noexcept{
+  bool input_begins_with_prefix(const string& prefix, const string& input, const size_type i)noexcept{
     return input.size()-i-1 >= prefix.size() && !is_escaped_variadic(input,i) && input.compare(i,prefix.size(),prefix) == 0;
   }
 
-  size_type is_expandable_reader_macro(const scm_string& input, const size_type i)noexcept{
+  size_type is_expandable_reader_macro(const string& input, const size_type i)noexcept{
     for(size_type j = 0, n = G.SHORTHAND_READER_MACRO_REGISTRY.size(); j < n; ++j)
       if(input_begins_with_prefix(G.SHORTHAND_READER_MACRO_REGISTRY[j],input,i))
         return j;
@@ -203,19 +202,19 @@ namespace heist {
 
 
   // Reader macro expansion helpers
-  void expand_reader_macro(scm_string& input, size_type& i, size_type after_macro_idx, const size_type& macro_idx)noexcept{
+  void expand_reader_macro(string& input, size_type& i, size_type after_macro_idx, const size_type& macro_idx)noexcept{
     input.insert(after_macro_idx,")"); // insert quote after string literal
     input.erase(i,G.SHORTHAND_READER_MACRO_REGISTRY[macro_idx].size()); // erase shorthand
     input.insert(i,'(' + G.LONGHAND_READER_MACRO_REGISTRY[macro_idx] + ' '); // add longhand
     i += 1 + G.LONGHAND_READER_MACRO_REGISTRY[macro_idx].size(); // mv past longhand
   }
 
-  void expand_around_string_literal(scm_string& input, size_type& i, const size_type& macro_idx, size_type after_macro_idx)noexcept{
+  void expand_around_string_literal(string& input, size_type& i, const size_type& macro_idx, size_type after_macro_idx)noexcept{
     skip_string_literal(after_macro_idx,input);
     expand_reader_macro(input,i,after_macro_idx+1,macro_idx);
   }
 
-  void expand_around_char_literal(scm_string& input, size_type& i, const size_type& macro_idx, size_type after_macro_idx) {
+  void expand_around_char_literal(string& input, size_type& i, const size_type& macro_idx, size_type after_macro_idx) {
     after_macro_idx += 3;
     const size_type n = input.size();
     while(after_macro_idx < n && !IS_END_OF_WORD(input[after_macro_idx],input[after_macro_idx+1])) 
@@ -224,7 +223,7 @@ namespace heist {
     expand_reader_macro(input,i,after_macro_idx,macro_idx);
   }
 
-  void expand_around_expression_literal(scm_string& input, size_type& i, const size_type& macro_idx, size_type after_macro_idx)noexcept{
+  void expand_around_expression_literal(string& input, size_type& i, const size_type& macro_idx, size_type after_macro_idx)noexcept{
     after_macro_idx += 1;
     const size_type n = input.size();
     size_type paren_count = 1;
@@ -237,7 +236,7 @@ namespace heist {
     expand_reader_macro(input,i,after_macro_idx,macro_idx);
   }
 
-  void expand_around_symbol_or_number_literal(scm_string& input, size_type& i, const size_type& macro_idx, size_type after_macro_idx)noexcept{
+  void expand_around_symbol_or_number_literal(string& input, size_type& i, const size_type& macro_idx, size_type after_macro_idx)noexcept{
     ++after_macro_idx;
     while(!IS_END_OF_WORD(input[after_macro_idx],input[after_macro_idx+1]))
       ++after_macro_idx;
@@ -246,7 +245,7 @@ namespace heist {
 
 
   // Returns whether expanded around a literal -- READER MACRO EXPANSION MAIN DISPATCH
-  bool expand_around_literal(scm_string& input, size_type& i, const size_type& macro_idx, size_type after_macro_idx) {
+  bool expand_around_literal(string& input, size_type& i, const size_type& macro_idx, size_type after_macro_idx) {
     // expanding around string literal
     if(input[after_macro_idx] == '"') {
       expand_around_string_literal(input,i,macro_idx,after_macro_idx);
@@ -267,7 +266,7 @@ namespace heist {
 
 
   // Expands around a nested reader macro
-  void expand_around_nested_reader_macros(scm_string& input, size_type& i, const size_type& macro_idx, size_type after_macro_idx){
+  void expand_around_nested_reader_macros(string& input, size_type& i, const size_type& macro_idx, size_type after_macro_idx){
     // Confirm proper nested reader macro use
     check_for_improper_reader_macro_use(input[after_macro_idx]);
     // Try expanding around a literal
@@ -278,7 +277,7 @@ namespace heist {
 
 
   // Returns length of nested reader macros AFTER the current reader macro (0 if none)
-  size_type is_nested_reader_macro(const scm_string& input, const size_type& i, const size_type& macro_idx)noexcept{
+  size_type is_nested_reader_macro(const string& input, const size_type& i, const size_type& macro_idx)noexcept{
     size_type after_macro_idx = i + G.SHORTHAND_READER_MACRO_REGISTRY[macro_idx].size();
     size_type nested_macro_idx = is_expandable_reader_macro(input,after_macro_idx);
     if(nested_macro_idx == GLOBALS::MAX_SIZE_TYPE) return 0; // reader macro not found
@@ -292,7 +291,7 @@ namespace heist {
   // Expands reader macro shorthands: '<exp>  => (quote <exp>)
   // => NOTE: Recusively expands sequential quotations from right to left
   //          - IE: '''a = (quote (quote (quote a)))
-  void expand_reader_macro_shorthands(scm_string& input) {
+  void expand_reader_macro_shorthands(string& input) {
     for(size_type i = 0; i < input.size(); ++i) {
       // Don't expand reader macros in string or char literals
       if(is_non_escaped_double_quote(i,input)) {
@@ -325,7 +324,7 @@ namespace heist {
   ******************************************************************************/
 
   template<char literal_prefix>
-  bool is_vector_or_hmap_literal(const size_type& i, const scm_string& input) noexcept {
+  bool is_vector_or_hmap_literal(const size_type& i, const string& input) noexcept {
     return (i+2<input.size() && input[i]==literal_prefix && IS_OPEN_PAREN(input[i+1]) && 
            (i<2 || input[i-1]!='\\' || input[i-2]!='#'));
   }
@@ -333,7 +332,7 @@ namespace heist {
   // #(<...>) => (vector-literal <...>)
   // $(<...>) => (hmap-literal <...>)
   template<char literal_prefix,size_type prefix_expansion_length>
-  void expand_vector_or_hmap_literals(scm_string& input, const char* prefix_expansion) noexcept {
+  void expand_vector_or_hmap_literals(string& input, const char* prefix_expansion) noexcept {
     for(size_type i = 0; i < input.size(); ++i) {
       // dont expand vector literals w/in strings
       if(is_non_escaped_double_quote(i,input)) {
@@ -349,7 +348,7 @@ namespace heist {
     }
   }
 
-  void expand_vector_and_hmap_literals(scm_string& input) noexcept {
+  void expand_vector_and_hmap_literals(string& input) noexcept {
     expand_vector_or_hmap_literals<'#',sizeof("vector-literal ")-1>(input,"vector-literal ");
     expand_vector_or_hmap_literals<'$',sizeof("hmap-literal ")-1>(input,"hmap-literal ");
   }
@@ -359,7 +358,7 @@ namespace heist {
   ******************************************************************************/
 
   // "{" => "(heist:core:inf-precedence "
-  void expand_inf_precedence_scoping(scm_string& input) noexcept {
+  void expand_inf_precedence_scoping(string& input) noexcept {
     for(size_type i = 0; i < input.size(); ++i) {
       if(is_non_escaped_double_quote(i,input))
         skip_string_literal(i,input); 
@@ -372,7 +371,7 @@ namespace heist {
   * READER ALIAS CONVERSION
   ******************************************************************************/
 
-  void expand_reader_aliases(exp_type& ast)noexcept{
+  void expand_reader_aliases(data_vector& ast)noexcept{
     if(G.SHORTHAND_READER_ALIAS_REGISTRY.empty()) return;
     size_type idx = 0;
     for(size_type i = 0, n = ast.size(); i < n; ++i) {
@@ -395,7 +394,7 @@ namespace heist {
     return true;
   }
 
-  void parse_reader_lambda_shorthand_args(exp_type& exp, size_type& total_args, bool& has_variadic)noexcept{
+  void parse_reader_lambda_shorthand_args(data_vector& exp, size_type& total_args, bool& has_variadic)noexcept{
     for(auto& datum : exp) {
       if(datum_is_reader_lambda_arg(datum)) {
         if(datum.sym[1] == '%')
@@ -408,12 +407,12 @@ namespace heist {
     }
   }
 
-  void expand_reader_lambda_shorthand(exp_type& ast)noexcept{
+  void expand_reader_lambda_shorthand(data_vector& ast)noexcept{
     bool has_variadic = false;
     size_type total_args = 0;
     parse_reader_lambda_shorthand_args(ast,total_args,has_variadic);
     ast[0] = symconst::lambda;
-    ast.insert(ast.begin()+1,exp_type());
+    ast.insert(ast.begin()+1,data_vector());
     for(size_type i = 0; i < total_args; ++i) // populate args
       ast[1].exp.push_back('%' + std::to_string(i+1));
     if(has_variadic) { // add variadic arg (if present)
@@ -422,12 +421,12 @@ namespace heist {
     }
   }
 
-  bool is_reader_lambda_shorthand(const exp_type& ast)noexcept{
+  bool is_reader_lambda_shorthand(const data_vector& ast)noexcept{
     return !ast.empty() && ast[0].is_type(types::sym) && ast[0].sym == symconst::reader_lambda;
   }
 
   // \ -> lambda
-  void expand_reader_lambda_shorthands(exp_type& ast)noexcept{
+  void expand_reader_lambda_shorthands(data_vector& ast)noexcept{
     if(is_reader_lambda_shorthand(ast))
       expand_reader_lambda_shorthand(ast);
     for(auto& datum : ast)
@@ -443,14 +442,14 @@ namespace heist {
     return d.is_type(types::sym) && d.sym == symconst::inf_precedence;
   }
 
-  void convert_left_assoc_infix_expr(exp_type& ast, size_type& i)noexcept{
+  void convert_left_assoc_infix_expr(data_vector& ast, size_type& i)noexcept{
     if(i > 1 && data_is_inf_precedence_tag(ast[i-2])) {
       data tmp = ast[i-1];
       ast[i-1] = ast[i];
       ast[i] = tmp;
       ast.erase(ast.begin()+i-2); // erase inf-precedence tag
     } else {
-      exp_type prefix_expr(3);
+      data_vector prefix_expr(3);
       prefix_expr[0] = ast[i], prefix_expr[1] = ast[i-1], prefix_expr[2] = ast[i+1];
       ast[i-1] = prefix_expr;
       ast.erase(ast.begin()+i,ast.begin()+i+2);
@@ -458,24 +457,24 @@ namespace heist {
     i -= 2;
   }
 
-  bool is_infixr_op_in_level(const sym_type& sym, const infix_level_t& level)noexcept{
+  bool is_infixr_op_in_level(const string& sym, const infix_level_t& level)noexcept{
     for(const auto& op : level) if(!op.first && op.second == sym) return true;
     return false;
   }
 
-  size_type get_last_infixr_op_idx(const exp_type& ast, size_type i, const infix_level_t& level)noexcept{
+  size_type get_last_infixr_op_idx(const data_vector& ast, size_type i, const infix_level_t& level)noexcept{
     for(size_type n = ast.size(); i+1 < n && ast[i].is_type(types::sym) && is_infixr_op_in_level(ast[i].sym,level); i += 2);
     return i - 2;
   }
 
-  void convert_right_assoc_infix_expr(exp_type& ast, size_type& i, const infix_level_t& level)noexcept{
+  void convert_right_assoc_infix_expr(data_vector& ast, size_type& i, const infix_level_t& level)noexcept{
     size_type last_idx = get_last_infixr_op_idx(ast,i,level);
     while(last_idx != i)
       convert_left_assoc_infix_expr(ast,last_idx);
     convert_left_assoc_infix_expr(ast,i);
   }
 
-  void convert_expr_if_infix(exp_type& ast, size_type& i, const infix_level_t& level)noexcept{
+  void convert_expr_if_infix(data_vector& ast, size_type& i, const infix_level_t& level)noexcept{
     for(const auto& op : level)
       if(ast[i].sym == op.second) {
         if(op.first) convert_left_assoc_infix_expr(ast,i);
@@ -484,7 +483,7 @@ namespace heist {
       }
   }
 
-  void convert_infix_level_ops_to_prefix_notation(exp_type& ast, const infix_level_t& level)noexcept{
+  void convert_infix_level_ops_to_prefix_notation(data_vector& ast, const infix_level_t& level)noexcept{
     for(size_type i = 0; i < ast.size(); ++i) {
       if(ast[i].is_type(types::exp)) {
         convert_infix_level_ops_to_prefix_notation(ast[i].exp,level);
@@ -499,7 +498,7 @@ namespace heist {
     }
   }
 
-  void strip_INFIX_ESC_prefix_and_INF_PRECEDENCE_tag(exp_type& ast)noexcept{
+  void strip_INFIX_ESC_prefix_and_INF_PRECEDENCE_tag(data_vector& ast)noexcept{
     for(size_type i = 0; i < ast.size(); ++i) {
       if(ast[i].is_type(types::exp)) {
         strip_INFIX_ESC_prefix_and_INF_PRECEDENCE_tag(ast[i].exp);
@@ -512,7 +511,7 @@ namespace heist {
     }
   }
 
-  void convert_infix_to_prefix(exp_type& ast)noexcept{
+  void convert_infix_to_prefix(data_vector& ast)noexcept{
     // expand in descending order (higher precedence first)
     for(auto iter = G.INFIX_TABLE.rbegin(), end = G.INFIX_TABLE.rend(); iter != end; ++iter)
       convert_infix_level_ops_to_prefix_notation(ast,iter->second);
@@ -523,7 +522,7 @@ namespace heist {
   * READER NUMBER PARSING FUNCTIONS
   ******************************************************************************/
 
-  bool parse_radix_exactness_prefix(const scm_string& input, size_type& i, int& base, char& prec)noexcept{
+  bool parse_radix_exactness_prefix(const string& input, size_type& i, int& base, char& prec)noexcept{
     if(input[i] == '#' && input.size()-i > 2) {
       if(input[i+1] == 'e' || input[i+1] == 'i') {
         if(prec) return false;
@@ -558,7 +557,7 @@ namespace heist {
   }
 
   // Returns whether found valid (including no) prefix.
-  bool parse_radix_exactness_prefixes(const scm_string& input, size_type& i, int& base, char& prec)noexcept{
+  bool parse_radix_exactness_prefixes(const string& input, size_type& i, int& base, char& prec)noexcept{
     if(!parse_radix_exactness_prefix(input,i,base,prec)) return false;
     if(!parse_radix_exactness_prefix(input,i,base,prec)) return false;
     if(!base) base = 10; // base = 10 by default
@@ -567,7 +566,7 @@ namespace heist {
 
   // Returns whether succeeded, handles the radix & exactness prefixes
   // => NOTE: <num_type> only handles numeric literals w/o these prefixes
-  bool convert_string_to_scm_number(const scm_string& input, num_type& num)noexcept{
+  bool convert_string_to_scm_number(const string& input, num_type& num)noexcept{
     // Given NaN (special case)
     if(input == "+nan.0" || input == "-nan.0") {
       num = num_type("+nan.0");
@@ -586,8 +585,8 @@ namespace heist {
   // Check whether data is a number. 
   //   => NOTE: 2.0.0 is a valid Scheme symbol
   //            -> Hence must confirm is numeric & NOT symbol prior extraction
-  bool data_is_number(size_type& i, const scm_string& input, num_type& exp) noexcept {
-    scm_string num;
+  bool data_is_number(size_type& i, const string& input, num_type& exp) noexcept {
+    string num;
     const size_type n = input.size();
     size_type j = i;
     while(j < n && !IS_END_OF_WORD(input[j],input[j+1])) num += input[j++];
@@ -603,7 +602,7 @@ namespace heist {
   ******************************************************************************/
 
   // Check whether data is a string literal
-  bool data_is_string(size_type& i, const scm_string& input, scm_string& exp) noexcept {
+  bool data_is_string(size_type& i, const string& input, string& exp) noexcept {
     if(is_non_escaped_double_quote(i,input)) {
       ++i;
       const size_type n = input.size();
@@ -614,7 +613,7 @@ namespace heist {
   }
 
   // Check whether data is a char
-  bool data_is_char(size_type& i, const scm_string& input, chr_type& exp) noexcept {
+  bool data_is_char(size_type& i, const string& input, chr_type& exp) noexcept {
     if(input[i] == '#' && input[i+1] == '\\') {
       i += 2;
       if(auto [ch, name] = data_is_named_char(i,input); !name.empty()) 
@@ -626,7 +625,7 @@ namespace heist {
   }
 
   // Check whether data is a symbol. Assumes confirmed NOT to be in a string & number already.
-  bool data_is_symbol(size_type& i, const scm_string& input, scm_string& exp) noexcept {
+  bool data_is_symbol(size_type& i, const string& input, string& exp) noexcept {
     const size_type n = input.size();
     if(i >= n || isspace(input[i]) || IS_OPEN_PAREN(input[i]) || IS_CLOSE_PAREN(input[i])) 
       return false;
@@ -640,10 +639,10 @@ namespace heist {
   * READER MAIN FUNCTIONS -- ABSTRACT SYNTAX TREE CONSTRUCTION
   ******************************************************************************/
 
-  // Parses the scheme expression buffer into a exp_type
-  void construct_abstract_syntax_tree(size_type& i, const scm_string& input, exp_type& tree) {
+  // Parses the scheme expression buffer into a data_vector
+  void construct_abstract_syntax_tree(size_type& i, const string& input, data_vector& tree) {
     const size_type n = input.size();
-    scm_string tmp_str = "", tmp_sym = "";
+    string tmp_str = "", tmp_sym = "";
     chr_type tmp_chr = 0;
     num_type tmp_num = 0;
     for(; i < n; ++i) {
@@ -657,7 +656,7 @@ namespace heist {
       else if(data_is_number(i,input,tmp_num)) // found number atom
         tree.push_back(data(tmp_num));
       else if(IS_OPEN_PAREN(input[i])) {       // found new list, recursively parse contents
-        exp_type new_list;
+        data_vector new_list;
         construct_abstract_syntax_tree(++i,input,new_list);
         tree.push_back(data(new_list));
       } else if(IS_CLOSE_PAREN(input[i]))      // found end of this list, return
@@ -670,7 +669,7 @@ namespace heist {
 
   // Mutates <input> prior AST parsing: rming comments, expanding quotes, etc.
   //   => NOTE: returns whether <input> is a candidate for AST parsing
-  bool prepare_string_for_AST_generation(scm_string& input) {
+  bool prepare_string_for_AST_generation(string& input) {
     if(input.empty() || !confirm_valid_scm_expression(input)) return false;
     strip_comments_and_redundant_whitespace(input);
     if(!GLOBALS::USING_CASE_SENSITIVE_SYMBOLS) render_input_cAsE_iNsEnSiTiVe(input);
@@ -682,7 +681,7 @@ namespace heist {
 
   // Expands scheme input quote-shorthands & returns derived Abstract Syntax Tree
   // => GIVEN THE RAW USER INPUT
-  void parse_input_exp(scm_string&& input, exp_type& abstract_syntax_tree) {
+  void parse_input_exp(string&& input, data_vector& abstract_syntax_tree) {
     if(!prepare_string_for_AST_generation(input)) return;
     size_type start_index = 0;
     construct_abstract_syntax_tree(start_index,input,abstract_syntax_tree);

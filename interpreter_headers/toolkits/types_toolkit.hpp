@@ -14,10 +14,10 @@ namespace heist {
   enum class list_status {ok, cyclic, no_null};
 
   list_status primitive_list_is_acyclic_and_null_terminated(const data& curr_pair)noexcept;
-  scm_string  stack_trace_str         (const scm_string& tab = "  ")noexcept;
-  sym_type    procedure_call_signature(const sym_type& name,const std::vector<data>& vals)noexcept;
-  bool        data_is_stream_pair     (const data& d)noexcept;
-  bool        data_is_proper_list     (const data& d)noexcept;
+  string stack_trace_str(const string& tab = "  ")noexcept;
+  string procedure_call_signature(const string& name,const data_vector& vals)noexcept;
+  bool data_is_stream_pair(const data& d)noexcept;
+  bool data_is_proper_list(const data& d)noexcept;
 
   /******************************************************************************
   * GLOBAL PROCESS-INDEPENDANT INVARIANTS DEPENDING ON "data"/"prm" TYPE DEFNS
@@ -101,18 +101,18 @@ namespace heist {
   ******************************************************************************/
 
   #define HEIST_COMMAND_LINE_ARGS\
-      "> Interpret Script:     -script <script-filename> <argv1> <argv2> ..."\
-    "\n> Compile Script:       -compile <script-filename> <optional-compiled-filename>"\
-    "\n> Load Script:          -l <script-filename>"\
-    "\n> Infix Operators:      -infix"\
-    "\n> With CPS Evaluation:  -cps"\
-    "\n> Disable ANSI Colors:  -nansi"\
-    "\n> Case Insensitivity:   -ci"\
-    "\n> Dynamic Call Trace:   -dynamic-call-trace"\
-    "\n> Trace Call Args:      -trace-args"\
-    "\n> Stack Trace Size:     -trace-limit <non-negative-integer>"\
-    "\n> Interpreter Version:  --version"\
-    "\n> Show This Message:    --help"
+      "> Interpret Script:    -script <script-filename> <argv1> <argv2> ..."\
+    "\n> Compile Script:      -compile <script-filename> <optional-compiled-filename>"\
+    "\n> Load Script:         -l <script-filename>"\
+    "\n> Infix Operators:     -infix"\
+    "\n> With CPS Evaluation: -cps"\
+    "\n> Disable ANSI Colors: -nansi"\
+    "\n> Case Insensitivity:  -ci"\
+    "\n> Dynamic Call Trace:  -dynamic-call-trace"\
+    "\n> Trace Call Args:     -trace-args"\
+    "\n> Stack Trace Size:    -trace-limit <non-negative-integer>"\
+    "\n> Interpreter Version: --version"\
+    "\n> Show This Message:   --help"
 
   /******************************************************************************
   * PLATFORM IDENTIFICATION
@@ -155,9 +155,9 @@ namespace heist {
   * STACK TRACE STRINGIFICATION HELPER FUNCTIONS
   ******************************************************************************/
 
-  scm_string stack_trace_str(const scm_string& tab) noexcept {
+  string stack_trace_str(const string& tab) noexcept {
     if(GLOBALS::STACK_TRACE.empty() || !G.TRACE_LIMIT) return "";
-    scm_string trace(afmt(heist::AFMT_01));
+    string trace(afmt(heist::AFMT_01));
     trace += afmt(heist::AFMT_35);
     trace += tab + ">> Stack Trace:";
     trace += afmt(heist::AFMT_01);
@@ -174,7 +174,7 @@ namespace heist {
 
   // Prototype for printing helper function
   template<DATA_PRINTER to_str>
-  void cio_list_str_recur(scm_string& list_str,const data& slow,const data& fast,par_type cycle_start);
+  void cio_list_str_recur(string& list_str,const data& slow,const data& fast,par_type cycle_start);
 
   // Confirm data is not the empty list
   bool is_not_THE_EMPTY_LIST(const data& pair_data)noexcept{
@@ -184,7 +184,7 @@ namespace heist {
 
   // Stringify list recursive helper, ONLY for once the lists is confirmed to be acyclic
   template<DATA_PRINTER to_str>
-  void cio_acyclic_list_str_recur(scm_string& list_str, const data& pair_object) {
+  void cio_acyclic_list_str_recur(string& list_str, const data& pair_object) {
     // store car
     if(pair_object.par->first.is_type(types::par)) {
       if(data_is_stream_pair(pair_object.par->first)) {
@@ -212,8 +212,7 @@ namespace heist {
 
   // Stringify list recursive helper
   template<DATA_PRINTER to_str>
-  void cio_list_str_recur(scm_string& list_str, const data& slow, const data& fast, 
-                                                par_type cycle_start) {
+  void cio_list_str_recur(string& list_str, const data& slow, const data& fast, par_type cycle_start) {
     // Check if detected a cycle (simultaneously performs Floyd's Loop Detection algorithm)
     if(fast.is_type(types::par) && fast.par->second.is_type(types::par) && 
        slow.par == fast.par) { 
@@ -255,9 +254,9 @@ namespace heist {
 
   // Stringify list
   template<DATA_PRINTER to_str>
-  scm_string cio_list_str(const data& pair_object) {
+  string cio_list_str(const data& pair_object) {
     if(data_is_stream_pair(pair_object)) return "#<stream>";
-    scm_string list_str;
+    string list_str;
     cio_list_str_recur<to_str>(list_str, pair_object.par, pair_object.par, nullptr);
     return '(' + list_str + ')';
   }
@@ -268,8 +267,8 @@ namespace heist {
 
   // Stringify vector
   template<DATA_PRINTER to_str>
-  scm_string cio_vect_str(const vec_type& vector_object) {
-    scm_string vect_str("#(");
+  string cio_vect_str(const vec_type& vector_object) {
+    string vect_str("#(");
     for(size_type i = 0, n = vector_object->size(); i < n; ++i) {
       if(vector_object->operator[](i).is_type(types::vec))
         vect_str += cio_vect_str<to_str>(vector_object->operator[](i).vec);
@@ -286,7 +285,7 @@ namespace heist {
 
   // Stringify expression recursive helper
   template<DATA_PRINTER to_str>
-  void cio_expr_str_rec(const exp_type& exp_object, scm_string& exp_str) {
+  void cio_expr_str_rec(const exp_type& exp_object, string& exp_str) {
     if(exp_object.empty()) return; // empty expression
     for(auto d = exp_object.begin(), end = exp_object.end(); d != end; ++d) {
       // Recursively append expressions
@@ -306,8 +305,8 @@ namespace heist {
 
   // Stringify expression
   template<DATA_PRINTER to_str>
-  scm_string cio_expr_str(const exp_type& exp_object) {
-    scm_string exp_str;
+  string cio_expr_str(const exp_type& exp_object) {
+    string exp_str;
     cio_expr_str_rec<to_str>(exp_object, exp_str);
     return '(' + exp_str + ')';
   }
@@ -318,8 +317,8 @@ namespace heist {
 
   // Stringify hash-map
   template<DATA_PRINTER to_str>
-  scm_string cio_hmap_str(const map_type& map_object) {
-    scm_string map_str("$(");
+  string cio_hmap_str(const map_type& map_object) {
+    string map_str("$(");
     for(const auto& keyval : map_object->val)
       map_str += (scm_map::unhash_key(keyval.first).*to_str)() + ' ' + (keyval.second.*to_str)() + ' ';
     if(map_str.size() > 2)
@@ -341,14 +340,14 @@ namespace heist {
     size_type output_len = 0;
     bool is_exp = false, is_sym = false;
     // Either a datum_str non-proper-list-pair or and <exp> of <pprint_datum>
-    scm_string datum_str;
+    string datum_str;
     pprint_data exp;
     pprint_datum()                      = default;
     pprint_datum(const pprint_datum& p) = default;
     pprint_datum(pprint_datum&& p)      = default;
-    pprint_datum(scm_string&& str,const bool is_symbol=false) : output_len(str.size()),
-                                                                is_sym(is_symbol),
-                                                                datum_str(std::move(str)) {}
+    pprint_datum(string&& str,const bool is_symbol=false) : output_len(str.size()),
+                                                            is_sym(is_symbol),
+                                                            datum_str(std::move(str)) {}
     pprint_datum(const pprint_data& e,const size_type& len) : output_len(len),is_exp(true),exp(e) {}
   };
 
@@ -390,7 +389,7 @@ namespace heist {
 
 
   // Stringifies <list_as_strs> w/o any tabs
-  void print_pprint_data_as_is(const pprint_data& list_as_strs, scm_string& buffer)noexcept{
+  void print_pprint_data_as_is(const pprint_data& list_as_strs, string& buffer)noexcept{
     buffer += '(';
     for(size_type i = 0, n = list_as_strs.size(); i < n; ++i) {
       if(list_as_strs[i].is_exp)
@@ -403,11 +402,10 @@ namespace heist {
   }
 
 
-  void pretty_print_pprint_data(const pprint_data&,const size_type&,const size_type&,scm_string&)noexcept;
+  void pretty_print_pprint_data(const pprint_data&,const size_type&,const size_type&,string&)noexcept;
 
   // Prints a list beginning w/ a non-symbol atom
-  void pretty_print_list_of_data(const pprint_data& list_as_strs, const size_type& depth, 
-                                                 scm_string& buffer, char* tabs)noexcept{
+  void pretty_print_list_of_data(const pprint_data& list_as_strs, const size_type& depth, string& buffer, char* tabs)noexcept{
     tabs[2*depth+1] = 0; // shorten tabs to account for specialized printing
     for(size_type col_length = 2*depth, i = 0, n = list_as_strs.size(); i < n; ++i) {
       if(i && list_as_strs[i].output_len + col_length > G.PPRINT_MAX_COLUMN_WIDTH) {
@@ -427,7 +425,7 @@ namespace heist {
 
   // Show info on the parsed stringified data
   void pretty_print_pprint_data(const pprint_data& list_as_strs, const size_type& len,
-                                const size_type& depth, scm_string& buffer)noexcept{
+                                const size_type& depth, string& buffer)noexcept{
     // Print as is if possible
     if(len + 2*depth <= G.PPRINT_MAX_COLUMN_WIDTH || len < 2) {
       print_pprint_data_as_is(list_as_strs,buffer);
@@ -478,7 +476,7 @@ namespace heist {
 
 
   // Pretty printer
-  scm_string pretty_print(const data& d) {
+  string pretty_print(const data& d) {
     // If non-proper-list-pair, print as-is
     if(!data_is_proper_list(d)) return d.write();
     // Else check if pair as string is of valid length
@@ -490,7 +488,7 @@ namespace heist {
     size_type output_length = 0;
     stringify_list_data(list_as_strs,output_length,d.par);
     // Print the list w/ indents
-    scm_string buffer;
+    string buffer;
     pretty_print_pprint_data(list_as_strs,output_length,0,buffer);
     return buffer;
   }
@@ -499,24 +497,24 @@ namespace heist {
   * OBJECT PRINTING HELPER (CHECKS IF OBJECT HAS A display write pprint MEMBER)
   ******************************************************************************/
 
-  data execute_application(data&,scm_list&,env_type& env=G.GLOBAL_ENVIRONMENT_POINTER,const bool tail_call=false,const bool applying_in_cps=false);
-  data execute_application(data&&,scm_list&,env_type& env=G.GLOBAL_ENVIRONMENT_POINTER,const bool tail_call=false,const bool applying_in_cps=false);
+  data execute_application(data&,data_vector&,env_type& env=G.GLOBAL_ENVIRONMENT_POINTER,const bool tail_call=false,const bool applying_in_cps=false);
+  data execute_application(data&&,data_vector&,env_type& env=G.GLOBAL_ENVIRONMENT_POINTER,const bool tail_call=false,const bool applying_in_cps=false);
   data extend_method_env_with_SELF_object(obj_type& calling_obj, scm_fcn& procedure)noexcept;
 
-  data apply_dynamic_method(obj_type& obj, scm_list arg, scm_fcn procedure_cpy) {
+  data apply_dynamic_method(obj_type& obj, data_vector args, scm_fcn procedure_cpy) {
     data procedure = extend_method_env_with_SELF_object(obj,procedure_cpy);
     env_type env = obj->proto->defn_env;
-    return execute_application(procedure,arg,env);
+    return execute_application(procedure,args,env);
   }
 
   template<DATA_PRINTER to_str>
-  scm_string cio_obj_str(const obj_type& object,const char* printer_name) {
+  string cio_obj_str(const obj_type& object,const char* printer_name) {
     obj_type obj = object;
     while(obj) {
       // search object's local members
       for(size_type i = 0, n = obj->method_names.size(); i < n; ++i) {
         if(obj->method_names[i] == "self->string" || obj->method_names[i] == printer_name) {
-          data result = apply_dynamic_method(obj,scm_list(),obj->method_values[i].fcn);
+          data result = apply_dynamic_method(obj,data_vector(),obj->method_values[i].fcn);
           if(result.is_type(types::str)) return *result.str;
           return (result.*to_str)();
         }
@@ -525,7 +523,7 @@ namespace heist {
       for(size_type i = 0, n = obj->proto->method_names.size(); i < n; ++i) {
         if(obj->proto->method_names[i] == "self->string" || obj->proto->method_names[i] == printer_name) {
           obj->method_names.push_back(obj->proto->method_names[i]), obj->method_values.push_back(obj->proto->method_values[i]);
-          data result = apply_dynamic_method(obj,scm_list(),obj->method_values[i].fcn);
+          data result = apply_dynamic_method(obj,data_vector(),obj->method_values[i].fcn);
           if(result.is_type(types::str)) return *result.str;
           return (result.*to_str)();
         }
@@ -638,7 +636,7 @@ namespace heist {
 
 
   template<DATA_COMPARER same_as>
-  bool prm_compare_EXPRs(const scm_list& l1, const scm_list& l2) {
+  bool prm_compare_EXPRs(const exp_type& l1, const exp_type& l2) {
     if(l1.size() != l2.size()) return false;
     for(size_type i = 0, n = l1.size(); i < n; ++i)
       if(!(l1[i].*same_as)(l2[i])) return false;
@@ -654,10 +652,6 @@ namespace heist {
 
   template<DATA_COMPARER same_as>
   bool prm_compare_SNTXs(const syn_type& s1, const syn_type& s2) {
-    scm_string label;
-    std::vector<scm_string> keywords;
-    std::vector<scm_list> patterns;
-    std::vector<scm_list> templates;
     if(s1.label != s2.label || s1.patterns.size()  != s2.patterns.size()
                             || s1.keywords.size()  != s2.keywords.size()
                             || s1.templates.size() != s2.templates.size()){
@@ -707,7 +701,7 @@ namespace heist {
       // search object's local members
       for(size_type i = 0, n = obj->method_names.size(); i < n; ++i) {
         if(obj->method_names[i] == "self=" || obj->method_names[i] == eq_name) {
-          data eq_result = apply_dynamic_method(obj,scm_list(1,rhs),obj->method_values[i].fcn);
+          data eq_result = apply_dynamic_method(obj,data_vector(1,rhs),obj->method_values[i].fcn);
           result = eq_result.is_truthy();
           return true;
         }
@@ -716,7 +710,7 @@ namespace heist {
       for(size_type i = 0, n = obj->proto->method_names.size(); i < n; ++i) {
         if(obj->proto->method_names[i] == "self=" || obj->proto->method_names[i] == eq_name) {
           obj->method_names.push_back(obj->proto->method_names[i]), obj->method_values.push_back(obj->proto->method_values[i]);
-          data eq_result = apply_dynamic_method(obj,scm_list(1,rhs),obj->method_values[i].fcn);
+          data eq_result = apply_dynamic_method(obj,data_vector(1,rhs),obj->method_values[i].fcn);
           result = eq_result.is_truthy();
           return true;
         }
@@ -740,7 +734,7 @@ namespace heist {
     }
     p = p.par->second;
     if(p.par != cycle_start) {
-      q->second = par_type(scm_pair());
+      q->second = make_par();
       q = q->second.par;
     }
   }
@@ -764,7 +758,7 @@ namespace heist {
     }
     // By now fast.par is where the cycle starts
     // -> Deep-Copy up to the cycle start, copy the cycle link, then copy again till cycle start
-    data root = par_type(scm_pair());
+    data root = make_par();
     auto q = root.par;
     auto p = d;
     copy_list_until_cycle_start<DEEP_COPY>(p,q,fast.par);
@@ -780,7 +774,7 @@ namespace heist {
   data copy_non_circular_list(const data& d) {
     // note: guarenteed by data::deep_copy <d.type> ::= types::par
     auto p = d;
-    data root = par_type(scm_pair());
+    data root = make_par();
     auto q = root.par;
     while(p.is_type(types::par)) {
       if constexpr (DEEP_COPY) {
@@ -790,7 +784,7 @@ namespace heist {
       }
       p = p.par->second;
       if(p.is_type(types::par)) {
-        q->second = par_type(scm_pair());
+        q->second = make_par();
         q = q->second.par;
       }
     }
@@ -821,14 +815,14 @@ namespace heist {
     // search object's local members
     for(size_type i = 0, n = obj->method_names.size(); i < n; ++i)
       if(obj->method_names[i] == "self->copy") {
-        result = apply_dynamic_method(obj,scm_list(),obj->method_values[i].fcn);
+        result = apply_dynamic_method(obj,data_vector(),obj->method_values[i].fcn);
         return true;
       }
     // search object's prototype
     for(size_type i = 0, n = obj->proto->method_names.size(); i < n; ++i) {
       if(obj->proto->method_names[i] == "self->copy") {
         obj->method_names.push_back(obj->proto->method_names[i]), obj->method_values.push_back(obj->proto->method_values[i]);
-        result = apply_dynamic_method(obj,scm_list(),obj->method_values[i].fcn);
+        result = apply_dynamic_method(obj,data_vector(),obj->method_values[i].fcn);
         return true;
       }
     }

@@ -23,11 +23,10 @@ namespace heist {
   * ABSTRACT SYNTAX TREE & INTERNAL TYPE ALIASES
   ******************************************************************************/
 
-  using scm_list   = std::vector<struct data>; // scheme expression list
-  using scm_node   = scm_list::iterator;
-  using scm_pair   = std::pair<struct data,struct data>;
-  using scm_string = std::string;
-  using size_type  = std::size_t;
+  using data_vector = std::vector<struct data>;
+  using string      = std::string;
+  using str_vector  = std::vector<string>;
+  using size_type   = std::size_t;
 
   /******************************************************************************
   * INFIX TABLE TYPE ALIASES
@@ -58,7 +57,7 @@ namespace heist {
     * ARGV REGISTRY OF STRINGS
     ******************************************************************************/
 
-    std::vector<tgc_ptr<scm_string>> ARGV;
+    std::vector<tgc_ptr<string>> ARGV;
 
     /******************************************************************************
     * GLOBAL PORT REGISTRY
@@ -70,7 +69,7 @@ namespace heist {
     * STACK TRACE
     ******************************************************************************/
 
-    std::vector<scm_string> STACK_TRACE;
+    str_vector STACK_TRACE;
 
     /******************************************************************************
     * MAX VALUE FOR SIZE_TYPE
@@ -143,56 +142,56 @@ namespace heist {
   * DATA TYPE ALIASES & CONSTRUCTORS
   ******************************************************************************/
 
-  using exp_type = scm_list;                             // expression
-  using par_type = tgc_ptr<scm_pair>;                    // pair
-  using num_type = scm_numeric::Snum;                    // number (float/int/frac)
-  using str_type = tgc_ptr<scm_string>;                  // string
-  using chr_type = int;                                  // character ("int" allows EOF to be a char)
-  using sym_type = scm_string;                           // symbol
-  using vec_type = tgc_ptr<scm_list>;                    // vector
-  using bol_type = struct boolean;                       // boolean
-  using env_type = tgc_ptr<struct environment>;          // evironment
-  using del_type = tgc_ptr<struct scm_delay>;            // delay
-  using fcn_type = struct scm_fcn;                       // procedure (compound & primitive)
-  using fip_type = struct iport;                         // file input port
-  using fop_type = struct oport;                         // file output port
-  using syn_type = struct scm_macro;                     // syntax-rules object
-  using map_type = tgc_ptr<struct scm_map>;              // hash-map
-  using cls_type = tgc_ptr<struct class_prototype>;      // class-prototype
-  using obj_type = tgc_ptr<struct object_type>;          // object
-  using prc_type = tgc_ptr<struct process_invariants_t>; // process invariants
+  using exp_type = data_vector;                                 // expression
+  using par_type = tgc_ptr<std::pair<struct data,struct data>>; // pair
+  using num_type = scm_numeric::Snum;                           // number (float/int/frac)
+  using str_type = tgc_ptr<string>;                             // string
+  using chr_type = int;                                         // character ("int" allows EOF to be a char)
+  using sym_type = string;                                      // symbol
+  using vec_type = tgc_ptr<data_vector>;                        // vector
+  using bol_type = struct boolean;                              // boolean
+  using env_type = tgc_ptr<struct environment>;                 // evironment
+  using del_type = tgc_ptr<struct scm_delay>;                   // delay
+  using fcn_type = struct scm_fcn;                              // procedure (compound & primitive)
+  using fip_type = struct iport;                                // file input port
+  using fop_type = struct oport;                                // file output port
+  using syn_type = struct scm_macro;                            // syntax-rules object
+  using map_type = tgc_ptr<struct scm_map>;                     // hash-map
+  using cls_type = tgc_ptr<struct class_prototype>;             // class-prototype
+  using obj_type = tgc_ptr<struct object_type>;                 // object
+  using prc_type = tgc_ptr<struct process_invariants_t>;        // process invariants
 
   /******************************************************************************
   * PROCEDURE HELPER ALIASES
   ******************************************************************************/
 
-  using prm_ptr_t = struct data(*)(scm_list&);          // primitive procedure ptr
+  using prm_ptr_t = struct data(*)(data_vector&);          // primitive procedure ptr
   using exe_fcn_t = std::function<struct data(env_type&)>; // fcn execution procedure
 
   /******************************************************************************
   * DATA PRINTING HELPER FUNCTION PROTOTYPES
   ******************************************************************************/
 
-  using DATA_PRINTER = scm_string(data::*)()const;
+  using DATA_PRINTER = string(data::*)()const;
   template<DATA_PRINTER to_str>
-  scm_string cio_list_str(const data& pair_object);       // to print lists
+  string cio_list_str(const data& pair_object);       // to print lists
   template<DATA_PRINTER to_str>
-  scm_string cio_vect_str(const vec_type& vector_object); // to print vectors
+  string cio_vect_str(const vec_type& vector_object); // to print vectors
   template<DATA_PRINTER to_str>
-  scm_string cio_expr_str(const exp_type& exp_object);    // to print expressions
+  string cio_expr_str(const exp_type& exp_object);    // to print expressions
   template<DATA_PRINTER to_str>
-  scm_string cio_hmap_str(const map_type& map_object);    // to print hash-maps
+  string cio_hmap_str(const map_type& map_object);    // to print hash-maps
   template<DATA_PRINTER to_str>
-  scm_string cio_obj_str (const obj_type&,const char*);   // to print objects (checks for overloaded methods)
-  scm_string escape_chars(const scm_string& str)noexcept; // to escape string special characters
-  scm_string pretty_print(const data& d);                 // pretty-printer
+  string cio_obj_str (const obj_type&,const char*);   // to print objects (checks for overloaded methods)
+  string escape_chars(const string& str)noexcept;     // to escape string special characters
+  string pretty_print(const data& d);                 // pretty-printer
 
   /******************************************************************************
   * POINTER->HEX-STRING
   ******************************************************************************/
 
   template<typename T> // PRECONDITION: <raw_ptr> IS A RAW POINTER
-  scm_string pointer_to_hexstring(const T raw_ptr)noexcept{
+  string pointer_to_hexstring(const T raw_ptr)noexcept{
     char str[32];
     snprintf(str, 32, "%zx", size_type(raw_ptr));
     return str;
@@ -219,7 +218,7 @@ namespace heist {
   template<DATA_COMPARER same_as>
   bool prm_compare_VECTs(const vec_type& v1, const vec_type& v2);
   template<DATA_COMPARER same_as>
-  bool prm_compare_EXPRs(const scm_list& l1, const scm_list& l2);
+  bool prm_compare_EXPRs(const exp_type& l1, const exp_type& l2);
   template<DATA_COMPARER same_as>
   bool prm_compare_HMAPs(const map_type& m1, const map_type& m2);
   template<DATA_COMPARER same_as>
@@ -272,11 +271,11 @@ namespace heist {
 
   // macro data structure
   struct scm_macro {
-    sym_type label;
-    std::vector<sym_type> keywords;
-    std::vector<std::vector<sym_type>> hashed_template_ids; // hashed_template_ids[i] = syntax-hashed vars of templates[i]
-    std::vector<scm_list> patterns, templates;
-    scm_macro(sym_type u_label = "") noexcept : label(u_label) {}
+    string label;
+    str_vector keywords;
+    std::vector<str_vector> hashed_template_ids; // hashed_template_ids[i] = syntax-hashed vars of templates[i]
+    std::vector<data_vector> patterns, templates;
+    scm_macro(string u_label = "")    noexcept : label(u_label) {}
     scm_macro(const scm_macro& m)     noexcept {*this = m;}
     scm_macro(scm_macro&& m)          noexcept {*this = std::move(m);}
     ~scm_macro()                      noexcept {}
@@ -297,8 +296,8 @@ namespace heist {
   // function (compound & primitive) data structure
   struct scm_fcn {
     using depth_t = tgc_ptr<size_type>;
-    scm_string name; // name == "" denotes an anonymous procedure
-    std::vector<exp_type> param_instances;
+    string name; // name == "" denotes an anonymous procedure
+    std::vector<data_vector> param_instances;
     // PRIMITIVE
     prm_ptr_t prm = nullptr;
     // COMPOUND
@@ -309,18 +308,18 @@ namespace heist {
     unsigned char flags = 1; // is_lambda (as opposed to 'fn) | using_dynamic_scope | cps_proc [only lambda by default]
     scm_fcn() = default;
     // primitive ctors
-    scm_fcn(const exp_type& a, const prm_ptr_t& p)noexcept:prm(p) {param_instances.push_back(a);} // partial primitive
-    scm_fcn(const scm_string& n, const prm_ptr_t& p)noexcept:name(n),prm(p) {}                    // primitive
+    scm_fcn(const data_vector& a, const prm_ptr_t& p)noexcept:prm(p) {param_instances.push_back(a);} // partial primitive
+    scm_fcn(const string& n, const prm_ptr_t& p)noexcept:name(n),prm(p) {}                           // primitive
     // tail call wrapper ctor (gets returned up)
     scm_fcn(env_type& e,const exe_fcn_t& b)noexcept:env(e){bodies.push_back(b);}
     // lambda ctor
-    scm_fcn(const exp_type& p,const exe_fcn_t& b,env_type& e,const sym_type& n)noexcept:name(n),env(e),rec_depth(depth_t(size_type(0))){
+    scm_fcn(const data_vector& p,const exe_fcn_t& b,env_type& e,const string& n)noexcept:name(n),env(e),rec_depth(depth_t(size_type(0))){
       param_instances.push_back(p), bodies.push_back(b);
     }
     // fn ctor
-    scm_fcn(const std::vector<exp_type>& ps,const std::vector<exe_fcn_t>& bs,env_type& e,const sym_type& n)noexcept:name(n),param_instances(ps),bodies(bs),
-                                                                                                                    env(e),rec_depth(depth_t(size_type(0))),
-                                                                                                                    flags(0){}
+    scm_fcn(const std::vector<data_vector>& ps,const std::vector<exe_fcn_t>& bs,env_type& e,const string& n)noexcept:name(n),param_instances(ps),bodies(bs),
+                                                                                                                     env(e),rec_depth(depth_t(size_type(0))),
+                                                                                                                     flags(0){}
     scm_fcn(const scm_fcn& f)noexcept{*this = f;}
     scm_fcn(const scm_fcn&& f)noexcept{*this = std::move(f);}
     void operator=(const scm_fcn& f)noexcept;
@@ -336,10 +335,10 @@ namespace heist {
     void set_cps_procedure(bool status)noexcept{if(status) flags |= 4; else flags &= ~4;}
     size_type& recursive_depth()noexcept{return *rec_depth;} // PRECONDITION: rec_depth
     size_type recursive_depth()const noexcept{return *rec_depth;} // PRECONDITION: rec_depth
-    scm_string str()const noexcept{return name.empty() ? "#<procedure>" : "#<procedure " + name + '>';}
-    scm_string printable_procedure_name()const noexcept{return name.empty() ? "#<procedure>" : name;}
-    std::vector<scm_string> lambda_parameters()const noexcept;
-    env_type get_extended_environment(exp_type& arguments,exe_fcn_t& body,const bool applying_in_cps);
+    string str()const noexcept{return name.empty() ? "#<procedure>" : "#<procedure " + name + '>';}
+    string printable_procedure_name()const noexcept{return name.empty() ? "#<procedure>" : name;}
+    str_vector lambda_parameters()const noexcept;
+    env_type get_extended_environment(data_vector& arguments,exe_fcn_t& body,const bool applying_in_cps);
   };
 
   /******************************************************************************
@@ -503,7 +502,7 @@ namespace heist {
     }
 
     // noexcept version of <write> (doesn't invoke object printing members)
-    scm_string noexcept_write() const noexcept {
+    string noexcept_write() const noexcept {
       switch(type) {
         case types::sym:
           if(sym==symconst::emptylist) return "()";
@@ -523,11 +522,11 @@ namespace heist {
             case '\x7f': return "#\\delete";
             case EOF:    return "#<eof>";
             default: 
-              if(isprint(chr)) return scm_string("#\\") + char(chr);
+              if(isprint(chr)) return string("#\\") + char(chr);
               else {
                 char str[32];
                 snprintf(str, 32, "#\\x%x", chr);
-                return scm_string(str);
+                return string(str);
               }
           }
         case types::num: return num.str();
@@ -551,7 +550,7 @@ namespace heist {
       }
     }
 
-    scm_string write() const { // machine-readable string
+    string write() const { // machine-readable string
       switch(type) {
         case types::par: return cio_list_str<&data::write>(*this);
         case types::vec: return cio_vect_str<&data::write>(vec);
@@ -562,9 +561,9 @@ namespace heist {
       }
     }
 
-    scm_string display() const { // human-readable string
+    string display() const { // human-readable string
       switch(type) {
-        case types::chr: return scm_string(1,chr);
+        case types::chr: return string(1,chr);
         case types::str: return *str;
         case types::par: return cio_list_str<&data::display>(*this);
         case types::vec: return cio_vect_str<&data::display>(vec);
@@ -575,7 +574,7 @@ namespace heist {
       }
     }
 
-    scm_string pprint() const { // pretty-print (<write> w/ list indenting)
+    string pprint() const { // pretty-print (<write> w/ list indenting)
       switch(type) {
         case types::par: return pretty_print(*this);
         case types::vec: return cio_vect_str<&data::pprint>(vec);
@@ -593,7 +592,7 @@ namespace heist {
     }
 
     // get ptr address as a string (if exists)
-    scm_string pointer_address()const{
+    string pointer_address()const{
       switch(type) {
         case types::sym: case types::exp: case types::num: case types::chr: 
         case types::bol: case types::fcn: case types::syn: case types::dne: 
@@ -780,19 +779,19 @@ namespace heist {
     bool set_variable_value(const frame_var& var, frame_val&& val)noexcept;
     void define_variable(const frame_var& var, frame_val&& val)noexcept;
     void define_macro(const frame_mac& mac)noexcept;
-    scm_string getenv(const frame_var& var, bool& found)const;
-    bool has_macro(const scm_string& label)const noexcept;
+    string getenv(const frame_var& var, bool& found)const;
+    bool has_macro(const string& label)const noexcept;
     bool has_variable(const frame_var& var)const noexcept;
     bool erase_variable(const frame_var& var)noexcept;
-    bool erase_macro(const scm_string& label)noexcept;
+    bool erase_macro(const string& label)noexcept;
 
   private:
-    bool macro_has_label(const frame_mac& mac, const scm_string& label)const noexcept;
+    bool macro_has_label(const frame_mac& mac, const string& label)const noexcept;
   };
 
 
   // Frame Generation
-  frame_type create_frame(const std::vector<scm_string>& vars, std::vector<data>& vals) {
+  frame_type create_frame(const str_vector& vars, data_vector& vals) {
     const size_type n = vars.size();
     frame_objs objects;
     objects.reserve(n);
@@ -835,12 +834,12 @@ namespace heist {
 
   // hash-map structure
   struct scm_map {
-    std::unordered_map<sym_type,struct data> val;
+    std::unordered_map<string,struct data> val;
     static bool hashable(const data& key)noexcept{
       return key.type==types::num||key.type==types::str||key.type==types::chr||
              key.type==types::sym||key.type==types::bol;
     }
-    static data unhash_key(sym_type key)noexcept{ // unhash a key back into a datum
+    static data unhash_key(string key)noexcept{ // unhash a key back into a datum
       types t = types(*key.rbegin());
       key.pop_back();
       switch(t) {
@@ -852,7 +851,7 @@ namespace heist {
         default:         return data(); // ONLY TRIGGERED IF GIVEN INVALID KEY
       }
     }
-    static sym_type hash_key(const data& key)noexcept{
+    static string hash_key(const data& key)noexcept{
       return key.display()+char(key.type);
     }
     auto& operator[](const data& key)noexcept{ // PRECONDITION: hashable(key)
@@ -865,9 +864,9 @@ namespace heist {
     cls_type super = nullptr; // inherited proto
     env_type defn_env; // environment of class prototype definition
     scm_fcn user_ctor; // user-defined ctor (generated if undefined by user)
-    scm_string class_name;
-    std::vector<scm_string> member_names, method_names;
-    scm_list member_values, method_values; // default member values of the proto
+    string class_name;
+    str_vector member_names, method_names;
+    data_vector member_values, method_values; // default member values of the proto
     void bind_user_ctor(const scm_fcn& c)noexcept{
       user_ctor = c;
       user_ctor.name = class_name;
@@ -878,8 +877,8 @@ namespace heist {
   struct object_type {
     obj_type super = nullptr; // inherited proto subobject instance
     cls_type proto; // ptr to the prototype object
-    std::vector<scm_string> member_names, method_names;
-    scm_list member_values, method_values;
+    str_vector member_names, method_names;
+    data_vector member_values, method_values;
   };
 
   /******************************************************************************
@@ -892,7 +891,7 @@ namespace heist {
   data deep_copy_obj(const data& d);
   data data::copy() const {
     scm_map m;
-    scm_list new_vec;
+    data_vector new_vec;
     switch(type) {
       case types::str: return str_type(*str);
       case types::par: return deep_copy_pair(*this);
@@ -914,7 +913,7 @@ namespace heist {
   data shallow_copy_obj(const data& d);
   data data::shallow_copy() const {
     scm_map m;
-    scm_list new_vec;
+    data_vector new_vec;
     switch(type) {
       case types::str: return str_type(*str);
       case types::par: return shallow_copy_pair(*this);
@@ -941,8 +940,8 @@ namespace heist {
   }
 
   // compound procedure parameter list extraction
-  std::vector<scm_string> scm_fcn::lambda_parameters()const noexcept{
-    std::vector<scm_string> var_names;
+  str_vector scm_fcn::lambda_parameters()const noexcept{
+    str_vector var_names;
     for(size_type i = 0, n = param_instances[0].size(); i < n; ++i)
       if(param_instances[0][i].is_type(types::sym))
         var_names.push_back(param_instances[0][i].sym);
@@ -976,12 +975,12 @@ namespace heist {
   * DATA TYPE GC CONSTRUCTORS
   ******************************************************************************/
 
-  str_type make_str(const scm_string& o)                         noexcept{return str_type(o);}
-  str_type make_str(scm_string&& o)                              noexcept{return str_type(std::move(o));}
-  vec_type make_vec(const scm_list& o)                           noexcept{return vec_type(o);}
-  vec_type make_vec(scm_list&& o)                                noexcept{return vec_type(std::move(o));}
+  str_type make_str(const string& o)                             noexcept{return str_type(o);}
+  str_type make_str(string&& o)                                  noexcept{return str_type(std::move(o));}
+  vec_type make_vec(const data_vector& o)                        noexcept{return vec_type(o);}
+  vec_type make_vec(data_vector&& o)                             noexcept{return vec_type(std::move(o));}
   del_type make_del(const data& d,const env_type& e, bool in_cps)noexcept{return del_type(scm_delay(d,e,in_cps));}
-  par_type make_par()                                            noexcept{return par_type(scm_pair());}
+  par_type make_par()                                            noexcept{return par_type(std::pair<struct data,struct data>());}
   map_type make_map(const scm_map& m)                            noexcept{return map_type(m);}
   map_type make_map(scm_map&& m)                                 noexcept{return map_type(std::move(m));}
   env_type make_env()                                            noexcept{return env_type(environment());}
@@ -1029,14 +1028,14 @@ namespace heist {
     * NAME OF CURRENT TRACED FUNCTION (EMPTY = NO TRACE)
     ******************************************************************************/
 
-    scm_string TRACED_FUNCTION_NAME = ""; // see trace primitive
+    string TRACED_FUNCTION_NAME = ""; // see trace primitive
 
     /******************************************************************************
     * REPL PROMPT VARIABLES
     ******************************************************************************/
 
-    scm_string REPL_PROMPT = "> "; // see set-repl-prompt! primitive
-    scm_string REPL_TAB    = "  ";
+    string REPL_PROMPT = "> "; // see set-repl-prompt! primitive
+    string REPL_TAB    = "  ";
 
     /******************************************************************************
     * REPL FORMATTING TRACKER VARIABLES
@@ -1062,7 +1061,7 @@ namespace heist {
     * THE GLOBAL MACRO LABEL REGISTRY & MACRO/CPS HASH INDICES
     ******************************************************************************/
 
-    std::vector<scm_string> MACRO_LABEL_REGISTRY; // optimizes procedure analysis
+    str_vector MACRO_LABEL_REGISTRY; // optimizes procedure analysis
 
     size_type MACRO_HASH_IDX_1 = 0, MACRO_HASH_IDX_2 = 0;
 
@@ -1074,14 +1073,14 @@ namespace heist {
     * THE GLOBAL REGISTRY OF ANALYSIS-TIME GLOBAL MACRO LABELS
     ******************************************************************************/
 
-    std::vector<scm_string> ANALYSIS_TIME_MACRO_LABEL_REGISTRY;
+    str_vector ANALYSIS_TIME_MACRO_LABEL_REGISTRY;
 
     /******************************************************************************
     * THE GLOBAL REGISTRY OF READER MACROS
     ******************************************************************************/
 
-    std::vector<scm_string> SHORTHAND_READER_MACRO_REGISTRY = std::vector<scm_string>({"`@","\\","'"});
-    std::vector<scm_string> LONGHAND_READER_MACRO_REGISTRY = std::vector<scm_string>({
+    str_vector SHORTHAND_READER_MACRO_REGISTRY = str_vector({"`@","\\","'"});
+    str_vector LONGHAND_READER_MACRO_REGISTRY = str_vector({
       "syntax-hash",symconst::reader_lambda,"quote"
     });
 
@@ -1089,7 +1088,7 @@ namespace heist {
     * THE GLOBAL REGISTRY OF READER ALIASES
     ******************************************************************************/
 
-    std::vector<scm_string> SHORTHAND_READER_ALIAS_REGISTRY, LONGHAND_READER_ALIAS_REGISTRY;
+    str_vector SHORTHAND_READER_ALIAS_REGISTRY, LONGHAND_READER_ALIAS_REGISTRY;
 
     /******************************************************************************
     * STACK TRACE MODIFIERS
@@ -1103,7 +1102,7 @@ namespace heist {
     * INFIX SYMBOL READER TABLE
     ******************************************************************************/
 
-    std::map<long long,infix_level_t> INFIX_TABLE;
+    std::map<long long,infix_level_t> INFIX_TABLE; // {precedence, {left-assoc?, symbol}}
 
     /******************************************************************************
     * GLOBAL ENVIRONMENT POINTER
@@ -1115,13 +1114,13 @@ namespace heist {
     * DOT CHARACTER FOR VARIADIC & PAIR-LITERAL DENOTATION
     ******************************************************************************/
 
-    scm_string dot = "."; // see the "set-dot!" primitive
+    string dot = "."; // see the "set-dot!" primitive
 
     /******************************************************************************
     * FALSINESS VECTOR
     ******************************************************************************/
 
-    scm_list FALSEY_VALUES = scm_list(1,boolean(false));
+    data_vector FALSEY_VALUES = data_vector(1,boolean(false));
 
   }; // End of struct process_invariants_t
 
@@ -1156,7 +1155,7 @@ namespace heist {
 
 namespace heist {
 
-  bool symbol_is_dot_operator(const sym_type& sym)noexcept{
+  bool symbol_is_dot_operator(const string& sym)noexcept{
     return sym == symconst::dot || sym == G.dot;
   }
 
@@ -1165,14 +1164,14 @@ namespace heist {
   }
 
   namespace fn_param_matching {
-    scm_string get_possible_signature(const exp_type& params)noexcept{
-      scm_string buff;
+    string get_possible_signature(const data_vector& params)noexcept{
+      string buff;
       for(size_type i = 0, n = params.size(); i < n; ++i) {
         if(params[i].is_type(types::exp)) {
           if(!params[i].exp.empty() && params[i].exp[0].is_type(types::sym) && 
             (params[i].exp[0].sym == symconst::vec_literal || params[i].exp[0].sym == symconst::map_literal)){
             buff += params[i].exp[0].sym == symconst::vec_literal ? '#' : '$';
-            buff += '(' + get_possible_signature(exp_type(params[i].exp.begin()+1,params[i].exp.end()));
+            buff += '(' + get_possible_signature(data_vector(params[i].exp.begin()+1,params[i].exp.end()));
           } else {
             buff += '(' + get_possible_signature(params[i].exp);
           }
@@ -1184,8 +1183,8 @@ namespace heist {
       return buff + ')';
     }
 
-    scm_string get_possible_signatures(const std::vector<exp_type>& param_instances,const scm_string& name)noexcept{
-      scm_string buff;
+    string get_possible_signatures(const std::vector<data_vector>& param_instances,const string& name)noexcept{
+      string buff;
       for(size_type i = 0, n = param_instances.size(); i < n; ++i) {
         if(param_instances[i].empty())
           buff += "\n        (" + name + ')';
@@ -1204,7 +1203,7 @@ namespace heist {
       return d.sym == "#f" || d.sym == "#t";
     }
 
-    bool param_boolean_mismatch(const sym_type& sym, const data& arg)noexcept{ 
+    bool param_boolean_mismatch(const string& sym, const data& arg)noexcept{ 
       return (sym == "#f") ^ arg.is_falsey();
     }
 
@@ -1214,7 +1213,7 @@ namespace heist {
              d.exp[0].sym == symconst::quote;
     }
 
-    bool param_symbol_mismatch(const sym_type& sym, const data& arg)noexcept{
+    bool param_symbol_mismatch(const string& sym, const data& arg)noexcept{
       return !arg.is_type(types::sym) || sym != arg.sym;
     }
 
@@ -1237,10 +1236,10 @@ namespace heist {
     }
 
 
-    bool param_parse_hmap_literal(const data&,data&,exp_type&,std::vector<scm_string>&)noexcept;
-    bool param_parse_list_literal(const data&,data&,exp_type&,std::vector<scm_string>&)noexcept;
+    bool param_parse_hmap_literal(const data&,data&,data_vector&,str_vector&)noexcept;
+    bool param_parse_list_literal(const data&,data&,data_vector&,str_vector&)noexcept;
 
-    bool param_parse_vector_literal(const data& vec, data& arg, exp_type& values, std::vector<scm_string>& unpacked_params)noexcept{
+    bool param_parse_vector_literal(const data& vec, data& arg, data_vector& values, str_vector& unpacked_params)noexcept{
       if(!arg.is_type(types::vec)) return false;
       if(vec.exp.size() != arg.vec->size()+1) return false;
       for(size_type i = 1, j = 0, n = vec.exp.size(); i < n; ++i, ++j) {
@@ -1273,7 +1272,7 @@ namespace heist {
       return true;
     }
 
-    bool param_parse_hmap_literal(const data& map, data& arg, exp_type& values, std::vector<scm_string>& unpacked_params)noexcept{
+    bool param_parse_hmap_literal(const data& map, data& arg, data_vector& values, str_vector& unpacked_params)noexcept{
       if(!arg.is_type(types::map)) return false;
       if((map.exp.size()-1)/2 != arg.map->val.size()) return false;
       auto iter = arg.map->val.begin();
@@ -1311,7 +1310,7 @@ namespace heist {
       return true;
     }
 
-    bool param_parse_list_literal(const data& lst, data& arg, exp_type& values, std::vector<scm_string>& unpacked_params)noexcept{
+    bool param_parse_list_literal(const data& lst, data& arg, data_vector& values, str_vector& unpacked_params)noexcept{
       if(lst.exp.empty()) return arg.is_type(types::sym) && arg.sym == symconst::emptylist; // match NIL
       if(!arg.is_type(types::par)) return false;
       size_type i = 0, n = lst.exp.size();
@@ -1384,7 +1383,7 @@ namespace heist {
     // 2. MATCHING SYMBOLS AGAINST QUOTED SYMBOL LITERALS (NOT NIL: FN PARAMETER SHOULD BE () NOT '())
     // 3. MATCHING NON-CONTAINER NON-QUOTED-SYMBOL LITERALS
     // 4. MATCHING & UPPACKING LIST/VECTOR/HMAP CONTAINER LITERALS
-    bool is_fn_call_match(const exp_type& params, exp_type& arguments, exp_type& values, std::vector<scm_string>& unpacked_params)noexcept{
+    bool is_fn_call_match(const data_vector& params, data_vector& arguments, data_vector& values, str_vector& unpacked_params)noexcept{
       // confirm emptiness match
       if((params.empty() || !data_is_dot_operator(params[0])) && (params.empty() ^ arguments.empty())) {
         return false;
@@ -1430,8 +1429,8 @@ namespace heist {
       return i == n && j == m;
     }
 
-    void match_fn_call_signature(const std::vector<exp_type>& param_instances, const std::vector<exe_fcn_t>& bodies, const scm_string& name,
-                                 exp_type& arguments, exp_type& values, std::vector<scm_string>& unpacked_params, exe_fcn_t& body){
+    void match_fn_call_signature(const std::vector<data_vector>& param_instances, const std::vector<exe_fcn_t>& bodies, const string& name,
+                                 data_vector& arguments, data_vector& values, str_vector& unpacked_params, exe_fcn_t& body){
       for(size_type i = 0, n = param_instances.size(); i < n; ++i) {
         if(is_fn_call_match(param_instances[i],arguments,values,unpacked_params)) {
           body = bodies[i];
@@ -1447,7 +1446,7 @@ namespace heist {
 
   // Default continuation to provide to cps procs applied in a non-cps context
   namespace DEFAULT_TOPMOST_CONTINUATION {
-    data id(scm_list& args) {
+    data id(data_vector& args) {
       if(args.size() != 1) THROW_ERR("'id not given 1 argument: (id <obj>)" << FCN_ERR("id",args));
       return args[0];
     }
@@ -1455,19 +1454,19 @@ namespace heist {
 
 
   // Get the extended environment for the compound procedure given <arguments>
-  env_type scm_fcn::get_extended_environment(exp_type& arguments, exe_fcn_t& body, const bool applying_in_cps){
+  env_type scm_fcn::get_extended_environment(data_vector& arguments, exe_fcn_t& body, const bool applying_in_cps){
     // add <id> as the topmost continuation if applying a procedure accepting a continuation in a non-cps environment
     if(is_cps_procedure() && !applying_in_cps)
       arguments.push_back(scm_fcn("id",DEFAULT_TOPMOST_CONTINUATION::id));
     // extend the lambda environment
-    env_type extend_environment(std::vector<scm_string>&&,std::vector<data>&,env_type&,const sym_type&);
+    env_type extend_environment(str_vector&&,data_vector&,env_type&,const string&);
     if(is_lambda()) {
       body = bodies[0];
       return extend_environment(lambda_parameters(), arguments, env, name);
     }
     // extend the fn environment
-    std::vector<scm_string> unpacked_params;
-    exp_type values;
+    str_vector unpacked_params;
+    data_vector values;
     fn_param_matching::match_fn_call_signature(param_instances,bodies,printable_procedure_name(),arguments,values,unpacked_params,body);
     return extend_environment(std::move(unpacked_params), values, env, name);
   }
@@ -1519,7 +1518,7 @@ namespace heist {
   }
 
   // Get variable's name as a string
-  scm_string environment::getenv(const frame_var& var, bool& found)const{
+  string environment::getenv(const frame_var& var, bool& found)const{
     const auto& objs = objects();
     if(const auto pos = objs.find(var); pos != objs.end()) {
       found = true;
@@ -1530,7 +1529,7 @@ namespace heist {
     return "";
   }
 
-  bool environment::has_macro(const scm_string& label)const noexcept{
+  bool environment::has_macro(const string& label)const noexcept{
     for(const auto& mac : macros())
       if(macro_has_label(mac,label)) return true;
     return parent && parent->has_macro(label);
@@ -1546,7 +1545,7 @@ namespace heist {
   }
 
   // Returns whether found
-  bool environment::erase_macro(const scm_string& label)noexcept{
+  bool environment::erase_macro(const string& label)noexcept{
     auto& macs = macros();
     for(size_type i = 0, n = macs.size(); i < n; ++i) {
       if(macro_has_label(macs[i],label)) {
@@ -1557,7 +1556,7 @@ namespace heist {
     return parent && parent->erase_macro(label);
   }
 
-  bool environment::macro_has_label(const frame_mac& mac, const scm_string& label)const noexcept{
+  bool environment::macro_has_label(const frame_mac& mac, const string& label)const noexcept{
     return (mac.is_type(types::syn) && mac.syn.label == label) ||
            (mac.is_type(types::fcn) && mac.fcn.name == label);
   }

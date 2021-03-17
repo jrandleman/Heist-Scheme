@@ -135,43 +135,42 @@ namespace heist {
 
   data scm_eval(data&& datum, env_type& env);
   exe_fcn_t scm_analyze(data&& datum,const bool tail_call,const bool cps_block);
-  scm_string generate_unique_cps_hash()noexcept;
+  string generate_unique_cps_hash()noexcept;
 
   /******************************************************************************
   * AST-ANALYSIS HELPER FUNCTIONS
   ******************************************************************************/
 
   // Confirm whether list begins w/ designated symbol
-  bool is_tagged_list(const scm_list& exp, const char* const tag)noexcept{
+  bool is_tagged_list(const data_vector& exp, const char* const tag)noexcept{
     return !exp.empty() && exp[0].is_type(types::sym) && exp[0].sym == tag;
   }
 
 
   // Generate a call signature from a procedure name & its given values
-  sym_type procedure_call_signature(const sym_type& name,const std::vector<data>& vals)noexcept{
+  string procedure_call_signature(const string& name,const data_vector& vals)noexcept{
     if(vals.empty()) return '(' + name + ')';
     return '(' + name + ' ' + cio_expr_str<&data::noexcept_write>(vals).substr(1);
   }
 
 
   // Generate an improper procedure call error message
-  sym_type improper_call_alert(sym_type name, const std::vector<data>& vals,
-                                              const std::vector<scm_string>& vars)noexcept{
+  string improper_call_alert(string name, const data_vector& vals, const str_vector& vars)noexcept{
     if(name.empty()) name = "#<procedure>"; // anonymous lambda
     // Generate the call signature
     auto call_signature = procedure_call_signature(name,vals);
     // Generate the definition signature
-    sym_type defn_signature('(' + name);
+    string defn_signature('(' + name);
     for(const auto& var : vars) defn_signature += ' ' + var;
     // Return the comparison between the called & defined procedure signatures
-    return '\n' + scm_string(afmt(AFMT_35)) + "  >> Invalid Syntax:" + 
-                  scm_string(afmt(AFMT_01)) + ' ' + call_signature + 
-           '\n' + scm_string(afmt(AFMT_35)) + "  >> Defined Syntax:" + 
-                  scm_string(afmt(AFMT_01)) + ' ' + defn_signature + ')';
+    return '\n' + string(afmt(AFMT_35)) + "  >> Invalid Syntax:" + 
+                  string(afmt(AFMT_01)) + ' ' + call_signature + 
+           '\n' + string(afmt(AFMT_35)) + "  >> Defined Syntax:" + 
+                  string(afmt(AFMT_01)) + ' ' + defn_signature + ')';
   }
 
-  bool symbol_is_property_chain_access(const sym_type& sym)noexcept{
-    return sym.find('.') != scm_string::npos && sym != "." && sym != "..";
+  bool symbol_is_property_chain_access(const string& sym)noexcept{
+    return sym.find('.') != string::npos && sym != "." && sym != "..";
   }
 
   /******************************************************************************
@@ -180,7 +179,7 @@ namespace heist {
 
   // Throw an error if 'vars' contains duplicate or non-symbol arg names, 
   //   or improper (.) use
-  void confirm_valid_procedure_parameters(const scm_list& vars,const scm_list& exp){
+  void confirm_valid_procedure_parameters(const data_vector& vars,const data_vector& exp){
     const size_type n = vars.size();
     // variadic (.) arg must have a label afterwards
     if(n != 0 && symbol_is_dot_operator(vars[n-1].sym))
@@ -202,7 +201,7 @@ namespace heist {
 
 
   // Confirm valid argument layout for variable assignment
-  void confirm_valid_assignment(const scm_list& exp) {
+  void confirm_valid_assignment(const data_vector& exp) {
     if(exp.size() != 3)
       THROW_ERR("'set! didn't receive 2 arguments: (set! <var> <val>)" << EXP_ERR(exp));
     if(!exp[1].is_type(types::sym) || exp[1].sym.empty())
@@ -215,7 +214,7 @@ namespace heist {
 
 
   // Confirm valid argument layout for variable & procedure definitions
-  void confirm_valid_definition(const scm_list& exp) {
+  void confirm_valid_definition(const data_vector& exp) {
     if(exp.size() < 3)
       THROW_ERR("'define didn't receive enough arguments!\n     (define <var> <val>)"
         "\n     (define (<procedure-name> <args>) <body>)" << EXP_ERR(exp));
@@ -240,7 +239,7 @@ namespace heist {
 
 
   // Confirm valid argument layout for a lambda
-  void confirm_valid_lambda(const scm_list& exp) {
+  void confirm_valid_lambda(const data_vector& exp) {
     if(exp.size() < 3)
       THROW_ERR("'lambda special form didn't receive enough args: (lambda (<args>) <body>)"
         << EXP_ERR(exp));
@@ -258,7 +257,7 @@ namespace heist {
   // Transforms the appropriate 'vals' into a list (for the given variadic arg)
   //   => ((lambda (. l) l) <arg1> <arg2> ... <argN>)      [ BECOMES -> ]
   //      ((lambda (l) l) (list <arg1> <arg2> ... <argN>))
-  void transform_variadic_vals_into_a_list(std::vector<scm_string>& vars,std::vector<data>& vals,const size_type continuation_offset)noexcept{
+  void transform_variadic_vals_into_a_list(str_vector& vars,data_vector& vals,const size_type continuation_offset)noexcept{
     const size_type va_arg_idx = vars.size()-2-continuation_offset;
     // Transform the arg names & vals as needed
     vars[va_arg_idx] = vars[va_arg_idx+1]; // shift up variadic arg name (erasing '.')
@@ -274,38 +273,38 @@ namespace heist {
 
 
   // Confirm given no args & NOT applying a void-arg fcn & NOT a variadic-arg fcn
-  bool nullary_invocation_of_non_nullary_procedure(const std::vector<scm_string>& vars,const std::vector<data>& vals)noexcept{
+  bool nullary_invocation_of_non_nullary_procedure(const str_vector& vars,const data_vector& vals)noexcept{
     return vals.empty() && !vars.empty() && !(vars.size()==2 && symbol_is_dot_operator(vars[0]));
   }
 
 
   // Confirm passing an arg to an argless procedure
-  bool non_nullary_invocation_of_nullary_procedure(const std::vector<scm_string>& vars,const std::vector<data>& vals)noexcept{
+  bool non_nullary_invocation_of_nullary_procedure(const str_vector& vars,const data_vector& vals)noexcept{
     return !vals.empty() && vars.empty();
   }
 
 
   // Confirm <vars> is a cps-variadic procedure
-  bool is_cps_variadic_arg_declaration(const std::vector<scm_string>& vars)noexcept{
+  bool is_cps_variadic_arg_declaration(const str_vector& vars)noexcept{
     return vars.size() > 2 && string_begins_with(vars[vars.size()-1],symconst::continuation) 
                            && symbol_is_dot_operator(vars[vars.size()-3]);
   }
 
 
   // Determine whether proc takes variadic args
-  bool variadic_arg_declaration(const std::vector<scm_string>& vars, const bool is_cps_variadic)noexcept{
+  bool variadic_arg_declaration(const str_vector& vars, const bool is_cps_variadic)noexcept{
     return (vars.size() > 1 && symbol_is_dot_operator(vars[vars.size()-2])) || is_cps_variadic;
   }
 
 
   // Determine whether enough vals for the variadic arg decl
-  bool invalid_variadic_arg_declaration(const std::vector<scm_string>& vars, const std::vector<data>& vals, const bool is_cps_variadic)noexcept{
+  bool invalid_variadic_arg_declaration(const str_vector& vars, const data_vector& vals, const bool is_cps_variadic)noexcept{
     return vals.size() < vars.size() - 2 - is_cps_variadic; // - again if at a continuation
   }
 
 
   // Wrapper composing the above helpers
-  bool confirm_valid_environment_extension(std::vector<scm_string>& vars, std::vector<data>& vals, const sym_type& name){
+  bool confirm_valid_environment_extension(str_vector& vars, data_vector& vals, const string& name){
     if(nullary_invocation_of_non_nullary_procedure(vars,vals))
       THROW_ERR("Too few arguments supplied! -- EXTEND_ENVIRONMENT" 
         << improper_call_alert(name,vals,vars));
@@ -328,7 +327,7 @@ namespace heist {
   ******************************************************************************/
 
   // -- ENVIRONMENTAL EXTENSION
-  env_type extend_environment(std::vector<scm_string>&& vars, std::vector<data>& vals, env_type& base_env, const sym_type& name = ""){
+  env_type extend_environment(str_vector&& vars, data_vector& vals, env_type& base_env, const string& name = ""){
     // If valid extension, return environment w/ a new frame prepended
     if(confirm_valid_environment_extension(vars,vals,name)) {
       env_type extended_env(make_env());
@@ -346,13 +345,13 @@ namespace heist {
   }
 
   // R-value overload is _ONLY_ to launch the global environment
-  env_type extend_environment(std::vector<scm_string>&& vars, std::vector<data>&& vals, env_type& base_env){
+  env_type extend_environment(str_vector&& vars, data_vector&& vals, env_type& base_env){
     return extend_environment(std::move(vars),vals,base_env,"");
   }
 
 
   // -- VARIABLE LOOKUP
-  data lookup_variable_value(const sym_type& var, env_type& env) {
+  data lookup_variable_value(const string& var, env_type& env) {
     bool found = false;
     auto val = env->lookup_variable_value(var, found);
     if(found) return val;
@@ -361,9 +360,9 @@ namespace heist {
 
 
   // -- VARIABLE SETTING: (set! <var> <val>)
-  void set_variable_value(const sym_type& var, data&& val, env_type& env) {
+  void set_variable_value(const string& var, data&& val, env_type& env) {
     if(!env->set_variable_value(var, std::move(val))) {
-      scm_list invalid_set_call(3);
+      data_vector invalid_set_call(3);
       invalid_set_call[0] = symconst::set;
       invalid_set_call[1] = var;
       invalid_set_call[2] = val;
@@ -373,7 +372,7 @@ namespace heist {
 
 
   // -- VARIABLE DEFINITION: (define <var> <val>)
-  void define_variable(const sym_type& var, data val, env_type& env)noexcept{
+  void define_variable(const string& var, data val, env_type& env)noexcept{
     env->define_variable(var,std::move(val));
   }
 
@@ -387,11 +386,11 @@ namespace heist {
   * REPRESENTING READER ALIASES: (define-reader-alias <alias> <name>)
   ******************************************************************************/
 
-  bool is_defn_reader_alias(const scm_list& exp) noexcept{
+  bool is_defn_reader_alias(const data_vector& exp) noexcept{
     return is_tagged_list(exp,symconst::defn_reader_alias);
   }
 
-  exe_fcn_t analyze_defn_reader_alias(scm_list& exp) { 
+  exe_fcn_t analyze_defn_reader_alias(data_vector& exp) { 
     static constexpr const char * const format = 
       "\n     (define-reader-alias <alias-symbol> <name-symbol>)"
       "\n     (define-reader-alias <alias-symbol-to-delete>)";
@@ -417,18 +416,18 @@ namespace heist {
   ******************************************************************************/
 
   // -- IDENTIFICATION, GETTERS, & CONSTRUCTION
-  bool is_if(const scm_list& exp)  noexcept{return is_tagged_list(exp,symconst::if_t);}
-  data if_predicate(scm_list& exp) noexcept{return exp[1];}
-  data if_consequent(scm_list& exp)noexcept{return exp[2];}
+  bool is_if(const data_vector& exp)  noexcept{return is_tagged_list(exp,symconst::if_t);}
+  data if_predicate(data_vector& exp) noexcept{return exp[1];}
+  data if_consequent(data_vector& exp)noexcept{return exp[2];}
 
-  data if_alternative(scm_list& exp)noexcept{
+  data if_alternative(data_vector& exp)noexcept{
     if(exp.size() == 4) return exp[3]; // if has an <alternative>
     return GLOBALS::VOID_DATA_OBJECT;  // w/o <alternative> return VOID
   }
 
 
   // -- ANALYSIS
-  void confirm_valid_if(const scm_list& exp) {
+  void confirm_valid_if(const data_vector& exp) {
     if(exp.size() < 3) 
       THROW_ERR("'if didn't receive enough args:"
         "\n     (if <predicate> <consequent> <optional-alternative>)"
@@ -441,7 +440,7 @@ namespace heist {
 
   // Returns lambda so that if true, only eval consequent: 
   //   else, only eval alternative
-  exe_fcn_t analyze_if(scm_list& exp,const bool tail_call=false,const bool cps_block=false) { 
+  exe_fcn_t analyze_if(data_vector& exp,const bool tail_call=false,const bool cps_block=false) { 
     confirm_valid_if(exp);
     auto pproc = scm_analyze(if_predicate(exp),false,cps_block);
     auto cproc = scm_analyze(if_consequent(exp),tail_call,cps_block);
@@ -458,12 +457,12 @@ namespace heist {
   * REPRESENTING SEQUENCES: (begin <body>)
   ******************************************************************************/
 
-  bool is_begin(const scm_list& exp)   noexcept{return is_tagged_list(exp,symconst::begin);}
-  scm_list begin_actions(scm_list& exp)noexcept{return scm_list(exp.begin()+1, exp.end());}
+  bool is_begin(const data_vector& exp)      noexcept{return is_tagged_list(exp,symconst::begin);}
+  data_vector begin_actions(data_vector& exp)noexcept{return data_vector(exp.begin()+1, exp.end());}
 
   // Analyzes each expression, then returns an exec proc which 
   //   sequentially invokes each expression's exec proc
-  exe_fcn_t analyze_sequence(scm_list&& exps,const bool tail_call=false,const bool cps_block=false){ // used for 'begin' & lambda bodies
+  exe_fcn_t analyze_sequence(data_vector&& exps,const bool tail_call=false,const bool cps_block=false){ // used for 'begin' & lambda bodies
     if(exps.empty())
       return [](env_type&){return GLOBALS::VOID_DATA_OBJECT;}; // void data
     const size_type n = exps.size();
@@ -486,13 +485,13 @@ namespace heist {
   * REPRESENTING ASSIGNMENT: (set! <var> <val>)
   ******************************************************************************/
 
-  bool is_assignment(const scm_list& exp)     noexcept{return is_tagged_list(exp,symconst::set);}
-  sym_type assignment_variable(scm_list& exp) noexcept{return exp[1].sym;}
-  data assignment_value(scm_list& exp)        noexcept{return exp[2];}
+  bool is_assignment(const data_vector& exp)   noexcept{return is_tagged_list(exp,symconst::set);}
+  string assignment_variable(data_vector& exp) noexcept{return exp[1].sym;}
+  data assignment_value(data_vector& exp)      noexcept{return exp[2];}
 
   // Analyzes value being assigned, & returns an execution procedure 
   //   to install it as the variable in the designated env
-  exe_fcn_t analyze_assignment(scm_list& exp,const bool cps_block=false) { 
+  exe_fcn_t analyze_assignment(data_vector& exp,const bool cps_block=false) { 
     confirm_valid_assignment(exp);
     if(!symbol_is_property_chain_access(exp[1].sym)) {
       auto var = assignment_variable(exp);
@@ -502,10 +501,10 @@ namespace heist {
         return GLOBALS::VOID_DATA_OBJECT; // return is void
       };
     }
-    scm_list set_call(4);
+    data_vector set_call(4);
     set_call[0] = "heist:core:oo:set-property!";
     set_call[1] = exp[1].sym.substr(0, exp[1].sym.rfind('.'));
-    set_call[2] = scm_list(2);
+    set_call[2] = data_vector(2);
     set_call[2].exp[0] = symconst::quote;
     set_call[2].exp[1] = exp[1].sym.substr(exp[1].sym.rfind('.')+1);
     set_call[3] = std::move(exp[2]);
@@ -516,33 +515,33 @@ namespace heist {
   * REPRESENTING DEFINITION: (define <var> <val>)
   ******************************************************************************/
 
-  bool is_definition(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::define);}
-  data make_lambda(scm_list parameters, scm_list body)noexcept; // Lambda ctor
+  bool is_definition(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::define);}
+  data make_lambda(data_vector parameters, data_vector body)noexcept; // Lambda ctor
 
-  sym_type& definition_variable(scm_list& exp)noexcept{
+  string& definition_variable(data_vector& exp)noexcept{
     // if defining a variable, else defining a procedure
     if(exp[1].is_type(types::sym)) return exp[1].sym; 
     return exp[1].exp[0].sym;
   }
 
-  data definition_value(scm_list& exp)noexcept{
+  data definition_value(data_vector& exp)noexcept{
     // if defining a variable, else defining a procedure
     if(exp[1].is_type(types::sym)) return exp[2]; 
-    scm_list args(exp[1].exp.begin()+1,exp[1].exp.end());
-    scm_list body(exp.begin()+2,exp.end());
+    data_vector args(exp[1].exp.begin()+1,exp[1].exp.end());
+    data_vector body(exp.begin()+2,exp.end());
     return make_lambda(args,body);
   }
 
-  bool is_obj_property_definition(const scm_list& exp)noexcept{
+  bool is_obj_property_definition(const data_vector& exp)noexcept{
     return exp[1].is_type(types::sym) && symbol_is_property_chain_access(exp[1].sym);
   }
 
   // Generate an 'add-property! call from the <define> expression
-  data convert_obj_property_defintion_to_method_call(const scm_list& exp)noexcept{
-    scm_list def_call(4);
+  data convert_obj_property_defintion_to_method_call(const data_vector& exp)noexcept{
+    data_vector def_call(4);
     def_call[0] = "heist:core:oo:add-property!";
     def_call[1] = exp[1].sym.substr(0, exp[1].sym.rfind('.'));
-    def_call[2] = scm_list(2);
+    def_call[2] = data_vector(2);
     def_call[2].exp[0] = symconst::quote;
     def_call[2].exp[1] = exp[1].sym.substr(exp[1].sym.rfind('.')+1);
     def_call[3] = exp[2];
@@ -551,7 +550,7 @@ namespace heist {
 
   // Analyzes value being defined, & returns an execution procedure 
   //   to install it as the variable in the designated env
-  exe_fcn_t analyze_definition(scm_list& exp,const bool cps_block=false) { 
+  exe_fcn_t analyze_definition(data_vector& exp,const bool cps_block=false) { 
     confirm_valid_definition(exp);
     if(!is_obj_property_definition(exp)) {
       auto& var       = definition_variable(exp);
@@ -568,10 +567,10 @@ namespace heist {
   * REPRESENTING PROMISES: (delay <expression>)
   ******************************************************************************/
 
-  bool is_delay(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::delay);}
+  bool is_delay(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::delay);}
 
   // Extracts the delayed expression and returns an exec proc ctor'ing a promise
-  exe_fcn_t analyze_delay(scm_list& exp,const bool cps_block=false) {
+  exe_fcn_t analyze_delay(data_vector& exp,const bool cps_block=false) {
     if(exp.size() != 2) 
       THROW_ERR("'delay expects 1 argument: (delay <delay-expression>)" << EXP_ERR(exp));
     if(!cps_block)
@@ -581,7 +580,7 @@ namespace heist {
     // Bind delayed CPS expressions to always have 'id as the topmost continuation,
     //   since FORCE is defined outside a scm->cps block, would have its arg bound 
     //   to such regardless if implemented directly in heist scheme as well.
-    data delay_list = scm_list(2);
+    data delay_list = data_vector(2);
     delay_list.exp[0] = generate_fundamental_form_cps(exp[1]);
     delay_list.exp[1] = "id";
     return [delay_list=std::move(delay_list)](env_type& env){
@@ -593,36 +592,36 @@ namespace heist {
   * REPRESENTING QUOTATION: (quote <expression>)
   ******************************************************************************/
 
-  bool is_quoted(const scm_list& exp)noexcept{return is_tagged_list(exp, symconst::quote);}
+  bool is_quoted(const data_vector& exp)noexcept{return is_tagged_list(exp, symconst::quote);}
 
   // Quoting a vector literal is a special case of quotation
-  bool is_vector_literal(const scm_list& exp)noexcept{
+  bool is_vector_literal(const data_vector& exp)noexcept{
     return is_tagged_list(exp,symconst::vec_literal);
   }
 
   // Confirm whether quoting a vector literal
-  bool quoting_a_vector_literal(const scm_list& exp)noexcept{
+  bool quoting_a_vector_literal(const data_vector& exp)noexcept{
     return exp[1].is_type(types::exp) && !exp[1].exp.empty() && 
            is_vector_literal(exp[1].exp);
   }
 
   // Quoting a hash-map literal is a special case of quotation
-  bool is_hmap_literal(const scm_list& exp)noexcept{
+  bool is_hmap_literal(const data_vector& exp)noexcept{
     return is_tagged_list(exp,symconst::map_literal);
   }
 
   // Confirm whether quoting a vector literal
-  bool quoting_an_hmap_literal(const scm_list& exp)noexcept{
+  bool quoting_an_hmap_literal(const data_vector& exp)noexcept{
     return exp[1].is_type(types::exp) && !exp[1].exp.empty() && 
            is_hmap_literal(exp[1].exp);
   }
 
-  bool is_variadic_cps_procedure_signature(const size_type i, const size_type n, scm_list& exp)noexcept{
+  bool is_variadic_cps_procedure_signature(const size_type i, const size_type n, data_vector& exp)noexcept{
     return i+3 == n && data_is_continuation_parameter(exp[n-1]) && !data_is_dot_operator(exp[i+1]);
   }
 
   // Returns quoted data's contents
-  data text_of_quotation(scm_list& exp)noexcept{
+  data text_of_quotation(data_vector& exp)noexcept{
     if(!exp[1].is_type(types::sym)) return exp[1];
     if(exp[1].sym==symconst::false_t || exp[1].sym==symconst::true_t)
       return boolean(exp[1].sym==symconst::true_t);
@@ -634,7 +633,7 @@ namespace heist {
   //   If not, exp is a list & this returns false.
   //   => Throws error if more than 1 (.) found (improper use)
   //   => If is a valid 'cons' quote, also rm's the (.)
-  bool is_quoted_cons(scm_list& exp, const sym_type& quote_name) {
+  bool is_quoted_cons(data_vector& exp, const string& quote_name) {
     // Confirm (.) does not terminate the list
     if(!exp.empty() && data_is_dot_operator(*exp.rbegin()))
       THROW_ERR("Unexpected dot ("<<G.dot<<") terminated the quoted list! -- ANALYZE_QUOTED"
@@ -662,25 +661,25 @@ namespace heist {
 
   // Analyzes the quote's vector/hmap literal & returns its execution procedure
   template <bool IS_VECTOR_LITERAL>
-  exe_fcn_t analyze_quoted_vh_literal(scm_list& exp, const char* name) {
-    scm_list args(exp.begin()+1,exp.end());
+  exe_fcn_t analyze_quoted_vh_literal(data_vector& exp, const char* name) {
+    data_vector args(exp.begin()+1,exp.end());
     if(is_quoted_cons(args, symconst::quote))
       THROW_ERR('\''<<name<<" had an unexpected dot ("<<G.dot<<")!"<<EXP_ERR(exp));
     // return an empty vector if given no args
     if(args.empty()) {
       if constexpr (IS_VECTOR_LITERAL)
-        return [](env_type&){return make_vec(scm_list());};
+        return [](env_type&){return make_vec(data_vector());};
       else
         return [](env_type&){return make_map(scm_map());};
     }
     // quote each item in the vector
-    scm_list literal(args.size()+1);
+    data_vector literal(args.size()+1);
     if constexpr (IS_VECTOR_LITERAL) 
       literal[0] = symconst::vector;
     else
       literal[0] = symconst::hmap;
     for(size_type i = 0, n = args.size(); i < n; ++i) {
-      literal[i+1] = scm_list(2);
+      literal[i+1] = data_vector(2);
       literal[i+1].exp[0] = symconst::quote;
       literal[i+1].exp[1] = args[i];
     }
@@ -689,18 +688,18 @@ namespace heist {
   }
 
 
-  exe_fcn_t analyze_quoted_vector_literal(scm_list& exp) {
+  exe_fcn_t analyze_quoted_vector_literal(data_vector& exp) {
     return analyze_quoted_vh_literal<true>(exp,"vector-literal");
   }
 
 
-  exe_fcn_t analyze_quoted_hmap_literal(scm_list& exp) {
+  exe_fcn_t analyze_quoted_hmap_literal(data_vector& exp) {
     return analyze_quoted_vh_literal<false>(exp,"hmap-literal");
   }
 
 
   // Analyzes the quote's text & returns an execution procedure for such
-  exe_fcn_t analyze_quoted(scm_list& exp) {
+  exe_fcn_t analyze_quoted(data_vector& exp) {
     if(exp.size() != 2) 
       THROW_ERR("'quote form expects one argument: (quote <quoted-data>)!"<<EXP_ERR(exp));
     
@@ -727,12 +726,12 @@ namespace heist {
     bool append_last_item = is_quoted_cons(quoted_data.exp,symconst::quote);
 
     // Since quoting an expression, expand such into a list of quoted data
-    scm_list quote_val(quoted_data.exp.size()+1);
+    data_vector quote_val(quoted_data.exp.size()+1);
     quote_val[0] = symconst::list;
     
     // Wrap 'quote' around each item in the list
     for(size_type i = 0, n = quoted_data.exp.size(); i < n; ++i){
-      quote_val[i+1] = scm_list(2);
+      quote_val[i+1] = data_vector(2);
       quote_val[i+1].exp[0] = symconst::quote;
       quote_val[i+1].exp[1] = quoted_data.exp[i];
     }
@@ -742,7 +741,7 @@ namespace heist {
     if(append_last_item) {
       auto last_item = *quote_val.rbegin();
       quote_val.pop_back();
-      scm_list append_exp(3); 
+      data_vector append_exp(3); 
       append_exp[0] = symconst::append;
       append_exp[1] = quote_val, append_exp[2] = last_item;
       quote_val = std::move(append_exp);
@@ -767,12 +766,12 @@ namespace heist {
   ******************************************************************************/
 
   // -- LAMBDAS: (lambda (<parameters>) <body>)
-  bool     is_lambda(const scm_list& exp)  noexcept{return is_tagged_list(exp,symconst::lambda);}
-  scm_list lambda_parameters(scm_list& exp)noexcept{return exp[1].exp;}
-  scm_list lambda_body(scm_list& exp)      noexcept{return scm_list(exp.begin()+2,exp.end());}
+  bool     is_lambda(const data_vector& exp)     noexcept{return is_tagged_list(exp,symconst::lambda);}
+  data_vector lambda_parameters(data_vector& exp)noexcept{return exp[1].exp;}
+  data_vector lambda_body(data_vector& exp)      noexcept{return data_vector(exp.begin()+2,exp.end());}
 
   // Recursivly (for fn) replace instances of G.dot w/ symconst::dot
-  void replace_param_temporary_dot_with_internal_dot(scm_list& params)noexcept{
+  void replace_param_temporary_dot_with_internal_dot(data_vector& params)noexcept{
     for(auto& d : params) {
       if(d.is_type(types::sym) && d.sym == G.dot) 
         d.sym = symconst::dot;
@@ -783,7 +782,7 @@ namespace heist {
 
   // Is a lambda using optional args (gets converted to a <fn>)
   // WARNING: DOES __NOT__ VALIDATE SUCH IS IN PROPER FORM
-  bool is_opt_arg_lambda(const scm_list& exp)noexcept{
+  bool is_opt_arg_lambda(const data_vector& exp)noexcept{
     if(exp.size() >= 3 && exp[0].is_type(types::sym) && exp[0].sym == symconst::lambda && exp[1].is_type(types::exp))
       for(const auto& arg : exp[1].exp)
         if(arg.is_type(types::exp))
@@ -792,12 +791,12 @@ namespace heist {
   }
 
   // Paramaters end with a continuation
-  bool params_end_with_a_continuation(const scm_list& params)noexcept{
+  bool params_end_with_a_continuation(const data_vector& params)noexcept{
     return !params.empty() && data_is_continuation_parameter(*params.rbegin());
   }
 
   // Validate lambda using optional args prior fn transformation
-  void validate_lambda_opt_args(const scm_list& exp) {
+  void validate_lambda_opt_args(const data_vector& exp) {
     const auto& vars = exp[1].exp;
     const size_type n = vars.size();
     // variadic (.) arg must have a label afterwards
@@ -834,18 +833,18 @@ namespace heist {
 
   // Lambda->fn when given a lambda with optional args
   // PRECONDITION: is_opt_arg_lambda(exp)
-  scm_list convert_lambda_opt_args_to_fn(const scm_list& exp) {
+  data_vector convert_lambda_opt_args_to_fn(const data_vector& exp) {
     validate_lambda_opt_args(exp);
     auto& params = exp[1].exp;
     const size_type n = params.size(), variadic_offset = 2;
     bool is_variadic = n > 1 && data_is_dot_operator(params[n-variadic_offset]);
     bool found_dflt = false;
     // Get vectors of the mandatory args, & form "define" exprs for the default args
-    scm_list mandatory_args, default_value_defns;
+    data_vector mandatory_args, default_value_defns;
     for(size_type i = 0, j = 0, m = n - (variadic_offset * is_variadic); i < m; ++i) {
       if(params[i].is_type(types::exp)) {
         found_dflt = true;
-        default_value_defns.push_back(scm_list(3));
+        default_value_defns.push_back(data_vector(3));
         default_value_defns[j].exp[0] = symconst::define;
         default_value_defns[j].exp[1] = params[i].exp[0];
         default_value_defns[j++].exp[2] = params[i].exp[1];
@@ -855,22 +854,22 @@ namespace heist {
     }
     if(is_variadic) {
       size_type i = default_value_defns.size();
-      default_value_defns.push_back(scm_list(3));
+      default_value_defns.push_back(data_vector(3));
       default_value_defns[i].exp[0] = symconst::define;
       default_value_defns[i].exp[1] = params[n-(variadic_offset-1)].sym;
-      default_value_defns[i].exp[2] = scm_list(2);
+      default_value_defns[i].exp[2] = data_vector(2);
       default_value_defns[i].exp[2].exp[0] = symconst::quote;
-      default_value_defns[i].exp[2].exp[1] = scm_list();
+      default_value_defns[i].exp[2].exp[1] = data_vector();
     }
     // Generate <fn>
     const size_type fn_size = 2+default_value_defns.size()-is_variadic;
-    scm_list fn_expr(fn_size);
+    data_vector fn_expr(fn_size);
     fn_expr[0] = symconst::fn;
     // Generate <fn> bodies
     for(size_type i = 1; i < fn_size; ++i) {
       bool last_instance = is_variadic && i+1 == fn_size;
       // Generate <fn> parameter list instance
-      fn_expr[i] = scm_list(1,mandatory_args); // param_list
+      fn_expr[i] = data_vector(1,mandatory_args); // param_list
       for(size_type j = 0; j < i-1; ++j)  // mandatory args that could've been defaults
         fn_expr[i].exp[0].exp.push_back(default_value_defns[j].exp[1]);
       if(last_instance) {                 // add in variadic arg as needed
@@ -887,17 +886,17 @@ namespace heist {
   }
 
   // Ctor for lambdas
-  data make_lambda(scm_list parameters,scm_list body)noexcept{
-    scm_list new_lambda(body.size()+2); 
+  data make_lambda(data_vector parameters,data_vector body)noexcept{
+    data_vector new_lambda(body.size()+2); 
     new_lambda[0] = symconst::lambda, new_lambda[1] = std::move(parameters);
     std::move(body.begin(), body.end(), new_lambda.begin()+2);
     return new_lambda;
   }
 
   // Returns an exec proc to mk a lambda w/ the analyzed parameter list & body
-  exe_fcn_t analyze_lambda(scm_list& exp,const bool cps_block=false) {
+  exe_fcn_t analyze_lambda(data_vector& exp,const bool cps_block=false) {
     // convert lambdas w/ optional args to fns
-    exe_fcn_t analyze_fn(scm_list&,const bool cps_block);
+    exe_fcn_t analyze_fn(data_vector&,const bool cps_block);
     if(is_opt_arg_lambda(exp)) 
       return scm_analyze(convert_lambda_opt_args_to_fn(exp),false,cps_block);
     // handle regular lambdas
@@ -922,25 +921,25 @@ namespace heist {
 
 
   // -- PROCEDURAL APPLICATION
-  data operator_of(const scm_list& exp)  noexcept{return exp[0];}
-  scm_list operands(const scm_list& exp) noexcept{return scm_list(exp.begin()+1, exp.end());}
+  data operator_of(const data_vector& exp)     noexcept{return exp[0];}
+  data_vector operands(const data_vector& exp) noexcept{return data_vector(exp.begin()+1, exp.end());}
 
   /******************************************************************************
   * REPRESENTING FN PROCEDURES (MORE DYNAMIC THAN LAMBDA)
   ******************************************************************************/
 
-  bool is_fn(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::fn);}
+  bool is_fn(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::fn);}
 
 
   #define FN_LAYOUT "\n     (fn ((<arg> ...) <body> ...) ...)"
-  void validate_fn_arg_quote_or_container_literal(const scm_list&,const scm_list&);
-  void validate_fn_vect_arg_literal(const scm_list& exp, const scm_list& vect_arg) {
+  void validate_fn_arg_quote_or_container_literal(const data_vector&,const data_vector&);
+  void validate_fn_vect_arg_literal(const data_vector& exp, const data_vector& vect_arg) {
     for(size_type i = 1, n = vect_arg.size(); i < n; ++i)
       if(vect_arg[i].is_type(types::exp)) 
         validate_fn_arg_quote_or_container_literal(exp,vect_arg[i].exp);
   }
 
-  void validate_fn_hmap_arg_literal(const scm_list& exp, const scm_list& hmap_arg) {
+  void validate_fn_hmap_arg_literal(const data_vector& exp, const data_vector& hmap_arg) {
     if(!(hmap_arg.size() & 1)) // with literal tag, odd # of items = even # of args
       THROW_ERR("'fn invalid hmap literal in arg paramters,"
         "\n     uneven # of elts: " << data(hmap_arg) << FN_LAYOUT << EXP_ERR(exp));
@@ -953,7 +952,7 @@ namespace heist {
     }
   }
 
-  void validate_fn_list_arg_literal(const scm_list& exp, const scm_list& list_arg) {
+  void validate_fn_list_arg_literal(const data_vector& exp, const data_vector& list_arg) {
     for(size_type i = 0, n = list_arg.size(); i < n; ++i) {
       if(data_is_dot_operator(list_arg[i]) && i+2 != n) {
         THROW_ERR("'fn invalid variadic list literal in arg (\".\" must be 2nd to last arg): "
@@ -964,7 +963,7 @@ namespace heist {
     }
   }
 
-  void validate_fn_arg_quote_or_container_literal(const scm_list& exp, const scm_list& container) {
+  void validate_fn_arg_quote_or_container_literal(const data_vector& exp, const data_vector& container) {
     if(container.empty()) return;
     // Guarenteed to be a list literal
     if(!container[0].is_type(types::sym)) {
@@ -982,7 +981,7 @@ namespace heist {
     }
   }
 
-  bool fn_invalid_variadic_arg(const size_type& i, const size_type& n, const scm_list& args)noexcept{
+  bool fn_invalid_variadic_arg(const size_type& i, const size_type& n, const data_vector& args)noexcept{
     return data_is_dot_operator(args[i]) &&
       !((i+2 == n && args[i+1].is_type(types::sym)) || 
         (i+3 == n && args[i+1].is_type(types::sym) && data_is_continuation_parameter(args[i+2])));
@@ -993,7 +992,7 @@ namespace heist {
   // 1. hmaps (must have non-container keys & an even # of elts)
   // 2. validate list literals have "." as 2nd to last elt
   // 3. validate only quoting symbols
-  void validate_fn_arg_signature(const scm_list& exp, const scm_list& args) {
+  void validate_fn_arg_signature(const data_vector& exp, const data_vector& args) {
     for(size_type i = 0, n = args.size(); i < n; ++i) {
       // validate symbol's proper variadic arg use
       if(fn_invalid_variadic_arg(i,n,args)) {
@@ -1006,7 +1005,7 @@ namespace heist {
     }
   }
 
-  void validate_fn(const scm_list& exp) {
+  void validate_fn(const data_vector& exp) {
     if(exp.size() == 1)
       THROW_ERR("'fn didn't receive any match expressions!" FN_LAYOUT << EXP_ERR(exp));
     for(size_type i = 1, n = exp.size(); i < n; ++i) {
@@ -1020,14 +1019,14 @@ namespace heist {
   #undef FN_LAYOUT
 
 
-  exe_fcn_t analyze_fn(scm_list& exp,const bool cps_block=false) {
+  exe_fcn_t analyze_fn(data_vector& exp,const bool cps_block=false) {
     validate_fn(exp);
     const size_type total_matches = exp.size()-1;
-    std::vector<exp_type> param_insts(total_matches);
+    std::vector<data_vector> param_insts(total_matches);
     std::vector<exe_fcn_t> bodies(total_matches);
     for(size_type i = 0; i < total_matches; ++i) {
       param_insts[i] = exp[i+1].exp[0].exp;
-      bodies[i] = analyze_sequence(scm_list(exp[i+1].exp.begin()+1,exp[i+1].exp.end()),true,cps_block);
+      bodies[i] = analyze_sequence(data_vector(exp[i+1].exp.begin()+1,exp[i+1].exp.end()),true,cps_block);
     }
     for(auto& params : param_insts)
       replace_param_temporary_dot_with_internal_dot(params);
@@ -1048,7 +1047,7 @@ namespace heist {
   * DEFCLASS: (defclass <name> (<inheritance-list>) ...)
   ******************************************************************************/
 
-  bool is_defclass(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::defclass);}
+  bool is_defclass(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::defclass);}
 
 
   #define DEFCLASS_LAYOUT\
@@ -1073,23 +1072,23 @@ namespace heist {
   // -- OPTIONAL ARG CONVERSION
   // converts inline methods using opt args to a <fn> method
   // converts inline ctor using opt args to use its <fn> syntax
-  void convert_opt_args_method_or_ctor_to_fn_expr(const sym_type& ctor_name, scm_list& exp) {
-    sym_type name = exp[0].exp[0].sym;
-    scm_list inline_method_as_lambda(exp.size()+1);
+  void convert_opt_args_method_or_ctor_to_fn_expr(const string& ctor_name, data_vector& exp) {
+    string name = exp[0].exp[0].sym;
+    data_vector inline_method_as_lambda(exp.size()+1);
     inline_method_as_lambda[0] = symconst::lambda;
-    inline_method_as_lambda[1] = scm_list(exp[0].exp.begin()+1,exp[0].exp.end());
+    inline_method_as_lambda[1] = data_vector(exp[0].exp.begin()+1,exp[0].exp.end());
     std::copy(exp.begin()+1,exp.end(),inline_method_as_lambda.begin()+2);
     if(ctor_name == name) { // ctor
       exp = convert_lambda_opt_args_to_fn(inline_method_as_lambda);
       exp[0] = ctor_name;
     } else { // method
-      exp = scm_list(2);
+      exp = data_vector(2);
       exp[0] = name, exp[1] = inline_method_as_lambda;
     }
   }
 
   // -- ERROR HANDLING
-  void validate_defclass(scm_list& exp) {
+  void validate_defclass(data_vector& exp) {
     if(exp.size() < 3)
       THROW_ERR("'defclass not enough arguments given!" DEFCLASS_LAYOUT << EXP_ERR(exp));
     if(!exp[1].is_type(types::sym))
@@ -1100,7 +1099,7 @@ namespace heist {
       THROW_ERR("'defclass 2nd arg "<<PROFILE(exp[2])<<" has more than 1 inherited prototype (no multi inheritance)!" DEFCLASS_LAYOUT << EXP_ERR(exp));
     if(exp[2].exp.size() == 1 && !exp[2].exp[0].is_type(types::sym))
       THROW_ERR("'defclass 2nd arg (inherited entity) "<<PROFILE(exp[2])<<" isn't a symbolic class prototype name!" DEFCLASS_LAYOUT << EXP_ERR(exp));
-    sym_type ctor_name = exp[1].sym;
+    string ctor_name = exp[1].sym;
     for(size_type i = 3, n = exp.size(); i < n; ++i) {
       if(!exp[i].is_type(types::exp) || exp[i].exp.size() < 2)
         THROW_ERR("'defclass invalid <member-or-method-instance> => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
@@ -1137,7 +1136,7 @@ namespace heist {
     }
   }
 
-  void validate_inherited_entity(class_prototype& proto, scm_list& exp, env_type& env){
+  void validate_inherited_entity(class_prototype& proto, data_vector& exp, env_type& env){
     if(exp[2].exp.empty()) return;
     auto result = lookup_variable_value(exp[2].exp[0].sym,env);
     if(!result.is_type(types::cls))
@@ -1146,7 +1145,7 @@ namespace heist {
     proto.super = result.cls;
   }
 
-  void validate_unique_property_name(scm_list& exp,const scm_string& name,const std::vector<scm_string>& seen_names,const char* message){
+  void validate_unique_property_name(data_vector& exp,const string& name,const str_vector& seen_names,const char* message){
     for(const auto& n : seen_names)
       if(name == n)
         THROW_ERR("'defclass " << exp[1].sym << " => \"" << name << "\" " << message << '!'
@@ -1155,10 +1154,10 @@ namespace heist {
 
 
   // -- CLASS PROTOTYPE GENERATION HELPERS
-  exe_fcn_t convert_method_to_lambda(scm_list& method_exp,const bool cps_block) {
-    scm_list method_lambda(1+method_exp.size());
+  exe_fcn_t convert_method_to_lambda(data_vector& method_exp,const bool cps_block) {
+    data_vector method_lambda(1+method_exp.size());
     method_lambda[0] = symconst::lambda;
-    method_lambda[1] = scm_list(method_exp[0].exp.begin()+1,method_exp[0].exp.end());
+    method_lambda[1] = data_vector(method_exp[0].exp.begin()+1,method_exp[0].exp.end());
     std::copy(method_exp.begin()+1,method_exp.end(),method_lambda.begin()+2);
     if(cps_block) {
       // cps transform will wrap what we need in an extra lambda: (lambda (c) (c <procedure-we-desire>))
@@ -1169,7 +1168,7 @@ namespace heist {
     }
   }
 
-  void evaluate_method_and_member_exec_procs(class_prototype& proto, std::vector<scm_string>& property_names, 
+  void evaluate_method_and_member_exec_procs(class_prototype& proto, str_vector& property_names, 
                                              std::vector<exe_fcn_t>& property_exec_procs, env_type& env) {
     for(size_type i = 0, n = property_exec_procs.size(); i < n; ++i) {
       auto value = property_exec_procs[i](env);
@@ -1187,12 +1186,12 @@ namespace heist {
   //   (heist:core:oo:set-property! self <name> <value>))
   void define_property_setter(class_prototype& proto, env_type& env) {
     proto.method_names.push_back("set-property!");
-    scm_list setter_lambda(3);
+    data_vector setter_lambda(3);
     setter_lambda[0] = symconst::lambda;
-    setter_lambda[1] = scm_list(2);
+    setter_lambda[1] = data_vector(2);
     setter_lambda[1].exp[0] = "heist:core:oo:property-name";
     setter_lambda[1].exp[1] = "heist:core:oo:new-value";
-    setter_lambda[2] = scm_list(4);
+    setter_lambda[2] = data_vector(4);
     setter_lambda[2].exp[0] = "heist:core:oo:set-property!";
     setter_lambda[2].exp[1] = "self";
     setter_lambda[2].exp[2] = "heist:core:oo:property-name";
@@ -1204,12 +1203,12 @@ namespace heist {
   //   (heist:core:oo:add-property! self name value))
   void define_dynamic_property_generator(class_prototype& proto, env_type& env) {
     proto.method_names.push_back("add-property!");
-    scm_list property_generator(3);
+    data_vector property_generator(3);
     property_generator[0] = symconst::lambda;
-    property_generator[1] = scm_list(2);
+    property_generator[1] = data_vector(2);
     property_generator[1].exp[0] = "heist:core:property-name";
     property_generator[1].exp[1] = "heist:core:property-value";
-    property_generator[2] = scm_list(4);
+    property_generator[2] = data_vector(4);
     property_generator[2].exp[0] = "heist:core:oo:add-property!";
     property_generator[2].exp[1] = "self";
     property_generator[2].exp[2] = "heist:core:property-name";
@@ -1221,18 +1220,18 @@ namespace heist {
   //   (if (object? <obj>) 
   //       (eq? <class-name> <obj>.prototype) 
   //       #f))
-  void define_class_prototype_predicate(scm_string& class_name, env_type& env) {
-    scm_list predicate(3);
+  void define_class_prototype_predicate(string& class_name, env_type& env) {
+    data_vector predicate(3);
     predicate[0] = symconst::define;
-    predicate[1] = scm_list(2);
+    predicate[1] = data_vector(2);
     predicate[1].exp[0] = class_name + '?';
     predicate[1].exp[1] = "heist:core:oo:obj";
-    predicate[2] = scm_list(4);
+    predicate[2] = data_vector(4);
     predicate[2].exp[0] = symconst::if_t;
-    predicate[2].exp[1] = scm_list(2);
+    predicate[2].exp[1] = data_vector(2);
     predicate[2].exp[1].exp[0] = "object?";
     predicate[2].exp[1].exp[1] = "heist:core:oo:obj";
-    predicate[2].exp[2] = scm_list(3);
+    predicate[2].exp[2] = data_vector(3);
     predicate[2].exp[2].exp[0] = "eq?";
     predicate[2].exp[2].exp[1] = class_name;
     predicate[2].exp[2].exp[2] = "heist:core:oo:obj.prototype";
@@ -1242,17 +1241,17 @@ namespace heist {
 
   // (fn (() (heist:core:oo:make-object <class-name>))
   //     ((<member-value-container>) (heist:core:oo:make-object <class-name> <member-value-container>)))
-  scm_list generate_default_prototype_constructor_fn(const scm_string& class_name)noexcept{
-    scm_list dflt_ctor(3);
+  data_vector generate_default_prototype_constructor_fn(const string& class_name)noexcept{
+    data_vector dflt_ctor(3);
     dflt_ctor[0] = symconst::fn;
-    dflt_ctor[1] = scm_list(2); // clause 1: nullary
-    dflt_ctor[1].exp[0] = scm_list();
-    dflt_ctor[1].exp[1] = scm_list(2);
+    dflt_ctor[1] = data_vector(2); // clause 1: nullary
+    dflt_ctor[1].exp[0] = data_vector();
+    dflt_ctor[1].exp[1] = data_vector(2);
     dflt_ctor[1].exp[1].exp[0] = "heist:core:oo:make-object";
     dflt_ctor[1].exp[1].exp[1] = class_name;
-    dflt_ctor[2] = scm_list(2); // clause 2: member-value-container
-    dflt_ctor[2].exp[0] = scm_list(1,"heist:core:oo:member-value-container");
-    dflt_ctor[2].exp[1] = scm_list(3);
+    dflt_ctor[2] = data_vector(2); // clause 2: member-value-container
+    dflt_ctor[2].exp[0] = data_vector(1,"heist:core:oo:member-value-container");
+    dflt_ctor[2].exp[1] = data_vector(3);
     dflt_ctor[2].exp[1].exp[0] = "heist:core:oo:make-object";
     dflt_ctor[2].exp[1].exp[1] = class_name;
     dflt_ctor[2].exp[1].exp[2] = "heist:core:oo:member-value-container";
@@ -1266,8 +1265,8 @@ namespace heist {
   // (define new-<class-name>
   //   (fn (() (heist:core:oo:make-object <class-name>))
   //       ((<member-value-container>) (heist:core:oo:make-object <class-name> <member-value-container>)))
-  void define_default_prototype_constructor(const scm_string& class_name, env_type& env) {
-    scm_list dflt_ctor_defn(3);
+  void define_default_prototype_constructor(const string& class_name, env_type& env) {
+    data_vector dflt_ctor_defn(3);
     dflt_ctor_defn[0] = symconst::define;
     dflt_ctor_defn[1] = "new-"+class_name;
     dflt_ctor_defn[2] = generate_default_prototype_constructor_fn(class_name);
@@ -1275,15 +1274,15 @@ namespace heist {
   }
 
   // Convert user's custom ctor to be in CPS form as needed
-  data generate_CPS_custom_prototype_constructor(scm_list& custom_ctor) {
+  data generate_CPS_custom_prototype_constructor(data_vector& custom_ctor) {
     // convert the body to CPS notation, then unwrap it from the cps-transform generated lambda 
     // & pop the lambda's continuation to be passed as one of the custom ctor's params instead
-    scm_list custom_body(custom_ctor.size()-1);
+    data_vector custom_body(custom_ctor.size()-1);
     custom_body[0] = symconst::begin;
     std::move(custom_ctor.begin()+2,custom_ctor.end(),custom_body.begin()+1);
     auto custom_body_cps = generate_fundamental_form_cps(custom_body); // (lambda (c) <sought-body>)
     auto continuation_param = custom_body_cps[1].exp[0];
-    scm_list custom_ctor_cps(3);
+    data_vector custom_ctor_cps(3);
     custom_ctor_cps[0] = std::move(custom_ctor[0]);
     custom_ctor_cps[1] = std::move(custom_ctor[1]);
     custom_ctor_cps[1].exp.push_back(std::move(continuation_param));
@@ -1295,14 +1294,14 @@ namespace heist {
   //   (define self (heist:core:oo:make-object <class-name>))
   //   <... CUSTOM CTOR BODY HERE ...>
   //   self)
-  void bind_custom_prototype_constructor(class_prototype& proto, env_type& env, scm_list& ctor_proc, const bool cps_block) {
-    scm_list custom_ctor(3+ctor_proc.size());
+  void bind_custom_prototype_constructor(class_prototype& proto, env_type& env, data_vector& ctor_proc, const bool cps_block) {
+    data_vector custom_ctor(3+ctor_proc.size());
     custom_ctor[0] = symconst::lambda;
-    custom_ctor[1] = scm_list(ctor_proc[0].exp.begin()+1,ctor_proc[0].exp.end());
-    custom_ctor[2] = scm_list(3);
+    custom_ctor[1] = data_vector(ctor_proc[0].exp.begin()+1,ctor_proc[0].exp.end());
+    custom_ctor[2] = data_vector(3);
     custom_ctor[2].exp[0] = symconst::define;
     custom_ctor[2].exp[1] = "self";
-    custom_ctor[2].exp[2] = scm_list(2);
+    custom_ctor[2].exp[2] = data_vector(2);
     custom_ctor[2].exp[2].exp[0] = "heist:core:oo:make-object";
     custom_ctor[2].exp[2].exp[1] = proto.class_name;
     std::move(ctor_proc.begin()+1,ctor_proc.end(),custom_ctor.begin()+3);
@@ -1318,17 +1317,17 @@ namespace heist {
   //        (define self (heist:core:oo:make-object <class-name>))
   //        <... CUSTOM CTOR BODY HERE ...>
   //        self) ...)
-  void bind_custom_prototype_fn_constructor(class_prototype& proto, env_type& env, scm_list& ctor_proc,const bool cps_block) {
-    scm_list custom_ctor(ctor_proc.size());
+  void bind_custom_prototype_fn_constructor(class_prototype& proto, env_type& env, data_vector& ctor_proc,const bool cps_block) {
+    data_vector custom_ctor(ctor_proc.size());
     custom_ctor[0] = symconst::fn;
     for(size_type i = 1, n = ctor_proc.size(); i < n; ++i) {
       const size_type clause_length = ctor_proc[i].exp.size()+2;
-      custom_ctor[i] = scm_list(clause_length);
+      custom_ctor[i] = data_vector(clause_length);
       custom_ctor[i].exp[0] = ctor_proc[i].exp[0];
-      custom_ctor[i].exp[1] = scm_list(3);
+      custom_ctor[i].exp[1] = data_vector(3);
       custom_ctor[i].exp[1].exp[0] = symconst::define;
       custom_ctor[i].exp[1].exp[1] = "self";
-      custom_ctor[i].exp[1].exp[2] = scm_list(2);
+      custom_ctor[i].exp[1].exp[2] = data_vector(2);
       custom_ctor[i].exp[1].exp[2].exp[0] = "heist:core:oo:make-object";
       custom_ctor[i].exp[1].exp[2].exp[1] = proto.class_name;
       std::copy(ctor_proc[i].exp.begin()+1,ctor_proc[i].exp.end(),custom_ctor[i].exp.begin()+2);
@@ -1343,10 +1342,10 @@ namespace heist {
     }
   }
 
-  void parse_defclass_expression(scm_list& exp, std::vector<scm_string>& property_names, 
+  void parse_defclass_expression(data_vector& exp, str_vector& property_names, 
                                                 std::vector<exe_fcn_t>& property_exec_procs, 
-                                                scm_list& ctor_proc,const bool cps_block) {
-    const scm_string ctor_name(exp[1].sym);
+                                                data_vector& ctor_proc,const bool cps_block) {
+    const string ctor_name(exp[1].sym);
     for(size_type i = 3, n = exp.size(); i < n; ++i) {
       // parse member
       if(exp[i].exp[0].is_type(types::sym)) {
@@ -1375,14 +1374,14 @@ namespace heist {
 
 
   // -- CLASS PROTOTYPE GENERATION MAIN
-  exe_fcn_t analyze_defclass(scm_list& exp,const bool cps_block=false) {
+  exe_fcn_t analyze_defclass(data_vector& exp,const bool cps_block=false) {
     validate_defclass(exp);
     class_prototype proto;
     proto.class_name = exp[1].sym;
     // get exec procs for member values & method procedures
-    std::vector<scm_string> property_names;
+    str_vector property_names;
     std::vector<exe_fcn_t> property_exec_procs;
-    scm_list ctor_proc;
+    data_vector ctor_proc;
     parse_defclass_expression(exp,property_names,property_exec_procs,ctor_proc,cps_block);
     return [proto=std::move(proto),property_names=std::move(property_names),
             property_exec_procs=std::move(property_exec_procs),exp=std::move(exp),
@@ -1416,16 +1415,16 @@ namespace heist {
   * REPRESENTING TRUE ITERATION: WHILE (DEGRADES TO "DO" IN CPS BLOCKS)
   ******************************************************************************/
 
-  bool is_while(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::while_t);}
+  bool is_while(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::while_t);}
 
-  exe_fcn_t analyze_while(scm_list& exp,const bool cps_block=false) {
+  exe_fcn_t analyze_while(data_vector& exp,const bool cps_block=false) {
     // "while"s in cps contexts degrade to "do"s
     if(cps_block) {
       exp[0] = symconst::cps_app_tag;
       exp.insert(exp.begin()+1,"do");
-      exp.insert(exp.begin()+2,data(scm_list()));
+      exp.insert(exp.begin()+2,data(data_vector()));
       if(exp.size() > 3 && exp[3].is_type(types::exp) && !exp[3].exp.empty()) {
-        scm_list negated_cond(2);
+        data_vector negated_cond(2);
         negated_cond[0] = "not", negated_cond[1] = exp[3].exp[0];
         exp[3].exp[0] = negated_cond;
       }
@@ -1438,7 +1437,7 @@ namespace heist {
     // analyze condition & return exprs (if exists, else returns <void>)
     exe_fcn_t return_exe, condition_exe = scm_analyze(data(exp[1].exp[0]));
     if(exp[1].exp.size() > 1) {
-      scm_list return_exps(exp[1].exp.size());
+      data_vector return_exps(exp[1].exp.size());
       return_exps[0] = symconst::begin;
       std::copy(exp[1].exp.begin()+1,exp[1].exp.end(),return_exps.begin()+1);
       return_exe = scm_analyze(std::move(return_exps));
@@ -1453,7 +1452,7 @@ namespace heist {
       };
     }
     // has body
-    scm_list body_exps(exp.size()-1);
+    data_vector body_exps(exp.size()-1);
     body_exps[0] = symconst::begin;
     std::copy(exp.begin()+2,exp.end(),body_exps.begin()+1);
     exe_fcn_t body_exe = scm_analyze(std::move(body_exps));
@@ -1468,11 +1467,11 @@ namespace heist {
   * REPRESENTING infix! infixr! unfix! SPECIAL FORMS: READER MANIPULATION
   ******************************************************************************/
 
-  bool is_infix(const scm_list& exp)noexcept {return is_tagged_list(exp,symconst::infix);}
-  bool is_infixr(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::infixr);}
-  bool is_unfix(const scm_list& exp)noexcept {return is_tagged_list(exp,symconst::unfix);}
+  bool is_infix(const data_vector& exp)noexcept {return is_tagged_list(exp,symconst::infix);}
+  bool is_infixr(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::infixr);}
+  bool is_unfix(const data_vector& exp)noexcept {return is_tagged_list(exp,symconst::unfix);}
 
-  void confirm_valid_infix_infixr_unfix_syntax(scm_list& exp, const char* name) {
+  void confirm_valid_infix_infixr_unfix_syntax(data_vector& exp, const char* name) {
     if(exp.size() < 2)
       THROW_ERR('\''<<name<<" didn't receive enough arguments!"
         "\n     ("<<name<<" <precedence-level-integer-literal> <symbol> ...)"
@@ -1495,7 +1494,7 @@ namespace heist {
              << EXP_ERR(exp));
   }
 
-  void remove_preexisting_operators_from_table(const scm_list& exp, const int symbol_offset)noexcept{
+  void remove_preexisting_operators_from_table(const data_vector& exp, const int symbol_offset)noexcept{
     const size_type n = exp.size();
     for(auto& prec_level : G.INFIX_TABLE)
       for(size_type i = 0; i < prec_level.second.size(); ++i)
@@ -1507,7 +1506,7 @@ namespace heist {
   }
 
   // redefines operators iff already defined
-  exe_fcn_t register_infix_operators(const scm_list& exp,const char* name,bool is_left_assoc) {
+  exe_fcn_t register_infix_operators(const data_vector& exp,const char* name,bool is_left_assoc) {
     if(exp.size() < 3)
       THROW_ERR('\''<<name<<" didn't receive enough arguments!"
         "\n     ("<<name<<" <precedence-level-integer-literal> <symbol> ...)"
@@ -1522,7 +1521,7 @@ namespace heist {
   }
 
   // returns either #f or the precedence level of the symbols
-  exe_fcn_t seek_infix_operators(scm_list& exp,bool is_left_assoc)noexcept{
+  exe_fcn_t seek_infix_operators(data_vector& exp,bool is_left_assoc)noexcept{
     const size_type n = exp.size();
     for(const auto& prec_level : G.INFIX_TABLE) {
       bool found = false;
@@ -1542,21 +1541,21 @@ namespace heist {
     return [](env_type&){return GLOBALS::FALSE_DATA_BOOLEAN;};
   }
 
-  exe_fcn_t analyze_infix(scm_list& exp){
+  exe_fcn_t analyze_infix(data_vector& exp){
     confirm_valid_infix_infixr_unfix_syntax(exp,symconst::infix);
     if(exp[1].is_type(types::num))
       return register_infix_operators(exp,symconst::infix,true);
     return seek_infix_operators(exp,true);
   }
 
-  exe_fcn_t analyze_infixr(scm_list& exp){
+  exe_fcn_t analyze_infixr(data_vector& exp){
     confirm_valid_infix_infixr_unfix_syntax(exp,symconst::infixr);
     if(exp[1].is_type(types::num))
       return register_infix_operators(exp,symconst::infixr,false);
     return seek_infix_operators(exp,false);
   }
 
-  exe_fcn_t analyze_unfix(scm_list& exp){
+  exe_fcn_t analyze_unfix(data_vector& exp){
     if(exp.size() < 2)
       THROW_ERR("'unfix! didn't receive enough arguments!\n     (unfix! <symbol> ...)"<<EXP_ERR(exp));
     for(size_type i = 1, n = exp.size(); i < n; ++i)
@@ -1571,12 +1570,12 @@ namespace heist {
   * REPRESENTING defined? SPECIAL FORM: VARS & OBJECT-PROPERTY-ACCESS
   ******************************************************************************/
 
-  bool is_definedp(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::definedp);}
+  bool is_definedp(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::definedp);}
 
 
   namespace undefined_determination_helpers {
     // (string-split <call> ".")
-    bool parse_object_property_chain_sequence(const scm_string& call, std::vector<scm_string>& chain)noexcept{
+    bool parse_object_property_chain_sequence(const string& call, str_vector& chain)noexcept{
       chain.push_back("");
       for(const auto& ch : call) {
         if(ch == '.') chain.push_back("");
@@ -1588,8 +1587,8 @@ namespace heist {
     }
 
     // Returns whether found <sought_property> in <proto> or its inherited prototype
-    bool verify_in_prototype_and_inherited_properties(cls_type& proto, const scm_string& sought_property, bool& is_member, obj_type& obj)noexcept{
-      bool verify_value_in_local_object(obj_type&,const scm_string&,bool&)noexcept;
+    bool verify_in_prototype_and_inherited_properties(cls_type& proto, const string& sought_property, bool& is_member, obj_type& obj)noexcept{
+      bool verify_value_in_local_object(obj_type&,const string&,bool&)noexcept;
       // Search the prototype
       for(size_type i = 0, n = proto->member_names.size(); i < n; ++i)
         if(proto->member_names[i] == sought_property) {
@@ -1609,7 +1608,7 @@ namespace heist {
 
     // Returns whether found <property> as a member/method in <obj> 
     // If returns true, <property> value is in <obj> & <is_member> denotes whether a member or method
-    bool verify_value_in_local_object(obj_type& obj, const scm_string& property, bool& is_member)noexcept{
+    bool verify_value_in_local_object(obj_type& obj, const string& property, bool& is_member)noexcept{
       auto& members = obj->member_names;
       // Seek members
       for(size_type i = 0, n = members.size(); i < n; ++i)
@@ -1630,7 +1629,7 @@ namespace heist {
     }
 
     // Returns the ultimate value of the call-chain
-    bool property_chain_is_undefined(std::vector<scm_string>&& chain, env_type& env)noexcept{
+    bool property_chain_is_undefined(str_vector&& chain, env_type& env)noexcept{
       // get the first object instance
       if(!env->has_variable(chain[0])) return true;
       data value = lookup_variable_value(chain[0],env);
@@ -1649,7 +1648,7 @@ namespace heist {
 
 
   // NOTE: USE runtime-syntax? core-syntax? reader-syntax? TO CHECK MACROS !!!
-  exe_fcn_t analyze_definedp(scm_list& exp) {
+  exe_fcn_t analyze_definedp(data_vector& exp) {
     if(exp.size() != 2)
       THROW_ERR("'defined? didn't receive 1 argument!\n     (defined? <symbol>)"<<EXP_ERR(exp));
     if(!exp[1].is_type(types::sym))
@@ -1660,7 +1659,7 @@ namespace heist {
         return boolean(env->has_variable(variable));
       };
     // Check if member-access chain is defined in the environment
-    std::vector<scm_string> chain; // split the call chain into object series
+    str_vector chain; // split the call chain into object series
     if(!undefined_determination_helpers::parse_object_property_chain_sequence(exp[1].sym,chain)) 
       return [](env_type&){return GLOBALS::FALSE_DATA_BOOLEAN;};
     return [chain=std::move(chain)](env_type& env)mutable{
@@ -1672,10 +1671,10 @@ namespace heist {
   * REPRESENTING delete! SPECIAL FORM: DELETE VARS & OBJECT-PROPERTY-ACCESS
   ******************************************************************************/
 
-  bool is_delete(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::delete_bang);}
+  bool is_delete(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::delete_bang);}
 
   namespace delete_variable_helpers {
-    void delete_property_in_local_object(obj_type& obj, const scm_string& property)noexcept{
+    void delete_property_in_local_object(obj_type& obj, const string& property)noexcept{
       auto& members = obj->member_names;
       // Seek members
       for(size_type i = 0, n = members.size(); i < n; ++i)
@@ -1697,7 +1696,7 @@ namespace heist {
     }
 
     // Returns the ultimate value of the call-chain
-    void delete_property_chain_if_exists(std::vector<scm_string>&& chain, env_type& env)noexcept{
+    void delete_property_chain_if_exists(str_vector&& chain, env_type& env)noexcept{
       // get the first object instance
       if(!env->has_variable(chain[0])) return;
       data value = lookup_variable_value(chain[0],env);
@@ -1719,7 +1718,7 @@ namespace heist {
   } // End of namesapce delete_variable_helpers
 
 
-  exe_fcn_t analyze_delete(scm_list& exp) {
+  exe_fcn_t analyze_delete(data_vector& exp) {
     if(exp.size() != 2)
       THROW_ERR("'delete! didn't receive 1 argument!\n     (delete! <symbol>)"<<EXP_ERR(exp));
     if(!exp[1].is_type(types::sym))
@@ -1731,7 +1730,7 @@ namespace heist {
         return GLOBALS::VOID_DATA_OBJECT;
       };
     // Check if member-access chain is defined in the environment
-    std::vector<scm_string> chain; // split the call chain into object series
+    str_vector chain; // split the call chain into object series
     if(!undefined_determination_helpers::parse_object_property_chain_sequence(exp[1].sym,chain)) 
       return [](env_type&){return GLOBALS::VOID_DATA_OBJECT;};
     return [chain=std::move(chain)](env_type& env)mutable{
@@ -1754,7 +1753,7 @@ namespace heist {
   ******************************************************************************/
 
   // Whether <cps_exp> contains <sym>
-  bool CPS_exp_contains_symbol(const scm_list& cps_exp,const sym_type& sym)noexcept{
+  bool CPS_exp_contains_symbol(const data_vector& cps_exp,const string& sym)noexcept{
     for(size_type i = 0, n = cps_exp.size(); i < n; ++i)
       if((cps_exp[i].is_type(types::exp) && CPS_exp_contains_symbol(cps_exp[i].exp,sym)) ||
          (cps_exp[i].is_type(types::sym) && cps_exp[i].sym == sym))
@@ -1764,7 +1763,7 @@ namespace heist {
 
 
   // Is a lambda of 1 arg
-  bool is_unary_arg_lambda_cps_exp(const scm_list& cps_exp)noexcept{
+  bool is_unary_arg_lambda_cps_exp(const data_vector& cps_exp)noexcept{
     return cps_exp.size() > 2 && is_tagged_list(cps_exp,symconst::lambda) && 
            cps_exp[1].is_type(types::exp) && cps_exp[1].exp.size() == 1 && 
            cps_exp[1].exp[0].is_type(types::sym);
@@ -1772,7 +1771,7 @@ namespace heist {
 
 
   // Optimizable (pass 1) CPS lambda
-  bool is_optimizable_CPS_pass_1_exp(const scm_list& cps_exp)noexcept{
+  bool is_optimizable_CPS_pass_1_exp(const data_vector& cps_exp)noexcept{
     return cps_exp.size() == 3 && is_unary_arg_lambda_cps_exp(cps_exp) && 
            cps_exp[2].is_type(types::exp) && cps_exp[2].exp.size() == 2 &&
            cps_exp[2].exp[0].is_type(types::exp) && cps_exp[2].exp[1].is_type(types::sym) &&
@@ -1782,7 +1781,7 @@ namespace heist {
 
 
   // (lambda (a) (<expression-w/o-a> a)) => <expression-w/o-a>
-  void CPS_lambda_unwrapping_optimization_pass_1(scm_list& cps_exp)noexcept{
+  void CPS_lambda_unwrapping_optimization_pass_1(data_vector& cps_exp)noexcept{
     if(is_optimizable_CPS_pass_1_exp(cps_exp)) {
       auto temp = cps_exp[2].exp[0].exp;
       cps_exp = temp;
@@ -1800,8 +1799,7 @@ namespace heist {
 
   bool data_is_continuation_parameter(const data&)noexcept;
 
-  void replace_all_instances_of_symB_with_symA(scm_list& cps_exp,const sym_type& symA,
-                                                                 const sym_type& symB)noexcept{
+  void replace_all_instances_of_symB_with_symA(data_vector& cps_exp,const string& symA,const string& symB)noexcept{
     for(size_type i = 0, n = cps_exp.size(); i < n; ++i) {
       if(cps_exp[i].is_type(types::exp))
         replace_all_instances_of_symB_with_symA(cps_exp[i].exp,symA,symB);
@@ -1812,7 +1810,7 @@ namespace heist {
 
 
   // Optimizable (pass 2) CPS lambda
-  bool is_optimizable_CPS_pass_2_exp(const scm_list& cps_exp)noexcept{
+  bool is_optimizable_CPS_pass_2_exp(const data_vector& cps_exp)noexcept{
     return cps_exp.size() == 2 && cps_exp[0].is_type(types::exp) && 
            data_is_continuation_parameter(cps_exp[1]) && 
            is_unary_arg_lambda_cps_exp(cps_exp[0].exp) && cps_exp[0].exp.size() == 3 &&
@@ -1825,7 +1823,7 @@ namespace heist {
   // ((lambda (b) <exp-w/o-a>) a) => <exp-w/o-a>,
   // 1. With each reference to <b> replaced by <a>
   // 2. Iff both <a> & <b> are continuations
-  void CPS_lambda_unwrapping_optimization_pass_2(scm_list& cps_exp)noexcept{
+  void CPS_lambda_unwrapping_optimization_pass_2(data_vector& cps_exp)noexcept{
     if(is_optimizable_CPS_pass_2_exp(cps_exp)) {
       const auto a_param = cps_exp[1].sym, b_param = cps_exp[0].exp[1].exp[0].sym;
       auto temp = cps_exp[0].exp[2].exp;
@@ -1844,8 +1842,7 @@ namespace heist {
   ******************************************************************************/
 
   // Replaces the 1 instance of <symB> w/ <objA>
-  bool replace_instance_of_symB_with_objA(scm_list& cps_exp,const data& objA,
-                                                            const sym_type& symB)noexcept{
+  bool replace_instance_of_symB_with_objA(data_vector& cps_exp,const data& objA,const string& symB)noexcept{
     for(size_type i = 0, n = cps_exp.size(); i < n; ++i)
       if(cps_exp[i].is_type(types::exp) && replace_instance_of_symB_with_objA(cps_exp[i].exp,objA,symB)) {
         return true;
@@ -1858,7 +1855,7 @@ namespace heist {
 
 
   // counts instances of <sym> w/in <cps_exp>
-  void CPS_exp_count_instances_of_symbol(const scm_list& cps_exp,const sym_type& sym,size_type& count)noexcept{
+  void CPS_exp_count_instances_of_symbol(const data_vector& cps_exp,const string& sym,size_type& count)noexcept{
     for(size_type i = 0, n = cps_exp.size(); i < n; ++i)
       if(cps_exp[i].is_type(types::exp)) {
         CPS_exp_count_instances_of_symbol(cps_exp[i].exp,sym,count);
@@ -1870,7 +1867,7 @@ namespace heist {
 
 
   // Optimizable (pass 3) CPS lambda
-  bool is_optimizable_CPS_pass_3_exp(const scm_list& cps_exp)noexcept{
+  bool is_optimizable_CPS_pass_3_exp(const data_vector& cps_exp)noexcept{
     if(cps_exp.size() == 2 && cps_exp[0].is_type(types::exp) && 
       is_unary_arg_lambda_cps_exp(cps_exp[0].exp) && cps_exp[0].exp.size() == 3 &&
       cps_exp[0].exp[2].is_type(types::exp) && data_is_continuation_parameter(cps_exp[0].exp[1].exp[0])) {
@@ -1885,7 +1882,7 @@ namespace heist {
   // ((lambda (k) <exp-w/-only-1-instance-of-k>) <obj>) => <exp-w/-only-1-instance-of-k> 
   // 1. <k> is a continuation
   // 2. That 1 instance of <k> is replaced w/ <obj>
-  void CPS_lambda_unwrapping_optimization_pass_3(scm_list& cps_exp)noexcept{
+  void CPS_lambda_unwrapping_optimization_pass_3(data_vector& cps_exp)noexcept{
     if(is_optimizable_CPS_pass_3_exp(cps_exp)) {
       const data a_obj = cps_exp[1];
       const auto b_param = cps_exp[0].exp[1].exp[0].sym;
@@ -1905,8 +1902,8 @@ namespace heist {
   ******************************************************************************/
 
   // Expand the symconst::cps_ignore_arg lambda application
-  void expand_CPS_lambda_pass_4_application(scm_list& cps_exp,const size_type& i)noexcept{
-    scm_list unwrapped_exp(cps_exp[i].exp[0].exp.size()-1);
+  void expand_CPS_lambda_pass_4_application(data_vector& cps_exp,const size_type& i)noexcept{
+    data_vector unwrapped_exp(cps_exp[i].exp[0].exp.size()-1);
     unwrapped_exp[0] = cps_exp[i].exp[1];
     std::move(cps_exp[i].exp[0].exp.begin()+2,cps_exp[i].exp[0].exp.end(),unwrapped_exp.begin()+1);
     cps_exp.erase(cps_exp.begin()+i); // erase optimized lambda application
@@ -1917,7 +1914,7 @@ namespace heist {
 
 
   // Optimizable (pass 4) CPS lambda
-  bool is_optimizable_CPS_pass_4_exp(const scm_list& cps_exp)noexcept{
+  bool is_optimizable_CPS_pass_4_exp(const data_vector& cps_exp)noexcept{
     return cps_exp.size() == 2 && cps_exp[0].is_type(types::exp) &&
            is_unary_arg_lambda_cps_exp(cps_exp[0].exp) &&
            cps_exp[0].exp[1].exp[0].is_type(types::sym) &&
@@ -1926,7 +1923,7 @@ namespace heist {
 
 
   // ((lambda (ignore) <exp> ...) <obj>) => <obj> <exp> ...
-  void CPS_lambda_unwrapping_optimization_pass_4(scm_list& cps_exp)noexcept{
+  void CPS_lambda_unwrapping_optimization_pass_4(data_vector& cps_exp)noexcept{
     for(size_type i = 0, n = cps_exp.size(); i < n; ++i) {
       if(cps_exp[i].is_type(types::exp)) {
         if(is_optimizable_CPS_pass_4_exp(cps_exp[i].exp)) {
@@ -1944,8 +1941,8 @@ namespace heist {
   ******************************************************************************/
 
   // Revert the "lambda-set!" definition transformation
-  void expand_CPS_lambda_pass_5_definition(scm_list& cps_exp,const size_type& i)noexcept{
-    scm_list unwrapped_exp(cps_exp[i].exp[0].exp.size()-2);
+  void expand_CPS_lambda_pass_5_definition(data_vector& cps_exp,const size_type& i)noexcept{
+    data_vector unwrapped_exp(cps_exp[i].exp[0].exp.size()-2);
     std::move(cps_exp[i].exp[0].exp.begin()+2,cps_exp[i].exp[0].exp.end(),unwrapped_exp.begin());
     unwrapped_exp[0].exp[0].sym = symconst::define;
     cps_exp.erase(cps_exp.begin()+i); // erase optimized lambda application
@@ -1956,7 +1953,7 @@ namespace heist {
 
 
   // Optimizable (pass 5) CPS lambda
-  bool is_optimizable_CPS_pass_5_exp(const scm_list& cps_exp)noexcept{
+  bool is_optimizable_CPS_pass_5_exp(const data_vector& cps_exp)noexcept{
     return cps_exp.size() == 2 && cps_exp[0].is_type(types::exp) &&
            is_unary_arg_lambda_cps_exp(cps_exp[0].exp) &&
            ((cps_exp[1].is_type(types::bol) && !cps_exp[1].bol.val) || 
@@ -1968,7 +1965,7 @@ namespace heist {
 
   // Pass 5: Reifying Definitions
   // ((lambda (<name>) (set! <name> <val>) <exp> ...) #f) => (define <name> <val>) <exp> ...
-  void CPS_lambda_unwrapping_optimization_pass_5(scm_list& cps_exp)noexcept{
+  void CPS_lambda_unwrapping_optimization_pass_5(data_vector& cps_exp)noexcept{
     for(size_type i = 0, n = cps_exp.size(); i < n; ++i) {
       if(cps_exp[i].is_type(types::exp)) {
         if(is_optimizable_CPS_pass_5_exp(cps_exp[i].exp)) {
@@ -1987,7 +1984,7 @@ namespace heist {
 
   // Perform several optimization passes on the generated CPS to reduce lambda count 
   // NOTE: CPS atomics are already optimized @expansion-time
-  void optimize_CPS_code_generation(scm_list& cps_exp)noexcept{
+  void optimize_CPS_code_generation(data_vector& cps_exp)noexcept{
     CPS_lambda_unwrapping_optimization_pass_1(cps_exp);
     CPS_lambda_unwrapping_optimization_pass_2(cps_exp);
     CPS_lambda_unwrapping_optimization_pass_3(cps_exp);
@@ -1999,15 +1996,15 @@ namespace heist {
   * CONTINUATION-PASSING-STYLE EXPANSION
   ******************************************************************************/
 
-  void confirm_valid_define_syntax(const scm_list&);
+  void confirm_valid_define_syntax(const data_vector&);
 
-  bool is_scm_cps(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::scm_cps);}
-  bool is_cps_quote(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::cps_quote);}
-  bool is_cps_application(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::cps_app_tag);}
-  bool is_using_cpsp(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::using_cpsp);}
+  bool is_scm_cps(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::scm_cps);}
+  bool is_cps_quote(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::cps_quote);}
+  bool is_cps_application(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::cps_app_tag);}
+  bool is_using_cpsp(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::using_cpsp);}
 
   // Heist-specific checker to not prefix C++ derived special forms w/ application tag
-  bool is_HEIST_cpp_derived_special_form(const sym_type& app)noexcept{
+  bool is_HEIST_cpp_derived_special_form(const string& app)noexcept{
     return app == symconst::cps_quote || app == symconst::scm_cps    || app == symconst::map_literal ||
            app == symconst::while_t   || app == symconst::vec_literal;
   }
@@ -2015,7 +2012,7 @@ namespace heist {
 
   // Generate a unique hashed variant of a cps identifier name
   // NOTE: Max Unique Hashes = (expt 18446744073709551615 18446744073709551615)
-  scm_string generate_unique_cps_hash()noexcept{
+  string generate_unique_cps_hash()noexcept{
     if(G.CPS_HASH_IDX_1 != GLOBALS::MAX_SIZE_TYPE)
       return symconst::continuation
         + std::to_string(G.CPS_HASH_IDX_2) + '_' + std::to_string(G.CPS_HASH_IDX_1++);
@@ -2026,7 +2023,7 @@ namespace heist {
 
   // Generate a unique hashed variant of a cps value name
   // NOTE: Max Unique Hashes = (expt 18446744073709551615 18446744073709551615)
-  scm_string generate_unique_cps_value_hash()noexcept{
+  string generate_unique_cps_value_hash()noexcept{
     if(G.CPS_VALUE_HASH_IDX_1 != GLOBALS::MAX_SIZE_TYPE)
       return symconst::cps_generated_val
         + std::to_string(G.CPS_VALUE_HASH_IDX_2) + '_' + std::to_string(G.CPS_VALUE_HASH_IDX_1++);
@@ -2051,24 +2048,24 @@ namespace heist {
   }
 
 
-  data cps_expand_application(const scm_list& application) {
+  data cps_expand_application(const data_vector& application) {
     const auto app_len = application.size();
-    scm_list cps_app(app_len+2);
-    scm_list cps_exp(3);
+    data_vector cps_app(app_len+2);
+    data_vector cps_exp(3);
     cps_exp[0] = symconst::lambda;
-    cps_exp[1] = scm_list(1,generate_unique_cps_hash()); // "k"
-    cps_exp[2] = scm_list(2);
+    cps_exp[1] = data_vector(1,generate_unique_cps_hash()); // "k"
+    cps_exp[2] = data_vector(2);
     auto iter = cps_exp.begin()+2;
     for(size_type i = 0; i < app_len; ++i) {
       if(data_is_cps_atomic(application[i])) {
         cps_app[i+1] = application[i];
       } else {
         iter->exp[0] = generate_fundamental_form_cps(application[i]);
-        iter->exp[1] = scm_list(3);
+        iter->exp[1] = data_vector(3);
         iter->exp[1].exp[0] = symconst::lambda;
-        iter->exp[1].exp[1] = scm_list(1,generate_unique_cps_value_hash()); // "arg"
+        iter->exp[1].exp[1] = data_vector(1,generate_unique_cps_value_hash()); // "arg"
         cps_app[i+1] = iter->exp[1].exp[1].exp[0];
-        iter->exp[1].exp[2] = scm_list(2);
+        iter->exp[1].exp[2] = data_vector(2);
         iter = iter->exp[1].exp.begin()+2;
       }
     }
@@ -2080,12 +2077,12 @@ namespace heist {
 
 
   // Generates the procedure to set <var> to <val> after binding <var> as a lambda arg
-  scm_list get_cps_defn_set_procedure(const data& continuation,const data& var,const data& val){
-    scm_list set_exp(2);
+  data_vector get_cps_defn_set_procedure(const data& continuation,const data& var,const data& val){
+    data_vector set_exp(2);
     // Set atomic values and pass to the continuation
     if(data_is_cps_atomic(val)) {
       set_exp[0] = continuation;
-      set_exp[1] = scm_list(3);
+      set_exp[1] = data_vector(3);
       set_exp[1].exp[0] = symconst::set;
       set_exp[1].exp[1] = var;
       set_exp[1].exp[2] = val;
@@ -2093,12 +2090,12 @@ namespace heist {
     //   turn sets the received value & passes such to the continuation given here as an arg
     } else {
       set_exp[0] = generate_fundamental_form_cps(val,false,false);
-      set_exp[1] = scm_list(3);
+      set_exp[1] = data_vector(3);
       set_exp[1].exp[0] = symconst::lambda;
-      set_exp[1].exp[1] = scm_list(1,generate_unique_cps_value_hash()); // "defn-val"
-      set_exp[1].exp[2] = scm_list(2);
+      set_exp[1].exp[1] = data_vector(1,generate_unique_cps_value_hash()); // "defn-val"
+      set_exp[1].exp[2] = data_vector(2);
       set_exp[1].exp[2].exp[0] = continuation;
-      set_exp[1].exp[2].exp[1] = scm_list(3);
+      set_exp[1].exp[2].exp[1] = data_vector(3);
       set_exp[1].exp[2].exp[1].exp[0] = symconst::set;
       set_exp[1].exp[2].exp[1].exp[1] = var;
       set_exp[1].exp[2].exp[1].exp[2] = set_exp[1].exp[1].exp[0]; // defn-val
@@ -2110,30 +2107,30 @@ namespace heist {
   // Generates a CPS definition in the middle of a BEGIN or LAMBDA BODY sequence, w/ <rest_exp>
   //   being the remaining expressions AFTER this definition in the sequence
   // PRECONDITION: !rest_exp.empty()
-  scm_list generate_mid_seq_cps_var_defn(const scm_list& defn_exp, const data& rest_exp){
-    scm_list cps_defn(3);
+  data_vector generate_mid_seq_cps_var_defn(const data_vector& defn_exp, const data& rest_exp){
+    data_vector cps_defn(3);
     cps_defn[0] = symconst::lambda;
-    cps_defn[1] = scm_list(1,generate_unique_cps_hash()); // topmost continuation "k"
-    cps_defn[2] = scm_list(2);
+    cps_defn[1] = data_vector(1,generate_unique_cps_hash()); // topmost continuation "k"
+    cps_defn[2] = data_vector(2);
 
     cps_defn[2].exp[1] = GLOBALS::FALSE_DATA_BOOLEAN; // initially bind defined symbol to #f
-    cps_defn[2].exp[0] = scm_list(3);
+    cps_defn[2].exp[0] = data_vector(3);
     cps_defn[2].exp[0].exp[0] = symconst::lambda;
-    cps_defn[2].exp[0].exp[1] = scm_list(1,defn_exp[1]); // defined symbol as an argument
-    cps_defn[2].exp[0].exp[2] = scm_list(2);
+    cps_defn[2].exp[0].exp[1] = data_vector(1,defn_exp[1]); // defined symbol as an argument
+    cps_defn[2].exp[0].exp[2] = data_vector(2);
 
     // Bind Var to Value
-    cps_defn[2].exp[0].exp[2].exp[0] = scm_list(3);
+    cps_defn[2].exp[0].exp[2].exp[0] = data_vector(3);
     cps_defn[2].exp[0].exp[2].exp[0].exp[0] = symconst::lambda;
-    cps_defn[2].exp[0].exp[2].exp[0].exp[1] = scm_list(1,generate_unique_cps_hash()); // continuation "k1" of set!
+    cps_defn[2].exp[0].exp[2].exp[0].exp[1] = data_vector(1,generate_unique_cps_hash()); // continuation "k1" of set!
     cps_defn[2].exp[0].exp[2].exp[0].exp[2] = get_cps_defn_set_procedure(cps_defn[2].exp[0].exp[2].exp[0].exp[1].exp[0],
                                                                          defn_exp[1],defn_exp[2]);
 
     // Continue w/ expression after binding [SELF IS THE "k1" CONTINUATION OF THE EXPRESSION ABOVE]
-    cps_defn[2].exp[0].exp[2].exp[1] = scm_list(3);
+    cps_defn[2].exp[0].exp[2].exp[1] = data_vector(3);
     cps_defn[2].exp[0].exp[2].exp[1].exp[0] = symconst::lambda;
-    cps_defn[2].exp[0].exp[2].exp[1].exp[1] = scm_list(1,symconst::cps_ignore_arg); // result of set!
-    cps_defn[2].exp[0].exp[2].exp[1].exp[2] = scm_list(2);
+    cps_defn[2].exp[0].exp[2].exp[1].exp[1] = data_vector(1,symconst::cps_ignore_arg); // result of set!
+    cps_defn[2].exp[0].exp[2].exp[1].exp[2] = data_vector(2);
 
     // Pass <rest_exp> of expression to the topmost continuation if CPS-ATOMIC
     if(data_is_cps_atomic(rest_exp)) {
@@ -2149,8 +2146,8 @@ namespace heist {
 
 
   // Generates the CPS expression needed to evaluate <rest_exp> after defining new syntax
-  scm_list generate_fundamental_form_cps_syn_defn_REST_EXP_continuation(const data& continuation,const data& rest_exp){
-    scm_list rest_cont(2);
+  data_vector generate_fundamental_form_cps_syn_defn_REST_EXP_continuation(const data& continuation,const data& rest_exp){
+    data_vector rest_cont(2);
     // Pass <rest_exp> of expression to the topmost continuation if CPS-ATOMIC
     if(data_is_cps_atomic(rest_exp)) {
       rest_cont[0] = continuation;
@@ -2167,27 +2164,27 @@ namespace heist {
   // Generates a CPS syntax definition in the middle of a BEGIN or LAMBDA BODY sequence, w/ <rest_exp>
   //   being the remaining expressions AFTER this syntax definition in the sequence
   // PRECONDITION: !rest_exp.empty()
-  scm_list generate_mid_seq_cps_syn_defn(const scm_list& defn_exp, const data& rest_exp){
+  data_vector generate_mid_seq_cps_syn_defn(const data_vector& defn_exp, const data& rest_exp){
     const bool atomic_syntax_rules = data_is_cps_atomic(defn_exp[2]);
-    scm_list cps_defn(3 + atomic_syntax_rules);
+    data_vector cps_defn(3 + atomic_syntax_rules);
     cps_defn[0] = symconst::lambda;
-    cps_defn[1] = scm_list(1,generate_unique_cps_hash()); // topmost continuation "k"
+    cps_defn[1] = data_vector(1,generate_unique_cps_hash()); // topmost continuation "k"
     // Atomic Syntax-Rules reduces # of lambdas needed by 1
     if(atomic_syntax_rules) {
-      cps_defn[2] = scm_list(3);
+      cps_defn[2] = data_vector(3);
       cps_defn[2].exp[0] = symconst::defn_syn;
       cps_defn[2].exp[1] = defn_exp[1];
       cps_defn[2].exp[2] = defn_exp[2];
       cps_defn[3] = generate_fundamental_form_cps_syn_defn_REST_EXP_continuation(cps_defn[1].exp[0],rest_exp);
       return cps_defn;
     }
-    cps_defn[2] = scm_list(2);
+    cps_defn[2] = data_vector(2);
     cps_defn[2].exp[0] = generate_fundamental_form_cps(defn_exp[2],false,false);
-    cps_defn[2].exp[1] = scm_list(4);
+    cps_defn[2].exp[1] = data_vector(4);
     cps_defn[2].exp[1].exp[0] = symconst::lambda;
-    cps_defn[2].exp[1].exp[1] = scm_list(1,generate_unique_cps_value_hash()); // "syntax-object"
+    cps_defn[2].exp[1].exp[1] = data_vector(1,generate_unique_cps_value_hash()); // "syntax-object"
 
-    cps_defn[2].exp[1].exp[2] = scm_list(3);
+    cps_defn[2].exp[1].exp[2] = data_vector(3);
     cps_defn[2].exp[1].exp[2].exp[0] = symconst::defn_syn;
     cps_defn[2].exp[1].exp[2].exp[1] = defn_exp[1];
     cps_defn[2].exp[1].exp[2].exp[2] = cps_defn[2].exp[1].exp[1].exp[0];
@@ -2196,12 +2193,12 @@ namespace heist {
   }
 
 
-  template<scm_list(*generate_begin_defn)(const scm_list&,const data&)>
-  scm_list generate_begin_mid_seq_defn(const scm_list& defn_exp,const data& begin){
+  template<data_vector(*generate_begin_defn)(const data_vector&,const data&)>
+  data_vector generate_begin_mid_seq_defn(const data_vector& defn_exp,const data& begin){
     if(begin.exp.size() == 3 && data_is_cps_atomic(begin.exp[2])) {
       return generate_begin_defn(defn_exp,begin.exp[2]);
     } else {
-      scm_list begin_tail(begin.exp.size()-1);
+      data_vector begin_tail(begin.exp.size()-1);
       begin_tail[0] = symconst::begin;
       std::copy(begin.exp.begin()+2,begin.exp.end(),begin_tail.begin()+1);
       return generate_begin_defn(defn_exp,begin_tail);
@@ -2209,20 +2206,20 @@ namespace heist {
   }
 
 
-  scm_list convert_proc_defn_to_lambda_defn(const scm_list& defn_exp)noexcept{
-    scm_list lambda_defn(3);
+  data_vector convert_proc_defn_to_lambda_defn(const data_vector& defn_exp)noexcept{
+    data_vector lambda_defn(3);
     lambda_defn[0] = symconst::define;
     lambda_defn[1] = defn_exp[1].exp[0]; // proc name
-    lambda_defn[2] = scm_list(defn_exp.size());
+    lambda_defn[2] = data_vector(defn_exp.size());
     lambda_defn[2].exp[0] = symconst::lambda;
-    lambda_defn[2].exp[1] = scm_list(defn_exp[1].exp.begin()+1,defn_exp[1].exp.end()); // args
+    lambda_defn[2].exp[1] = data_vector(defn_exp[1].exp.begin()+1,defn_exp[1].exp.end()); // args
     std::copy(defn_exp.begin()+2,defn_exp.end(),lambda_defn[2].exp.begin()+2); // append body to lambda
     return lambda_defn;
   }
 
 
-  void get_cps_lambda_body(const scm_list& lambda_exp, scm_list& lambda_cps){
-    lambda_cps[2] = scm_list(2); // lambda body
+  void get_cps_lambda_body(const data_vector& lambda_exp, data_vector& lambda_cps){
+    lambda_cps[2] = data_vector(2); // lambda body
     // If single-expression body, NO NEED FOR "BEGIN"
     if(lambda_exp.size() == 3) { 
       if(data_is_cps_atomic(lambda_exp[2])) {
@@ -2234,10 +2231,10 @@ namespace heist {
       }
     // If multi-expression body, WRAP W/ "BEGIN"
     } else {
-      scm_list begin_recur(lambda_exp.size()-1);
+      data_vector begin_recur(lambda_exp.size()-1);
       begin_recur[0] = symconst::begin;
       std::copy(lambda_exp.begin()+2,lambda_exp.end(),begin_recur.begin()+1);
-      lambda_cps[2] = scm_list(2);
+      lambda_cps[2] = data_vector(2);
       lambda_cps[2].exp[0] = generate_fundamental_form_cps(begin_recur,false,false);
       lambda_cps[2].exp[1] = *lambda_cps[1].exp.rbegin();
     }
@@ -2245,19 +2242,19 @@ namespace heist {
 
 
   // PRECONDITION: lambda.capacity() == 3
-  void generate_cps_lambda_form(const data& code, scm_list& lambda) {
+  void generate_cps_lambda_form(const data& code, data_vector& lambda) {
     confirm_valid_lambda(code.exp);
     lambda[0] = symconst::lambda;
-    lambda[1] = scm_list(1,generate_unique_cps_hash()); // "k"
-    lambda[2] = scm_list(2);
+    lambda[1] = data_vector(1,generate_unique_cps_hash()); // "k"
+    lambda[2] = data_vector(2);
     lambda[2].exp[0] = lambda[1].exp[0];
-    lambda[2].exp[1] = scm_list(3);
+    lambda[2].exp[1] = data_vector(3);
     lambda[2].exp[1].exp[0] = symconst::lambda;
     if(code.exp[1].exp.empty()) { // ARGLESS
-      lambda[2].exp[1].exp[1] = scm_list(1,generate_unique_cps_hash()); // "dyn-k"
+      lambda[2].exp[1].exp[1] = data_vector(1,generate_unique_cps_hash()); // "dyn-k"
     } else { // N ARGS
       const auto param_len = code.exp[1].exp.size();
-      lambda[2].exp[1].exp[1] = scm_list(param_len+1);
+      lambda[2].exp[1].exp[1] = data_vector(param_len+1);
       std::copy(code.exp[1].exp.begin(),code.exp[1].exp.end(),lambda[2].exp[1].exp[1].exp.begin());
       lambda[2].exp[1].exp[1].exp[param_len] = generate_unique_cps_hash(); // "dyn-k"
     }
@@ -2265,13 +2262,13 @@ namespace heist {
   }
 
 
-  scm_list fn_unwrap_inner_lambda(const scm_list& lambda_exp)noexcept{
-    return scm_list(lambda_exp[2].exp[1].exp.begin()+1,lambda_exp[2].exp[1].exp.end());
+  data_vector fn_unwrap_inner_lambda(const data_vector& lambda_exp)noexcept{
+    return data_vector(lambda_exp[2].exp[1].exp.begin()+1,lambda_exp[2].exp[1].exp.end());
   }
 
 
-  scm_list get_cps_IF_consequent(const data& code, const data& continuation){
-    scm_list consequent(2);
+  data_vector get_cps_IF_consequent(const data& code, const data& continuation){
+    data_vector consequent(2);
     if(data_is_cps_atomic(code.exp[2])) { // (k <atomic-consequent>)
       consequent[0] = continuation;
       consequent[1] = code.exp[2];
@@ -2283,8 +2280,8 @@ namespace heist {
   }
 
   // PRECONDITION: Assumes IF alternative exists
-  scm_list get_cps_IF_alternative(const data& code, const data& continuation){
-    scm_list alternative(2);
+  data_vector get_cps_IF_alternative(const data& code, const data& continuation){
+    data_vector alternative(2);
     if(data_is_cps_atomic(code.exp[3])) { // (k <atomic-alternative>)
       alternative[0] = continuation;
       alternative[1] = code.exp[3];
@@ -2295,22 +2292,22 @@ namespace heist {
     return alternative;
   }
 
-  scm_list get_cps_IF_VOID_alternative(const data& continuation){
-    scm_list void_alternative(2);
+  data_vector get_cps_IF_VOID_alternative(const data& continuation){
+    data_vector void_alternative(2);
     void_alternative[0] = continuation; // continuation
-    void_alternative[1] = scm_list(1,"void");  // add (void)
+    void_alternative[1] = data_vector(1,"void");  // add (void)
     return void_alternative;
   }
 
 
-  bool cps_is_non_atomc_defclass_property(const data& d, const scm_string& ctor_name)noexcept{
+  bool cps_is_non_atomc_defclass_property(const data& d, const string& ctor_name)noexcept{
     return d.is_type(types::exp) && d.exp.size() == 2 && 
            d.exp[0].is_type(types::sym) && d.exp[0].sym != ctor_name && d.exp[1].is_type(types::exp);
   }
 
-  bool cps_defclass_requires_outlined_properties(scm_list& defclass_expr, 
-                                                 std::vector<scm_list>& stripped_property_values, 
-                                                 std::vector<sym_type>& stripped_property_names) {
+  bool cps_defclass_requires_outlined_properties(data_vector& defclass_expr, 
+                                                 std::vector<data_vector>& stripped_property_values, 
+                                                 str_vector& stripped_property_names) {
     validate_defclass(defclass_expr);
     const auto ctor_name = defclass_expr[1].sym;
     bool requires_outlined_properties = false;
@@ -2327,28 +2324,28 @@ namespace heist {
   }
 
 
-  scm_list cps_generate_macro_defn(const data& code,const bool topmost_call, const scm_string& mac_defn_statement){
+  data_vector cps_generate_macro_defn(const data& code,const bool topmost_call, const string& mac_defn_statement){
     confirm_valid_define_syntax(code.exp);
-    scm_list cps_defn_syn(3);
+    data_vector cps_defn_syn(3);
     cps_defn_syn[0] = symconst::lambda;
-    cps_defn_syn[1] = scm_list(1,generate_unique_cps_hash()); // "k"
-    cps_defn_syn[2] = scm_list(2);
+    cps_defn_syn[1] = data_vector(1,generate_unique_cps_hash()); // "k"
+    cps_defn_syn[2] = data_vector(2);
     if(data_is_cps_atomic(code.exp[2])) {
       cps_defn_syn[2].exp[0] = cps_defn_syn[1].exp[0];
-      cps_defn_syn[2].exp[1] = scm_list(3);
+      cps_defn_syn[2].exp[1] = data_vector(3);
       cps_defn_syn[2].exp[1].exp[0] = mac_defn_statement;
       cps_defn_syn[2].exp[1].exp[1] = code.exp[1];
       cps_defn_syn[2].exp[1].exp[2] = code.exp[2];
       return cps_defn_syn;
     }
     cps_defn_syn[2].exp[0] = generate_fundamental_form_cps(code.exp[2],false,false);
-    cps_defn_syn[2].exp[1] = scm_list(3);
+    cps_defn_syn[2].exp[1] = data_vector(3);
     cps_defn_syn[2].exp[1].exp[0] = symconst::lambda;
-    cps_defn_syn[2].exp[1].exp[1] = scm_list(1,generate_unique_cps_value_hash()); // "syntax-object"
+    cps_defn_syn[2].exp[1].exp[1] = data_vector(1,generate_unique_cps_value_hash()); // "syntax-object"
 
-    cps_defn_syn[2].exp[1].exp[2] = scm_list(2);
+    cps_defn_syn[2].exp[1].exp[2] = data_vector(2);
     cps_defn_syn[2].exp[1].exp[2].exp[0] = cps_defn_syn[1].exp[0];
-    cps_defn_syn[2].exp[1].exp[2].exp[1] = scm_list(3);
+    cps_defn_syn[2].exp[1].exp[2].exp[1] = data_vector(3);
     cps_defn_syn[2].exp[1].exp[2].exp[1].exp[0] = mac_defn_statement;
     cps_defn_syn[2].exp[1].exp[2].exp[1].exp[1] = code.exp[1];
     cps_defn_syn[2].exp[1].exp[2].exp[1].exp[2] = cps_defn_syn[2].exp[1].exp[1].exp[0];
@@ -2358,17 +2355,17 @@ namespace heist {
 
 
   // NOTE: <topmost_call> signals to optimize the result prior returning
-  scm_list generate_fundamental_form_cps(const data& code,const bool topmost_call,const bool core_unexpanded){
+  data_vector generate_fundamental_form_cps(const data& code,const bool topmost_call,const bool core_unexpanded){
     // EXPAND CORE SYNTAX 
     if(core_unexpanded)
       return generate_fundamental_form_cps(cps_recursively_deep_expand_core_macros(code),topmost_call,false);
 
     // ATOMIC DATUM OR EXPRESSION
     if(data_is_cps_atomic(code)) {
-      scm_list lambda(3);
+      data_vector lambda(3);
       lambda[0] = symconst::lambda;
-      lambda[1] = scm_list(1,generate_unique_cps_hash()); // "k"
-      lambda[2] = scm_list(2);
+      lambda[1] = data_vector(1,generate_unique_cps_hash()); // "k"
+      lambda[2] = data_vector(2);
       lambda[2].exp[0] = lambda[1].exp[0];
       lambda[2].exp[1] = code;
       return lambda;
@@ -2376,20 +2373,20 @@ namespace heist {
     // DEFCLASS
     } else if(is_tagged_list(code.exp,symconst::defclass)) {
       // Check if need to strip-out any property defns (if they have non-atomic values)
-      std::vector<scm_list> stripped_property_values;
-      std::vector<sym_type> stripped_property_names;
+      std::vector<data_vector> stripped_property_values;
+      str_vector stripped_property_names;
       // If must strip out defns
       auto defclass_expr = code.exp; // trasformation may mutate the <deflcass> expression
       if(cps_defclass_requires_outlined_properties(defclass_expr,stripped_property_values,stripped_property_names)){
-        scm_list begin_expr(2+stripped_property_names.size());
+        data_vector begin_expr(2+stripped_property_names.size());
         begin_expr[0] = symconst::begin;
         begin_expr[1] = defclass_expr;
         size_type j = 2;
         for(size_type i = 0, n = stripped_property_names.size(); i < n; ++i, ++j) {
-          begin_expr[j] = scm_list(4);
+          begin_expr[j] = data_vector(4);
           begin_expr[j].exp[0] = "proto-add-property!";
           begin_expr[j].exp[1] = begin_expr[1].exp[1]; // prototype name
-          begin_expr[j].exp[2] = scm_list(2);
+          begin_expr[j].exp[2] = data_vector(2);
           begin_expr[j].exp[2].exp[0] = symconst::quote;
           begin_expr[j].exp[2].exp[1] = stripped_property_names[i];
           begin_expr[j].exp[3] = stripped_property_values[i];
@@ -2397,10 +2394,10 @@ namespace heist {
         return generate_fundamental_form_cps(begin_expr,topmost_call,false);
       // No external definitions needed! Treat as if cps-atomic.
       } else {
-        scm_list lambda(3);
+        data_vector lambda(3);
         lambda[0] = symconst::lambda;
-        lambda[1] = scm_list(1,generate_unique_cps_hash()); // "k"
-        lambda[2] = scm_list(2);
+        lambda[1] = data_vector(1,generate_unique_cps_hash()); // "k"
+        lambda[2] = data_vector(2);
         lambda[2].exp[0] = lambda[1].exp[0];
         lambda[2].exp[1] = code;
         return lambda;
@@ -2417,22 +2414,22 @@ namespace heist {
     // SET!
     } else if(is_tagged_list(code.exp,symconst::set)) {
       confirm_valid_assignment(code.exp);
-      scm_list lambda(3);
+      data_vector lambda(3);
       lambda[0] = symconst::lambda;
-      lambda[1] = scm_list(1,generate_unique_cps_hash()); // "k"
-      lambda[2] = scm_list(2);
+      lambda[1] = data_vector(1,generate_unique_cps_hash()); // "k"
+      lambda[2] = data_vector(2);
       if(data_is_cps_atomic(code.exp[2])) {
         lambda[2].exp[0] = lambda[1].exp[0];
         lambda[2].exp[1] = code.exp;
         return lambda;
       }
       lambda[2].exp[0] = generate_fundamental_form_cps(code.exp[2],false,false);
-      lambda[2].exp[1] = scm_list(3);
+      lambda[2].exp[1] = data_vector(3);
       lambda[2].exp[1].exp[0] = symconst::lambda;
-      lambda[2].exp[1].exp[1] = scm_list(1,generate_unique_cps_value_hash()); // "value"
-      lambda[2].exp[1].exp[2] = scm_list(2);
+      lambda[2].exp[1].exp[1] = data_vector(1,generate_unique_cps_value_hash()); // "value"
+      lambda[2].exp[1].exp[2] = data_vector(2);
       lambda[2].exp[1].exp[2].exp[0] = lambda[1].exp[0];
-      lambda[2].exp[1].exp[2].exp[1] = scm_list(3);
+      lambda[2].exp[1].exp[2].exp[1] = data_vector(3);
       lambda[2].exp[1].exp[2].exp[1].exp[0] = symconst::set;
       lambda[2].exp[1].exp[2].exp[1].exp[1] = code.exp[1];
       lambda[2].exp[1].exp[2].exp[1].exp[2] = lambda[2].exp[1].exp[1].exp[0];
@@ -2441,14 +2438,14 @@ namespace heist {
 
     // BEGIN
     } else if(is_tagged_list(code.exp,symconst::begin)) {
-      scm_list lambda(3);
+      data_vector lambda(3);
       lambda[0] = symconst::lambda;
-      lambda[1] = scm_list(1,generate_unique_cps_hash()); // "k"
-      lambda[2] = scm_list(2);
+      lambda[1] = data_vector(1,generate_unique_cps_hash()); // "k"
+      lambda[2] = data_vector(2);
       // 0 Args
       if(code.exp.size() == 1) {
         lambda[2].exp[0] = lambda[1].exp[0];
-        lambda[2].exp[1] = scm_list(1,"void");
+        lambda[2].exp[1] = data_vector(1,"void");
       // 1 Arg
       } else if(code.exp.size() == 2) {
         if(data_is_cps_atomic(code.exp[1])) {
@@ -2482,15 +2479,15 @@ namespace heist {
         } else {
           lambda[2].exp[1] = code.exp[1];
         }
-        lambda[2].exp[rec_idx] = scm_list(3);
+        lambda[2].exp[rec_idx] = data_vector(3);
         lambda[2].exp[rec_idx].exp[0] = symconst::lambda;
-        lambda[2].exp[rec_idx].exp[1] = scm_list(1,symconst::cps_ignore_arg);
-        lambda[2].exp[rec_idx].exp[2] = scm_list(2);
+        lambda[2].exp[rec_idx].exp[1] = data_vector(1,symconst::cps_ignore_arg);
+        lambda[2].exp[rec_idx].exp[2] = data_vector(2);
         if(code.exp.size() == 3 && data_is_cps_atomic(code.exp[2])) { // 2 ARGS, THE LAST BEING CPS-ATOMIC
           lambda[2].exp[rec_idx].exp[2].exp[0] = lambda[1].exp[0];
           lambda[2].exp[rec_idx].exp[2].exp[1] = code.exp[2];
         } else { // 2+ ARGS, IF 2, 2ND != CPS-ATOMIC
-          data begin_recur(scm_list(code.exp.size()-1));
+          data begin_recur(data_vector(code.exp.size()-1));
           begin_recur.exp[0] = symconst::begin;
           std::copy(code.exp.begin()+2, code.exp.end(), begin_recur.exp.begin()+1);
           lambda[2].exp[rec_idx].exp[2].exp[0] = generate_fundamental_form_cps(begin_recur,false,false);
@@ -2504,7 +2501,7 @@ namespace heist {
     } else if(is_tagged_list(code.exp,symconst::lambda)) {
       if(is_opt_arg_lambda(code.exp)) // convert optional-args <lambda> to a <fn>
         return generate_fundamental_form_cps(convert_lambda_opt_args_to_fn(code.exp),topmost_call,false);
-      scm_list lambda(3);
+      data_vector lambda(3);
       generate_cps_lambda_form(code,lambda);
       if(topmost_call) optimize_CPS_code_generation(lambda);
       return lambda;
@@ -2512,16 +2509,16 @@ namespace heist {
     // FN
     } else if(is_tagged_list(code.exp,symconst::fn)) {
       validate_fn(code.exp);
-      scm_list fn_exp(3);
+      data_vector fn_exp(3);
       fn_exp[0] = symconst::lambda;
-      fn_exp[1] = scm_list(1,generate_unique_cps_hash()); // "k"
-      fn_exp[2] = scm_list(2);
+      fn_exp[1] = data_vector(1,generate_unique_cps_hash()); // "k"
+      fn_exp[2] = data_vector(2);
       fn_exp[2].exp[0] = fn_exp[1].exp[0];
-      fn_exp[2].exp[1] = scm_list(code.exp.size());
+      fn_exp[2].exp[1] = data_vector(code.exp.size());
       fn_exp[2].exp[1].exp[0] = symconst::fn;
       for(size_type i = 1, n = code.exp.size(); i < n; ++i) {
-        scm_list lambda(3);
-        data lambda_exp(scm_list(1+code.exp[i].exp.size()));
+        data_vector lambda(3);
+        data lambda_exp(data_vector(1+code.exp[i].exp.size()));
         lambda_exp.exp[0] = symconst::lambda;
         std::copy(code.exp[i].exp.begin(),code.exp[i].exp.end(),lambda_exp.exp.begin()+1);
         generate_cps_lambda_form(lambda_exp,lambda);
@@ -2533,12 +2530,12 @@ namespace heist {
     // IF
     } else if(is_tagged_list(code.exp,symconst::if_t)) {
       confirm_valid_if(code.exp);
-      scm_list lambda(3);
+      data_vector lambda(3);
       lambda[0] = symconst::lambda;
-      lambda[1] = scm_list(1,generate_unique_cps_hash()); // "k"
+      lambda[1] = data_vector(1,generate_unique_cps_hash()); // "k"
       // Atomic IF test
       if(data_is_cps_atomic(code.exp[1])) { 
-        lambda[2] = scm_list(4);
+        lambda[2] = data_vector(4);
         lambda[2].exp[0] = symconst::if_t;
         lambda[2].exp[1] = code.exp[1];
         lambda[2].exp[2] = get_cps_IF_consequent(code,lambda[1].exp[0]);
@@ -2550,12 +2547,12 @@ namespace heist {
         return lambda;
       }
       // Non-Atomic IF test
-      lambda[2] = scm_list(2);
+      lambda[2] = data_vector(2);
       lambda[2].exp[0] = generate_fundamental_form_cps(code.exp[1],false,false);
-      lambda[2].exp[1] = scm_list(3);
+      lambda[2].exp[1] = data_vector(3);
       lambda[2].exp[1].exp[0] = symconst::lambda;
-      lambda[2].exp[1].exp[1] = scm_list(1,generate_unique_cps_value_hash()); // "test-result"
-      lambda[2].exp[1].exp[2] = scm_list(4);
+      lambda[2].exp[1].exp[1] = data_vector(1,generate_unique_cps_value_hash()); // "test-result"
+      lambda[2].exp[1].exp[2] = data_vector(4);
       lambda[2].exp[1].exp[2].exp[0] = symconst::if_t;
       lambda[2].exp[1].exp[2].exp[1] = lambda[2].exp[1].exp[1].exp[0];
       lambda[2].exp[1].exp[2].exp[2] = get_cps_IF_consequent(code,lambda[1].exp[0]);
@@ -2572,14 +2569,14 @@ namespace heist {
       if(is_obj_property_definition(code.exp)) { // DYNAMIC PROPERTY ADDITION
         return generate_fundamental_form_cps(convert_obj_property_defintion_to_method_call(code.exp),topmost_call,false);
       } else if(!code.exp[1].is_type(types::exp)) { // DEFINING VARIABLE
-        scm_list cps_defn(3);
+        data_vector cps_defn(3);
         cps_defn[0] = symconst::lambda;
-        cps_defn[1] = scm_list(1,generate_unique_cps_hash()); // topmost continuation "k"
-        cps_defn[2] = scm_list(2);
+        cps_defn[1] = data_vector(1,generate_unique_cps_hash()); // topmost continuation "k"
+        cps_defn[2] = data_vector(2);
         cps_defn[2].exp[1] = GLOBALS::FALSE_DATA_BOOLEAN; // initially bind defined symbol to #f
-        cps_defn[2].exp[0] = scm_list(3);
+        cps_defn[2].exp[0] = data_vector(3);
         cps_defn[2].exp[0].exp[0] = symconst::lambda;
-        cps_defn[2].exp[0].exp[1] = scm_list(1,code.exp[1]); // defined symbol as an argument, and bind via set! (below)
+        cps_defn[2].exp[0].exp[1] = data_vector(1,code.exp[1]); // defined symbol as an argument, and bind via set! (below)
         cps_defn[2].exp[0].exp[2] = get_cps_defn_set_procedure(cps_defn[1].exp[0],code.exp[1],code.exp[2]);
         if(topmost_call) optimize_CPS_code_generation(cps_defn);
         return cps_defn;
@@ -2598,7 +2595,7 @@ namespace heist {
         return code.exp; // Don't tag applications of HEIST's C++ derived forms
       // Tag any other application
       bool no_tag = !is_cps_application(code.exp);
-      scm_list app(code.exp.size()+no_tag);
+      data_vector app(code.exp.size()+no_tag);
       if(no_tag) app[0] = symconst::cps_app_tag;
       std::copy(code.exp.begin(),code.exp.end(),app.begin()+no_tag);
       return app;
@@ -2608,19 +2605,19 @@ namespace heist {
 
   // Extra <ignore> arg used to account for the <id> procedure that will be 
   // passed automatically by <scm_fcn::get_extended_environment>
-  void account_for_automatically_passed_ID_continuation(scm_list& exp)noexcept{
+  void account_for_automatically_passed_ID_continuation(data_vector& exp)noexcept{
     // Add an extra continuation param to account for the auto-added <id> procedure
     if(exp.size() >= 2 && exp[0].is_type(types::sym) && exp[0].sym == symconst::lambda && exp[1].is_type(types::exp) && exp[1].exp.size() == 1) {
       exp[1].exp.push_back(generate_unique_cps_hash()); // account for <id>
     // Wrap application in a lambda accepting an extra continuation param to 
     // account for the auto-added <id> procedure
     } else if(!exp.empty() && exp[0].is_type(types::sym) && exp[0].sym == symconst::cps_app_tag) {
-      scm_list lambda(3);
+      data_vector lambda(3);
       lambda[0] = symconst::lambda;
-      lambda[1] = scm_list(2);
+      lambda[1] = data_vector(2);
       lambda[1].exp[0] = generate_unique_cps_hash(); // k
       lambda[1].exp[1] = generate_unique_cps_hash(); // account for <id>
-      lambda[2] = scm_list(2);
+      lambda[2] = data_vector(2);
       lambda[2].exp[0] = std::move(exp);
       lambda[2].exp[1] = lambda[1].exp[0];
       exp = std::move(lambda);
@@ -2629,14 +2626,14 @@ namespace heist {
 
 
   // Process convert & eval exp in CPS (Continuation Passing Style)
-  exe_fcn_t analyze_scm_cps(scm_list& exp) {
+  exe_fcn_t analyze_scm_cps(data_vector& exp) {
     if(exp.size() == 1)
       THROW_ERR("'scm->cps expects at least 1 expression: (scm->cps <exp-1> ... <exp-N>)"<<EXP_ERR(exp));
-    scm_list cps_exp;
+    data_vector cps_exp;
     if(exp.size() == 2) {
       cps_exp = generate_fundamental_form_cps(exp[1]);
     } else { // Wrap multi-statement transforms in a BEGIN
-      scm_list begin(exp.size());
+      data_vector begin(exp.size());
       begin[0] = symconst::begin;
       std::copy(exp.begin()+1,exp.end(),begin.begin()+1);
       cps_exp = generate_fundamental_form_cps(begin);
@@ -2647,15 +2644,15 @@ namespace heist {
 
 
   // Returns the generated CPS form of exp as a quoted list of data
-  exe_fcn_t analyze_cps_quote(scm_list& exp,const bool cps_block) {
+  exe_fcn_t analyze_cps_quote(data_vector& exp,const bool cps_block) {
     if(exp.size() == 1)
       THROW_ERR("'cps-quote expects at least 1 expression: (cps-quote <exp-1> ... <exp-N>)"<<EXP_ERR(exp));
-    scm_list quoted_cps(2);
+    data_vector quoted_cps(2);
     quoted_cps[0] = symconst::quote;
     if(exp.size() == 2) {
       quoted_cps[1] = generate_fundamental_form_cps(exp[1]);
     } else { // Wrap multi-statement transforms in a BEGIN
-      scm_list begin(exp.size());
+      data_vector begin(exp.size());
       begin[0] = symconst::begin;
       std::copy(exp.begin()+1,exp.end(),begin.begin()+1);
       quoted_cps[1] = generate_fundamental_form_cps(begin);
@@ -2666,7 +2663,7 @@ namespace heist {
 
 
   // Return whether in a <scm->cps> block or the <-cps> flag is active
-  exe_fcn_t analyze_using_cpsp(scm_list& exp,const bool cps_block) {
+  exe_fcn_t analyze_using_cpsp(data_vector& exp,const bool cps_block) {
     if(exp.size() != 1)
       THROW_ERR("'using-cps? expects 0 args: (using-cps?)"<<EXP_ERR(exp));
     return [cps_block](env_type&){
@@ -2728,22 +2725,22 @@ namespace heist {
 
   using macId_position_t = std::vector<size_type>;
   using MacroId_varArg_posPair = std::pair<macId_position_t,macId_position_t>;
-  using MACRO_ID_VAL_POS_PAIR = std::pair<scm_list,macId_position_t>;
+  using MACRO_ID_VAL_POS_PAIR = std::pair<data_vector,macId_position_t>;
   using MACRO_ID_VAL_POS_PAIRS = std::vector<MACRO_ID_VAL_POS_PAIR>;
-  using MACRO_ID = std::tuple<sym_type,MACRO_ID_VAL_POS_PAIRS,scm_list>;
+  using MACRO_ID = std::tuple<string,MACRO_ID_VAL_POS_PAIRS,data_vector>;
   using MACRO_ID_TABLE = std::vector<MACRO_ID>;
   using VARARG_POSITIONS = std::vector<macId_position_t>;
   using MACRO_ID_VAR_TABLE = std::pair<MACRO_ID_TABLE,VARARG_POSITIONS>;
 
   // Node elt in the variadic expansion process
   struct macro_expansion_node {
-    sym_type id_name;                             // Identifier name being expanded
+    string id_name;                             // Identifier name being expanded
     std::vector<macro_expansion_node> children;   // Variadic subgroup children
     std::vector<macId_position_t> positions;      // Position vector(s) of leaf node value(s)
-    scm_list values;                              // Leaf node value(s)
+    data_vector values;                              // Leaf node value(s)
     bool is_variadic = false;                     // Determines whether value corresponds to ...
     bool is_leaf()const{return children.empty();} // Determines valid elt: true ? value : children
-    macro_expansion_node(const sym_type& name, const bool& variadic_node = false) : id_name(name), 
+    macro_expansion_node(const string& name, const bool& variadic_node = false) : id_name(name), 
                                                                                     is_variadic(variadic_node) {}
   };
 
@@ -2755,13 +2752,13 @@ namespace heist {
 
 
   // Accessors
-  sym_type& macId_name(MACRO_ID& macId_instance)                      noexcept{return std::get<0>(macId_instance);}
+  string& macId_name(MACRO_ID& macId_instance)                        noexcept{return std::get<0>(macId_instance);}
   MACRO_ID_VAL_POS_PAIRS& macId_val_pos_map(MACRO_ID& macId_instance) noexcept{return std::get<1>(macId_instance);}
-  scm_list& macId_values(MACRO_ID& macId_instance)                    noexcept{return std::get<2>(macId_instance);}
+  data_vector& macId_values(MACRO_ID& macId_instance)                 noexcept{return std::get<2>(macId_instance);}
 
 
   // Confirm whether the given word is a keyword
-  bool is_keyword(const sym_type& word, const std::vector<scm_string>& keywords)noexcept{
+  bool is_keyword(const string& word, const str_vector& keywords)noexcept{
     return std::find(keywords.begin(), keywords.end(), word) != keywords.end();
   }
 
@@ -2787,20 +2784,20 @@ namespace heist {
 
 
   // Confirm <pat_entity> is a macro argument (non-keyword) name
-  bool is_macro_argument_label(const data& pat_entity, const std::vector<scm_string>& keywords)noexcept{
+  bool is_macro_argument_label(const data& pat_entity, const str_vector& keywords)noexcept{
     return is_symbolic_macro_identifier(pat_entity) && !is_keyword(pat_entity.sym, keywords);
   }
 
 
   // Confirm whether 'pattern' is argless but was given 'args' (or vise versa)
-  bool incompatible_void_arg_use(const scm_list& pattern, const scm_list& args)noexcept{
+  bool incompatible_void_arg_use(const data_vector& pattern, const data_vector& args)noexcept{
     return (pattern.size() == 1) ^ args.empty(); // pattern_is_argless ^ args_is_argless;
   }
 
 
   // Associate a pattern's macro identifier to the objects it will expand into
-  void register_macro_identifier_expansion_values(MACRO_ID_TABLE& ID_TO_VAL_MAP,const sym_type& id_name, 
-                                                  scm_list&& expansion_values,  const macId_position_t& macId_pos_vector)noexcept{
+  void register_macro_identifier_expansion_values(MACRO_ID_TABLE& ID_TO_VAL_MAP,const string& id_name, 
+                                                  data_vector&& expansion_values,const macId_position_t& macId_pos_vector)noexcept{
     for(auto& id : ID_TO_VAL_MAP) {
       if(macId_name(id) == id_name) {
         // Add to the flatmap of values
@@ -2820,12 +2817,12 @@ namespace heist {
   * REPRESENTING MACRO SYNTACTIC EXTENSIONS -- PATTERN MATCHING HELPER FUNCTIONS
   ******************************************************************************/
 
-  bool compare_pattern_args_exp_match(const scm_list&,const scm_list&,const std::vector<scm_string>&,MACRO_ID_VAR_TABLE&,
-                                                      const size_type&,MacroId_varArg_posPair)noexcept;
+  bool compare_pattern_args_exp_match(const data_vector&,const data_vector&,const str_vector&,MACRO_ID_VAR_TABLE&,
+                                      const size_type&,MacroId_varArg_posPair)noexcept;
   
 
   // Verify if pat_elt is a keyword that arg_elt is the same keyword
-  bool mismatched_keywords(const data& pat_elt, const data& arg_elt, const std::vector<scm_string>& keywords)noexcept{
+  bool mismatched_keywords(const data& pat_elt, const data& arg_elt, const str_vector& keywords)noexcept{
     if(pat_elt.is_type(types::sym) && is_keyword(pat_elt.sym,keywords))
       return !arg_elt.is_type(types::sym) || arg_elt.sym != pat_elt.sym;
     return false;
@@ -2842,7 +2839,7 @@ namespace heist {
 
 
   // Confirm the 2 given pattern/arg elts are mismatched subexpressions
-  bool mismatched_subexpressions(const data& pat_elt, const data& arg_elt, const std::vector<scm_string>& keywords, 
+  bool mismatched_subexpressions(const data& pat_elt, const data& arg_elt, const str_vector& keywords, 
                                  MACRO_ID_VAR_TABLE& MID_VARG_PAIR, MacroId_varArg_posPair macId_varArg_vecs, 
                                  const size_type& args_idx, const size_type& pat_idx)noexcept{
     if(!pat_elt.is_type(types::exp) || !arg_elt.is_type(types::exp)) return true;
@@ -2853,8 +2850,8 @@ namespace heist {
 
 
   // Handle '...' pattern analysis
-  bool account_for_pattern_ellipsis_and_return_whether_no_match(const scm_list& args_exp,    size_type& args_idx, const data& pat_obj_prior_ellipsis,
-                                                                const size_type& number_args_left_after_variadic, const std::vector<scm_string>& keywords,
+  bool account_for_pattern_ellipsis_and_return_whether_no_match(const data_vector& args_exp, size_type& args_idx, const data& pat_obj_prior_ellipsis,
+                                                                const size_type& number_args_left_after_variadic, const str_vector& keywords,
                                                                 MACRO_ID_VAR_TABLE& MID_VARG_PAIR,MacroId_varArg_posPair macId_varArg_vecs,
                                                                 const size_type& pat_idx)noexcept{
     // Start associating objs based on the first obj prior "..."'s position
@@ -2868,7 +2865,7 @@ namespace heist {
     if(pat_obj_prior_ellipsis.is_type(types::sym)) {
       macId_varArg_vecs.first.push_back(args_idx);
       register_macro_identifier_expansion_values(MID_VARG_PAIR.first,pat_obj_prior_ellipsis.sym,
-                                                                     scm_list(args_exp.begin() + args_idx, 
+                                                                     data_vector(args_exp.begin() + args_idx, 
                                                                               args_exp.begin() + va_objs_end),
                                                                      macId_varArg_vecs.first);
       const auto number_of_va_objs_in_args = va_objs_end - args_idx;
@@ -2889,9 +2886,9 @@ namespace heist {
 
 
   // Confirm whether the pattern sub-expression matches the 'args' sub-expression
-  bool compare_pattern_args_exp_match(const scm_list& pat_exp, const scm_list& args_exp, const std::vector<scm_string>& keywords,
-                                      MACRO_ID_VAR_TABLE& MID_VARG_PAIR,                 const size_type& pat_idx_start, 
-                                                                      MacroId_varArg_posPair macId_varArg_vecs)noexcept{
+  bool compare_pattern_args_exp_match(const data_vector& pat_exp, const data_vector& args_exp, const str_vector& keywords,
+                                      MACRO_ID_VAR_TABLE& MID_VARG_PAIR, const size_type& pat_idx_start, 
+                                      MacroId_varArg_posPair macId_varArg_vecs)noexcept{
     // Confirm whether <pat_exp> & <args_exp> match one another
     size_type pat_idx = pat_idx_start, args_idx = 0, args_size = args_exp.size(), pat_size = pat_exp.size();
     for(; pat_idx < pat_size && args_idx < args_size; ++pat_idx, ++args_idx){
@@ -2901,14 +2898,14 @@ namespace heist {
         MID_VARG_PAIR.second.push_back(macId_varArg_vecs.second);
         macId_varArg_vecs.second.pop_back();
         if(account_for_pattern_ellipsis_and_return_whether_no_match(args_exp, args_idx,pat_exp[pat_idx-1], pat_size-pat_idx-1,
-                                                                        keywords, MID_VARG_PAIR,macId_varArg_vecs,pat_idx-1)){
+                                                                    keywords, MID_VARG_PAIR,macId_varArg_vecs,pat_idx-1)){
           return false;
         }
       // Register the pat_exp's identifier & associated expansion value
       } else if(is_macro_argument_label(pat_exp[pat_idx],keywords)) {
         if(pat_idx+1 == pat_size || !data_is_ellipsis(pat_exp[pat_idx+1])) {
           macId_varArg_vecs.first.push_back(args_idx);
-          register_macro_identifier_expansion_values(MID_VARG_PAIR.first,pat_exp[pat_idx].sym,scm_list(1,args_exp[args_idx]),macId_varArg_vecs.first);
+          register_macro_identifier_expansion_values(MID_VARG_PAIR.first,pat_exp[pat_idx].sym,data_vector(1,args_exp[args_idx]),macId_varArg_vecs.first);
           macId_varArg_vecs.first.pop_back();
         }
       // Verify matching subexpressions
@@ -2931,12 +2928,12 @@ namespace heist {
         MID_VARG_PAIR.second.push_back(macId_varArg_vecs.second);
         macId_varArg_vecs.second.pop_back();
         macId_varArg_vecs.first.push_back(args_idx-1);
-        register_macro_identifier_expansion_values(MID_VARG_PAIR.first,pat_exp[pat_idx-1].sym,scm_list(1,args_exp[args_idx-1]),macId_varArg_vecs.first);
+        register_macro_identifier_expansion_values(MID_VARG_PAIR.first,pat_exp[pat_idx-1].sym,data_vector(1,args_exp[args_idx-1]),macId_varArg_vecs.first);
         macId_varArg_vecs.first.pop_back();
         return true;
       }
       return !account_for_pattern_ellipsis_and_return_whether_no_match(args_exp, args_idx, pat_exp[pat_idx-1], pat_size-pat_idx-1, 
-                                                                           keywords, MID_VARG_PAIR, macId_varArg_vecs, pat_idx-1);
+                                                                       keywords, MID_VARG_PAIR, macId_varArg_vecs, pat_idx-1);
     }
     // Verify both <pat_exp> & <arg_exp> have been fully iterated
     return pat_idx == pat_size && args_idx == args_size;
@@ -2944,8 +2941,8 @@ namespace heist {
 
 
   // Confirm the given arg combo matches the given pattern (in terms of layout)
-  bool is_pattern_match(const scm_list& args,const std::vector<scm_string>& keywords,const scm_list& pattern,
-                                                   MACRO_ID_VAR_TABLE& MID_VARG_PAIR)noexcept{
+  bool is_pattern_match(const data_vector& args,const str_vector& keywords,const data_vector& pattern,
+                                                           MACRO_ID_VAR_TABLE& MID_VARG_PAIR)noexcept{
     if(incompatible_void_arg_use(pattern,args)) return false;
     MacroId_varArg_posPair macId_varArg_vecs;
     if(!compare_pattern_args_exp_match(pattern,args,keywords,MID_VARG_PAIR,1,macId_varArg_vecs)){
@@ -2958,8 +2955,8 @@ namespace heist {
 
 
   // Returns whether the given args correspond to the given macro
-  bool is_macro_match(const scm_list& args, const syn_type& mac, size_type& match_idx, 
-                                            MACRO_ID_VAR_TABLE& MID_VARG_PAIR)noexcept{
+  bool is_macro_match(const data_vector& args, const syn_type& mac, size_type& match_idx, 
+                                              MACRO_ID_VAR_TABLE& MID_VARG_PAIR)noexcept{
     for(size_type i = 0, n = mac.patterns.size(); i < n; ++i) {
       if(is_pattern_match(args, mac.keywords, mac.patterns[i], MID_VARG_PAIR)) {
         match_idx = i;
@@ -2974,7 +2971,7 @@ namespace heist {
   ******************************************************************************/
 
   // Recursively prints <MACRO_EXPANSION_TREES> children subgroups
-  void recur_stringify_MACRO_EXPANSION_TREES(const MACRO_EXPANSION_TREES_t& children,scm_string& buffer)noexcept{
+  void recur_stringify_MACRO_EXPANSION_TREES(const MACRO_EXPANSION_TREES_t& children,string& buffer)noexcept{
     for(const auto& child : children) {
       if(!child.is_variadic) {
         buffer += "NON-VARIADIC = " + data(child.values).noexcept_write() + ',';
@@ -2989,8 +2986,8 @@ namespace heist {
   }
 
   // Stringifies <MACRO_EXPANSION_TREES> contents
-  scm_string stringify_MACRO_EXPANSION_TREES(const MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES)noexcept{
-    scm_string buffer("     ======================\n     MACRO_EXPANSION_TREES:\n     ");
+  string stringify_MACRO_EXPANSION_TREES(const MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES)noexcept{
+    string buffer("     ======================\n     MACRO_EXPANSION_TREES:\n     ");
     // for each tree
     for(const auto& tree : MACRO_EXPANSION_TREES) {
       buffer += "  " + tree.id_name + ": ";
@@ -3011,7 +3008,7 @@ namespace heist {
 
 
   // Generate a unique hashed id_name for the expanded symbol
-  scm_string hash_macro_expansion_identifier(const scm_string& id_name,const bool& finished_expanding = false)noexcept{
+  string hash_macro_expansion_identifier(const string& id_name,const bool& finished_expanding = false)noexcept{
     static size_type IDX_1 = 0, IDX_2 = 0;
     if(finished_expanding) {
       IDX_1 = IDX_2 = 0;
@@ -3025,7 +3022,7 @@ namespace heist {
 
 
   // Changes all <id_name> in <id_node> & below to be <tagged_symbol>
-  void propagate_new_tagged_identifier_name(const scm_string& tagged_symbol,macro_expansion_node& id_node)noexcept{
+  void propagate_new_tagged_identifier_name(const string& tagged_symbol,macro_expansion_node& id_node)noexcept{
     id_node.id_name = tagged_symbol;
     if(id_node.is_leaf()) return;
     for(auto& child : id_node.children)
@@ -3034,7 +3031,7 @@ namespace heist {
 
 
   // Get idx of <id_name> in <MACRO_EXPANSION_TREES>. Returns <GLOBALS::MAX_SIZE_TYPE> if not found.
-  size_type find_macro_identifier_leaf_index(const MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES,const sym_type& id_name)noexcept{
+  size_type find_macro_identifier_leaf_index(const MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES,const string& id_name)noexcept{
     for(size_type i = 0, n = MACRO_EXPANSION_TREES.size(); i < n; ++i)
       if(MACRO_EXPANSION_TREES[i].id_name == id_name) return i;
     return GLOBALS::MAX_SIZE_TYPE;
@@ -3042,7 +3039,7 @@ namespace heist {
 
 
   // Expand level-1 ids, tag all nested variadic ids, wrench up tagged children of nested variadic ids
-  void tag_and_expand_identifiers_while_wrenching_up_children(const size_type expansion_No, scm_list& expansions,
+  void tag_and_expand_identifiers_while_wrenching_up_children(const size_type expansion_No, data_vector& expansions,
                                                                     MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES)noexcept{
     for(size_type i = 0, n = expansions.size(); i < n; ++i) {
       if(expansions[i].is_type(types::exp)) {
@@ -3066,9 +3063,9 @@ namespace heist {
 
 
   // <verify_all_identifiers_have_same_variadic_length> helper
-  void confirm_identifier_variadic_length_is_consistent(size_type& total_expansions,  const scm_list& exp,
-                                                        const scm_list& expanded_exp, const scm_list& args,
-                                                        const sym_type& name,         const size_type& result, 
+  void confirm_identifier_variadic_length_is_consistent(size_type& total_expansions,     const data_vector& exp,
+                                                        const data_vector& expanded_exp, const data_vector& args,
+                                                        const string& name,              const size_type& result, 
                                                         const MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES){
     if(total_expansions == GLOBALS::MAX_SIZE_TYPE) {
       total_expansions = result;
@@ -3083,8 +3080,8 @@ namespace heist {
 
 
   // Returns the length that the identifiers match (throw error if any are off)
-  size_type verify_all_identifiers_have_same_variadic_length(const scm_list& args, const sym_type& name, const scm_list& exp, 
-                                                             const scm_list& expanded_exp, const MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES){
+  size_type verify_all_identifiers_have_same_variadic_length(const data_vector& args, const string& name, const data_vector& exp, 
+                                                             const data_vector& expanded_exp, const MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES){
     size_type total_expansions = GLOBALS::MAX_SIZE_TYPE;
     for(auto& elt : exp) {
       if(elt.is_type(types::exp)) {
@@ -3106,7 +3103,7 @@ namespace heist {
 
   // Non-Variadics have been expanded, expand all (possibly nested) variadics identifiers
   // NOTE: Traverses in POST-ORDER!
-  void expand_macro_variadic_identifiers(const scm_list& args, const sym_type& name, scm_list& expanded_exp,
+  void expand_macro_variadic_identifiers(const data_vector& args, const string& name, data_vector& expanded_exp,
                                                                MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES){
     for(size_type i = 0; i < expanded_exp.size(); ++i) {
       if(i+1 < expanded_exp.size() && data_is_ellipsis(expanded_exp[i+1])) {
@@ -3132,7 +3129,7 @@ namespace heist {
           if(total_expansions == GLOBALS::MAX_SIZE_TYPE)
             THROW_ERR("'syntax-rules Misplaced \"...\" after non-variadic subexpression [ " 
               << expanded_exp[i].exp << " ]\n     in [ " << expanded_exp << " ]" << FCN_ERR(name,args));
-          scm_list expansions(total_expansions,expanded_exp[i].exp);
+          data_vector expansions(total_expansions,expanded_exp[i].exp);
           // tag <expansions> nested identifiers, tag associated tree groups & 
           //   wrench them up to be a root (WHILE KEEPING THE NEW ROOTS IN PLACE)
           for(size_type i = 0, n = expansions.size(); i < n; ++i)
@@ -3159,7 +3156,7 @@ namespace heist {
   //   0. No expressions begin w/ ...
   //   2. Any SYMBOLIC identifier followed by ... is variadic
   //      => NOTE: EXPRESSIONS FOLLOWED BY ... HAVE __NOT__ BEEN VERIFIED THO !!!
-  void expand_non_variadic_macro_symbols(const scm_list& args, const sym_type& name, scm_list& expanded_exp, 
+  void expand_non_variadic_macro_symbols(const data_vector& args, const string& name, data_vector& expanded_exp, 
                                                                MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES){
     for(size_type i = 0; i < expanded_exp.size(); ++i) {
       if(is_symbolic_macro_identifier(expanded_exp[i])) {
@@ -3197,7 +3194,7 @@ namespace heist {
   * MACRO SYNTACTIC EXTENSIONS -- UNWRAP ESCAPED VARIADIC TOKENS
   ******************************************************************************/
 
-  bool string_is_an_escaped_variadic_token(const scm_string& str)noexcept{
+  bool string_is_an_escaped_variadic_token(const string& str)noexcept{
     if(str.size() < 4 || str.compare(str.size()-3,3,"...")) 
       return false;
     for(size_type i = 0, n = str.size()-3; i < n; ++i)
@@ -3211,7 +3208,7 @@ namespace heist {
   }
 
 
-  void unwrap_macro_escaped_variadic_tokens(scm_list& expanded)noexcept{
+  void unwrap_macro_escaped_variadic_tokens(data_vector& expanded)noexcept{
     for(size_type i = 0, n = expanded.size(); i < n; ++i) {
       if(expanded[i].is_type(types::exp))
         unwrap_macro_escaped_variadic_tokens(expanded[i].exp);
@@ -3226,7 +3223,7 @@ namespace heist {
 
   // Generate a unique hashed variant of the given macro arg name for safe expansion
   // NOTE: Max Unique Hashes = (expt 18446744073709551615 18446744073709551615)
-  scm_string safe_expansion_hashed_macro_arg(const scm_string& label)noexcept{
+  string safe_expansion_hashed_macro_arg(const string& label)noexcept{
     if(G.MACRO_HASH_IDX_1 != GLOBALS::MAX_SIZE_TYPE)
       return "heist:core:sh:" + label + '-' 
         + std::to_string(G.MACRO_HASH_IDX_2) + '-' 
@@ -3237,8 +3234,8 @@ namespace heist {
   }
 
 
-  void recursively_apply_syntax_hash_to_identifiers(scm_list& expanded_exp, const std::vector<scm_string>& hashed_ids, 
-                                                                            const std::vector<scm_string>& to_hash_ids)noexcept{
+  void recursively_apply_syntax_hash_to_identifiers(data_vector& expanded_exp, const str_vector& hashed_ids, 
+                                                                               const str_vector& to_hash_ids)noexcept{
     const auto n = to_hash_ids.size();
     for(auto& datum : expanded_exp) {
       if(datum.is_type(types::sym)) {
@@ -3255,9 +3252,9 @@ namespace heist {
   }
 
 
-  void apply_syntax_hash_to_identifiers(scm_list& expanded_exp, const std::vector<scm_string>& to_hash_ids)noexcept{
+  void apply_syntax_hash_to_identifiers(data_vector& expanded_exp, const str_vector& to_hash_ids)noexcept{
     // Get the dynamic (runtime) hash of each <syntax-hash> identifier in the macro
-    std::vector<scm_string> hashed_ids(to_hash_ids.size());
+    str_vector hashed_ids(to_hash_ids.size());
     for(size_type i = 0, n = to_hash_ids.size(); i < n; ++i)
       hashed_ids[i] = safe_expansion_hashed_macro_arg(to_hash_ids[i]);
     recursively_apply_syntax_hash_to_identifiers(expanded_exp,hashed_ids,to_hash_ids);
@@ -3312,7 +3309,7 @@ namespace heist {
           auto posv = val_pos_pairs[i].second;
           for(size_type j = 1, n = val_pos_pairs[i].first.size(); j < n; ++j) {
             ++(*posv.rbegin());
-            indiv_val_pos_instances.push_back(std::make_pair(scm_list(1,val_pos_pairs[i].first[j]),posv));
+            indiv_val_pos_instances.push_back(std::make_pair(data_vector(1,val_pos_pairs[i].first[j]),posv));
           }
           // Erase the excess values in the original value set
           val_pos_pairs[i].first.erase(val_pos_pairs[i].first.begin()+1,val_pos_pairs[i].first.end());
@@ -3472,7 +3469,7 @@ namespace heist {
   }
 
 
-  void expand_macro(const scm_list& args, const sym_type& name, scm_list& expanded_exp, 
+  void expand_macro(const data_vector& args, const string& name, data_vector& expanded_exp, 
                                                     MACRO_ID_VAR_TABLE& MID_VARG_PAIR){
     MACRO_EXPANSION_TREES_t MACRO_EXPANSION_TREES;
     clean_MID_VARG_PAIR_for_macro_expansion_analysis(MID_VARG_PAIR);
@@ -3495,7 +3492,7 @@ namespace heist {
     return d.is_type(types::sym) && string_begins_with(d.sym,symconst::ellipsis_hash);
   }
 
-  void hash_all_ellipsis_in_macro_args(exp_type& args)noexcept{
+  void hash_all_ellipsis_in_macro_args(data_vector& args)noexcept{
     for(size_type i = 0, n = args.size(); i < n; ++i) {
       if(args[i].is_type(types::exp)) {
         hash_all_ellipsis_in_macro_args(args[i].exp);
@@ -3505,7 +3502,7 @@ namespace heist {
     }
   }
 
-  void unhash_all_ellipsis_in_macro_args(exp_type& args)noexcept{
+  void unhash_all_ellipsis_in_macro_args(data_vector& args)noexcept{
     static const size_type ellipsis_hash_prefix_length = strlen(symconst::ellipsis_hash);
     for(size_type i = 0, n = args.size(); i < n; ++i) {
       if(args[i].is_type(types::exp)) {
@@ -3520,14 +3517,14 @@ namespace heist {
   * MACRO SYNTACTIC EXTENSIONS -- SYNTAX TRANSFORMER APPLICATION/EXECUTION
   ******************************************************************************/
 
-  exp_type convert_transformer_data_result_to_syntax(data&& result, const scm_list& macro_expr) {
+  data_vector convert_transformer_data_result_to_syntax(data&& result, const data_vector& macro_expr) {
     data result_as_syntax;
     if(!convert_data_to_evaluable_syntax(result,result_as_syntax))
       THROW_ERR("Syntax Transformer Callable for macro \"" << macro_expr 
         << "\" didn't result in an evaluable datum:\n     " 
         << PROFILE(result) << EXP_ERR(macro_expr));
     if(!result_as_syntax.is_type(types::exp)) {
-      exp_type begin_expr(2);
+      data_vector begin_expr(2);
       begin_expr[0] = symconst::begin;
       begin_expr[1] = std::move(result_as_syntax);
       return begin_expr;
@@ -3536,8 +3533,8 @@ namespace heist {
   }
 
 
-  data derive_quoted_macro_exression(const scm_list& macro_expr,env_type& env) {
-    exp_type quoted_macro_expr(2);
+  data derive_quoted_macro_exression(const data_vector& macro_expr,env_type& env) {
+    data_vector quoted_macro_expr(2);
     quoted_macro_expr[0] = symconst::quote;
     quoted_macro_expr[1] = macro_expr;
     return scm_eval(std::move(quoted_macro_expr),env);
@@ -3545,19 +3542,19 @@ namespace heist {
 
 
   // Expands the given syntax-transformer procedure & returns success status (ie whether matched)
-  void apply_syntax_transformer_callable(const scm_list& args,const fcn_type& mac,
-                                         scm_list& expanded_exp,env_type& env) {
-    exp_type macro_expr(args.size()+1);
+  void apply_syntax_transformer_callable(const data_vector& args,const fcn_type& mac,
+                                         data_vector& expanded_exp,env_type& env) {
+    data_vector macro_expr(args.size()+1);
     macro_expr[0] = mac.name;
     std::copy(args.begin(), args.end(), macro_expr.begin() + 1);
-    exp_type transformer_args(1,derive_quoted_macro_exression(macro_expr,env));
+    data_vector transformer_args(1,derive_quoted_macro_exression(macro_expr,env));
     expanded_exp = convert_transformer_data_result_to_syntax(execute_application(mac,transformer_args,env),macro_expr);
   }
 
 
   // Expands the given syntax-rules object & returns success status (ie whether matched)
-  bool execute_syntax_rules_transform(const scm_list& args,const syn_type& mac,
-                                      scm_list& expanded_exp,MACRO_ID_VAR_TABLE& MID_VARG_PAIR) {
+  bool execute_syntax_rules_transform(const data_vector& args,const syn_type& mac,
+                                      data_vector& expanded_exp,MACRO_ID_VAR_TABLE& MID_VARG_PAIR) {
     size_type match_idx = 0; // idx of the pattern & template w/in 'mac' that the label & args match
     if(is_macro_match(args, mac, match_idx, MID_VARG_PAIR)) {
       expanded_exp = mac.templates[match_idx]; // prefilled, then has contents expanded into it
@@ -3574,8 +3571,8 @@ namespace heist {
   ******************************************************************************/
 
   // Confirm whether 'application_label' is a potential macro label
-  bool application_is_a_potential_macro(const scm_string& application_label, 
-                                        const std::vector<scm_string>& label_registry)noexcept{
+  bool application_is_a_potential_macro(const string& application_label, 
+                                        const str_vector& label_registry)noexcept{
     if(application_label.empty()) return false;
     for(const auto& label : label_registry)
       if(label == application_label)
@@ -3586,8 +3583,8 @@ namespace heist {
 
   // Returns whether the given label & args form a macro found in 'macs'.
   // If true, it also transforms the macro by expanding it into 'expanded_exp'
-  bool handle_macro_transformation(const sym_type& label,const scm_list& args, 
-                                   const frame_macs& macs,scm_list& expanded_exp,
+  bool handle_macro_transformation(const string& label,const data_vector& args, 
+                                   const frame_macs& macs,data_vector& expanded_exp,
                                    env_type& env){
     //  Map of pattern identifier & expansion value pairs
     MACRO_ID_VAR_TABLE MID_VARG_PAIR;
@@ -3615,8 +3612,8 @@ namespace heist {
 
   // Returns whether the given label & args form a macro found in 'env'.
   // If true, it also transforms the macro by expanding it into 'expanded_exp'
-  bool expand_macro_if_in_env(const sym_type& label,scm_list args, 
-                              env_type& env,scm_list& expanded_exp){
+  bool expand_macro_if_in_env(const string& label,data_vector args, 
+                              env_type& env,data_vector& expanded_exp){
     env_type env_iterator = env;
     hash_all_ellipsis_in_macro_args(args);
     while(env_iterator != nullptr) {
@@ -3634,14 +3631,14 @@ namespace heist {
   ******************************************************************************/
 
   // Confirm data is an unexpandable syntax-rules macro token
-  bool data_is_literal_or_keyword(const data& pat_entity, const std::vector<scm_string>& keywords)noexcept{
+  bool data_is_literal_or_keyword(const data& pat_entity, const str_vector& keywords)noexcept{
     return !pat_entity.is_type(types::exp) && !is_macro_argument_label(pat_entity,keywords);
   }
 
 
   // PRECONDITION: is_macro_argument_label(pattern[i],keywords) = true
-  void confirm_unique_syntax_rules_pattern_identifier(const scm_list& pattern,const size_type& i,
-                                                      const scm_list& exp, std::vector<scm_string>& identifiers) {
+  void confirm_unique_syntax_rules_pattern_identifier(const data_vector& pattern,const size_type& i,
+                                                      const data_vector& exp, str_vector& identifiers) {
     static constexpr const char * const format = 
       "\n     (syntax-rules (<keyword-list>) <pattern-template-clauses>)"
       "\n     <pattern-template-clause> = ((<pattern>) <template>)";
@@ -3654,8 +3651,8 @@ namespace heist {
   }
 
 
-  void confirm_proper_syntax_rules_pattern_layout(const scm_list& pattern,const scm_list& exp,
-                                                  const std::vector<scm_string>& keywords, std::vector<scm_string>& identifiers){
+  void confirm_proper_syntax_rules_pattern_layout(const data_vector& pattern,const data_vector& exp,
+                                                  const str_vector& keywords, str_vector& identifiers){
     static constexpr const char * const format = 
       "\n     (syntax-rules (<keyword-list>) <pattern-template-clauses>)"
       "\n     <pattern-template-clause> = ((<pattern>) <template>)";
@@ -3694,7 +3691,7 @@ namespace heist {
 
 
   // Confirm proper '...' use & that each pattern identifier only appears once
-  void confirm_proper_syntax_rules_pattern_template_clauses(const scm_list& exp,const syn_type& mac,const char* format){
+  void confirm_proper_syntax_rules_pattern_template_clauses(const data_vector& exp,const syn_type& mac,const char* format){
     //   IE: ((a) ... (b ...)) is fine,     1 '...' per subexpression "depth"
     //       ((a) ... b ...)   is NOT fine, 2 '...' at a single "depth"
     //       (... a)         is NOT fine, '...' begins the subexpression/depth
@@ -3714,14 +3711,14 @@ namespace heist {
           " by a symbol or expression identifier!\n     " 
           << cio_expr_str<&data::noexcept_write>(exp[i].exp[0].exp) << format << EXP_ERR(exp));
       // Confirm each pattern identifier only appears once
-      std::vector<scm_string> identifiers;
+      str_vector identifiers;
       confirm_proper_syntax_rules_pattern_layout(exp[i].exp[0].exp,exp,mac.keywords,identifiers);
     }
   }
 
 
   // Confirm syntax-rules keywords list is valid, and extract it if so
-  void extract_syntax_rules_keywords(const scm_list& exp,syn_type& mac,const char* format) {
+  void extract_syntax_rules_keywords(const data_vector& exp,syn_type& mac,const char* format) {
     if(!exp[1].is_type(types::exp))
       THROW_ERR("'syntax-rules 1st arg "<<PROFILE(exp[1])<<" isn't a list of keyword symbols:"
         <<format<<EXP_ERR(exp));
@@ -3735,7 +3732,7 @@ namespace heist {
   }
 
 
-  void confirm_valid_syntax_rules_and_extract_keywords(const scm_list& exp, syn_type& mac) {
+  void confirm_valid_syntax_rules_and_extract_keywords(const data_vector& exp, syn_type& mac) {
     static constexpr const char * const format = 
       "\n     (syntax-rules (<keyword-list>) <pattern-template-clauses>)"
       "\n     <pattern-template-clause> = ((<pattern>) <template>)";
@@ -3749,13 +3746,13 @@ namespace heist {
   * REPRESENTING SYNTAX: (syntax-rules <keyword-list> <pattern-template-clauses>)
   ******************************************************************************/
 
-  bool is_syntax_rules(const scm_list& exp)noexcept{
+  bool is_syntax_rules(const data_vector& exp)noexcept{
     return is_tagged_list(exp,symconst::syn_rules);
   }
 
 
-  void recursively_safe_expansion_hash_macro_template(const scm_string& value, const scm_string& hash_value, 
-                                                                             scm_list& mac_template)noexcept{
+  void recursively_safe_expansion_hash_macro_template(const string& value, const string& hash_value, 
+                                                                           data_vector& mac_template)noexcept{
     for(size_type i = 0, n = mac_template.size(); i < n; ++i) {
       if(mac_template[i].is_type(types::exp)) {
         recursively_safe_expansion_hash_macro_template(value, hash_value, mac_template[i].exp);
@@ -3766,13 +3763,13 @@ namespace heist {
   }
 
 
-  void recursively_safe_expansion_hash_macro_pattern(scm_list& pattern, scm_list& mac_template, 
-                                                     const std::vector<scm_string>& keywords, const size_type& start=0)noexcept{
+  void recursively_safe_expansion_hash_macro_pattern(data_vector& pattern, data_vector& mac_template, 
+                                                     const str_vector& keywords, const size_type& start=0)noexcept{
     for(size_type i = start, n = pattern.size(); i < n; ++i) {
       if(pattern[i].is_type(types::exp)) {
         recursively_safe_expansion_hash_macro_pattern(pattern[i].exp, mac_template, keywords);
       } else if(is_macro_argument_label(pattern[i], keywords)) {
-        scm_string original_label = pattern[i].sym;
+        string original_label = pattern[i].sym;
         pattern[i].sym = safe_expansion_hashed_macro_arg(pattern[i].sym);
         recursively_safe_expansion_hash_macro_template(original_label, pattern[i].sym, mac_template);
       }
@@ -3780,7 +3777,7 @@ namespace heist {
   }
 
 
-  bool datum_is_syntax_hashed_symbol(const data& datum, const scm_list& exp){
+  bool datum_is_syntax_hashed_symbol(const data& datum, const data_vector& exp){
     if(datum.is_type(types::exp) && is_tagged_list(datum.exp,symconst::syn_hash)) {
       if(datum.exp.size() != 2 || !datum.exp[1].is_type(types::sym))
         THROW_ERR("'syntax-hash didn't receive 1 symbol arg: (syntax-hash <symbol>)" << EXP_ERR(exp));
@@ -3790,9 +3787,7 @@ namespace heist {
   }
 
 
-  void parse_macro_template_for_syntax_hashed_identifiers(std::vector<scm_string>& hashed_id_registry, 
-                                                          scm_list& mac_template, 
-                                                          const scm_list& exp){
+  void parse_macro_template_for_syntax_hashed_identifiers(str_vector& hashed_id_registry, data_vector& mac_template, const data_vector& exp){
     for(size_type i = 0, n = mac_template.size(); i < n; ++i) {
       if(datum_is_syntax_hashed_symbol(mac_template[i],exp)) {
         hashed_id_registry.push_back(mac_template[i].exp[1].sym);
@@ -3804,15 +3799,15 @@ namespace heist {
   }
 
 
-  exe_fcn_t analyze_syntax_rules(scm_list& exp) {
+  exe_fcn_t analyze_syntax_rules(data_vector& exp) {
     syn_type mac("");
     confirm_valid_syntax_rules_and_extract_keywords(exp, mac);
     // Extract pattern-template clauses
     for(size_type i = 2, n = exp.size(); i < n; ++i) {
       mac.patterns.push_back(exp[i].exp[0].exp);
       // Wrap 'begin' around templates prior evaluation (for multi-exp bodies)
-      mac.templates.push_back(scm_list(exp[i].exp.size()));
-      mac.hashed_template_ids.push_back(std::vector<scm_string>());
+      mac.templates.push_back(data_vector(exp[i].exp.size()));
+      mac.hashed_template_ids.push_back(str_vector());
       mac.templates.rbegin()->operator[](0) = symconst::begin;
       std::copy(exp[i].exp.begin()+1, 
                 exp[i].exp.end(), 
@@ -3832,10 +3827,10 @@ namespace heist {
   * REPRESENTING SYNTAX EXTENSIONS: (define-syntax <label> <syntax-transformer>)
   ******************************************************************************/
 
-  bool is_define_syntax(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::defn_syn);}
+  bool is_define_syntax(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::defn_syn);}
 
 
-  void register_symbol_iff_new(std::vector<sym_type>& registry, const sym_type& label)noexcept{
+  void register_symbol_iff_new(str_vector& registry, const string& label)noexcept{
     for(const auto& macro_label : registry)
       if(macro_label == label)
         return;
@@ -3843,7 +3838,7 @@ namespace heist {
   }
 
 
-  void confirm_is_not_core_syntax_label(scm_list& exp) {
+  void confirm_is_not_core_syntax_label(data_vector& exp) {
     if(std::find(G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.begin(),
                  G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.end(),exp[1].sym) != 
        G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.end()) {
@@ -3853,7 +3848,7 @@ namespace heist {
   }
 
 
-  void confirm_valid_define_syntax(const scm_list& exp) {
+  void confirm_valid_define_syntax(const data_vector& exp) {
     if(exp.size() != 3)
       THROW_ERR("'define-syntax expects 2 arguments:"
         "\n     (define-syntax <label> <syntax-transformer>)"<<EXP_ERR(exp));
@@ -3863,7 +3858,7 @@ namespace heist {
   }
 
 
-  data extract_syntax_transformer(data&& mac, const scm_list& exp) {
+  data extract_syntax_transformer(data&& mac, const data_vector& exp) {
     if(mac.is_type(types::syn)) return std::move(mac);
     if(primitive_data_is_a_callable(mac))
       return primitive_extract_callable_procedure(mac);
@@ -3873,7 +3868,7 @@ namespace heist {
   }
 
 
-  void assign_macro_label(data& mac, const scm_string& label)noexcept{
+  void assign_macro_label(data& mac, const string& label)noexcept{
     if(mac.is_type(types::syn)) {
       mac.syn.label = label;
     } else if(mac.is_type(types::fcn)) {
@@ -3882,7 +3877,7 @@ namespace heist {
   }
 
 
-  exe_fcn_t analyze_define_syntax(scm_list& exp,const bool cps_block=false,const bool core_syntax=false) {
+  exe_fcn_t analyze_define_syntax(data_vector& exp,const bool cps_block=false,const bool core_syntax=false) {
     confirm_valid_define_syntax(exp);
     if(!core_syntax) confirm_is_not_core_syntax_label(exp);
     auto syntax_transformer_exe_proc = scm_analyze(data(exp[2]),false,cps_block);
@@ -3904,9 +3899,9 @@ namespace heist {
   * ANALYSIS-TIME & ALWAYS-GLOBAL-SCOPE MACRO
   ******************************************************************************/
 
-  bool is_core_syntax(const scm_list& exp)noexcept{return is_tagged_list(exp,symconst::core_syn);}
+  bool is_core_syntax(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::core_syn);}
 
-  exe_fcn_t analyze_core_syntax(scm_list& exp,const bool cps_block=false) {
+  exe_fcn_t analyze_core_syntax(data_vector& exp,const bool cps_block=false) {
     static constexpr const char * const format = 
       "\n     (core-syntax <label> <syntax-transformer>)";
     if(exp.size() < 3)
@@ -3931,7 +3926,7 @@ namespace heist {
   ******************************************************************************/
 
   // Prints Debugging Call Trace (see <set-dynamic-call-trace!> primitive)
-  void output_debug_call_trace(const scm_fcn& procedure,const scm_list& arguments,
+  void output_debug_call_trace(const scm_fcn& procedure,const data_vector& arguments,
                                const bool tail_call,    const bool callceing)noexcept{
     // Generate the call signature & Application-Affecting Call States
     auto call_signature = procedure_call_signature(procedure.printable_procedure_name(),arguments);
@@ -3967,7 +3962,7 @@ namespace heist {
 
 
   // Print the current recursive depth as indentation, and the current invocation signature
-  void output_call_trace_invocation(const scm_fcn& procedure, const scm_list& arguments,const bool tail_call=false)noexcept{
+  void output_call_trace_invocation(const scm_fcn& procedure, const data_vector& arguments,const bool tail_call=false)noexcept{
     auto call_signature = procedure_call_signature(procedure.printable_procedure_name(),arguments);
     print_call_trace_depth_indentation(procedure,tail_call);
     fprintf(G.CURRENT_OUTPUT_PORT, "%s\n", call_signature.c_str());
@@ -3983,7 +3978,7 @@ namespace heist {
   }
 
 
-  bool tracing_procedure(const scm_string& name)noexcept{
+  bool tracing_procedure(const string& name)noexcept{
     return !G.TRACED_FUNCTION_NAME.empty() && G.TRACED_FUNCTION_NAME == name;
   }
 
@@ -3992,7 +3987,7 @@ namespace heist {
   ******************************************************************************/
 
   // (string-split <call> ".")
-  void get_object_property_chain_sequence(const scm_string& call, std::vector<scm_string>& chain){
+  void get_object_property_chain_sequence(const string& call, str_vector& chain){
     chain.push_back("");
     for(const auto& ch : call) {
       if(ch == '.')
@@ -4016,8 +4011,8 @@ namespace heist {
 
 
   // Returns whether found <sought_property> in <proto> or its inherited prototype
-  bool search_prototype_and_inherited_properties(cls_type& proto, const scm_string& sought_property, bool& is_member, data& value) {
-    bool seek_call_value_in_local_object(data& value, const scm_string& property, bool& is_member);
+  bool search_prototype_and_inherited_properties(cls_type& proto, const string& sought_property, bool& is_member, data& value) {
+    bool seek_call_value_in_local_object(data& value, const string& property, bool& is_member);
     // Search the prototype
     for(size_type i = 0, n = proto->member_names.size(); i < n; ++i)
       if(proto->member_names[i] == sought_property) {
@@ -4047,7 +4042,7 @@ namespace heist {
 
   // Returns whether found <property> as a member/method in <value.obj> 
   // If returns true, <property> value is in <value> & <is_member> denotes whether a member or method
-  bool seek_call_value_in_local_object(data& value, const scm_string& property, bool& is_member) {
+  bool seek_call_value_in_local_object(data& value, const string& property, bool& is_member) {
     auto& members = value.obj->member_names;
     // Seek members
     for(size_type i = 0, n = members.size(); i < n; ++i)
@@ -4071,7 +4066,7 @@ namespace heist {
 
 
   // Returns the ultimate value of the call-chain
-  data get_object_property_chain_value(scm_string&& call, std::vector<scm_string>&& chain, env_type& env) {
+  data get_object_property_chain_value(string&& call, str_vector&& chain, env_type& env) {
     // get the first object instance
     data value = lookup_variable_value(chain[0],env);
     // get the call value
@@ -4093,14 +4088,14 @@ namespace heist {
   }
 
 
-  exe_fcn_t analyze_variable(scm_string variable) {
+  exe_fcn_t analyze_variable(string variable) {
     // If a regular variable (no object property chain)
     if(!symbol_is_property_chain_access(variable))
       return [variable=std::move(variable)](env_type& env){
         return lookup_variable_value(variable,env);
       };
     // Object accessing members/methods!
-    std::vector<scm_string> chain; // split the call chain into object series
+    str_vector chain; // split the call chain into object series
     get_object_property_chain_sequence(variable,chain);
     return [variable=std::move(variable),chain=std::move(chain)](env_type& env)mutable{
       return get_object_property_chain_value(std::move(variable),std::move(chain),env);
@@ -4112,7 +4107,7 @@ namespace heist {
   ******************************************************************************/
 
   // -- STACK TRACE REGISTRATION
-  void register_call_in_stack_trace(scm_fcn& procedure,scm_list& arguments)noexcept{
+  void register_call_in_stack_trace(scm_fcn& procedure,data_vector& arguments)noexcept{
     if(!G.TRACE_LIMIT) return;
     if(!G.TRACE_ARGS) 
       GLOBALS::STACK_TRACE.push_back(procedure.printable_procedure_name());
@@ -4131,7 +4126,7 @@ namespace heist {
 
 
   // -- APPLYING PRIMITIVE PROCEDURES
-  data apply_primitive_procedure(data& proc,scm_list& args,env_type& env,const bool tail_call){
+  data apply_primitive_procedure(data& proc,data_vector& args,env_type& env,const bool tail_call){
     // Output tracing information as needed
     auto tracing_proc = tracing_procedure(proc.fcn.name);
     if(tracing_proc) output_call_trace_invocation(proc.fcn,args);
@@ -4177,7 +4172,7 @@ namespace heist {
   // Analogue to "apply", except no need to analyze the body of compound 
   //   procedures (already done). Hence only calls the execution procedure 
   //   for the proc's body w/ the extended environment
-  data execute_application(data& procedure,scm_list& arguments,env_type& env,const bool tail_call,const bool applying_in_cps){
+  data execute_application(data& procedure,data_vector& arguments,env_type& env,const bool tail_call,const bool applying_in_cps){
     if(!procedure.is_type(types::fcn))
       THROW_ERR("Invalid application of non-procedure "<<PROFILE(procedure)<<'!'
         <<FCN_ERR(procedure.noexcept_write(),arguments));
@@ -4212,7 +4207,7 @@ namespace heist {
     if(tracing_proc) output_call_trace_invocation(procedure.fcn,arguments,tail_call);
     // store application data & return such back up to the last call if in a tail call
     if(tail_call) {
-      scm_list tail_call_signature(2); // {tail-call-tag, proc-body, extended-env}
+      data_vector tail_call_signature(2); // {tail-call-tag, proc-body, extended-env}
       tail_call_signature[0] = symconst::tail_call;
       tail_call_signature[1] = scm_fcn(extended_env,fcn_body);
       return tail_call_signature;
@@ -4226,7 +4221,7 @@ namespace heist {
   }
 
   // R-value overload
-  data execute_application(data&& procedure,scm_list& arguments,env_type& env,const bool tail_call,const bool applying_in_cps){
+  data execute_application(data&& procedure,data_vector& arguments,env_type& env,const bool tail_call,const bool applying_in_cps){
     return execute_application(procedure,arguments,env,tail_call,applying_in_cps);
   }
 
@@ -4256,14 +4251,14 @@ namespace heist {
   * CPS-BLOCK APPLICATION
   ******************************************************************************/
 
-  void eval_application_arg_procs(const std::vector<exe_fcn_t>& arg_procs,scm_list& arg_vals,env_type& env){
+  void eval_application_arg_procs(const std::vector<exe_fcn_t>& arg_procs,data_vector& arg_vals,env_type& env){
     for(size_type i = 0, n = arg_procs.size(); i < n; ++i)
       arg_vals[i] = arg_procs[i](env);
   }
 
 
   // Application of CPS-block defined procedure in a CPS block
-  exe_fcn_t analyze_CPS_block_application_of_CPS_proc(scm_list& exp,const bool tail_call){
+  exe_fcn_t analyze_CPS_block_application_of_CPS_proc(data_vector& exp,const bool tail_call){
     auto op_proc  = scm_analyze(operator_of(exp),false,true);
     auto arg_exps = operands(exp);
     std::vector<exe_fcn_t> arg_procs(arg_exps.size());
@@ -4278,13 +4273,13 @@ namespace heist {
         // Extract the continuation from the parameter list as needed
         auto continuation = (*arg_procs.rbegin())(env);
         bool passing_continuation = procedure_requires_continuation(proc.fcn);
-        scm_list arg_vals(arg_procs.size() - !passing_continuation);
+        data_vector arg_vals(arg_procs.size() - !passing_continuation);
         // Eval each arg's exec proc to obtain the actual arg values
         if(!passing_continuation) {
           arg_procs.pop_back();
           eval_application_arg_procs(arg_procs,arg_vals,env);
           // Pass the result of the proc to the continuation
-          auto result_arg = scm_list(1,execute_application(proc,arg_vals,env,false,true));
+          auto result_arg = data_vector(1,execute_application(proc,arg_vals,env,false,true));
           // Pass the result of the proc to the continuation
           return execute_application(continuation,result_arg,env,tail_call,true);
         }
@@ -4295,7 +4290,7 @@ namespace heist {
         return execute_application(proc,arg_vals,env,false,true);
       // Else, apply the proc defined IN the CPS block as-is
       } else {
-        scm_list arg_vals(arg_procs.size());
+        data_vector arg_vals(arg_procs.size());
         eval_application_arg_procs(arg_procs,arg_vals,env);
         return execute_application(proc,arg_vals,env,tail_call,true);
       }
@@ -4304,13 +4299,13 @@ namespace heist {
 
 
   // Application of a macro OR non-CPS-block defined procedure entity in a CPS block
-  exe_fcn_t analyze_CPS_block_application_of_non_CPS_proc(scm_list& exp,const bool tail_call){
+  exe_fcn_t analyze_CPS_block_application_of_non_CPS_proc(data_vector& exp,const bool tail_call){
     auto arg_exps = operands(exp);
     // Save name of invoking entity (iff a symbol) to check for a possible macro
-    sym_type op_name = exp[0].is_type(types::sym) ? exp[0].sym : "";
+    string op_name = exp[0].is_type(types::sym) ? exp[0].sym : "";
     // If possible analysis-time macro, expand and return analysis of the expansion
     if(application_is_a_potential_macro(op_name,G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY)) {
-      if(scm_list expanded; expand_macro_if_in_env(op_name, arg_exps, G.GLOBAL_ENVIRONMENT_POINTER, expanded)) {
+      if(data_vector expanded; expand_macro_if_in_env(op_name, arg_exps, G.GLOBAL_ENVIRONMENT_POINTER, expanded)) {
         return scm_analyze(generate_fundamental_form_cps(expanded),tail_call,true);
       } else {
         THROW_ERR("'core-syntax expression (label \"" << op_name 
@@ -4321,7 +4316,7 @@ namespace heist {
     return [arg_exps=std::move(arg_exps),op_name=std::move(op_name),exp=std::move(exp),
             tail_call=std::move(tail_call)](env_type& env)mutable{
       // check for a possible macro instance, & expand/cps/eval it if so
-      if(scm_list expanded; expand_macro_if_in_env(op_name, arg_exps, env, expanded)) {
+      if(data_vector expanded; expand_macro_if_in_env(op_name, arg_exps, env, expanded)) {
         return scm_analyze(generate_fundamental_form_cps(expanded),tail_call,true)(env);
       }
       // else convert the function application to CPS & eval it
@@ -4331,7 +4326,7 @@ namespace heist {
 
 
   // Macro/procedure application in a CPS block
-  exe_fcn_t analyze_CPS_block_application(scm_list& exp,const bool tail_call=false){
+  exe_fcn_t analyze_CPS_block_application(data_vector& exp,const bool tail_call=false){
     // If application is already expanded (given a continuation as last arg),
     //   GUARANTEED such is applying to a function and NOT a macro
     if(data_is_continuation_parameter(*exp.rbegin()))
@@ -4347,7 +4342,7 @@ namespace heist {
   // Analyzes the operator & operands, then returns an exec proc passing 
   //   both the operator/operand proc exec's to 'execute-application'
   //   (after having checked for macro use as well)
-  exe_fcn_t analyze_application(scm_list& exp,const bool tail_call=false,const bool cps_block=false){
+  exe_fcn_t analyze_application(data_vector& exp,const bool tail_call=false,const bool cps_block=false){
     // If in a scm->cps block
     if(cps_block && is_cps_application(exp)) {
       exp.erase(exp.begin()); // Rm the cps-application prefix
@@ -4355,10 +4350,10 @@ namespace heist {
     }
     auto arg_exps = operands(exp);
     // Save name of invoking entity (iff a symbol) to check for a possible macro
-    sym_type op_name = exp[0].is_type(types::sym) ? exp[0].sym : "";
+    string op_name = exp[0].is_type(types::sym) ? exp[0].sym : "";
     // If possible analysis-time macro, expand and return analysis of the expansion
     if(application_is_a_potential_macro(op_name,G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY)) {
-      if(scm_list expanded; expand_macro_if_in_env(op_name, arg_exps, G.GLOBAL_ENVIRONMENT_POINTER, expanded)) {
+      if(data_vector expanded; expand_macro_if_in_env(op_name, arg_exps, G.GLOBAL_ENVIRONMENT_POINTER, expanded)) {
         return scm_analyze(std::move(expanded),tail_call,cps_block);
       } else {
         THROW_ERR("'core-syntax expression (label \"" << op_name 
@@ -4373,7 +4368,7 @@ namespace heist {
         arg_procs[i] = scm_analyze(std::move(arg_exps[i]),false,cps_block);
       return [op_proc=std::move(op_proc),arg_procs=std::move(arg_procs),
               tail_call=std::move(tail_call),cps_block=cps_block](env_type& env){
-        scm_list arg_vals(arg_procs.size());
+        data_vector arg_vals(arg_procs.size());
         eval_application_arg_procs(arg_procs,arg_vals,env);
         evaluate_operator(op_proc,env); // generates <data proc.is_type(types::fcn)>
         return execute_application(proc,arg_vals,env,tail_call,cps_block);
@@ -4384,10 +4379,10 @@ namespace heist {
             op_name=std::move(op_name),tail_call=std::move(tail_call),
             cps_block=std::move(cps_block)](env_type& env){
       // check for a possible macro instance, & expand/eval it if so
-      if(scm_list expanded; expand_macro_if_in_env(op_name, arg_exps, env, expanded))
+      if(data_vector expanded; expand_macro_if_in_env(op_name, arg_exps, env, expanded))
         return scm_analyze(std::move(expanded),tail_call,cps_block)(env);
       // eval each arg's exec proc to obtain the actual arg values
-      scm_list arg_vals(arg_exps.size());
+      data_vector arg_vals(arg_exps.size());
       for(size_type i = 0, n = arg_exps.size(); i < n; ++i)
         arg_vals[i] = scm_analyze(data(arg_exps[i]),false,cps_block)(env);
       evaluate_operator(op_proc,env); // generates <data proc.is_type(types::fcn)>
@@ -4494,9 +4489,9 @@ namespace heist {
 
 
   // Read & parse user expressions
-  scm_list read_user_input(FILE* outs, FILE* ins, const bool& in_repl){
-    scm_string input, tmp_buffer;
-    scm_list abstract_syntax_tree;
+  data_vector read_user_input(FILE* outs, FILE* ins, const bool& in_repl){
+    string input, tmp_buffer;
+    data_vector abstract_syntax_tree;
     int ch;
     for(;;) {
       // Read input
@@ -4506,8 +4501,8 @@ namespace heist {
       // Handle EOF Signal
       if(ch == EOF && ins == stdin) {
         clearerr(stdin);
-        if(in_repl) return scm_list(1,chr_type(EOF)); // called by REPL
-        return scm_list();                            // called by <read>
+        if(in_repl) return data_vector(1,chr_type(EOF)); // called by REPL
+        return data_vector();                            // called by <read>
       }
       // Try parsing the expression, & read more input if unsuccessful 
       try {
@@ -4568,19 +4563,19 @@ void user_print(FILE* outs, heist::data& object) {
 
 
 // Determine if REPL received the EOF signal to terminate interpretation
-bool repl_detected_EOF_signal(const heist::scm_list& AST)noexcept{
+bool repl_detected_EOF_signal(const heist::data_vector& AST)noexcept{
   return AST.size() == 1 && AST[0].is_type(heist::types::chr) && AST[0].chr == EOF;
 }
 
 
 // Wrap each entry in "scm->cps" (w/ "id" bound as the topmost cont.) 
 //   if "-cps" cmd-line flag passed
-void cpsify_inputs(heist::scm_list& AST) {
+void cpsify_inputs(heist::data_vector& AST) {
   const heist::size_type n = AST.size();
-  heist::scm_list CPS_AST(n);
+  heist::data_vector CPS_AST(n);
   for(heist::size_type i = 0; i < n; ++i) {
-    CPS_AST[i] = heist::scm_list(2);
-    CPS_AST[i].exp[0] = heist::scm_list(2);
+    CPS_AST[i] = heist::data_vector(2);
+    CPS_AST[i].exp[0] = heist::data_vector(2);
     CPS_AST[i].exp[0].exp[0] = heist::symconst::scm_cps;
     CPS_AST[i].exp[0].exp[1] = AST[i];
     CPS_AST[i].exp[1] = "id";
@@ -4591,9 +4586,9 @@ void cpsify_inputs(heist::scm_list& AST) {
 
 // Returns (begin (define #it <d>) #it)
 heist::data repl_tag_expression(const heist::data& d)noexcept{
-  heist::data tag_exp = heist::exp_type(3);
+  heist::data tag_exp = heist::data_vector(3);
   tag_exp.exp[0] = heist::symconst::begin;
-  tag_exp.exp[1] = heist::exp_type(3);
+  tag_exp.exp[1] = heist::data_vector(3);
   tag_exp.exp[1].exp[0] = heist::symconst::define;
   tag_exp.exp[1].exp[1] = "#it";
   tag_exp.exp[1].exp[2] = d;
@@ -4758,12 +4753,12 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
 
 int load_script(const char* filename){
   // Load the script & immediately exit
-  heist::scm_list load_args(2 + heist::G.USING_CPS_CMD_LINE_FLAG);
+  heist::data_vector load_args(2 + heist::G.USING_CPS_CMD_LINE_FLAG);
   load_args[0] = heist::make_str(filename);
   load_args[1 + heist::G.USING_CPS_CMD_LINE_FLAG] = heist::G.GLOBAL_ENVIRONMENT_POINTER;
   // Bind "id" as the topmost continuation if "-cps" was passed
   if(heist::G.USING_CPS_CMD_LINE_FLAG)
-    load_args[1] = heist::scm_fcn("id",(heist::prm_ptr_t)[](heist::scm_list& args){return args[0];});
+    load_args[1] = heist::scm_fcn("id",(heist::prm_ptr_t)[](heist::data_vector& args){return args[0];});
   try {
     if(heist::G.USING_CPS_CMD_LINE_FLAG)
       heist::primitive_CPS_LOAD(load_args);
@@ -4799,7 +4794,7 @@ int load_script(const char* filename){
 
 int compile_script(char* argv[], const int& compile_pos, std::string& compile_as){
   // Compile the script & immediately exit
-  heist::scm_list compile_args(2);
+  heist::data_vector compile_args(2);
   compile_args[0] = heist::make_str(argv[compile_pos]);
   compile_args[1] = heist::make_str(compile_as);
   try {
