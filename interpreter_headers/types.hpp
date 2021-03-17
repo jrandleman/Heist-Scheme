@@ -883,6 +883,10 @@ namespace heist {
     scm_list member_values, method_values;
   };
 
+  /******************************************************************************
+  * STRUCT DATA & STRUCT SCM_FCN METHOD IMPLEMENTATIONS
+  ******************************************************************************/
+
   // struct data METHODS
   // returns a deep copy of *this ::= vector | string | pair | hmap | object
   data deep_copy_pair(const data& d);
