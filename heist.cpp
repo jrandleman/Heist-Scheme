@@ -1343,8 +1343,8 @@ namespace heist {
   }
 
   void parse_defclass_expression(data_vector& exp, str_vector& property_names, 
-                                                std::vector<exe_fcn_t>& property_exec_procs, 
-                                                data_vector& ctor_proc,const bool cps_block) {
+                                 std::vector<exe_fcn_t>& property_exec_procs, 
+                                 data_vector& ctor_proc,const bool cps_block) {
     const string ctor_name(exp[1].sym);
     for(size_type i = 3, n = exp.size(); i < n; ++i) {
       // parse member
@@ -3234,8 +3234,7 @@ namespace heist {
   }
 
 
-  void recursively_apply_syntax_hash_to_identifiers(data_vector& expanded_exp, const str_vector& hashed_ids, 
-                                                                               const str_vector& to_hash_ids)noexcept{
+  void recursively_apply_syntax_hash_to_identifiers(data_vector& expanded_exp, const str_vector& hashed_ids, const str_vector& to_hash_ids)noexcept{
     const auto n = to_hash_ids.size();
     for(auto& datum : expanded_exp) {
       if(datum.is_type(types::sym)) {
@@ -3346,8 +3345,7 @@ namespace heist {
 
   // Adds values & positions to a <macro_expansion_node>
   // => NOTE: LAST UNUSED ARG IS JUST TO MATCH THE SAME FCN PTR TYPE AS <extract_id_children_subgroup>
-  void accumulate_id_leaf_values_and_positions(macro_expansion_node& id_node, MACRO_ID_VAL_POS_PAIR& val_pos_pair,
-                                                                              MACRO_EXPANSION_TREES_t&)noexcept{
+  void accumulate_id_leaf_values_and_positions(macro_expansion_node& id_node, MACRO_ID_VAL_POS_PAIR& val_pos_pair, MACRO_EXPANSION_TREES_t&)noexcept{
     id_node.values.insert(id_node.values.end(),val_pos_pair.first.begin(),val_pos_pair.first.end());
     id_node.positions.push_back(val_pos_pair.second);
   }
