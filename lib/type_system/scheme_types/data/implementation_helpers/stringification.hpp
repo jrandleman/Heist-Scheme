@@ -20,7 +20,7 @@ string escape_chars(const string& str)noexcept;
 * GENERIC DATA STRINGIFICATION METHOD TYPE ALIAS
 ******************************************************************************/
 
-using DATA_PRINTER = string(data::*)()const;
+using DATA_STRINGIFIER = string(data::*)()const;
 
 /******************************************************************************
 * POINTER STRINGIFICATION
@@ -38,7 +38,7 @@ string pointer_to_hexstring(const T raw_ptr)noexcept{
 ******************************************************************************/
 
 // Prototype for stringification helper function
-template<DATA_PRINTER to_str>
+template<DATA_STRINGIFIER to_str>
 void stringify_list_recur(string& list_str,const data& slow,const data& fast,par_type cycle_start);
 
 // Confirm data is not the empty list
@@ -48,7 +48,7 @@ bool is_not_THE_EMPTY_LIST(const data& pair_data)noexcept{
 
 
 // Stringify list recursive helper, ONLY for once the lists is confirmed to be acyclic
-template<DATA_PRINTER to_str>
+template<DATA_STRINGIFIER to_str>
 void cio_acyclic_list_str_recur(string& list_str, const data& pair_object) {
   // store car
   if(pair_object.par->first.is_type(types::par)) {
@@ -76,7 +76,7 @@ void cio_acyclic_list_str_recur(string& list_str, const data& pair_object) {
 
 
 // Stringify list recursive helper
-template<DATA_PRINTER to_str>
+template<DATA_STRINGIFIER to_str>
 void stringify_list_recur(string& list_str, const data& slow, const data& fast, par_type cycle_start) {
   // Check if detected a cycle (simultaneously performs Floyd's Loop Detection algorithm)
   if(fast.is_type(types::par) && fast.par->second.is_type(types::par) && 
@@ -118,7 +118,7 @@ void stringify_list_recur(string& list_str, const data& slow, const data& fast, 
 
 
 // Stringify list
-template<DATA_PRINTER to_str>
+template<DATA_STRINGIFIER to_str>
 string stringify_list(const data& pair_object) {
   if(data_is_stream_pair(pair_object)) return "#<stream>";
   string list_str;
@@ -131,7 +131,7 @@ string stringify_list(const data& pair_object) {
 ******************************************************************************/
 
 // Stringify vector
-template<DATA_PRINTER to_str>
+template<DATA_STRINGIFIER to_str>
 string stringify_vect(const vec_type& vector_object) {
   string vect_str("#(");
   for(size_type i = 0, n = vector_object->size(); i < n; ++i) {
@@ -149,7 +149,7 @@ string stringify_vect(const vec_type& vector_object) {
 ******************************************************************************/
 
 // Stringify expression recursive helper
-template<DATA_PRINTER to_str>
+template<DATA_STRINGIFIER to_str>
 void stringify_expr_rec(const exp_type& exp_object, string& exp_str) {
   if(exp_object.empty()) return; // empty expression
   for(auto d = exp_object.begin(), end = exp_object.end(); d != end; ++d) {
@@ -169,7 +169,7 @@ void stringify_expr_rec(const exp_type& exp_object, string& exp_str) {
 
 
 // Stringify expression
-template<DATA_PRINTER to_str>
+template<DATA_STRINGIFIER to_str>
 string stringify_expr(const exp_type& exp_object) {
   string exp_str;
   stringify_expr_rec<to_str>(exp_object, exp_str);
@@ -181,7 +181,7 @@ string stringify_expr(const exp_type& exp_object) {
 ******************************************************************************/
 
 // Stringify hash-map
-template<DATA_PRINTER to_str>
+template<DATA_STRINGIFIER to_str>
 string stringify_hmap(const map_type& map_object) {
   string map_str("$(");
   for(const auto& keyval : map_object->val)
@@ -365,7 +365,7 @@ string pretty_print(const data& d) {
 * OBJECT STRINGIFICATION HELPER (CHECKS FOR display write pprint METHOD)
 ******************************************************************************/
 
-template<DATA_PRINTER to_str>
+template<DATA_STRINGIFIER to_str>
 string stringify_obj(const obj_type& object,const char* printer_name) {
   obj_type obj = object;
   while(obj) {
