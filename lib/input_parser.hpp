@@ -18,9 +18,8 @@ namespace heist {
 
   // Determine if at a word boundry (IE if 'c' is NOT part of a variable name)
   constexpr bool IS_END_OF_WORD(const char& c, const char& c2) noexcept {
-    return(!c || isspace(c) || c=='\'' || c=='`'|| c==',' || c=='"' || 
-           IS_OPEN_PAREN(c) || IS_CLOSE_PAREN(c) || c=='\\' || 
-           (c=='#' && (c2=='\\' || IS_OPEN_PAREN(c2))));
+    return (!c || isspace(c) || c=='"' || IS_OPEN_PAREN(c) || IS_CLOSE_PAREN(c) || 
+           (c=='#' && (c2=='\\' || IS_OPEN_PAREN(c2))) || (c=='$' && IS_OPEN_PAREN(c2)));
   }
 
   bool string_begins_with(const string& str, const char* substr, size_type begin = 0)noexcept{
