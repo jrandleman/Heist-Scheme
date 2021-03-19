@@ -1,8 +1,8 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- types.hpp
 // => Contains type aliases & structures for the C++ Heist Scheme Interpreter
 
-#ifndef TYPES_HPP_
-#define TYPES_HPP_
+#ifndef HEIST_TYPES_HPP_
+#define HEIST_TYPES_HPP_
 
 /******************************************************************************
 * STANDARD LIBRARY DEPENDANCIES (MORE IN "scheme_types/numerics/complex.hpp")

@@ -2,8 +2,8 @@
 // => Contains symbolic constants for the C++ Heist Scheme Interpreter
 // => NOTE: SYMBOL NAMES BEGINNING WITH "heist:" ARE RESERVED!
 
-#ifndef SYMBOLIC_CONSTANTS_HPP_
-#define SYMBOLIC_CONSTANTS_HPP_
+#ifndef HEIST_SYMBOLIC_CONSTANTS_HPP_
+#define HEIST_SYMBOLIC_CONSTANTS_HPP_
 
 namespace heist::symconst {
   constexpr const char * const dflt_compile_name = "a.cpp";
