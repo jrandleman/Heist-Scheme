@@ -1,8 +1,8 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- garbage_collector.hpp
 // => Contains shared_ptr/GC struct for the C++ Heist Scheme Interpreter
 
-#ifndef GARBAGE_COLLECTOR_HPP_
-#define GARBAGE_COLLECTOR_HPP_
+#ifndef HEIST_GARBAGE_COLLECTOR_HPP_
+#define HEIST_GARBAGE_COLLECTOR_HPP_
 
 // GOAL: Combine reference counting w/ "GC" for cycle-safe "shared_ptr"s
 // APPROACH: Regular reference counting, w/ any ptr refs > 0 also
@@ -27,7 +27,7 @@ namespace heist {
     static std::size_t TGC_CAP, TGC_LEN;
     static TGC_ENTRY* TYPED_GARBAGE_COLLECTOR;
     static void FREE_TYPED_GARBAGE_COLLECTOR()noexcept{
-      TGC_CAP = 0; // SIGNALS GC FREED & DISABLES ALL INDEPENDANT DTORS
+      TGC_CAP = 0; // SIGNALS GC FREED & DISABLES ALL INDEPENDENT DTORS
       for(std::size_t i = TGC_LEN; i-- > 0;) {
         delete TYPED_GARBAGE_COLLECTOR[i].first;
         delete TYPED_GARBAGE_COLLECTOR[i].second;

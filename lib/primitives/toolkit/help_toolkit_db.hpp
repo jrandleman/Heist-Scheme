@@ -14,8 +14,8 @@
 //   9. HELP_MENU_PROCEDURES (& 31 SUBVARIANTS)
 //   A. HELP_MENU_PROCEDURES_SUBMENU, HELP_MENU_PROCEDURES_SUBMENU_LENGTHS
 
-#ifndef HELP_TOOLKIT_DB_HPP_
-#define HELP_TOOLKIT_DB_HPP_
+#ifndef HEIST_HELP_TOOLKIT_DB_HPP_
+#define HEIST_HELP_TOOLKIT_DB_HPP_
 
 /******************************************************************************
 * HELP MENU SUBSECTIONS
@@ -11457,7 +11457,7 @@ Contents:
      ----------------------------------------
      A) OPEN THE "/installers/" FOLDER
      B) RUN "$ python3 installer.py"
-        *) This generates a file named "HEIST_FILEPATH.hpp" in "/interpreter_headers/"
+        *) This generates a file named "HEIST_FILEPATH.hpp" in "/lib/"
            => Any instance of "<HEIST_DIRECTORY_FILE_PATH>" below refers to the string in this file
         *) NOTE: Use "$ python3 installer.py -debug" to compile with "-Wall -Wextra"!
 
@@ -11466,7 +11466,7 @@ Contents:
      -----------
      A) OPEN THE "/installers/" FOLDER
      B) COMPILE AND RUN "installer.cpp" USING THE "-std=c++17" FLAG
-        *) This generates a file named "HEIST_FILEPATH.hpp" in "/interpreter_headers/"
+        *) This generates a file named "HEIST_FILEPATH.hpp" in "/lib/"
            => Any instance of "<HEIST_DIRECTORY_FILE_PATH>" below refers to the string in this file
      C) COMPILE THE INTERPRETER: "$ clang++ -std=c++17 -O3 -o heist heist.cpp"
         *) FLAG DESCRIPTIONS:

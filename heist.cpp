@@ -27,10 +27,10 @@
 * ABSOLUTE FILE PATH TO HEIST INTERPRETERS DIRECTORY
 ******************************************************************************/
 
-#if __has_include("interpreter_headers/HEIST_FILEPATH.hpp")
-  #include "interpreter_headers/HEIST_FILEPATH.hpp"
+#if __has_include("lib/HEIST_FILEPATH.hpp")
+  #include "lib/HEIST_FILEPATH.hpp"
 #else
-  #error "installer.cpp" MUST BE COMPILED (USING "-std=c++17") AND RUN PRIOR THE INTERPRETER!
+  #error "installers/installer.cpp" MUST BE COMPILED (USING "-std=c++17") AND RUN PRIOR THE INTERPRETER!
 #endif
 
 /******************************************************************************
@@ -127,9 +127,9 @@
  *         * SEE "primitives.hpp" FOR THE ALL PRIMITIVE IMPLEMENTATIONS
  */
 
-#include "interpreter_headers/types.hpp"
-#include "interpreter_headers/primitives.hpp"
-#include "interpreter_headers/input_parser.hpp"
+#include "lib/type_system/types.hpp"
+#include "lib/primitives/primitives.hpp"
+#include "lib/input_parser.hpp"
 
 namespace heist {
 
@@ -150,7 +150,7 @@ namespace heist {
   // Generate a call signature from a procedure name & its given values
   string procedure_call_signature(const string& name,const data_vector& vals)noexcept{
     if(vals.empty()) return '(' + name + ')';
-    return '(' + name + ' ' + cio_expr_str<&data::noexcept_write>(vals).substr(1);
+    return '(' + name + ' ' + stringify_expr<&data::noexcept_write>(vals).substr(1);
   }
 
 
@@ -670,7 +670,7 @@ namespace heist {
       if constexpr (IS_VECTOR_LITERAL)
         return [](env_type&){return make_vec(data_vector());};
       else
-        return [](env_type&){return make_map(scm_map());};
+        return [](env_type&){return make_map(map_object());};
     }
     // quote each item in the vector
     data_vector literal(args.size()+1);
@@ -909,13 +909,13 @@ namespace heist {
     // set CPS value if needed
     if(params_end_with_a_continuation(vars)) {
       return [vars=std::move(vars),body_proc=std::move(body_proc)](env_type& env){
-        auto proc = scm_fcn(vars, body_proc, env, ""); // empty "" name by default (anon proc)
+        auto proc = fcn_type(vars, body_proc, env, ""); // empty "" name by default (anon proc)
         proc.set_cps_procedure(true);
         return proc;
       };
     }
     return [vars=std::move(vars),body_proc=std::move(body_proc)](env_type& env){
-      return scm_fcn(vars, body_proc, env, ""); // empty "" name by default (anon proc)
+      return fcn_type(vars, body_proc, env, ""); // empty "" name by default (anon proc)
     };
   }
 
@@ -1033,13 +1033,13 @@ namespace heist {
     // set CPS value if needed
     if(!param_insts.empty() && params_end_with_a_continuation(param_insts[0])) {
       return [param_insts=std::move(param_insts),bodies=std::move(bodies)](env_type& env){
-        auto proc = scm_fcn(param_insts, bodies, env, ""); // empty "" name by default (anon proc)
+        auto proc = fcn_type(param_insts, bodies, env, ""); // empty "" name by default (anon proc)
         proc.set_cps_procedure(true);
         return proc;
       };
     }
     return [param_insts=std::move(param_insts),bodies=std::move(bodies)](env_type& env){
-      return scm_fcn(param_insts, bodies, env, ""); // empty "" name by default (anon proc)
+      return fcn_type(param_insts, bodies, env, ""); // empty "" name by default (anon proc)
     };
   }
 
@@ -2604,7 +2604,7 @@ namespace heist {
 
 
   // Extra <ignore> arg used to account for the <id> procedure that will be 
-  // passed automatically by <scm_fcn::get_extended_environment>
+  // passed automatically by <fcn_type::get_extended_environment>
   void account_for_automatically_passed_ID_continuation(data_vector& exp)noexcept{
     // Add an extra continuation param to account for the auto-added <id> procedure
     if(exp.size() >= 2 && exp[0].is_type(types::sym) && exp[0].sym == symconst::lambda && exp[1].is_type(types::exp) && exp[1].exp.size() == 1) {
@@ -3644,7 +3644,7 @@ namespace heist {
     if(std::find(identifiers.begin(),identifiers.end(),pattern[i].sym) != identifiers.end())
       THROW_ERR("'syntax-rules " << pattern[i].sym << " identifier found twice!"
         "\n     Each syntax-rules pattern identifier MUST be unique!\n     " 
-        << cio_expr_str<&data::noexcept_write>(pattern) << format << EXP_ERR(exp));
+        << stringify_expr<&data::noexcept_write>(pattern) << format << EXP_ERR(exp));
     identifiers.push_back(pattern[i].sym);
   }
 
@@ -3658,7 +3658,7 @@ namespace heist {
     if(pattern.empty()) return; // guarenteed to be part of a recursive call (topmost pattern asserted non-empty)
     if(!pattern.empty() && data_is_ellipsis(pattern[0]))
       THROW_ERR("'syntax-rules \"...\" may NEVER begin a pattern subexpression!"
-        "\n     " << cio_expr_str<&data::noexcept_write>(pattern) << format <<EXP_ERR(exp));
+        "\n     " << stringify_expr<&data::noexcept_write>(pattern) << format <<EXP_ERR(exp));
     if(is_macro_argument_label(pattern[0],keywords))
       confirm_unique_syntax_rules_pattern_identifier(pattern,0,exp,identifiers);
     bool seen_ellipses = false;
@@ -3667,7 +3667,7 @@ namespace heist {
         // Confirm each subexpression has at most 1 '...'
         if(seen_ellipses){
           THROW_ERR("'syntax-rules \"...\" may only appear ONCE per pattern subexpression!"
-            "\n     " << cio_expr_str<&data::noexcept_write>(pattern) <<
+            "\n     " << stringify_expr<&data::noexcept_write>(pattern) <<
             "\n     -> IE: (a ... (b ...)) => VALID: 1 '...' PER EXPRESSION!"
             "\n            (a ... b ...)   => INVALID: 2 '...' IN A SINGLE EXPRESSION!"
             << format <<EXP_ERR(exp));
@@ -3675,7 +3675,7 @@ namespace heist {
         // Confirm '...' doesn't follow a literal or keyword in the pattern
         if(data_is_literal_or_keyword(pattern[i-1],keywords)){
           THROW_ERR("'syntax-rules \"...\" may only be preceded by a non-literal-non-keyword"
-            "\n     symbol or expression!\n     " << cio_expr_str<&data::noexcept_write>(pattern) 
+            "\n     symbol or expression!\n     " << stringify_expr<&data::noexcept_write>(pattern) 
             << format <<EXP_ERR(exp));
         }
         seen_ellipses = true;
@@ -3702,12 +3702,12 @@ namespace heist {
       // Confirm pattern begins w/ a symbol
       if(!exp[i].exp[0].exp[0].is_type(types::sym))
         THROW_ERR("'syntax-rules patterns MUST begin with a symbol!"
-          "\n     " << cio_expr_str<&data::noexcept_write>(exp[i].exp[0].exp) << format << EXP_ERR(exp));
+          "\n     " << stringify_expr<&data::noexcept_write>(exp[i].exp[0].exp) << format << EXP_ERR(exp));
       // Confirm pattern's topmost subexpression depth doesn't start w/ '...'
       if(exp[i].exp[0].exp.size() > 1 && data_is_ellipsis(exp[i].exp[0].exp[1]))
         THROW_ERR("'syntax-rules pattern '...' identifier must be preceded"
           " by a symbol or expression identifier!\n     " 
-          << cio_expr_str<&data::noexcept_write>(exp[i].exp[0].exp) << format << EXP_ERR(exp));
+          << stringify_expr<&data::noexcept_write>(exp[i].exp[0].exp) << format << EXP_ERR(exp));
       // Confirm each pattern identifier only appears once
       str_vector identifiers;
       confirm_proper_syntax_rules_pattern_layout(exp[i].exp[0].exp,exp,mac.keywords,identifiers);
@@ -3924,7 +3924,7 @@ namespace heist {
   ******************************************************************************/
 
   // Prints Debugging Call Trace (see <set-dynamic-call-trace!> primitive)
-  void output_debug_call_trace(const scm_fcn& procedure,const data_vector& arguments,
+  void output_debug_call_trace(const fcn_type& procedure,const data_vector& arguments,
                                const bool tail_call,    const bool callceing)noexcept{
     // Generate the call signature & Application-Affecting Call States
     auto call_signature = procedure_call_signature(procedure.printable_procedure_name(),arguments);
@@ -3945,7 +3945,7 @@ namespace heist {
 
 
   // Prints Call Trace (see <trace> primitive)
-  void print_call_trace_depth_indentation(const scm_fcn& procedure,const bool tail_call=false)noexcept{
+  void print_call_trace_depth_indentation(const fcn_type& procedure,const bool tail_call=false)noexcept{
     size_type recursive_depth = 0; // default to 0 (level for all prims)
     if(procedure.is_compound()) {
       recursive_depth = procedure.recursive_depth();
@@ -3960,7 +3960,7 @@ namespace heist {
 
 
   // Print the current recursive depth as indentation, and the current invocation signature
-  void output_call_trace_invocation(const scm_fcn& procedure, const data_vector& arguments,const bool tail_call=false)noexcept{
+  void output_call_trace_invocation(const fcn_type& procedure, const data_vector& arguments,const bool tail_call=false)noexcept{
     auto call_signature = procedure_call_signature(procedure.printable_procedure_name(),arguments);
     print_call_trace_depth_indentation(procedure,tail_call);
     fprintf(G.CURRENT_OUTPUT_PORT, "%s\n", call_signature.c_str());
@@ -3969,7 +3969,7 @@ namespace heist {
 
 
   // Print the current recursive depth as indentation, and the result string
-  void output_call_trace_result(const scm_fcn& procedure, const data& result)noexcept{
+  void output_call_trace_result(const fcn_type& procedure, const data& result)noexcept{
     print_call_trace_depth_indentation(procedure);
     fprintf(G.CURRENT_OUTPUT_PORT, "%s\n", result.noexcept_write().c_str());
     fflush(G.CURRENT_OUTPUT_PORT);
@@ -4002,7 +4002,7 @@ namespace heist {
 
 
   // extend <procedure>'s env with <calling_obj> as "self"
-  data extend_method_env_with_SELF_object(obj_type& calling_obj, scm_fcn& procedure)noexcept{
+  data extend_method_env_with_SELF_object(obj_type& calling_obj, fcn_type& procedure)noexcept{
     procedure.self = calling_obj;
     return procedure;
   }
@@ -4105,7 +4105,7 @@ namespace heist {
   ******************************************************************************/
 
   // -- STACK TRACE REGISTRATION
-  void register_call_in_stack_trace(scm_fcn& procedure,data_vector& arguments)noexcept{
+  void register_call_in_stack_trace(fcn_type& procedure,data_vector& arguments)noexcept{
     if(!G.TRACE_LIMIT) return;
     if(!G.TRACE_ARGS) 
       GLOBALS::STACK_TRACE.push_back(procedure.printable_procedure_name());
@@ -4207,7 +4207,7 @@ namespace heist {
     if(tail_call) {
       data_vector tail_call_signature(2); // {tail-call-tag, proc-body, extended-env}
       tail_call_signature[0] = symconst::tail_call;
-      tail_call_signature[1] = scm_fcn(extended_env,fcn_body);
+      tail_call_signature[1] = fcn_type(extended_env,fcn_body);
       return tail_call_signature;
     }
     ++recursive_depth;
@@ -4240,7 +4240,7 @@ namespace heist {
                   !data_is_continuation_parameter(*p.fcn.param_instances[0].rbegin()))));
   }
 
-  bool procedure_requires_continuation(const scm_fcn& p)noexcept{
+  bool procedure_requires_continuation(const fcn_type& p)noexcept{
     return (p.is_compound() && string_begins_with(p.name,symconst::pass_continuation)) ||
            (p.is_primitive() && string_begins_with(p.name,symconst::pass_continuation));
   }
@@ -4536,7 +4536,7 @@ namespace heist {
 
 
 // Account for whether REPL should print a newline
-#ifndef CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
+#ifndef HEIST_CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
 #ifndef HEIST_INTERPRETING_COMPILED_AST // @ONLY-INTERPRETER
 void print_repl_newline(const bool& printed_data)noexcept{ // after printing data
   if(printed_data || (!heist::G.LAST_PRINTED_NEWLINE_TO_STDOUT && heist::G.LAST_PRINTED_TO_STDOUT))
@@ -4702,7 +4702,7 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
       puts(HEIST_COMMAND_LINE_ARGS);
       return true;
     } else if(cmd_flag == "-infix") {
-      LOADED_FILES.push_back(HEIST_DIRECTORY_FILE_PATH "/interpreter_headers/toolkits/infix_toolkit.scm");
+      LOADED_FILES.push_back(HEIST_DIRECTORY_FILE_PATH "/lib/infix.scm");
     } else if(cmd_flag == "-dynamic-call-trace") {
       trace_calls = true;
     } else if(cmd_flag == "-trace-args") {
@@ -4756,7 +4756,7 @@ int load_script(const char* filename){
   load_args[1 + heist::G.USING_CPS_CMD_LINE_FLAG] = heist::G.GLOBAL_ENVIRONMENT_POINTER;
   // Bind "id" as the topmost continuation if "-cps" was passed
   if(heist::G.USING_CPS_CMD_LINE_FLAG)
-    load_args[1] = heist::scm_fcn("id",(heist::prm_ptr_t)[](heist::data_vector& args){return args[0];});
+    load_args[1] = heist::fcn_type("id",(heist::prm_ptr_t)[](heist::data_vector& args){return args[0];});
   try {
     if(heist::G.USING_CPS_CMD_LINE_FLAG)
       heist::primitive_CPS_LOAD(load_args);

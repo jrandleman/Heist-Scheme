@@ -1,11 +1,11 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- numerics.hpp
+// Author: Jordan Randleman -- jrandleman@scu.edu -- complex.hpp
 // => Defines Numeric class for Heist Scheme Complex Numbers
 // => NOTE: ACTS AS A WRAPPER AROUND 2 <class Snum_real> OBJECTS!
 
-#ifndef NUMERICS_HPP_
-#define NUMERICS_HPP_
+#ifndef HEIST_COMPLEX_HPP_
+#define HEIST_COMPLEX_HPP_
 
-#include "toolkits/numerics_toolkit.hpp"
+#include "real.hpp"
 
 /***
  * -------------

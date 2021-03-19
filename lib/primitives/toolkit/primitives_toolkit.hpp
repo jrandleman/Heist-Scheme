@@ -1,8 +1,8 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- primitives_toolkit.hpp
 // => Defines helper functions for the Heist Scheme Interpreter's C++ primitives
 
-#ifndef PRIMITIVES_TOOLKIT_HPP_
-#define PRIMITIVES_TOOLKIT_HPP_
+#ifndef HEIST_PRIMITIVES_TOOLKIT_HPP_
+#define HEIST_PRIMITIVES_TOOLKIT_HPP_
 
 #include <regex>
 
@@ -118,7 +118,7 @@ namespace heist {
 
   // currently not using <const char*> name, but may desire to in the future
   data GENERATE_PRIMITIVE_PARTIAL(const char*, prm_ptr_t prm, data_vector& args)noexcept{
-    return scm_fcn(args,prm);
+    return fcn_type(args,prm);
   }
 
   /******************************************************************************
@@ -331,7 +331,7 @@ namespace heist {
     data_as_syntax.push_back(symconst::map_literal);
     for(auto& keyvalue : m.map->val) {
       data_as_syntax.push_back(data());
-      if(!convert_data_to_evaluable_syntax(scm_map::unhash_key(keyvalue.first),*data_as_syntax.rbegin()))
+      if(!convert_data_to_evaluable_syntax(map_object::unhash_key(keyvalue.first),*data_as_syntax.rbegin()))
         return false;
       data_as_syntax.push_back(data());
       if(!convert_data_to_evaluable_syntax(keyvalue.second,*data_as_syntax.rbegin()))
@@ -952,7 +952,7 @@ namespace heist {
     if(!args[0].is_type(types::map))
       THROW_ERR('\''<<name<<" arg "<<PROFILE(args[0])<<" isn't a hash-map!" 
         << format << HEIST_HASH_MAP_KEY_FORMAT << FCN_ERR(name, args));
-    if(!scm_map::hashable(args[1]))
+    if(!map_object::hashable(args[1]))
       THROW_ERR('\''<<name<<" arg "<<PROFILE(args[1])<<" isn't a valid hashable key!" 
         << format << HEIST_HASH_MAP_KEY_FORMAT << FCN_ERR(name, args));
   }
@@ -4497,7 +4497,7 @@ namespace heist {
     // adds <id> to account for extra continuation slot added by <generate_fundamental_form_cps>
     data_vector cps_load_arg(2);
     cps_load_arg[0] = continuation;
-    cps_load_arg[1] = scm_fcn("id",DEFAULT_TOPMOST_CONTINUATION::id);
+    cps_load_arg[1] = fcn_type("id",DEFAULT_TOPMOST_CONTINUATION::id);
     return cps_load_arg;
   }
 
@@ -4622,12 +4622,13 @@ namespace heist {
         << "\" couldn't be written to!\n     ("<<name<<" <filename-string>)"
         << FCN_ERR(name,args));
     fprintf(outs, "// Heist-Scheme Compiled Source from \"%s\""
-                  "\n#include \"%s%cinterpreter_headers%ctypes.hpp\""
+                  "\n#include \"%s%clib%ctype_system%ctypes.hpp\""
                   "\n#define HEIST_INTERPRETING_COMPILED_AST"
                   "\n%s"
                   "\n#include \"%s%cheist.cpp\"\n", 
                   args[0].str->c_str(), 
                   HEIST_DIRECTORY_FILE_PATH,char(std::filesystem::path::preferred_separator),
+                  char(std::filesystem::path::preferred_separator),
                   char(std::filesystem::path::preferred_separator),
                   ast_generator.c_str(), 
                   HEIST_DIRECTORY_FILE_PATH,char(std::filesystem::path::preferred_separator));
@@ -5902,7 +5903,7 @@ namespace heist {
   data initialize_OO_ctord_object_HMAP(data_vector& args, cls_type& class_proto_obj, object_type& obj, const char* format) {
     const size_type total_members = obj.member_names.size();
     for(auto& keyval : args[1].map->val) {
-      auto key = scm_map::unhash_key(keyval.first);
+      auto key = map_object::unhash_key(keyval.first);
       if(!key.is_type(types::sym))
         THROW_ERR('\''<< class_proto_obj->class_name<<" member-name key "<<PROFILE(key) 
           << " isn't a symbol!" << format << FCN_ERR('\''+class_proto_obj->class_name,args));
@@ -6057,7 +6058,7 @@ namespace heist {
   // <DONT_INCLUDE_SUPER_PROTOTYPE_MEMBERS> -> true iff generating JSON
   template<bool DONT_INCLUDE_SUPER_PROTOTYPE_MEMBERS>
   data prm_recursively_convert_OBJ_to_HMAP(const data& d)noexcept{
-    scm_map m;
+    map_object m;
     for(size_type i = 0, n = d.obj->member_names.size(); i < n; ++i) {
       if constexpr (DONT_INCLUDE_SUPER_PROTOTYPE_MEMBERS)
         if(d.obj->member_names[i] == "super" || d.obj->member_names[i] == "prototype") 
@@ -6076,7 +6077,7 @@ namespace heist {
     data_vector alist;
     for(const auto& keyval : d.map->val) {
       data p = make_par();
-      p.par->first = scm_map::unhash_key(keyval.first);
+      p.par->first = map_object::unhash_key(keyval.first);
       p.par->second = make_par();
       if(keyval.second.is_type(types::map))
         p.par->second.par->first = prm_recursively_convert_HMAP_to_ALIST(keyval.second);
@@ -6094,7 +6095,7 @@ namespace heist {
     data_vector alist;
     for(const auto& keyval : d.map->val) {
       data p = make_par();
-      auto key = scm_map::unhash_key(keyval.first);
+      auto key = map_object::unhash_key(keyval.first);
       // convert the key into a JSON string key
       switch(key.type) {
         case types::str:

@@ -1,0 +1,23 @@
+// Author: Jordan Randleman -- jrandleman@scu.edu -- boolean.hpp
+// => Contains "boolean" data structure for the C++ Heist Scheme Interpreter
+
+#ifndef HEIST_BOOLEAN_HPP_
+#define HEIST_BOOLEAN_HPP_
+
+namespace heist {
+  struct boolean {
+    // core logic
+    bool val; 
+    boolean(const bool b=false)          noexcept : val(b) {}
+    boolean(const boolean& b)            noexcept = default;
+    boolean(boolean&& b)                 noexcept = default;
+    void operator=(const bool b)         noexcept {val=b;}
+    boolean& operator=(const boolean& b) noexcept = default;
+    boolean& operator=(boolean&& b)      noexcept = default;
+    // stringification & equality
+    string str() const noexcept {if(val) return "#t"; return "#f";}
+    bool operator==(const boolean& b) const noexcept {return b.val == val;}
+  };
+}
+
+#endif

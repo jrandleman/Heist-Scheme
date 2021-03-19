@@ -1,8 +1,11 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- input_parser.hpp
 // => Parses user's input into an AST for the C++ Heist Scheme Interpreter
+//
+// => Parser Function: 
+//    void parse_input_exp(string&& input, data_vector& abstract_syntax_tree)
 
-#ifndef INPUT_PARSER_HPP_
-#define INPUT_PARSER_HPP_
+#ifndef HEIST_INPUT_PARSER_HPP_
+#define HEIST_INPUT_PARSER_HPP_
 
 /******************************************************************************
 * READER HELPER FUNCTIONS

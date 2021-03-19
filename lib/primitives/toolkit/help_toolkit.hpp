@@ -7,8 +7,8 @@
 //   1. help::query_datum(const string& query)
 ////////////////////////////////////////////////////////////
 
-#ifndef HELP_TOOLKIT_HPP_
-#define HELP_TOOLKIT_HPP_
+#ifndef HEIST_HELP_TOOLKIT_HPP_
+#define HEIST_HELP_TOOLKIT_HPP_
 
 /******************************************************************************
 * HELP DB DATA MATRIX

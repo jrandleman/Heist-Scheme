@@ -5,8 +5,8 @@
  * DESIGNED FOR ___SINGLE-THREADED___ APPLICATIONS
  *************************************************/
 
-#ifndef CPP_INTEROP_HPP_
-#define CPP_INTEROP_HPP_
+#ifndef HEIST_CPP_INTEROP_HPP_
+#define HEIST_CPP_INTEROP_HPP_
 
 // Defines 3 Functions for C++ Interop w/ Heist:
 //   0) eval   // evaluate heist code string, same as _heist literal (see below)
@@ -70,7 +70,7 @@ namespace heist {
   //           heist procedures received as arguments
   void define(const std::string& heist_primitive_name, prm_ptr_t cpp_function, bool append_env_to_args=false) noexcept {
     if(!G.GLOBAL_ENVIRONMENT_POINTER) set_default_global_environment(), atexit(close_port_registry);
-    define_variable(heist_primitive_name, scm_fcn(heist_primitive_name,cpp_function), G.GLOBAL_ENVIRONMENT_POINTER);
+    define_variable(heist_primitive_name, fcn_type(heist_primitive_name,cpp_function), G.GLOBAL_ENVIRONMENT_POINTER);
     if(append_env_to_args)
       GLOBALS::USER_DEFINED_PRIMITIVES_REQUIRING_ENV.push_back(cpp_function);
   }

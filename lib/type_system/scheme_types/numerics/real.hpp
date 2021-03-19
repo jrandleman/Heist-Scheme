@@ -1,8 +1,8 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- numerics_toolkit.hpp
+// Author: Jordan Randleman -- jrandleman@scu.edu -- real.hpp
 // => Defines Numeric class for Heist Scheme Real Numbers (BigInt, etc.)
 
-#ifndef NUMERICS_TOOLKIT_HPP_
-#define NUMERICS_TOOLKIT_HPP_
+#ifndef HEIST_REAL_HPP_
+#define HEIST_REAL_HPP_
 
 #include <cctype>
 #include <cfloat>
@@ -573,7 +573,7 @@ namespace scm_numeric {
                                 (INEXACT_PRECISION-unsigned_integral.size());
     auto exact_num = Snum_real(unsigned_integral) + 
                      Snum_real(std::to_string(size_type(std::round(unsigned_fractional * 
-                                                              std::pow(10.0L, fractional_prec)))) + 
+                                                                   std::pow(10.0L, fractional_prec)))) + 
                           '/' + std::to_string(size_type(std::pow(10.0L, fractional_prec))));
     if(is_neg()) exact_num.sign = signs::neg;
     return exact_num;
@@ -1953,8 +1953,8 @@ namespace scm_numeric {
   // Multiplies 2 arrays of decimal digits into a single array
   // PRECONDITION: product MUST HAVE A CAPACITY OF >= a_len + b_len
   void Snum_real::big_int_abs_val_mul(exact_t& product,size_type& prod_len,
-                                 const exact_t a,const size_type& a_len,
-                                 const exact_t b,const size_type& b_len)const noexcept{
+                                      const exact_t a,const size_type& a_len,
+                                      const exact_t b,const size_type& b_len)const noexcept{
     if((a_len==1 && a[0]==0) || (b_len==1 && b[0]==0)) { // 0 * N = 0
       product[0] = 0, prod_len = 1;
       return;
@@ -2009,8 +2009,7 @@ namespace scm_numeric {
 
   // MUL '* HELPER: Sums 2 arrays of decimal digits into a single array
   // PRECONDITION: a MUST HAVE A CAPACITY OF >= b_len
-  void Snum_real::big_int_abs_val_MUL_HELPER_sum(exact_t& a, size_type& a_len, 
-                                            const exact_t b, const size_type& b_len)const noexcept{ // <a> = product
+  void Snum_real::big_int_abs_val_MUL_HELPER_sum(exact_t& a, size_type& a_len, const exact_t b, const size_type& b_len)const noexcept{ // <a> = product
     if(b_len == 1 && b[0] == 0) return; // a + 0 = a
     if(a_len == 1 && a[0] == 0) {       // 0 + b = b
       a_len = b_len;
@@ -2043,7 +2042,7 @@ namespace scm_numeric {
   // Returns the absolute difference (in a single array) of 2 arrays of decimal digits
   // PRECONDITION: diff MUST HAVE A CAPACITY OF >= max(a_len,b_len)
   void Snum_real::big_int_abs_val_diff(exact_t& diff, size_type& diff_len, const exact_t a, const size_type& a_len, 
-                                                                      const exact_t b, const size_type& b_len)const noexcept{
+                                                                           const exact_t b, const size_type& b_len)const noexcept{
     if(a_len == 1 && a[0] == 0) { // |0 - b| = b
       diff_len = b_len;
       for(size_type i = 0; i < diff_len; ++i) diff[i] = b[i];
