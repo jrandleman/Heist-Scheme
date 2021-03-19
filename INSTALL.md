@@ -6,9 +6,8 @@
    * _Use `$ python3 installer.py -debug` to compile with `-Wall -Wextra`!_
 
 ### Otherwise:
-0. Open `/installers/`
-1. Compile & run `installer.cpp` using C++17
-2. Compile the interpreter: `$ clang++ -std=c++17 -O3 -o heist heist.cpp`
+0. Compile & run `/installers/installer.cpp` using C++17
+1. Compile the interpreter: `$ clang++ -std=c++17 -O3 -o heist heist.cpp`
    * Flag details:
      - `-std=c++17`: [REQUIRED] compile using the C++17 standard
      - `-O3`: [RECOMMENDED] maximum run-time optimization
