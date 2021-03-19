@@ -87,7 +87,7 @@ def dispatchCompilation(pathToInterpreter):
 
 # Write the header file needed and dispatch to automate compilation
 pathToInterpreter = os.path.dirname(os.getcwd())
-f = open("../interpreter_headers/HEIST_FILEPATH.hpp", "w")
+f = open("../lib/HEIST_FILEPATH.hpp", "w")
 f.write(makeFilePathHeader(pathToInterpreter))
 f.close()
 dispatchCompilation(pathToInterpreter)
