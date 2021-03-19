@@ -5,7 +5,7 @@
 #define TYPES_HPP_
 
 /******************************************************************************
-* STANDARD LIBRARY DEPENDANCIES (MORE IN "object_types/numerics/complex.hpp")
+* STANDARD LIBRARY DEPENDANCIES (MORE IN "scheme_types/numerics/complex.hpp")
 ******************************************************************************/
 
 #include <algorithm>
