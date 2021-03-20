@@ -175,13 +175,13 @@ namespace heist {
       // search object's local members
       for(size_type i = 0, n = obj->method_names.size(); i < n; ++i)
         if(obj->method_names[i] == "self->procedure")
-          return extend_method_env_with_SELF_object(obj,obj->method_values[i].fcn);
+          return obj->method_values[i].fcn.bind_self(obj);
       // search object's prototype
       for(size_type i = 0, n = obj->proto->method_names.size(); i < n; ++i)
         if(obj->proto->method_names[i] == "self->procedure") {
           // Cache the method dynamically added to the object's prototype IN the object
           obj->method_names.push_back("self->procedure"), obj->method_values.push_back(obj->proto->method_values[i]);
-          return extend_method_env_with_SELF_object(obj,obj->method_values.rbegin()->fcn);
+          return obj->method_values.rbegin()->fcn.bind_self(obj);
         }
       // search inherited object prototype
       obj = obj->super;
@@ -5835,63 +5835,6 @@ namespace heist {
   }
 
 
-  bool set_new_property_value_SEEK_IN_PROTO(const str_vector& property_names, obj_type& obj, 
-                                            const string& sought_property, data& new_val)noexcept{
-    for(size_type i = 0, n = property_names.size(); i < n; ++i) {
-      if(property_names[i] == sought_property) {
-        // setting property to be a member
-        if(!new_val.is_type(types::fcn)) {
-          obj->member_names.push_back(sought_property);
-          obj->member_values.push_back(new_val);
-        // setting property to be a method
-        } else {
-          obj->method_names.push_back(sought_property);
-          obj->method_values.push_back(new_val);
-        }
-        return true;
-      }
-    }
-    return false;
-  }
-
-
-  bool set_new_property_value_SEEK_IN_OBJ(str_vector& seeking_names, data_vector& seeking_values, 
-                                          str_vector& alt_names, data_vector& alt_values, const bool new_val_in_SEEKING_set, 
-                                          const string& sought_property, data& new_val)noexcept{
-    for(size_type i = 0, n = seeking_names.size(); i < n; ++i) {
-      if(seeking_names[i] == sought_property) {
-        if(new_val_in_SEEKING_set) {
-          seeking_values[i] = new_val;
-        } else {
-          seeking_names.erase(seeking_names.begin()+i);
-          seeking_values.erase(seeking_values.begin()+i);
-          alt_names.push_back(sought_property);
-          alt_values.push_back(new_val);
-        }
-        return true;
-      }
-    }
-    return false;
-  }
-
-
-  // Returns whether found <sought_property> in <obj>, <proto>, or its inheritance chain
-  bool set_new_object_property_value(cls_type& proto, obj_type& obj, const string& sought_property, data& new_val)noexcept{
-    return 
-      // Search local members
-      set_new_property_value_SEEK_IN_OBJ(obj->member_names,obj->member_values,obj->method_names,obj->method_values,
-                                         !new_val.is_type(types::fcn),sought_property,new_val) || 
-      // Search local methods
-      set_new_property_value_SEEK_IN_OBJ(obj->method_names,obj->method_values,obj->member_names,obj->member_values,
-                                         new_val.is_type(types::fcn),sought_property,new_val)  ||
-      // Search the prototype & cache the new member/method if found
-      set_new_property_value_SEEK_IN_PROTO(proto->member_names, obj, sought_property, new_val) ||
-      set_new_property_value_SEEK_IN_PROTO(proto->method_names, obj, sought_property, new_val) ||
-      // Search the inherited super & its prototype
-      (proto->super && obj->super && set_new_object_property_value(proto->super,obj->super,sought_property,new_val));
-  }
-
-
   void throw_too_many_values_in_OO_initialization(data_vector& args, cls_type& class_proto_obj, object_type& obj, 
                                                               const char* format, const char* container_name){
     THROW_ERR('\''<< class_proto_obj->class_name<<' '<<container_name<<' '<< args[1] << " has more values than"
@@ -5967,54 +5910,6 @@ namespace heist {
     } else {
       obj.member_values.push_back(GLOBALS::FALSE_DATA_BOOLEAN);
     }
-  }
-
-
-  // primitive "heist:core:oo:add-property!" helper for members
-  data prm_HEIST_CORE_OO_ADD_MEMBER(data_vector& args)noexcept{
-    // Set local member if already exists
-    for(size_type i = 0, n = args[0].obj->member_names.size(); i < n; ++i) {
-      if(args[0].obj->member_names[i] == args[1].sym) {
-        args[0].obj->member_values[i] = args[2];
-        return GLOBALS::VOID_DATA_OBJECT;
-      }
-    }
-    // Rm if member already exists as a local method
-    for(size_type i = 0, n = args[0].obj->method_names.size(); i < n; ++i) {
-      if(args[0].obj->method_names[i] == args[1].sym) {
-        args[0].obj->method_names.erase(args[0].obj->method_names.begin()+i);
-        args[0].obj->method_values.erase(args[0].obj->method_values.begin()+i);
-        break;
-      }
-    }
-    // add the new member name & assign it the given value
-    args[0].obj->member_names.push_back(args[1].sym);
-    args[0].obj->member_values.push_back(args[2]);
-    return GLOBALS::VOID_DATA_OBJECT;
-  }
-
-
-  // primitive "heist:core:oo:add-property!" helper for methods
-  data prm_HEIST_CORE_OO_ADD_METHOD(data_vector& args)noexcept{
-    // Set local method if already exists
-    for(size_type i = 0, n = args[0].obj->method_names.size(); i < n; ++i) {
-      if(args[0].obj->method_names[i] == args[1].sym) {
-        args[0].obj->method_values[i] = args[2];
-        return GLOBALS::VOID_DATA_OBJECT;
-      }
-    }
-    // Rm if method already exists as a local member
-    for(size_type i = 0, n = args[0].obj->member_names.size(); i < n; ++i) {
-      if(args[0].obj->member_names[i] == args[1].sym) {
-        args[0].obj->member_names.erase(args[0].obj->member_names.begin()+i);
-        args[0].obj->member_values.erase(args[0].obj->member_values.begin()+i);
-        break;
-      }
-    }
-    // add the new method name & assign it the given value
-    args[0].obj->method_names.push_back(args[1].sym);
-    args[0].obj->method_values.push_back(args[2]);
-    return GLOBALS::VOID_DATA_OBJECT;
   }
 
   /******************************************************************************
@@ -6181,7 +6076,7 @@ namespace heist {
     for(size_type i = 0, n = methods.size(); i < n; ++i)
       if(methods[i] == "next") {
         auto& env = d.obj->proto->defn_env;
-        d = extend_method_env_with_SELF_object(d.obj,d.obj->method_values[i].fcn);
+        d = d.obj->method_values[i].fcn.bind_self(d.obj);
         data_vector null_arg;
         return execute_application(d,null_arg,env);
       }

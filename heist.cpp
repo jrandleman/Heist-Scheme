@@ -1573,78 +1573,32 @@ namespace heist {
   bool is_definedp(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::definedp);}
 
 
-  namespace undefined_determination_helpers {
-    // (string-split <call> ".")
-    bool parse_object_property_chain_sequence(const string& call, str_vector& chain)noexcept{
-      chain.push_back("");
-      for(const auto& ch : call) {
-        if(ch == '.') chain.push_back("");
-        else          *chain.rbegin() += ch;
-      }
-      // verify no ".." found or ".<call>" or "<call>."
-      for(const auto& link : chain) if(link.empty()) return false;
-      return true;
+  // (string-split <call> ".")
+  bool parse_object_property_chain_sequence(const string& call, str_vector& chain)noexcept{
+    chain.push_back("");
+    for(const auto& ch : call) {
+      if(ch == '.') chain.push_back("");
+      else          *chain.rbegin() += ch;
     }
+    // verify no ".." found or ".<call>" or "<call>."
+    for(const auto& link : chain) if(link.empty()) return false;
+    return true;
+  }
 
-    // Returns whether found <sought_property> in <proto> or its inherited prototype
-    bool verify_in_prototype_and_inherited_properties(cls_type& proto, const string& sought_property, bool& is_member, obj_type& obj)noexcept{
-      bool verify_value_in_local_object(obj_type&,const string&,bool&)noexcept;
-      // Search the prototype
-      for(size_type i = 0, n = proto->member_names.size(); i < n; ++i)
-        if(proto->member_names[i] == sought_property) {
-          // cache accessed inherited member
-          obj->member_names.push_back(sought_property), obj->member_values.push_back(proto->member_values[i]);
-          is_member = true;
-          return true;
-        }
-      for(size_type i = 0, n = proto->method_names.size(); i < n; ++i)
-        if(proto->method_names[i] == sought_property) {
-          is_member = false;
-          return true;
-        }
-      // Search the inherited prototypes (& in turn their inherited prototypes as well)
-      return proto->super && obj->super && verify_value_in_local_object(obj->super,sought_property,is_member);
-    }
 
-    // Returns whether found <property> as a member/method in <obj> 
-    // If returns true, <property> value is in <obj> & <is_member> denotes whether a member or method
-    bool verify_value_in_local_object(obj_type& obj, const string& property, bool& is_member)noexcept{
-      auto& members = obj->member_names;
-      // Seek members
-      for(size_type i = 0, n = members.size(); i < n; ++i)
-        if(members[i] == property) {
-          is_member = true;
-          return true;
-        }
-      // Seek methods
-      auto& methods = obj->method_names;
-      for(size_type i = 0, n = methods.size(); i < n; ++i)
-        if(methods[i] == property) {
-          is_member = false;
-          return true;
-        }
-      // Seek proto & its inherited prototype
-      // => IF FOUND, ADD IT TO THE LOCAL OBJECT INSTANCE
-      return verify_in_prototype_and_inherited_properties(obj->proto,property,is_member,obj);
+  bool property_chain_is_undefined(str_vector&& chain, env_type& env)noexcept{
+    // get the first object instance
+    if(!env->has_variable(chain[0])) return true;
+    data value = lookup_variable_value(chain[0],env);
+    // get the call value
+    for(size_type i = 1, n = chain.size(); i < n; ++i) {
+      if(!value.is_type(types::obj)) return true;
+      bool found = false;
+      value = value.obj->get_property(chain[i], found);
+      if(!found) return true;
     }
-
-    // Returns the ultimate value of the call-chain
-    bool property_chain_is_undefined(str_vector&& chain, env_type& env)noexcept{
-      // get the first object instance
-      if(!env->has_variable(chain[0])) return true;
-      data value = lookup_variable_value(chain[0],env);
-      // get the call value
-      for(size_type i = 1, n = chain.size(); i < n; ++i) {
-        if(!value.is_type(types::obj)) return true;
-        // Search local members & methods, the proto, and the proto inheritances
-        bool is_member = false;
-        if(!verify_value_in_local_object(value.obj,chain[i],is_member)) return true;
-        // if found a method, confirm at the last item in the call chain
-        if(!is_member && i+1 < n) return true;
-      }
-      return false;
-    }
-  }; // End of namespace undefined_determination_helpers
+    return false;
+  }
 
 
   // NOTE: USE runtime-syntax? core-syntax? reader-syntax? TO CHECK MACROS !!!
@@ -1660,10 +1614,10 @@ namespace heist {
       };
     // Check if member-access chain is defined in the environment
     str_vector chain; // split the call chain into object series
-    if(!undefined_determination_helpers::parse_object_property_chain_sequence(exp[1].sym,chain)) 
+    if(!parse_object_property_chain_sequence(exp[1].sym,chain)) 
       return [](env_type&){return GLOBALS::FALSE_DATA_BOOLEAN;};
     return [chain=std::move(chain)](env_type& env)mutable{
-      return boolean(!undefined_determination_helpers::property_chain_is_undefined(std::move(chain),env));
+      return boolean(!property_chain_is_undefined(std::move(chain),env));
     };
   }
 
@@ -1673,49 +1627,25 @@ namespace heist {
 
   bool is_delete(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::delete_bang);}
 
-  namespace delete_variable_helpers {
-    void delete_property_in_local_object(obj_type& obj, const string& property)noexcept{
-      auto& members = obj->member_names;
-      // Seek members
-      for(size_type i = 0, n = members.size(); i < n; ++i)
-        if(members[i] == property) {
-          obj->member_names.erase(obj->member_names.begin()+i);
-          obj->member_values.erase(obj->member_values.begin()+i);
-          return;
-        }
-      // Seek methods
-      auto& methods = obj->method_names;
-      for(size_type i = 0, n = methods.size(); i < n; ++i)
-        if(methods[i] == property) {
-          obj->method_names.erase(obj->method_names.begin()+i);
-          obj->method_values.erase(obj->method_values.begin()+i);
-          return;
-        }
-      // Seek in inherited
-      if(obj->super) delete_property_in_local_object(obj->super, property);
-    }
 
-    // Returns the ultimate value of the call-chain
-    void delete_property_chain_if_exists(str_vector&& chain, env_type& env)noexcept{
-      // get the first object instance
-      if(!env->has_variable(chain[0])) return;
-      data value = lookup_variable_value(chain[0],env);
-      // get the call value
-      for(size_type i = 1, n = chain.size(); i < n; ++i) {
-        if(!value.is_type(types::obj)) return;
-        // Delete value if at last point in property chain
-        if(i+1 == n) {
-          delete_property_in_local_object(value.obj,chain[i]);
-          return;
-        }
-        // Search local members & methods, the proto, and the proto inheritances
-        bool is_member = false;
-        if(!undefined_determination_helpers::verify_value_in_local_object(value.obj,chain[i],is_member)) return;
-        // if found a method, confirm at the last item in the call chain
-        if(!is_member && i+1 < n) return;
-      }
+  void delete_property_chain_if_exists(str_vector&& chain, env_type& env)noexcept{
+    // get the first object instance
+    if(!env->has_variable(chain[0])) return;
+    data value = lookup_variable_value(chain[0],env);
+    // get the call value
+    for(size_type i = 1, n = chain.size(); i < n; ++i) {
+      if(!value.is_type(types::obj)) return;
+      // Delete value if at last point in property chain
+      if(i+1 == n) {
+        value.obj->delete_property(chain[i]);
+      // Search local members & methods, the proto, and the proto inheritances
+      } else {
+        bool found = false;
+        value = value.obj->get_property(chain[i], found);
+        if(!found) return;  
+      }      
     }
-  } // End of namesapce delete_variable_helpers
+  }
 
 
   exe_fcn_t analyze_delete(data_vector& exp) {
@@ -1731,10 +1661,10 @@ namespace heist {
       };
     // Check if member-access chain is defined in the environment
     str_vector chain; // split the call chain into object series
-    if(!undefined_determination_helpers::parse_object_property_chain_sequence(exp[1].sym,chain)) 
+    if(!parse_object_property_chain_sequence(exp[1].sym,chain)) 
       return [](env_type&){return GLOBALS::VOID_DATA_OBJECT;};
     return [chain=std::move(chain)](env_type& env)mutable{
-      delete_variable_helpers::delete_property_chain_if_exists(std::move(chain),env);
+      delete_property_chain_if_exists(std::move(chain),env);
       return GLOBALS::VOID_DATA_OBJECT;
     };
   }
@@ -4001,68 +3931,6 @@ namespace heist {
   }
 
 
-  // extend <procedure>'s env with <calling_obj> as "self"
-  data extend_method_env_with_SELF_object(obj_type& calling_obj, fcn_type& procedure)noexcept{
-    procedure.self = calling_obj;
-    return procedure;
-  }
-
-
-  // Returns whether found <sought_property> in <proto> or its inherited prototype
-  bool search_prototype_and_inherited_properties(cls_type& proto, const string& sought_property, bool& is_member, data& value) {
-    bool seek_call_value_in_local_object(data& value, const string& property, bool& is_member);
-    // Search the prototype
-    for(size_type i = 0, n = proto->member_names.size(); i < n; ++i)
-      if(proto->member_names[i] == sought_property) {
-        // cache accessed inherited member
-        value.obj->member_names.push_back(sought_property);
-        auto deep_copied_value = proto->member_values[i].copy();
-        value.obj->member_values.push_back(deep_copied_value);
-        value = deep_copied_value;
-        is_member = true;
-        return true;
-      }
-    for(size_type i = 0, n = proto->method_names.size(); i < n; ++i)
-      if(proto->method_names[i] == sought_property) {
-        // cache accessed inherited method
-        value.obj->method_names.push_back(sought_property);
-        value.obj->method_values.push_back(proto->method_values[i]);
-        value = extend_method_env_with_SELF_object(value.obj, proto->method_values[i].fcn);
-        is_member = false;
-        return true;
-      }
-
-    if(!value.obj->super) return false;
-    value = value.obj->super;
-    return proto->super && seek_call_value_in_local_object(value,sought_property,is_member);
-  }
-
-
-  // Returns whether found <property> as a member/method in <value.obj> 
-  // If returns true, <property> value is in <value> & <is_member> denotes whether a member or method
-  bool seek_call_value_in_local_object(data& value, const string& property, bool& is_member) {
-    auto& members = value.obj->member_names;
-    // Seek members
-    for(size_type i = 0, n = members.size(); i < n; ++i)
-      if(members[i] == property) {
-        value = value.obj->member_values[i];
-        is_member = true;
-        return true;
-      }
-    // Seek methods
-    auto& methods = value.obj->method_names;
-    for(size_type i = 0, n = methods.size(); i < n; ++i)
-      if(methods[i] == property) {
-        value = extend_method_env_with_SELF_object(value.obj, value.obj->method_values[i].fcn);
-        is_member = false;
-        return true;
-      }
-    // Seek proto & its inherited prototype
-    // => IF FOUND, ADD IT TO THE LOCAL OBJECT INSTANCE
-    return search_prototype_and_inherited_properties(value.obj->proto,property,is_member,value);
-  }
-
-
   // Returns the ultimate value of the call-chain
   data get_object_property_chain_value(string&& call, str_vector&& chain, env_type& env) {
     // get the first object instance
@@ -4072,15 +3940,19 @@ namespace heist {
       if(!value.is_type(types::obj))
         THROW_ERR('\''<<call<<" can't access property "<<chain[i]<<" in non-object "
           << PROFILE(value) << '!' << EXP_ERR(call));
-      // Search local members & methods, the proto, and the proto inheritances
-      bool is_member = false;
-      if(!seek_call_value_in_local_object(value,chain[i],is_member))
-        THROW_ERR('\''<<call<<' '<<chain[i]<<" isn't a property in object"
-          "\n     " << value << " of class name [ " << value.obj->proto->class_name << " ]!" << EXP_ERR(call));
-      // if found a method, confirm at the last item in the call chain
-      if(!is_member && i+1 < n)
-        THROW_ERR('\''<<call<<" can't access property "<<chain[i]
-          <<" of method "<<PROFILE(value)<<'!'<< EXP_ERR(call));
+      bool found = false;
+      // if NOT at the end of a call chain, call MUST refer to an object
+      if(i+1 < n) {
+        value = value.obj->get_property(chain[i], found);
+      // if at the end of a call chain, could be referencing a method, so save "self" for extension
+      } else {
+        obj_type self = value.obj;
+        value = value.obj->get_property(chain[i], found);
+        if(value.is_type(types::fcn)) value.fcn.bind_self(self);
+      }
+      if(!found)
+        THROW_ERR('\''<<call<<' '<<chain[i]<<" isn't a property in object\n     " 
+          << value << " of class name [ " << value.obj->proto->class_name << " ]!" << EXP_ERR(call));
     }
     return value;
   }

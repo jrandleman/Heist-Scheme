@@ -5709,9 +5709,18 @@ namespace heist {
       "\n     (heist:core:oo:set-property! <object> <property-name-symbol> <value>)";
     validate_oo_member_setter(args,"set-property!",format);
     // Search Prototype/Inherited Prototype
-    if(!set_new_object_property_value(args[0].obj->proto,args[0].obj,args[1].sym,args[2]))
+    if(!args[0].obj->set_property(args[1].sym,args[2]))
       THROW_ERR("'set-property! 2nd property-name arg "<<PROFILE(args[1])
         <<" isn't a property of "<<PROFILE(args[0])<<'!'<<format<<FCN_ERR("set-property!",args));
+    return GLOBALS::VOID_DATA_OBJECT;
+  }
+
+
+  // primitive "heist:core:oo:add-property!" procedure:
+  data primitive_HEIST_CORE_OO_ADD_PROPERTY_BANG(data_vector& args) {
+    validate_oo_member_setter(args,"add-property!",
+      "\n     (heist:core:oo:add-property! <object> <property-name-symbol> <procedure-value>)");
+    args[0].obj->define_property(args[1].sym,args[2]);
     return GLOBALS::VOID_DATA_OBJECT;
   }
 
@@ -5748,16 +5757,6 @@ namespace heist {
     return data(); // never triggered
   }
 
-
-  // primitive "heist:core:oo:add-property!" procedure:
-  data primitive_HEIST_CORE_OO_ADD_PROPERTY_BANG(data_vector& args) {
-    validate_oo_member_setter(args,"add-property!",
-      "\n     (heist:core:oo:add-property! <object> <property-name-symbol> <procedure-value>)");
-    if(args[2].is_type(types::fcn))
-      return prm_HEIST_CORE_OO_ADD_METHOD(args);
-    return prm_HEIST_CORE_OO_ADD_MEMBER(args);
-  }
-
   /******************************************************************************
   * DEFCLASS OO GENERAL OBJECT ANALYSIS PRIMITIVES
   ******************************************************************************/
@@ -5776,7 +5775,7 @@ namespace heist {
     populate_obj_with_new_dynamic_proto_properties(args[0].obj);
     map_object m;
     for(size_type i = 0, n = args[0].obj->method_names.size(); i < n; ++i)
-      m.val[args[0].obj->method_names[i]+char(types::sym)] = extend_method_env_with_SELF_object(args[0].obj,args[0].obj->method_values[i].fcn);
+      m.val[args[0].obj->method_names[i]+char(types::sym)] = args[0].obj->method_values[i].fcn.bind_self(args[0].obj);
     return make_map(std::move(m));
   }
 
@@ -5789,21 +5788,24 @@ namespace heist {
     data value = args[0];
     // get the call value
     for(size_type i = 1, n = args.size(); i < n; ++i) {
+      // verify operating on an object that's accessing a symbolic property name
       if(!value.is_type(types::obj))
         THROW_ERR("'.. can't access property "<<PROFILE(args[i])<<" in non-object "
           << PROFILE(value) << '!' << FCN_ERR("..",args));
       if(!args[i].is_type(types::sym))
         THROW_ERR("'.. can't access non-symbolic property "<<PROFILE(args[i])<<" in object "
           << value << '!' << FCN_ERR("..",args));
-      // Search local members & methods, the proto, and the proto inheritances
-      bool is_member = false;
-      if(!seek_call_value_in_local_object(value,args[i].sym,is_member))
-        THROW_ERR("'.. "<<args[i].sym<<" isn't a property in object "
-          << value << '!' << FCN_ERR("..",args));
-      // if found a method, confirm at the last item in the call chain
-      if(!is_member && i+1 < n)
-        THROW_ERR("'.. can't access property "<<args[i].sym
-          <<" of method "<<PROFILE(value)<<'!'<< FCN_ERR("..",args));
+      // check if object has the property
+      bool found = false;
+      if(i+1 < n) { // if NOT at the end of a call chain, call MUST refer to an object
+        value = value.obj->get_property(args[i].sym, found);
+      } else { // if at the end of a call chain, could be referencing a method, so save "self" for extension
+        obj_type self = value.obj;
+        value = value.obj->get_property(args[i].sym, found);
+        if(value.is_type(types::fcn)) value.fcn.bind_self(self); // extend method with self
+      }
+      if(!found)
+        THROW_ERR("'.. "<<args[i].sym<<" isn't a property in object "<<value<<'!'<<FCN_ERR("..",args));
     }
     return value;
   }

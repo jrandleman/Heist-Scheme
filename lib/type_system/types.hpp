@@ -86,7 +86,7 @@ namespace heist {
 #include "scheme_types/delay_object.hpp"                             // struct delay_object
 #include "scheme_types/map_object.hpp"                               // struct map_object
 #include "scheme_types/class_prototype.hpp"                          // struct class_prototype
-#include "scheme_types/object_type.hpp"                              // struct object_type
+#include "scheme_types/objects/object_type.hpp"                      // struct object_type
 #include "scheme_types/process.hpp"                                  // variable G, struct process_invariants_t
 
 /******************************************************************************
@@ -128,6 +128,7 @@ namespace heist {
 #include "scheme_types/functions/implementation.hpp"
 #include "scheme_types/environments/implementation.hpp"
 #include "scheme_types/data/implementation.hpp"
+#include "scheme_types/objects/implementation.hpp"
 
 /******************************************************************************
 * HEIST COMMAND-LINE FLAG SET
