@@ -11,16 +11,8 @@
  *
  * FLAG DESCRIPTIONS:
  *   0. "-std=c++17": [REQUIRED] compile using the C++17 standard
- *   1. "-O3": [RECOMMENDED FOR FASTEST EXECUTION] maximum optimization
- *             -> longest compile time, but fastest runtime
- *   2. "-Os": [RECOMMENDED FOR MOST BUILDS] optimizes for binary's size
- *             -> faster compile-time than -O3, smaller binary, & close runtime
- *
- * ON COMPILE TIME:
- *   0. Full -O3 compilation takes about 70s. Be patient. Compilation
- *      time has been traded for FAST runtime.
- *   1. -Os compilation takes about 40s. Generated binary is smaller than
- *      -O3's (as expected) & its runtime is nearly as fast
+ *   1. "-O3": [RECOMMENDED] maximum runtime optimization
+ *             -> Full -O3 compilation takes about 70s. Be patient.
  */
 
 /******************************************************************************
@@ -43,38 +35,6 @@
 // |    The evaluator, which determines the meaning of expressions in a    |
 // |    programming language, is just another program. - SICP vol2, p.360  |
 // +-----------------------------------------------------------------------+
-
-/***
- * NUMBER SYSTEM:
- *   - EXACT FRACTIONS/INTERGERS (UNBOUND)
- *   - INEXACT FLOATS  (LONG DOUBLE)
- *   - COMPLEX NUMBERS (PAIRS OF EITHER ABOVE EXACTNESS)
- *
- * CHARS: USE ASCII ENCODING
- *
- * R4RS EXTENSIONS:
- *   - OBJECT SYSTEM           ; defclass
- *   - COROUTINES              ; define-coroutine
- *   - OPT-IN DYNAMIC SCOPING  ; call/ce & inline FUNCTION APPLICATIONS
- *   - OPT-IN CONTINUATIONS    ; "scm->cps" SPECIAL FORM W/ call/cc
- *   - FIRST-CLASS HASH-MAPS   ; "hmap" PRIMITIVE & "$(" LITERAL PREFIX
- *   - NATIVE EVEN STREAMS     ; LISTS WITH DELAYED CAR & CDR
- *   - GENERIC ALGORITHMS      ; POLYMORPHIC ALGORITHM PRIMITIVES
- *   - SRFI PRIMITIVES         ; LIST, VECTOR, STRING, ETC.
- *   - EVAL                    ; EVALUATE SYMBOLIC DATA AS CODE
- *   - UNHYGIENIC MACROS       ; MATCH SYMBOL-LIST PATTERNS TO TEMPLATES
- *     > SYNTAX-RULES
- *     > DEFINE-SYNTAX
- *     > LET-SYNTAX
- *     > LETREC-SYNTAX
- *     > CORE-SYNTAX
- *   - READER MACROS           ; EXPAND NON-S-EXPRESSIONS (like "'"->"quote")
- *   - STRING I/O              ; READ/WRITE COMPATIBILITY W/ STRINGS AS PORTS
- *   - RECURSIVE DEPTH CONTROL ; SET THE INTERPRETER'S MAX RECURSION DEPTH
- *   - VECTOR-LITERAL          ; LONG-HAND VARIANT OF THE #( PREFIX
- *   - HMAP-LITERAL            ; LONG-HAND VARIANT OF THE $( PREFIX
- *   - AND MORE!
- */
 
 /***
  * RESERVED WORDS -VS- SPECIAL FORMS -VS- PRIMITIVES:
@@ -131,13 +91,13 @@
 #include "lib/primitives/primitives.hpp"
 #include "lib/core/input_parser.hpp"
 #include "lib/core/evaluation/evaluator.hpp"
+#include "lib/core/repl.hpp"
+
+/******************************************************************************
+* GLOBAL ENVIRONMENT SETUP
+******************************************************************************/
 
 namespace heist {
-
-  /******************************************************************************
-  * GLOBAL ENVIRONMENT SETUP
-  ******************************************************************************/
-
   void set_default_global_environment() {
     G.GLOBAL_ENVIRONMENT_POINTER = make_env();
     G.GLOBAL_ENVIRONMENT_POINTER = extend_environment(
@@ -166,11 +126,13 @@ namespace heist {
     G.GLOBAL_ENVIRONMENT_POINTER->define_variable("*argc*", num_type(GLOBALS::ARGV.size()));
     evaluate_primitives_written_in_heist_scheme();
   }
+}
 
-  /******************************************************************************
-  * GLOBAL PORT REGISTRY CLEANUP
-  ******************************************************************************/
+/******************************************************************************
+* GLOBAL PORT REGISTRY CLEANUP
+******************************************************************************/
 
+namespace heist {
   void close_port_registry()noexcept{
     for(size_type i = 2, n = GLOBALS::PORT_REGISTRY.size(); i < n; ++i)
       if(GLOBALS::PORT_REGISTRY[i] && 
@@ -180,178 +142,11 @@ namespace heist {
         GLOBALS::PORT_REGISTRY[i] = nullptr;
       }
   }
+}
 
-  /******************************************************************************
-  * REPL READER
-  ******************************************************************************/
-
-  void announce_input(FILE* outs)noexcept{fputs(G.REPL_PROMPT.c_str(), outs);}
-  void indent_input(FILE* outs)  noexcept{fputs(G.REPL_TAB.c_str(), outs);}
-
-
-  // Read & parse user expressions
-  data_vector read_user_input(FILE* outs, FILE* ins, const bool& in_repl){
-    string input, tmp_buffer;
-    data_vector abstract_syntax_tree;
-    int ch;
-    for(;;) {
-      // Read input
-      fflush(outs);
-      tmp_buffer.clear();
-      while((ch = fgetc(ins)) != '\n' && ch != EOF) tmp_buffer += ch;
-      // Handle EOF Signal
-      if(ch == EOF && ins == stdin) {
-        clearerr(stdin);
-        if(in_repl) return data_vector(1,chr_type(EOF)); // called by REPL
-        return data_vector();                            // called by <read>
-      }
-      // Try parsing the expression, & read more input if unsuccessful 
-      try {
-        // Return AST if successfully parsed an expression
-        parse_input_exp(input+'\n'+tmp_buffer,abstract_syntax_tree);
-        return abstract_syntax_tree;
-      } catch(const READER_ERROR& read_error) {
-        // Continue parsing the current expression/string if incomplete
-        if(is_non_repl_reader_error(read_error)) {
-          input += '\n'+tmp_buffer;
-          if(read_error == READER_ERROR::incomplete_expression) 
-            indent_input(outs);
-        // Alert user if read an invalid expression, then reprompt for input
-        } else {
-          if(!input.empty()) alert_reader_error(outs,read_error,input+'\n'+tmp_buffer);
-          else               alert_reader_error(outs,read_error,tmp_buffer);
-          fputc('\n', outs);
-          if(in_repl) announce_input(outs);
-          abstract_syntax_tree.clear(), input.clear();
-        }
-      // Alert user if detected unparsable input (-:- ANOMALY -:-)
-      } catch(const size_type& read_error_index) {
-        if(!input.empty()) alert_reader_error(outs,read_error_index,input+'\n'+tmp_buffer);
-        else               alert_reader_error(outs,read_error_index,tmp_buffer);
-        fputc('\n', outs);
-        if(in_repl) announce_input(outs);
-        abstract_syntax_tree.clear(), input.clear();
-      }
-    }
-    return abstract_syntax_tree;
-  }
-} // End of namespace heist
-
-/******************************************************************************
-* REPL DRIVER LOOP HELPER FUNCTIONS
-******************************************************************************/
 
 #ifndef HEIST_CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
 #ifndef HEIST_INTERPRETING_COMPILED_AST // @ONLY-INTERPRETER
-
-// Account for whether REPL should print a newline
-void print_repl_newline(const bool& printed_data)noexcept{ // after printing data
-  if(printed_data || (!heist::G.LAST_PRINTED_NEWLINE_TO_STDOUT && heist::G.LAST_PRINTED_TO_STDOUT))
-    putchar('\n');
-  heist::G.LAST_PRINTED_NEWLINE_TO_STDOUT = heist::G.LAST_PRINTED_TO_STDOUT = false;
-}
-
-
-void print_repl_newline()noexcept{ // after printing an error
-  putchar('\n'), heist::G.LAST_PRINTED_NEWLINE_TO_STDOUT=heist::G.LAST_PRINTED_TO_STDOUT=false;
-}
-
-
-void account_for_whether_printed_data(const heist::data& val,bool& printed_data)noexcept{
-  printed_data = !val.is_type(heist::types::dne);
-}
-
-
-// Print output object
-void user_print(FILE* outs, heist::data& object) {
-  fputs(object.pprint().c_str(), outs);
-  fflush(outs);
-}
-
-
-// Determine if REPL received the EOF signal to terminate interpretation
-bool repl_detected_EOF_signal(const heist::data_vector& AST)noexcept{
-  return AST.size() == 1 && AST[0].is_type(heist::types::chr) && AST[0].chr == EOF;
-}
-
-
-// Wrap each entry in "scm->cps" (w/ "id" bound as the topmost cont.) 
-//   if "-cps" cmd-line flag passed
-void cpsify_inputs(heist::data_vector& AST) {
-  const heist::size_type n = AST.size();
-  heist::data_vector CPS_AST(n);
-  for(heist::size_type i = 0; i < n; ++i) {
-    CPS_AST[i] = heist::data_vector(2);
-    CPS_AST[i].exp[0] = heist::data_vector(2);
-    CPS_AST[i].exp[0].exp[0] = heist::symconst::scm_cps;
-    CPS_AST[i].exp[0].exp[1] = AST[i];
-    CPS_AST[i].exp[1] = "id";
-  }
-  AST = CPS_AST;
-}
-
-
-// Returns (begin (define #it <d>) #it)
-heist::data repl_tag_expression(const heist::data& d)noexcept{
-  heist::data tag_exp = heist::data_vector(3);
-  tag_exp.exp[0] = heist::symconst::begin;
-  tag_exp.exp[1] = heist::data_vector(3);
-  tag_exp.exp[1].exp[0] = heist::symconst::define;
-  tag_exp.exp[1].exp[1] = "#it";
-  tag_exp.exp[1].exp[2] = d;
-  tag_exp.exp[2] = "#it";
-  return tag_exp;
-}
-
-/******************************************************************************
-* REPL DRIVER LOOP
-******************************************************************************/
-
-int launch_repl() {
-  bool printed_data = true;
-  print_repl_newline(printed_data);
-  for(;;) {
-    heist::announce_input(stdout);
-    auto AST = heist::read_user_input(stdout,stdin); // AST = Abstract Syntax Tree
-    // Handle EOF Signal
-    if(repl_detected_EOF_signal(AST)) {
-      puts("\nAdios!"); 
-      return heist::GLOBALS::HEIST_EXIT_CODE;
-    }
-    // Convert input to CPS as needed
-    if(heist::G.USING_CPS_CMD_LINE_FLAG) cpsify_inputs(AST);
-    // Eval each datum given
-    for(const auto& input : AST) {
-      try {
-        auto value = heist::scm_eval(repl_tag_expression(input),heist::G.GLOBAL_ENVIRONMENT_POINTER);
-        account_for_whether_printed_data(value,printed_data);
-        user_print(stdout, value);
-        print_repl_newline(printed_data);
-      } catch(const heist::SCM_EXCEPT& eval_throw) {
-        if(eval_throw == heist::SCM_EXCEPT::EXIT) { 
-          if(!heist::GLOBALS::HEIST_EXIT_CODE) {
-            puts("Adios!"); 
-          } else {
-            PRINT_ERR("HEIST SCHEME REPL TERMINATION: EXIT FAILURE (" << heist::GLOBALS::HEIST_EXIT_CODE << ")!");
-            puts("");
-          }
-          return heist::GLOBALS::HEIST_EXIT_CODE; 
-        }
-        if(eval_throw == heist::SCM_EXCEPT::JUMP)
-          PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
-            << PROFILE(heist::GLOBALS::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
-        print_repl_newline();
-      } catch(...) {
-        PRINT_ERR("Uncaught C++ Exception Detected! -:- BUG ALERT -:-"
-             "\n     Triggered By: " << input << 
-             "\n  => Please send your code to jrandleman@scu.edu to fix"
-             "\n     the interpreter's bug!"
-             "\n  => Terminating Heist Scheme Interpretation.");
-        return 1;
-      }
-    }
-  }
-}
 
 /******************************************************************************
 * COMMAND LINE ARGUMENT VALIDATION
@@ -588,7 +383,7 @@ int main(int argc, char* argv[]) {
     return compile_script(argv, compile_pos, compile_as);
   // Run the REPL
   puts("Heist Scheme Version 7.0\nEnter '(help)' for Help, '(exit)' to Exit");
-  int result = launch_repl();
+  int result = heist::launch_repl();
   heist::close_port_registry();
   return result;
 }
