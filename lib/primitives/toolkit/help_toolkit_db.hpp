@@ -8495,6 +8495,10 @@ Returns a new, formatted string!
      %wa = write anything
      %pa = pretty-print anything
      ----------------------------------------------------------------------
+     %... = display unpacked sequence
+     %w... = write unpacked sequence
+     %p... = pretty-print unpacked sequence
+     ----------------------------------------------------------------------
      %n = number
      %+n = number (show sign if positive too)
      %,n = number with commas (only for bigints)
@@ -8542,6 +8546,10 @@ Display the formatted string!
      %a = display anything
      %wa = write anything
      %pa = pretty-print anything
+     ----------------------------------------------------------------------
+     %... = display unpacked sequence
+     %w... = write unpacked sequence
+     %p... = pretty-print unpacked sequence
      ----------------------------------------------------------------------
      %n = number
      %+n = number (show sign if positive too)
@@ -8591,6 +8599,10 @@ Write the formatted string!
      %wa = write anything
      %pa = pretty-print anything
      ----------------------------------------------------------------------
+     %... = display unpacked sequence
+     %w... = write unpacked sequence
+     %p... = pretty-print unpacked sequence
+     ----------------------------------------------------------------------
      %n = number
      %+n = number (show sign if positive too)
      %,n = number with commas (only for bigints)
@@ -8639,6 +8651,10 @@ Pretty-print the formatted string!
      %a = display anything
      %wa = write anything
      %pa = pretty-print anything
+     ----------------------------------------------------------------------
+     %... = display unpacked sequence
+     %w... = write unpacked sequence
+     %p... = pretty-print unpacked sequence
      ----------------------------------------------------------------------
      %n = number
      %+n = number (show sign if positive too)

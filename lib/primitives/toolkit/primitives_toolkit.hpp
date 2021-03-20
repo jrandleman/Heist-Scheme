@@ -3448,7 +3448,7 @@ namespace heist {
 
   // SPRINTF TOKEN TYPE
   struct sprintf_token_t { 
-    enum class token_t {a, wa, pa, dollar, s, ws, c, wc, b, wb, n};
+    enum class token_t {a, wa, pa, ellipsis, wellipsis, pellipsis, dollar, s, ws, c, wc, b, wb, n};
     token_t token = token_t::a;
     // invariants for more string detail
     int padding = 0; // negative = right, positive = left [ UP TO 3 DIGITS ]
@@ -3480,6 +3480,10 @@ namespace heist {
       ++i;
     }
     return val;
+  }
+
+  bool is_ellipsis_token(const string& input, size_type i)noexcept{
+    return i+2 < input.size() && input[i] == '.' && input[i+1] == '.' && input[i+2] == '.';
   }
 
   bool is_string_token(const string& input, size_type i)noexcept{
@@ -3591,6 +3595,8 @@ namespace heist {
         // parse formatting
         if(next_ch == 'a') {
           tokens.push_back(sprintf_token_t::token_t::a), input = input.substr(i+2), i = 0;
+        } else if(is_ellipsis_token(input,i+1)) {
+          tokens.push_back(sprintf_token_t::token_t::ellipsis), input = input.substr(i+4), i = 0;
         } else if(next_ch == '$') {
           tokens.push_back(sprintf_token_t::token_t::dollar), input = input.substr(i+2), i = 0;
         } else if(is_string_token(input,i)) {
@@ -3604,13 +3610,22 @@ namespace heist {
         } else if(next_ch == 'n' || next_ch == 'N') {
           tokens.push_back(sprintf_token_t::token_t::n), input = input.substr(i+2), i = 0;
         } else if(next_ch == 'p') {
-          if(i+2 == input.size() || input[i+2] != 'a') throw_invalid_sprintf_token("%p");
-          tokens.push_back(sprintf_token_t::token_t::pa), input = input.substr(i+3), i = 0;
+          if(i+2 == input.size()) throw_invalid_sprintf_token("%p");
+          if(input[i+2] == 'a') {
+            tokens.push_back(sprintf_token_t::token_t::pa), input = input.substr(i+3), i = 0;
+          } else if(is_ellipsis_token(input,i+2)) {
+            tokens.push_back(sprintf_token_t::token_t::pellipsis), input = input.substr(i+5), i = 0;
+          } else {
+            char bad_token[4] = {'%','p',input[i+2],'\0'};
+            throw_invalid_sprintf_token(bad_token);
+          }
         } else if(next_ch == 'w') {
           if(i+2 == input.size()) throw_invalid_sprintf_token("%w");
           auto write_ch = input[i+2];
           if(write_ch == 'a') {
             tokens.push_back(sprintf_token_t::token_t::wa), input = input.substr(i+3), i = 0;
+          } else if(is_ellipsis_token(input,i+2)) {
+            tokens.push_back(sprintf_token_t::token_t::wellipsis), input = input.substr(i+5), i = 0;
           } else if(write_ch == 's') {
             tokens.push_back(sprintf_token_t::token_t::ws), input = input.substr(i+3), i = 0;
           } else if(write_ch == 'c') {
@@ -3698,10 +3713,51 @@ namespace heist {
     split_str.push_back(input);
   }
 
-
   #undef throw_invalid_sprintf_token
   #undef throw_invalid_sprintf_precision
 
+
+  void unpack_sequence_into_FORMATTED_string(string& formatted, data& d, sprintf_token_t::token_t token, 
+                                             const char* format, const char* name, data_vector& args) {
+    // Get the stringification function for sequence elements
+    string(data::*stringify)()const = nullptr;
+    switch(token) {
+      case sprintf_token_t::token_t::ellipsis: stringify = &data::display; break;
+      case sprintf_token_t::token_t::wellipsis: stringify = &data::write; break;
+      default: stringify = &data::pprint; break; // sprintf_token_t::token_t::pellipsis
+    }
+    // Unpack vectors
+    if(d.is_type(types::vec)) {
+      for(size_type i = 0, n = d.vec->size(); i < n; ++i) {
+        formatted += (d.vec->operator[](i).*stringify)();
+        if(i+1 < n) formatted += ' ';
+      }
+    // Unpack strings
+    } else if(d.is_type(types::str)) {
+      for(size_type i = 0, n = d.str->size(); i < n; ++i) {
+        formatted += (data(d.str->operator[](i)).*stringify)();
+        if(i+1 < n) formatted += ' ';
+      }
+    // Unpack nil (nothing printed)
+    } else if(data_is_the_empty_list(d)) {
+      return;
+    // Unpack proper lists
+    } else if(d.is_type(types::par) && primitive_list_is_acyclic_and_null_terminated(d) == list_status::ok) {
+      auto iter = d;
+      while(iter.is_type(types::par)) {
+        formatted += (iter.par->first.*stringify)();
+        if(iter.par->second.is_type(types::par))
+          formatted += ' ';
+        iter = iter.par->second;
+      }
+    } else {
+      THROW_ERR('\'' << name << " arg " << PROFILE(d) << " isn't a sequence"
+        " (required by format token)!" << format << FCN_ERR(name,args));
+    }
+  }
+
+
+  // IMPROPER FORMAT ARG ERROR HANDLING
   #define THROW_BAD_FORMAT_ARG(type_name)\
     THROW_ERR('\''<<name<<" arg "<<PROFILE(args[i])<<" isn't a "\
               type_name " (required by format token)!"\
@@ -3726,6 +3782,11 @@ namespace heist {
         case sprintf_token_t::token_t::a:  formatted += args[i].display(); break;
         case sprintf_token_t::token_t::wa: formatted += args[i].write();   break;
         case sprintf_token_t::token_t::pa: formatted += args[i].pprint();  break;
+        case sprintf_token_t::token_t::ellipsis: // intentional fallthrough
+        case sprintf_token_t::token_t::wellipsis: // intentional fallthrough
+        case sprintf_token_t::token_t::pellipsis:
+          unpack_sequence_into_FORMATTED_string(formatted,args[i],tokens[i-1].token,format,name,args); 
+          break;
         case sprintf_token_t::token_t::dollar:  
           if(!data_is_a_valid_dollar_value(args[i])) THROW_BAD_FORMAT_ARG("real finite numeric");
           formatted += generate_dollar_value_string(args[i].num); break;

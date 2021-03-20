@@ -4445,6 +4445,10 @@ namespace heist {
     "\n        %wa = write anything"\
     "\n        %pa = pretty-print anything"\
     "\n        ----------------------------------------------------------------------"\
+    "\n        %... = display unpacked sequence"\
+    "\n        %w... = write unpacked sequence"\
+    "\n        %p... = pretty-print unpacked sequence"\
+    "\n        ----------------------------------------------------------------------"\
     "\n        %n = number"\
     "\n        %+n = number (show sign if positive too)"\
     "\n        %,n = number with commas (only for bigints)"\
