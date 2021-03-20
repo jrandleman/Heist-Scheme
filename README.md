@@ -1266,7 +1266,7 @@ Other primitives of this nature include:<br>
 
 #### Analysis-Time Advantanges:
 * Interpreter's [`eval`](#eval--apply) seperates expression analysis (declaration) & execution (invocation):
-  - [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax) macros, bound to an environment, dynamically expand at **run-time**
+  - [`define-syntax`](#Define-Syntax-Let-Syntax-Letrec-Syntax) macros, bound to any environment, dynamically expand at **run-time**
     * _Hence **run-time** macros in a [`lambda`](#lambda) body are re-expanded **upon every invocation!**_
   - [`core-syntax`](#core-syntax) macros, only bound to the **global environment**, expand at **analysis-time**
     * _Hence **analysis-time** macros in a [`lambda`](#lambda) body expand **in the [`lambda`](#lambda) declaration only once!**_
