@@ -1947,81 +1947,27 @@ namespace heist {
   }
 
   /******************************************************************************
-  * TRACING PROCEDURE CALLS
-  ******************************************************************************/
-
-  // Prints Debugging Call Trace (see <set-dynamic-call-trace!> primitive)
-  void output_debug_call_trace(const fcn_type& procedure,const data_vector& arguments,
-                               const bool tail_call,    const bool callceing)noexcept{
-    // Generate the call signature & Application-Affecting Call States
-    auto call_signature = procedure_call_signature(procedure.printable_procedure_name(),arguments);
-    const char* in_tail_call = tail_call ? "#t" : "#f";
-    const char* using_callce = callceing ? "#t" : "#f";
-    // Generate colors for truth-values (Green=#t, Red=#f) of Call States
-    const auto tail_c_color = tail_call ? AFMT_32 : AFMT_31;
-    const auto callce_color = callceing ? AFMT_32 : AFMT_31;
-    // Output Trace Data
-    fprintf(G.CURRENT_OUTPUT_PORT,
-            "%s%s#<CALL-TRACE>%s Tail-Call: %s%s%s, Call/ce: %s%s%s %s]=>%s %s%s\n",
-            afmt(AFMT_01), afmt(AFMT_35), afmt(AFMT_01), 
-            afmt(tail_c_color), in_tail_call, afmt(AFMT_01), 
-            afmt(callce_color), using_callce, afmt(AFMT_01), 
-            afmt(AFMT_35), afmt(AFMT_01), call_signature.c_str(), afmt(AFMT_0));
-    fflush(G.CURRENT_OUTPUT_PORT);
-  }
-
-
-  // Prints Call Trace (see <trace> primitive)
-  void print_call_trace_depth_indentation(const fcn_type& procedure,const bool tail_call=false)noexcept{
-    size_type recursive_depth = 0; // default to 0 (level for all prims)
-    if(procedure.is_compound()) {
-      recursive_depth = procedure.recursive_depth();
-      if(recursive_depth && tail_call) --recursive_depth;
-    }
-    for(size_type i = 0; i <= recursive_depth; ++i) {
-      if(i & 1) fputc(' ',G.CURRENT_OUTPUT_PORT);
-      else      fputc('|',G.CURRENT_OUTPUT_PORT);
-    }
-    fflush(G.CURRENT_OUTPUT_PORT);
-  }
-
-
-  // Print the current recursive depth as indentation, and the current invocation signature
-  void output_call_trace_invocation(const fcn_type& procedure, const data_vector& arguments,const bool tail_call=false)noexcept{
-    auto call_signature = procedure_call_signature(procedure.printable_procedure_name(),arguments);
-    print_call_trace_depth_indentation(procedure,tail_call);
-    fprintf(G.CURRENT_OUTPUT_PORT, "%s\n", call_signature.c_str());
-    fflush(G.CURRENT_OUTPUT_PORT);
-  }
-
-
-  // Print the current recursive depth as indentation, and the result string
-  void output_call_trace_result(const fcn_type& procedure, const data& result)noexcept{
-    print_call_trace_depth_indentation(procedure);
-    fprintf(G.CURRENT_OUTPUT_PORT, "%s\n", result.noexcept_write().c_str());
-    fflush(G.CURRENT_OUTPUT_PORT);
-  }
-
-
-  bool tracing_procedure(const string& name)noexcept{
-    return !G.TRACED_FUNCTION_NAME.empty() && G.TRACED_FUNCTION_NAME == name;
-  }
-
-  /******************************************************************************
   * APPLICATION EXECUTION
   ******************************************************************************/
 
-  // -- STACK TRACE REGISTRATION
-  void register_call_in_stack_trace(fcn_type& procedure,data_vector& arguments)noexcept{
-    if(!G.TRACE_LIMIT) return;
-    if(!G.TRACE_ARGS) 
-      GLOBALS::STACK_TRACE.push_back(procedure.printable_procedure_name());
-    else
-      GLOBALS::STACK_TRACE.push_back(procedure_call_signature(procedure.printable_procedure_name(),arguments));
+  // Get: 
+  //   0. data execute_application(data& procedure, data_vector& arguments, env_type& env, bool tail_call, bool applying_in_cps);
+  //   1. data execute_application(data&& procedure, data_vector& arguments, env_type& env, bool tail_call, bool applying_in_cps);
+  #include "lib/core_evaluator/applicator.hpp"
+
+  /******************************************************************************
+  * OPERATOR APPLICATION EXTRACTION
+  ******************************************************************************/
+
+  data get_operator(const data_vector& exp)noexcept{
+    return exp[0];
   }
 
-  // -- OPERATOR EVALUATION
-  // generates <data proc.is_type(types::fcn)>: macro avoids extra copies
+  data_vector get_operands(const data_vector& exp)noexcept{
+    return data_vector(exp.begin()+1, exp.end());
+  }
+
+  // generates <data proc>: macro avoids extra copies
   #define evaluate_operator(OPERATOR_PROC,OPERATOR_ENV)\
     auto proc = OPERATOR_PROC(OPERATOR_ENV);\
     if(proc.is_type(types::obj) && primitive_data_is_a_functor(proc))\
@@ -2029,109 +1975,8 @@ namespace heist {
     else if(proc.is_type(types::cls))\
       proc = proc.cls->user_ctor;
 
-
-  // -- APPLYING PRIMITIVE PROCEDURES
-  data apply_primitive_procedure(data& proc,data_vector& args,env_type& env,const bool tail_call){
-    // Output tracing information as needed
-    auto tracing_proc = tracing_procedure(proc.fcn.name);
-    if(tracing_proc) output_call_trace_invocation(proc.fcn,args);
-    // Provide the environment to primitives applying user-defined procedures
-    if(primitive_requires_environment(proc.fcn.prm)) args.push_back(env);
-    if(proc.fcn.prm == primitive_APPLY) args.push_back(boolean(tail_call));
-    // Extend partially applied args as needed
-    if(!proc.fcn.param_instances.empty()) {
-      if(args.empty())
-        THROW_ERR('\''<<proc.fcn.printable_procedure_name()<<" partial procedure didn't receive any arguments!"
-          << "\n     Partial Bindings: " << procedure_call_signature(proc.fcn.printable_procedure_name(),proc.fcn.param_instances[0]));
-      args.insert(args.begin(),proc.fcn.param_instances[0].begin(),proc.fcn.param_instances[0].end());
-    }
-    auto result = proc.fcn.prm(args);
-    // clear call from stack
-    if(!GLOBALS::STACK_TRACE.empty()) GLOBALS::STACK_TRACE.pop_back();
-    if(!tracing_proc) return result;
-    // Output result's trace as needed
-    output_call_trace_result(proc.fcn,result);
-    return result;
-  }
-
-
-  // -- APPLY
-  // Applies the given procedure, & then reapplies iteratively if at a tail call
-  data apply_compound_procedure(exe_fcn_t& proc, env_type& extended_env) {
-    auto result = proc(extended_env);
-    size_type count = 1;
-  tail_call_recur:
-    if(result.is_type(types::exp) && is_tagged_list(result.exp,symconst::tail_call)) { // if tail call
-      result = result.exp[1].fcn.bodies[0](result.exp[1].fcn.env);
-      ++count;
-      goto tail_call_recur;
-    }
-    // clear calls from stack trace (kept tail calls in trace for debuggability)
-    if(count >= GLOBALS::STACK_TRACE.size())
-      GLOBALS::STACK_TRACE.clear();
-    else
-      GLOBALS::STACK_TRACE.erase(GLOBALS::STACK_TRACE.end()-count,GLOBALS::STACK_TRACE.end());
-    return result;
-  }
-
-  // Analogue to "apply", except no need to analyze the body of compound 
-  //   procedures (already done). Hence only calls the execution procedure 
-  //   for the proc's body w/ the extended environment
-  data execute_application(data& procedure,data_vector& arguments,env_type& env,const bool tail_call,const bool applying_in_cps){
-    if(!procedure.is_type(types::fcn))
-      THROW_ERR("Invalid application of non-procedure "<<PROFILE(procedure)<<'!'
-        <<FCN_ERR(procedure.noexcept_write(),arguments));
-    // save call to stack trace output
-    register_call_in_stack_trace(procedure.fcn,arguments);
-    // output debugger call trace as needed
-    if(G.TRACING_ALL_FUNCTION_CALLS)
-      output_debug_call_trace(procedure.fcn,arguments,tail_call,procedure.fcn.is_using_dynamic_scope());
-    // execute primitive procedure directly
-    if(procedure.fcn.is_primitive())
-      return apply_primitive_procedure(procedure,arguments,env,tail_call);
-    // compound proc -- create the procedure body's extended environment frame
-    exe_fcn_t fcn_body;
-    auto extended_env = procedure.fcn.get_extended_environment(arguments,fcn_body,applying_in_cps);
-    // splice in current env for dynamic scope as needed
-    if(procedure.fcn.is_using_dynamic_scope()) {
-      extended_env->parent = env;
-    }
-    // add the 'self' object iff applying a method
-    if(procedure.fcn.self) {
-      extended_env->define_variable("self",procedure.fcn.self);
-    }
-    // confirm max recursive depth hasn't been exceeded
-    auto& recursive_depth = procedure.fcn.recursive_depth();
-    if(recursive_depth > G.MAX_RECURSION_DEPTH) {
-      recursive_depth = 0;
-      THROW_ERR("Maximum recursion depth of "<<G.MAX_RECURSION_DEPTH<<" exceeded!"
-        << FCN_ERR(procedure.fcn.printable_procedure_name(), arguments));
-    }
-    // output tracing information as needed
-    auto tracing_proc = tracing_procedure(procedure.fcn.name);
-    if(tracing_proc) output_call_trace_invocation(procedure.fcn,arguments,tail_call);
-    // store application data & return such back up to the last call if in a tail call
-    if(tail_call) {
-      data_vector tail_call_signature(2); // {tail-call-tag, proc-body, extended-env}
-      tail_call_signature[0] = symconst::tail_call;
-      tail_call_signature[1] = fcn_type(extended_env,fcn_body);
-      return tail_call_signature;
-    }
-    ++recursive_depth;
-    auto result = apply_compound_procedure(fcn_body,extended_env);
-    --recursive_depth;
-    // output result's trace as needed
-    if(tracing_proc) output_call_trace_result(procedure.fcn,result);
-    return result;
-  }
-
-  // R-value overload
-  data execute_application(data&& procedure,data_vector& arguments,env_type& env,const bool tail_call,const bool applying_in_cps){
-    return execute_application(procedure,arguments,env,tail_call,applying_in_cps);
-  }
-
   /******************************************************************************
-  * CPS-BLOCK APPLICATION HELPER FUNCTIONS
+  * CPS APPLICATION HELPER FUNCTIONS
   ******************************************************************************/
 
   bool data_is_continuation_parameter(const data& d)noexcept{
@@ -2152,19 +1997,7 @@ namespace heist {
   }
 
   /******************************************************************************
-  * OPERATOR APPLICATION EXTRACTION
-  ******************************************************************************/
-
-  data get_operator(const data_vector& exp)noexcept{
-    return exp[0];
-  }
-
-  data_vector get_operands(const data_vector& exp)noexcept{
-    return data_vector(exp.begin()+1, exp.end());
-  }
-
-  /******************************************************************************
-  * CPS-BLOCK APPLICATION
+  * REPRESENTING CPS APPLICATION
   ******************************************************************************/
 
   // Convert the <application> expression to be in CPS
@@ -2203,7 +2036,7 @@ namespace heist {
   }
 
 
-  // Application of CPS-block defined procedure in a CPS block
+  // Application of CPS defined procedure in a CPS block
   exe_fcn_t analyze_CPS_block_application_of_CPS_proc(data_vector& exp,const bool tail_call){
     auto op_proc  = scm_analyze(get_operator(exp),false,true);
     auto arg_exps = get_operands(exp);
@@ -2244,7 +2077,7 @@ namespace heist {
   }
 
 
-  // Application of a macro OR non-CPS-block defined procedure entity in a CPS block
+  // Application of a macro OR non-CPS defined procedure entity in a CPS block
   exe_fcn_t analyze_CPS_block_application_of_non_CPS_proc(data_vector& exp,const bool tail_call){
     auto arg_exps = get_operands(exp);
     // Save name of invoking entity (iff a symbol) to check for a possible macro
@@ -2282,7 +2115,7 @@ namespace heist {
   }
 
   /******************************************************************************
-  * APPLICATION
+  * REPRESENTING APPLICATION
   ******************************************************************************/
 
   // Analyzes the operator & operands, then returns an exec proc passing 
@@ -2336,14 +2169,11 @@ namespace heist {
     };
   }
 
+  #undef evaluate_operator
+
   /******************************************************************************
   * ANALYSIS & EVALUATION
   ******************************************************************************/
-
-  // -- EVAL 
-  data scm_eval(data&& datum, env_type& env) { // evaluate expression environment
-    return scm_analyze(std::move(datum))(env);
-  }
 
   // -- ANALYZE (SYNTAX)
   exe_fcn_t scm_analyze(data&& datum,const bool tail_call,const bool cps_block) { // analyze expression
@@ -2377,7 +2207,10 @@ namespace heist {
     return analyze_application(datum.exp,tail_call,cps_block);
   }
 
-  #undef evaluate_operator
+  // -- EVAL 
+  data scm_eval(data&& datum, env_type& env) { // evaluate expression environment
+    return scm_analyze(std::move(datum))(env);
+  }
 
   /******************************************************************************
   * GLOBAL ENVIRONMENT SETUP
@@ -2427,7 +2260,7 @@ namespace heist {
   }
 
   /******************************************************************************
-  * REPL DRIVER LOOP
+  * REPL READER
   ******************************************************************************/
 
   void announce_input(FILE* outs)noexcept{fputs(G.REPL_PROMPT.c_str(), outs);}
@@ -2482,19 +2315,25 @@ namespace heist {
   }
 } // End of namespace heist
 
+/******************************************************************************
+* REPL DRIVER LOOP HELPER FUNCTIONS
+******************************************************************************/
 
-// Account for whether REPL should print a newline
 #ifndef HEIST_CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
 #ifndef HEIST_INTERPRETING_COMPILED_AST // @ONLY-INTERPRETER
+
+// Account for whether REPL should print a newline
 void print_repl_newline(const bool& printed_data)noexcept{ // after printing data
   if(printed_data || (!heist::G.LAST_PRINTED_NEWLINE_TO_STDOUT && heist::G.LAST_PRINTED_TO_STDOUT))
     putchar('\n');
   heist::G.LAST_PRINTED_NEWLINE_TO_STDOUT = heist::G.LAST_PRINTED_TO_STDOUT = false;
 }
 
+
 void print_repl_newline()noexcept{ // after printing an error
   putchar('\n'), heist::G.LAST_PRINTED_NEWLINE_TO_STDOUT=heist::G.LAST_PRINTED_TO_STDOUT=false;
 }
+
 
 void account_for_whether_printed_data(const heist::data& val,bool& printed_data)noexcept{
   printed_data = !val.is_type(heist::types::dne);
@@ -2542,6 +2381,9 @@ heist::data repl_tag_expression(const heist::data& d)noexcept{
   return tag_exp;
 }
 
+/******************************************************************************
+* REPL DRIVER LOOP
+******************************************************************************/
 
 int driver_loop() {
   bool printed_data = true;
