@@ -37,7 +37,7 @@ namespace heist {
 
 #include "type_dependancies/symbolic_constants.hpp" // namespace symconst
 #include "type_dependancies/garbage_collector.hpp"  // struct tgc_ptr
-#include "scheme_types/numerics/complex.hpp"        // struct scm_numeric::Snum
+#include "scheme_types/numerics/complex.hpp"        // class scm_numeric::Snum
 
 /******************************************************************************
 * HEIST-SCHEME-OBJECT INTERNAL TYPE ALIASES
