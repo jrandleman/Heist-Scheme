@@ -11412,8 +11412,6 @@ Header file enabling C++17 interop with Heist Scheme!
      0. eval   // evaluate heist code string, same as _heist literal (check out the header!)
      1. apply  // apply args to Heist callable (procedure or functor)
      2. define // define C++17 Heist primitive _OR_ a global Heist variable
-  *) Check out https://github.com/jrandleman/Caper-Scheme for a more lightweight
-     version of Heist (minimized Scheme implementation) optimized for C++17 embedding!
 )",
 
 
