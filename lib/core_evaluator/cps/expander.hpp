@@ -85,7 +85,7 @@ bool is_HEIST_cpp_derived_special_form(const string& app)noexcept{
 }
 
 /******************************************************************************
-* CONTINUATION-PASSING-STYLE DEFINE EXPANSION
+* CONTINUATION-PASSING-STYLE DEFINE EXPANSION HELPER(S)
 ******************************************************************************/
 
 // Generates the procedure to set <var> to <val> after binding <var> as a lambda arg
@@ -128,7 +128,7 @@ data_vector convert_proc_defn_to_lambda_defn(const data_vector& defn_exp)noexcep
 }
 
 /******************************************************************************
-* CONTINUATION-PASSING-STYLE DEFINE EXPANSION
+* CONTINUATION-PASSING-STYLE BEGIN EXPANSION HELPER(S)
 ******************************************************************************/
 
 // Generates a CPS definition in the middle of a BEGIN or LAMBDA BODY sequence, w/ <rest_exp>
@@ -233,7 +233,7 @@ data_vector generate_begin_mid_seq_defn(const data_vector& defn_exp,const data& 
 }
 
 /******************************************************************************
-* CONTINUATION-PASSING-STYLE LAMBDA EXPANSION
+* CONTINUATION-PASSING-STYLE LAMBDA EXPANSION HELPER(S)
 ******************************************************************************/
 
 void get_cps_lambda_body(const data_vector& lambda_exp, data_vector& lambda_cps){
@@ -280,7 +280,7 @@ void generate_cps_lambda_form(const data& code, data_vector& lambda) {
 }
 
 /******************************************************************************
-* CONTINUATION-PASSING-STYLE FN EXPANSION
+* CONTINUATION-PASSING-STYLE FN EXPANSION HELPER(S)
 ******************************************************************************/
 
 data_vector fn_unwrap_inner_lambda(const data_vector& lambda_exp)noexcept{
@@ -288,7 +288,7 @@ data_vector fn_unwrap_inner_lambda(const data_vector& lambda_exp)noexcept{
 }
 
 /******************************************************************************
-* CONTINUATION-PASSING-STYLE IF EXPANSION
+* CONTINUATION-PASSING-STYLE IF EXPANSION HELPER(S)
 ******************************************************************************/
 
 data_vector get_cps_IF_consequent(const data& code, const data& continuation){
@@ -324,7 +324,7 @@ data_vector get_cps_IF_VOID_alternative(const data& continuation){
 }
 
 /******************************************************************************
-* CONTINUATION-PASSING-STYLE DEFCLASS EXPANSION
+* CONTINUATION-PASSING-STYLE DEFCLASS EXPANSION HELPER(S)
 ******************************************************************************/
 
 bool cps_is_non_atomc_defclass_property(const data& d, const string& ctor_name)noexcept{

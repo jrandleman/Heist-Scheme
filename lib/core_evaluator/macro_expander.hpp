@@ -1,5 +1,5 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- macro_expander.hpp
-// => Contains the 3 procedures to expand macros with the C++ Heist Scheme Interpreter
+// => Contains 3 procedures to expand macros with the C++ Heist Scheme Interpreter
 
 // PROVIDED PROCEDURES:
 //   0. bool expand_macro_if_in_env(const string& label,data_vector args,env_type& env,data_vector& expanded)  // expand into <expanded> & return success
