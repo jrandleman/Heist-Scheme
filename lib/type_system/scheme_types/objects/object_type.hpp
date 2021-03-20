@@ -13,10 +13,10 @@ namespace heist {
     void define_property(const string& name, data value) noexcept;
     bool delete_property(const string& name) noexcept; // returns if found
     bool set_property(const string& name, data value) noexcept; // returns if found
-    data get_property(const string& name, bool& found) noexcept; // NOTE: DOES _NOT_ EXTEND METHODS WITH "self"  => USE "function_object::bind_self" FOR SUCH !!!
-    bool has_property(const string& name) noexcept; // returns if found
-    bool has_member(const string& name) noexcept; // returns if found
-    bool has_method(const string& name) noexcept; // returns if found
+    data get_property(const string& name, bool& found); // NOTE: DOES _NOT_ EXTEND METHODS WITH "self"  => USE "function_object::bind_self" FOR SUCH !!!
+    bool has_property(const string& name); // returns if found
+    bool has_member(const string& name); // returns if found
+    bool has_method(const string& name); // returns if found
   };
 }
 

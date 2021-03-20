@@ -1401,7 +1401,7 @@ namespace heist {
   }
 
 
-  bool property_chain_is_defined(str_vector&& chain, env_type& env)noexcept{
+  bool property_chain_is_defined(str_vector&& chain, env_type& env) {
     // get the first object instance
     if(!env->has_variable(chain[0])) return false;
     data value = lookup_variable_value(chain[0],env);
@@ -1443,7 +1443,7 @@ namespace heist {
   bool is_delete(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::delete_bang);}
 
 
-  void delete_property_chain_if_exists(str_vector&& chain, env_type& env)noexcept{
+  void delete_property_chain_if_exists(str_vector&& chain, env_type& env) {
     // get the first object instance
     if(!env->has_variable(chain[0])) return;
     data value = lookup_variable_value(chain[0],env);

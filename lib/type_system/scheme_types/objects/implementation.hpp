@@ -29,20 +29,20 @@ namespace heist {
 
 
   // NOTE: DOES _NOT_ EXTEND METHODS WITH "self" => USE "function_object::bind_self" FOR SUCH !!!
-  data object_type::get_property(const string& name, bool& found) noexcept {
+  data object_type::get_property(const string& name, bool& found) {
     return get_object_property(*this, name, found);
   }
 
 
   // Returns if found
-  bool object_type::has_property(const string& name) noexcept {
+  bool object_type::has_property(const string& name) {
     bool ignore_this_parameter = false;
     return object_has_property_name(*this, name, ignore_this_parameter);
   }
 
 
   // Returns if found
-  bool object_type::has_member(const string& name) noexcept {
+  bool object_type::has_member(const string& name) {
     bool is_member = false;
     bool found_property = object_has_property_name(*this, name, is_member);
     return found_property && is_member;
@@ -50,7 +50,7 @@ namespace heist {
 
 
   // Returns if found
-  bool object_type::has_method(const string& name) noexcept {
+  bool object_type::has_method(const string& name) {
     bool is_member = false;
     bool found_property = object_has_property_name(*this, name, is_member);
     return found_property && !is_member;

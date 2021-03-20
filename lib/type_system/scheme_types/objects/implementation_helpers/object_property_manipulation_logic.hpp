@@ -118,8 +118,9 @@ namespace heist {
   ******************************************************************************/
 
   // Returns whether found <property_name> in <proto> or its inherited prototype
-  bool prototype_or_super_has_property_name(object_type& obj, const string& property_name, bool& is_member)noexcept{
-    bool object_has_property_name(object_type&,const string&,bool&)noexcept;
+  // NOTE: THIS PROCEDURE MAY THROW DUE TO THE ".copy()" METHOD
+  bool prototype_or_super_has_property_name(object_type& obj, const string& property_name, bool& is_member) {
+    bool object_has_property_name(object_type&,const string&,bool&);
     // Search the prototype
     for(size_type i = 0, n = obj.proto->member_names.size(); i < n; ++i)
       if(obj.proto->member_names[i] == property_name) {
@@ -142,7 +143,7 @@ namespace heist {
 
   // Returns whether found <property_name> as a member/method in <obj> 
   // If returns true, <property_name> value is in <obj> & <is_member> denotes whether a member or method
-  bool object_has_property_name(object_type& obj, const string& property_name, bool& is_member)noexcept{
+  bool object_has_property_name(object_type& obj, const string& property_name, bool& is_member) {
     // Seek members
     for(size_type i = 0, n = obj.member_names.size(); i < n; ++i)
       if(obj.member_names[i] == property_name) {
@@ -165,8 +166,9 @@ namespace heist {
   ******************************************************************************/
 
   // Returns <property_name>'s associated  value if found as a member/method in <obj.proto> 
-  data get_prototype_or_super_property(object_type& obj, const string& property_name, bool& found)noexcept{
-    data get_object_property(object_type&,const string&,bool&)noexcept;
+  // NOTE: THIS PROCEDURE MAY THROW DUE TO THE ".copy()" METHOD
+  data get_prototype_or_super_property(object_type& obj, const string& property_name, bool& found) {
+    data get_object_property(object_type&,const string&,bool&);
     // Search the prototype
     for(size_type i = 0, n = obj.proto->member_names.size(); i < n; ++i)
       if(obj.proto->member_names[i] == property_name) {
@@ -192,7 +194,7 @@ namespace heist {
 
 
   // Returns <property_name>'s associated  value if found as a member/method in <obj> 
-  data get_object_property(object_type& obj, const string& property_name, bool& found)noexcept{
+  data get_object_property(object_type& obj, const string& property_name, bool& found) {
     // Seek members
     for(size_type i = 0, n = obj.member_names.size(); i < n; ++i)
       if(obj.member_names[i] == property_name) {
