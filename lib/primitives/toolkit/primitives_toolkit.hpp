@@ -4683,12 +4683,13 @@ namespace heist {
         << "\" couldn't be written to!\n     ("<<name<<" <filename-string>)"
         << FCN_ERR(name,args));
     fprintf(outs, "// Heist-Scheme Compiled Source from \"%s\""
-                  "\n#include \"%s%clib%ctype_system%ctypes.hpp\""
+                  "\n#include \"%s%clib%ccore%ctype_system%ctypes.hpp\""
                   "\n#define HEIST_INTERPRETING_COMPILED_AST"
                   "\n%s"
                   "\n#include \"%s%cheist.cpp\"\n", 
                   args[0].str->c_str(), 
                   HEIST_DIRECTORY_FILE_PATH,char(std::filesystem::path::preferred_separator),
+                  char(std::filesystem::path::preferred_separator),
                   char(std::filesystem::path::preferred_separator),
                   char(std::filesystem::path::preferred_separator),
                   ast_generator.c_str(), 

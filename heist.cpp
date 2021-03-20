@@ -127,7 +127,7 @@
  *         * SEE "primitives.hpp" FOR THE ALL PRIMITIVE IMPLEMENTATIONS
  */
 
-#include "lib/type_system/types.hpp"
+#include "lib/core/type_system/types.hpp"
 #include "lib/primitives/primitives.hpp"
 #include "lib/core/input_parser.hpp"
 #include "lib/core/evaluation/evaluator.hpp"
