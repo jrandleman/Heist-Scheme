@@ -78,8 +78,7 @@ struct macro_expansion_node {
   data_vector values;                              // Leaf node value(s)
   bool is_variadic = false;                     // Determines whether value corresponds to ...
   bool is_leaf()const{return children.empty();} // Determines valid elt: true ? value : children
-  macro_expansion_node(const string& name, const bool& variadic_node = false) : id_name(name), 
-                                                                                  is_variadic(variadic_node) {}
+  macro_expansion_node(const string& name, const bool& variadic_node = false) : id_name(name), is_variadic(variadic_node) {}
 };
 
 // - Topmost node (ie node of in <MACRO_EXPANSION_TREE> is a symbol w/ children)
