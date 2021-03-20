@@ -630,7 +630,7 @@ Other primitives of this nature include:<br>
 (display a) ; ERROR => UNBOUND a
 
 (defclass C () (val 12))
-(define c (new-C))
+(define c (C))
 (define c.val2 13) ; dynamically add <val2> member to <c>
 (set! c.val 14)    ; update <c.val> value
 (display c.val)    ; 14
