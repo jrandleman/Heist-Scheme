@@ -169,6 +169,7 @@ data execute_application(data& procedure,data_vector& arguments,env_type& env,co
     tail_call_signature[1] = fcn_type(extended_env,fcn_body);
     return tail_call_signature;
   }
+  // execute compound procedure
   ++recursive_depth;
   auto result = apply_compound_procedure(fcn_body,extended_env);
   --recursive_depth;
