@@ -665,7 +665,7 @@ Other primitives of this nature include:<br>
 
 #### Use: ___Conditional Branching!___
 
-#### Form: `(if <condition> <consequent> <alternative>)`
+#### Form: `(if <condition> <consequent> <optional-alternative>)`
 * _Note: Use [`begin`](#begin) for multiple `<consequent>` and/or `<alternative>` expressions_
 
 
