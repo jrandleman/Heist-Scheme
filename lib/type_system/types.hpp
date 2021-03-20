@@ -82,12 +82,12 @@ namespace heist {
 #include "scheme_types/syntax_rules_objects/syntax_rules_object.hpp" // struct syntax_rules_object
 #include "scheme_types/functions/function_object.hpp"                // struct function_object
 #include "scheme_types/data/data.hpp"                                // enum class types, struct data
-#include "scheme_types/environments/environment.hpp"                 // function create_frame, struct environment
+#include "scheme_types/environments/environment.hpp"                 // fcn create_frame, struct environment
 #include "scheme_types/delay_object.hpp"                             // struct delay_object
 #include "scheme_types/map_object.hpp"                               // struct map_object
 #include "scheme_types/class_prototype.hpp"                          // struct class_prototype
 #include "scheme_types/objects/object_type.hpp"                      // struct object_type
-#include "scheme_types/process.hpp"                                  // variable G, struct process_invariants_t
+#include "scheme_types/process.hpp"                                  // var G, struct process_invariants_t, fcn symbol_is_dot_operator, fcn data_is_dot_operator
 
 /******************************************************************************
 * HEIST-SCHEME-OBJECT GC "FACTORY FUNCTIONS"

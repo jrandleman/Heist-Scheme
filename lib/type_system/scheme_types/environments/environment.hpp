@@ -37,7 +37,7 @@ namespace heist {
     // Environmental Traversal & Access
     frame_val lookup_variable_value(const frame_var& var, bool& found)const noexcept;
     bool set_variable_value(const frame_var& var, frame_val&& val)noexcept;
-    void define_variable(const frame_var& var, frame_val&& val)noexcept;
+    void define_variable(const frame_var& var, frame_val val)noexcept;
     void define_macro(const frame_mac& mac)noexcept;
     string getenv(const frame_var& var, bool& found)const;
     bool has_macro(const string& label)const noexcept;

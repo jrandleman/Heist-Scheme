@@ -67,16 +67,6 @@ namespace heist {
   * FN PARAMETER MATCHING
   ******************************************************************************/
 
-  bool symbol_is_dot_operator(const string& sym)noexcept{
-    return sym == symconst::dot || sym == G.dot;
-  }
-
-
-  bool data_is_dot_operator(const data& d)noexcept{
-    return d.is_type(types::sym) && symbol_is_dot_operator(d.sym);
-  }
-
-
   namespace fn_param_matching {
     string get_possible_signature(const data_vector& params)noexcept{
       string buff;

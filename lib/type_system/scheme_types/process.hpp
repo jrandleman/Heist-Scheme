@@ -1,6 +1,7 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- process.hpp
-// => Contains "process_invariants_t" data structure & "G" current-process global object 
-//    for the C++ Heist Scheme Interpreter
+// => Contains "process_invariants_t" data structure, "G" current-process global object,
+//    and "symbol_is_dot_operator"/"data_is_dot_operator" helper functions for the C++ 
+//    Heist Scheme Interpreter
 
 #ifndef HEIST_PROCESS_HPP_
 #define HEIST_PROCESS_HPP_
@@ -94,6 +95,18 @@ namespace heist {
   ******************************************************************************/
 
   process_invariants_t G;
+
+  /******************************************************************************
+  * DOT ANALYSIS HELPER FUNCTIONS
+  ******************************************************************************/
+
+  bool symbol_is_dot_operator(const string& sym)noexcept{
+    return sym == symconst::dot || sym == G.dot;
+  }
+
+  bool data_is_dot_operator(const data& d)noexcept{
+    return d.is_type(types::sym) && symbol_is_dot_operator(d.sym);
+  }
 }
 
 #endif

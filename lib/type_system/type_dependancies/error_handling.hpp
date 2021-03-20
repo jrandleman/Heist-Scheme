@@ -6,9 +6,6 @@
 
 namespace heist {
 
-  // Helper procedure provided by heist.cpp
-  string procedure_call_signature(const string& name,const data_vector& vals)noexcept;
-
   /******************************************************************************
   * ANSI ESCAPE SEQUENCE FORMATS & MACRO
   ******************************************************************************/
@@ -31,6 +28,16 @@ namespace heist {
   };
 
   #define afmt(ansi_esc) heist::ansi_formats[heist::G.USING_ANSI_ESCAPE_SEQUENCES*ansi_esc]
+
+  /******************************************************************************
+  * CALL SIGNATURE GENERATION
+  ******************************************************************************/
+
+  // Generate a call signature from a procedure name & its given values
+  string procedure_call_signature(const string& name,const data_vector& vals)noexcept{
+    if(vals.empty()) return '(' + name + ')';
+    return '(' + name + ' ' + data(vals).noexcept_write().substr(1);
+  }
 
   /******************************************************************************
   * STACK TRACE STRINGIFICATION HELPER FUNCTION

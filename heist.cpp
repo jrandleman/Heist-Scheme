@@ -135,7 +135,6 @@ namespace heist {
 
   data scm_eval(data&& datum, env_type& env);
   exe_fcn_t scm_analyze(data&& datum,const bool tail_call,const bool cps_block);
-  string generate_unique_cps_hash()noexcept;
 
   /******************************************************************************
   * AST-ANALYSIS HELPER FUNCTIONS
@@ -146,240 +145,15 @@ namespace heist {
     return !exp.empty() && exp[0].is_type(types::sym) && exp[0].sym == tag;
   }
 
-
-  // Generate a call signature from a procedure name & its given values
-  string procedure_call_signature(const string& name,const data_vector& vals)noexcept{
-    if(vals.empty()) return '(' + name + ')';
-    return '(' + name + ' ' + stringify_expr<&data::noexcept_write>(vals).substr(1);
-  }
-
-
-  // Generate an improper procedure call error message
-  string improper_call_alert(string name, const data_vector& vals, const str_vector& vars)noexcept{
-    if(name.empty()) name = "#<procedure>"; // anonymous lambda
-    // Generate the call signature
-    auto call_signature = procedure_call_signature(name,vals);
-    // Generate the definition signature
-    string defn_signature('(' + name);
-    for(const auto& var : vars) defn_signature += ' ' + var;
-    // Return the comparison between the called & defined procedure signatures
-    return '\n' + string(afmt(AFMT_35)) + "  >> Invalid Syntax:" + 
-                  string(afmt(AFMT_01)) + ' ' + call_signature + 
-           '\n' + string(afmt(AFMT_35)) + "  >> Defined Syntax:" + 
-                  string(afmt(AFMT_01)) + ' ' + defn_signature + ')';
-  }
-
   bool symbol_is_property_chain_access(const string& sym)noexcept{
     return sym.find('.') != string::npos && sym != "." && sym != "..";
   }
 
-  /******************************************************************************
-  * AST DATA VALIDATION HELPER FUNCTIONS
-  ******************************************************************************/
-
-  // Throw an error if 'vars' contains duplicate or non-symbol arg names, 
-  //   or improper (.) use
-  void confirm_valid_procedure_parameters(const data_vector& vars,const data_vector& exp){
-    const size_type n = vars.size();
-    // variadic (.) arg must have a label afterwards
-    if(n != 0 && symbol_is_dot_operator(vars[n-1].sym))
-      THROW_ERR("Expected one item after variadic dot ("<<G.dot<<")! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
-    // Search the vars list of the fcn's args for improper (.) use & duplicate arg names
-    for(size_type i = 0; i < n; ++i) {
-      if(!vars[i].is_type(types::sym)) // args must be symbols
-        THROW_ERR("Non-Symbolic parameter [ "<<vars[i]<<" ] is an invalid arg name! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
-      if(i+2 != n && symbol_is_dot_operator(vars[i].sym)) { // variadic (.) must come just prior the last arg
-        if(i+3 == n && string_begins_with(vars[i+2].sym, symconst::continuation))
-          continue; // allow continuations after variadic
-        THROW_ERR("More than one item found after variadic dot ("<<G.dot<<")! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
-      }
-      for(size_type j = i+1; j < n; ++j)
-        if(vars[i].sym == vars[j].sym) // duplicate arg name detected
-          THROW_ERR("Duplicate arg name \""<<vars[i]<<"\" supplied! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
-    }
-  }
-
-
-  // Confirm valid argument layout for variable assignment
-  void confirm_valid_assignment(const data_vector& exp) {
-    if(exp.size() != 3)
-      THROW_ERR("'set! didn't receive 2 arguments: (set! <var> <val>)" << EXP_ERR(exp));
-    if(!exp[1].is_type(types::sym) || exp[1].sym.empty())
-      THROW_ERR("'set! 1st arg " << PROFILE(exp[1]) << " can't be reassigned"
-        " (only symbols)!\n     (set! <var> <val>)" << EXP_ERR(exp));
-    if(*exp[1].sym.rbegin() == '.')
-      THROW_ERR("'set! 1st arg is invalid object property-chain-access [ " << exp[1] 
-          << " ] ends with a '.':\n     (set! <var> <val>)" << EXP_ERR(exp));
-  }
-
-
-  // Confirm valid argument layout for variable & procedure definitions
-  void confirm_valid_definition(const data_vector& exp) {
-    if(exp.size() < 3)
-      THROW_ERR("'define didn't receive enough arguments!\n     (define <var> <val>)"
-        "\n     (define (<procedure-name> <args>) <body>)" << EXP_ERR(exp));
-    if(!exp[1].is_type(types::sym) && !exp[1].is_type(types::exp))
-      THROW_ERR("'define 1st arg [ " << exp[1] << " ] of type \"" 
-        << exp[1].type_name() << "\" can't be defined (only symbols):"
-        "\n     (define <var> <val>)"
-        "\n     (define (<procedure-name> <args>) <body>)" << EXP_ERR(exp));
-    if(exp[1].is_type(types::exp) && 
-        (exp[1].exp.empty() || !exp[1].exp[0].is_type(types::sym)))
-      THROW_ERR("'define procedure name [ " 
-        << (exp[1].exp.empty() ? data("undefined") : exp[1].exp[0]) << " ] of type \"" 
-        << (exp[1].exp.empty() ? "undefined" : exp[1].exp[0].type_name())
-        << "\" is invalid (must be a symbol)!"
-        "\n     (define <var> <val>)"
-        "\n     (define (<procedure-name> <args>) <body>)" << EXP_ERR(exp));
-    if(exp[1].is_type(types::sym) && exp.size() > 3)
-      THROW_ERR("'define can only define 1 value to a variable (received " << exp.size()-2 << " vals)!"
-        "\n     (define <var> <val>)"
-        "\n     (define (<procedure-name> <args>) <body>)" << EXP_ERR(exp));
-  }
-
-
-  // Confirm valid argument layout for a lambda
-  void confirm_valid_lambda(const data_vector& exp) {
-    if(exp.size() < 3)
-      THROW_ERR("'lambda special form didn't receive enough args: (lambda (<args>) <body>)"
-        << EXP_ERR(exp));
-    if(!exp[1].is_type(types::exp) && !data_is_the_empty_list(exp[1]))
-      THROW_ERR("'lambda 1st arg [ " << exp[1] << " ] of type \"" 
-        << exp[1].type_name() << "\" wasn't a proper parameter list!"
-           "\n     (lambda (<args>) <body>)"
-        << EXP_ERR(exp));
-  }
-
-  /******************************************************************************
-  * ENVIRONMENTAL EXTENSION -- FRAME VARS/VALS EVALUATION HELPER FUNCTIONS
-  ******************************************************************************/
-
-  // Transforms the appropriate 'vals' into a list (for the given variadic arg)
-  //   => ((lambda (. l) l) <arg1> <arg2> ... <argN>)      [ BECOMES -> ]
-  //      ((lambda (l) l) (list <arg1> <arg2> ... <argN>))
-  void transform_variadic_vals_into_a_list(str_vector& vars,data_vector& vals,const size_type continuation_offset)noexcept{
-    const size_type va_arg_idx = vars.size()-2-continuation_offset;
-    // Transform the arg names & vals as needed
-    vars[va_arg_idx] = vars[va_arg_idx+1]; // shift up variadic arg name (erasing '.')
-    vars.erase(vars.begin()+va_arg_idx+1); // erase the now-duplicate var-arg name
-    data list_of_vals;
-    if(vals.empty())
-      list_of_vals = symconst::emptylist;
-    else
-      list_of_vals = primitive_LIST_to_CONS_constructor(vals.begin()+va_arg_idx, vals.end()-continuation_offset);
-    vals.erase(vals.begin()+va_arg_idx, vals.end()-continuation_offset); // erase individual arg instances
-    vals.insert(vals.end()-continuation_offset, list_of_vals); // reinsert args as a list
-  }
-
-
-  // Confirm given no args & NOT applying a void-arg fcn & NOT a variadic-arg fcn
-  bool nullary_invocation_of_non_nullary_procedure(const str_vector& vars,const data_vector& vals)noexcept{
-    return vals.empty() && !vars.empty() && !(vars.size()==2 && symbol_is_dot_operator(vars[0]));
-  }
-
-
-  // Confirm passing an arg to an argless procedure
-  bool non_nullary_invocation_of_nullary_procedure(const str_vector& vars,const data_vector& vals)noexcept{
-    return !vals.empty() && vars.empty();
-  }
-
-
-  // Confirm <vars> is a cps-variadic procedure
-  bool is_cps_variadic_arg_declaration(const str_vector& vars)noexcept{
-    return vars.size() > 2 && string_begins_with(vars[vars.size()-1],symconst::continuation) 
-                           && symbol_is_dot_operator(vars[vars.size()-3]);
-  }
-
-
-  // Determine whether proc takes variadic args
-  bool variadic_arg_declaration(const str_vector& vars, const bool is_cps_variadic)noexcept{
-    return (vars.size() > 1 && symbol_is_dot_operator(vars[vars.size()-2])) || is_cps_variadic;
-  }
-
-
-  // Determine whether enough vals for the variadic arg decl
-  bool invalid_variadic_arg_declaration(const str_vector& vars, const data_vector& vals, const bool is_cps_variadic)noexcept{
-    return vals.size() < vars.size() - 2 - is_cps_variadic; // - again if at a continuation
-  }
-
-
-  // Wrapper composing the above helpers
-  bool confirm_valid_environment_extension(str_vector& vars, data_vector& vals, const string& name){
-    if(nullary_invocation_of_non_nullary_procedure(vars,vals))
-      THROW_ERR("Too few arguments supplied! -- EXTEND_ENVIRONMENT" 
-        << improper_call_alert(name,vals,vars));
-    if(non_nullary_invocation_of_nullary_procedure(vars,vals))
-      THROW_ERR("Too many arguments supplied! -- EXTEND_ENVIRONMENT" 
-        << improper_call_alert(name,vals,vars));
-    // Transform variadic arg's corresponding values into a list (if present)
-    const bool is_cps_variadic = is_cps_variadic_arg_declaration(vars);
-    if(variadic_arg_declaration(vars,is_cps_variadic)) {
-      if(invalid_variadic_arg_declaration(vars,vals,is_cps_variadic))
-        THROW_ERR("Too few arguments supplied! -- EXTEND_ENVIRONMENT" 
-        << improper_call_alert(name,vals,vars));
-      transform_variadic_vals_into_a_list(vars,vals,is_cps_variadic);
-    }
-    return vars.size() == vals.size();
-  }
-
-  /******************************************************************************
-  * ENVIRONMENT DATA STRUCTURE IMPLEMENTATION
-  ******************************************************************************/
-
-  // -- ENVIRONMENTAL EXTENSION
-  env_type extend_environment(str_vector&& vars, data_vector& vals, env_type& base_env, const string& name = ""){
-    // If valid extension, return environment w/ a new frame prepended
-    if(confirm_valid_environment_extension(vars,vals,name)) {
-      env_type extended_env(make_env());
-      extended_env->frame = create_frame(vars,vals);
-      extended_env->parent = base_env;
-      return extended_env;
-    // Invalid extension
-    } else if(vars.size() < vals.size()) {
-      THROW_ERR("Too many arguments supplied! -- EXTEND_ENVIRONMENT" 
-        << improper_call_alert(name,vals,vars));
-    } else {
-      THROW_ERR("Too few arguments supplied! -- EXTEND_ENVIRONMENT" 
-        << improper_call_alert(name,vals,vars));
-    }
-  }
-
-  // R-value overload is _ONLY_ to launch the global environment
-  env_type extend_environment(str_vector&& vars, data_vector&& vals, env_type& base_env){
-    return extend_environment(std::move(vars),vals,base_env,"");
-  }
-
-
-  // -- VARIABLE LOOKUP
   data lookup_variable_value(const string& var, env_type& env) {
     bool found = false;
     auto val = env->lookup_variable_value(var, found);
     if(found) return val;
     THROW_ERR("Variable " << var << " is not bound!");
-  }
-
-
-  // -- VARIABLE SETTING: (set! <var> <val>)
-  void set_variable_value(const string& var, data&& val, env_type& env) {
-    if(!env->set_variable_value(var, std::move(val))) {
-      data_vector invalid_set_call(3);
-      invalid_set_call[0] = symconst::set;
-      invalid_set_call[1] = var;
-      invalid_set_call[2] = val;
-      THROW_ERR("Variable "<<var<<" is not bound!"<<EXP_ERR(invalid_set_call));
-    }
-  }
-
-
-  // -- VARIABLE DEFINITION: (define <var> <val>)
-  void define_variable(const string& var, data val, env_type& env)noexcept{
-    env->define_variable(var,std::move(val));
-  }
-
-
-  // -- MACRO DEFINITION: (define-syntax <label> <syntax-transformer>)
-  void define_syntax_extension(const frame_mac& mac, env_type& env)noexcept{
-    env->define_macro(mac);
   }
 
   /******************************************************************************
@@ -489,6 +263,18 @@ namespace heist {
   string assignment_variable(data_vector& exp) noexcept{return exp[1].sym;}
   data assignment_value(data_vector& exp)      noexcept{return exp[2];}
 
+  // Confirm valid argument layout for variable assignment
+  void confirm_valid_assignment(const data_vector& exp) {
+    if(exp.size() != 3)
+      THROW_ERR("'set! didn't receive 2 arguments: (set! <var> <val>)" << EXP_ERR(exp));
+    if(!exp[1].is_type(types::sym) || exp[1].sym.empty())
+      THROW_ERR("'set! 1st arg " << PROFILE(exp[1]) << " can't be reassigned"
+        " (only symbols)!\n     (set! <var> <val>)" << EXP_ERR(exp));
+    if(*exp[1].sym.rbegin() == '.')
+      THROW_ERR("'set! 1st arg is invalid object property-chain-access [ " << exp[1] 
+          << " ] ends with a '.':\n     (set! <var> <val>)" << EXP_ERR(exp));
+  }
+
   // Analyzes value being assigned, & returns an execution procedure 
   //   to install it as the variable in the designated env
   exe_fcn_t analyze_assignment(data_vector& exp,const bool cps_block=false) { 
@@ -496,8 +282,9 @@ namespace heist {
     if(!symbol_is_property_chain_access(exp[1].sym)) {
       auto var = assignment_variable(exp);
       auto value_proc = scm_analyze(assignment_value(exp),false,cps_block);
-      return [var=std::move(var),value_proc=std::move(value_proc)](env_type& env){
-        set_variable_value(var,value_proc(env),env);
+      return [var=std::move(var),value_proc=std::move(value_proc),exp=std::move(exp)](env_type& env){
+        if(!env->set_variable_value(var, value_proc(env)))
+          THROW_ERR("Variable "<<var<<" is not bound!"<<EXP_ERR(exp));
         return GLOBALS::VOID_DATA_OBJECT; // return is void
       };
     }
@@ -517,6 +304,30 @@ namespace heist {
 
   bool is_definition(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::define);}
   data make_lambda(data_vector parameters, data_vector body)noexcept; // Lambda ctor
+
+  // Confirm valid argument layout for variable & procedure definitions
+  void confirm_valid_definition(const data_vector& exp) {
+    if(exp.size() < 3)
+      THROW_ERR("'define didn't receive enough arguments!\n     (define <var> <val>)"
+        "\n     (define (<procedure-name> <args>) <body>)" << EXP_ERR(exp));
+    if(!exp[1].is_type(types::sym) && !exp[1].is_type(types::exp))
+      THROW_ERR("'define 1st arg [ " << exp[1] << " ] of type \"" 
+        << exp[1].type_name() << "\" can't be defined (only symbols):"
+        "\n     (define <var> <val>)"
+        "\n     (define (<procedure-name> <args>) <body>)" << EXP_ERR(exp));
+    if(exp[1].is_type(types::exp) && 
+        (exp[1].exp.empty() || !exp[1].exp[0].is_type(types::sym)))
+      THROW_ERR("'define procedure name [ " 
+        << (exp[1].exp.empty() ? data("undefined") : exp[1].exp[0]) << " ] of type \"" 
+        << (exp[1].exp.empty() ? "undefined" : exp[1].exp[0].type_name())
+        << "\" is invalid (must be a symbol)!"
+        "\n     (define <var> <val>)"
+        "\n     (define (<procedure-name> <args>) <body>)" << EXP_ERR(exp));
+    if(exp[1].is_type(types::sym) && exp.size() > 3)
+      THROW_ERR("'define can only define 1 value to a variable (received " << exp.size()-2 << " vals)!"
+        "\n     (define <var> <val>)"
+        "\n     (define (<procedure-name> <args>) <body>)" << EXP_ERR(exp));
+  }
 
   string& definition_variable(data_vector& exp)noexcept{
     // if defining a variable, else defining a procedure
@@ -556,7 +367,7 @@ namespace heist {
       auto& var       = definition_variable(exp);
       auto value_proc = scm_analyze(definition_value(exp),false,cps_block);
       return [var=std::move(var),value_proc=std::move(value_proc)](env_type& env){
-        define_variable(var,value_proc(env),env);
+        env->define_variable(var,value_proc(env));
         return GLOBALS::VOID_DATA_OBJECT; // return is void
       };
     }
@@ -769,6 +580,40 @@ namespace heist {
   bool     is_lambda(const data_vector& exp)     noexcept{return is_tagged_list(exp,symconst::lambda);}
   data_vector lambda_parameters(data_vector& exp)noexcept{return exp[1].exp;}
   data_vector lambda_body(data_vector& exp)      noexcept{return data_vector(exp.begin()+2,exp.end());}
+
+  // Confirm valid argument layout for a lambda
+  void confirm_valid_lambda(const data_vector& exp) {
+    if(exp.size() < 3)
+      THROW_ERR("'lambda special form didn't receive enough args: (lambda (<args>) <body>)"
+        << EXP_ERR(exp));
+    if(!exp[1].is_type(types::exp) && !data_is_the_empty_list(exp[1]))
+      THROW_ERR("'lambda 1st arg [ " << exp[1] << " ] of type \"" 
+        << exp[1].type_name() << "\" wasn't a proper parameter list!"
+           "\n     (lambda (<args>) <body>)"
+        << EXP_ERR(exp));
+  }
+
+  // Throw an error if 'vars' contains duplicate or non-symbol arg names, 
+  //   or improper (.) use
+  void confirm_valid_procedure_parameters(const data_vector& vars,const data_vector& exp){
+    const size_type n = vars.size();
+    // variadic (.) arg must have a label afterwards
+    if(n != 0 && symbol_is_dot_operator(vars[n-1].sym))
+      THROW_ERR("Expected one item after variadic dot ("<<G.dot<<")! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+    // Search the vars list of the fcn's args for improper (.) use & duplicate arg names
+    for(size_type i = 0; i < n; ++i) {
+      if(!vars[i].is_type(types::sym)) // args must be symbols
+        THROW_ERR("Non-Symbolic parameter [ "<<vars[i]<<" ] is an invalid arg name! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+      if(i+2 != n && symbol_is_dot_operator(vars[i].sym)) { // variadic (.) must come just prior the last arg
+        if(i+3 == n && string_begins_with(vars[i+2].sym, symconst::continuation))
+          continue; // allow continuations after variadic
+        THROW_ERR("More than one item found after variadic dot ("<<G.dot<<")! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+      }
+      for(size_type j = i+1; j < n; ++j)
+        if(vars[i].sym == vars[j].sym) // duplicate arg name detected
+          THROW_ERR("Duplicate arg name \""<<vars[i]<<"\" supplied! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+    }
+  }
 
   // Recursivly (for fn) replace instances of G.dot w/ symconst::dot
   void replace_param_temporary_dot_with_internal_dot(data_vector& params)noexcept{
@@ -1404,7 +1249,7 @@ namespace heist {
       // define the class predicate
       define_class_prototype_predicate(proto.class_name,env);
       // define the class prototype
-      define_variable(proto.class_name,make_cls(proto),env);
+      env->define_variable(proto.class_name,make_cls(proto));
       return GLOBALS::VOID_DATA_OBJECT;
     };
   }
@@ -3815,9 +3660,9 @@ namespace heist {
       assign_macro_label(mac,exp[1].sym);
       register_symbol_iff_new(G.MACRO_LABEL_REGISTRY,exp[1].sym);
       if(core_syntax) {
-        define_syntax_extension(mac,G.GLOBAL_ENVIRONMENT_POINTER); // bind in global environment
+        G.GLOBAL_ENVIRONMENT_POINTER->define_macro(mac); // bind in global environment
       } else {
-        define_syntax_extension(mac,env); // bind in local environment
+        env->define_macro(mac); // bind in local environment
       }
       return GLOBALS::VOID_DATA_OBJECT;
     };
@@ -4061,9 +3906,9 @@ namespace heist {
     if(procedure.fcn.is_using_dynamic_scope()) {
       extended_env->parent = env;
     }
-    // add the 'self' object iff applying a method (copy to avoid mving the ".self" member)
+    // add the 'self' object iff applying a method
     if(procedure.fcn.self) {
-      extended_env->define_variable("self",obj_type(procedure.fcn.self));
+      extended_env->define_variable("self",procedure.fcn.self);
     }
     // confirm max recursive depth hasn't been exceeded
     auto& recursive_depth = procedure.fcn.recursive_depth();
@@ -4314,25 +4159,25 @@ namespace heist {
       primitive_procedure_objects(),
       G.GLOBAL_ENVIRONMENT_POINTER
     );
-    define_variable(symconst::true_t,        GLOBALS::TRUE_DATA_BOOLEAN,           G.GLOBAL_ENVIRONMENT_POINTER);
-    define_variable(symconst::false_t,       GLOBALS::FALSE_DATA_BOOLEAN,          G.GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("*heist-dirname*",       make_str(HEIST_DIRECTORY_FILE_PATH),  G.GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("fl-precision",          num_type(num_type::INEXACT_PRECISION),G.GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("fl-max",                num_type(num_type::INEXACT_MAX),      G.GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("fl-min",                num_type(num_type::INEXACT_MIN),      G.GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("fl-epsilon",            num_type(num_type::INEXACT_EPSILON),  G.GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("*max-infix-precedence*",num_type(LLONG_MAX),                  G.GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("*min-infix-precedence*",num_type(LLONG_MIN),                  G.GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("*heist-platform*",      HEIST_PLATFORM,                       G.GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("*heist-exact-platform*",HEIST_EXACT_PLATFORM,                 G.GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("stream-null",           symconst::emptylist,                  G.GLOBAL_ENVIRONMENT_POINTER);
-    define_variable(symconst::exit_success,  num_type(0),                          G.GLOBAL_ENVIRONMENT_POINTER);
-    define_variable(symconst::exit_failure,  num_type(1),                          G.GLOBAL_ENVIRONMENT_POINTER);
-    define_variable(symconst::null_env,      symconst::null_env,                   G.GLOBAL_ENVIRONMENT_POINTER);
-    define_variable(symconst::local_env,     symconst::local_env,                  G.GLOBAL_ENVIRONMENT_POINTER);
-    define_variable(symconst::global_env,    symconst::global_env,                 G.GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("*argv*", primitive_LIST_to_CONS_constructor(GLOBALS::ARGV.begin(),GLOBALS::ARGV.end()), G.GLOBAL_ENVIRONMENT_POINTER);
-    define_variable("*argc*", num_type(GLOBALS::ARGV.size()),                                                G.GLOBAL_ENVIRONMENT_POINTER);
+    G.GLOBAL_ENVIRONMENT_POINTER->define_variable(symconst::true_t,        GLOBALS::TRUE_DATA_BOOLEAN);
+    G.GLOBAL_ENVIRONMENT_POINTER->define_variable(symconst::false_t,       GLOBALS::FALSE_DATA_BOOLEAN);
+    G.GLOBAL_ENVIRONMENT_POINTER->define_variable("*heist-dirname*",       make_str(HEIST_DIRECTORY_FILE_PATH));
+    G.GLOBAL_ENVIRONMENT_POINTER->define_variable("fl-precision",          num_type(num_type::INEXACT_PRECISION));
+    G.GLOBAL_ENVIRONMENT_POINTER->define_variable("fl-max",                num_type(num_type::INEXACT_MAX));
+    G.GLOBAL_ENVIRONMENT_POINTER->define_variable("fl-min",                num_type(num_type::INEXACT_MIN));
+    G.GLOBAL_ENVIRONMENT_POINTER->define_variable("fl-epsilon",            num_type(num_type::INEXACT_EPSILON));
+    G.GLOBAL_ENVIRONMENT_POINTER->define_variable("*max-infix-precedence*",num_type(LLONG_MAX));
+    G.GLOBAL_ENVIRONMENT_POINTER->define_variable("*min-infix-precedence*",num_type(LLONG_MIN));
+    G.GLOBAL_ENVIRONMENT_POINTER->define_variable("*heist-platform*",      HEIST_PLATFORM);
+    G.GLOBAL_ENVIRONMENT_POINTER->define_variable("*heist-exact-platform*",HEIST_EXACT_PLATFORM);
+    G.GLOBAL_ENVIRONMENT_POINTER->define_variable("stream-null",           symconst::emptylist);
+    G.GLOBAL_ENVIRONMENT_POINTER->define_variable(symconst::exit_success,  num_type(0));
+    G.GLOBAL_ENVIRONMENT_POINTER->define_variable(symconst::exit_failure,  num_type(1));
+    G.GLOBAL_ENVIRONMENT_POINTER->define_variable(symconst::null_env,      symconst::null_env);
+    G.GLOBAL_ENVIRONMENT_POINTER->define_variable(symconst::local_env,     symconst::local_env);
+    G.GLOBAL_ENVIRONMENT_POINTER->define_variable(symconst::global_env,    symconst::global_env);
+    G.GLOBAL_ENVIRONMENT_POINTER->define_variable("*argv*", primitive_LIST_to_CONS_constructor(GLOBALS::ARGV.begin(),GLOBALS::ARGV.end()));
+    G.GLOBAL_ENVIRONMENT_POINTER->define_variable("*argc*", num_type(GLOBALS::ARGV.size()));
     evaluate_primitives_written_in_heist_scheme();
   }
 

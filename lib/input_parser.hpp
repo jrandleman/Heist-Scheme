@@ -22,7 +22,7 @@ namespace heist {
            (c=='#' && (c2=='\\' || IS_OPEN_PAREN(c2))) || (c=='$' && IS_OPEN_PAREN(c2)));
   }
 
-  bool string_begins_with(const string& str, const char* substr, size_type begin = 0)noexcept{
+  bool string_begins_with(const string& str, const char* substr, size_type begin)noexcept{ // begin defaults to 0
     const size_type n = str.size();
     if(begin >= n) return false;
     const char* p = substr;

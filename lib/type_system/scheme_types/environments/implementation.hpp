@@ -4,6 +4,8 @@
 #ifndef HEIST_ENVIRONMENT_IMPLEMENTATION_HPP_
 #define HEIST_ENVIRONMENT_IMPLEMENTATION_HPP_
 
+#include "implementation_helpers/environment_extension.hpp" // defines the "extend_environment" procedure
+
 namespace heist {
 
   /******************************************************************************
@@ -39,7 +41,7 @@ namespace heist {
   * ENVIRONMENT VARIABLE & MACRO DEFINITION
   ******************************************************************************/
 
-  void environment::define_variable(const frame_var& var, frame_val&& val)noexcept{
+  void environment::define_variable(const frame_var& var, frame_val val)noexcept{
     // binding anonymous procedures -> named procedure
     if(val.is_type(types::fcn) && val.fcn.name.empty()) val.fcn.name = var;
     objects()[var] = std::move(val);
