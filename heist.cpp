@@ -129,7 +129,7 @@
 
 #include "lib/type_system/types.hpp"
 #include "lib/primitives/primitives.hpp"
-#include "lib/input_parser.hpp"
+#include "lib/core_evaluator/input_parser.hpp"
 
 namespace heist {
 
@@ -160,7 +160,7 @@ namespace heist {
   * REPRESENTING READER ALIASES: (define-reader-alias <alias> <name>)
   ******************************************************************************/
 
-  bool is_defn_reader_alias(const data_vector& exp) noexcept{
+  bool is_defn_reader_alias(const data_vector& exp)noexcept{
     return is_tagged_list(exp,symconst::defn_reader_alias);
   }
 
@@ -190,35 +190,29 @@ namespace heist {
   ******************************************************************************/
 
   // -- IDENTIFICATION, GETTERS, & CONSTRUCTION
-  bool is_if(const data_vector& exp)  noexcept{return is_tagged_list(exp,symconst::if_t);}
-  data if_predicate(data_vector& exp) noexcept{return exp[1];}
-  data if_consequent(data_vector& exp)noexcept{return exp[2];}
+  bool is_if(const data_vector& exp) noexcept{return is_tagged_list(exp,symconst::if_t);}
 
-  data if_alternative(data_vector& exp)noexcept{
-    if(exp.size() == 4) return exp[3]; // if has an <alternative>
-    return GLOBALS::VOID_DATA_OBJECT;  // w/o <alternative> return VOID
-  }
-
-
-  // -- ANALYSIS
   void confirm_valid_if(const data_vector& exp) {
     if(exp.size() < 3) 
       THROW_ERR("'if didn't receive enough args:"
-        "\n     (if <predicate> <consequent> <optional-alternative>)"
-        << EXP_ERR(exp));
+        "\n     (if <predicate> <consequent> <optional-alternative>)" << EXP_ERR(exp));
     if(exp.size() > 4) 
       THROW_ERR("'if received too many args:"
-        "\n     (if <predicate> <consequent> <optional-alternative>)"
-        << EXP_ERR(exp));
+        "\n     (if <predicate> <consequent> <optional-alternative>)" << EXP_ERR(exp));
   }
 
   // Returns lambda so that if true, only eval consequent: 
   //   else, only eval alternative
   exe_fcn_t analyze_if(data_vector& exp,const bool tail_call=false,const bool cps_block=false) { 
     confirm_valid_if(exp);
-    auto pproc = scm_analyze(if_predicate(exp),false,cps_block);
-    auto cproc = scm_analyze(if_consequent(exp),tail_call,cps_block);
-    auto aproc = scm_analyze(if_alternative(exp),tail_call,cps_block);
+    auto pproc = scm_analyze(std::move(exp[1]),false,cps_block);
+    auto cproc = scm_analyze(std::move(exp[2]),tail_call,cps_block);
+    exe_fcn_t aproc;
+    if(exp.size() == 4) {
+      aproc = scm_analyze(std::move(exp[3]),tail_call,cps_block);
+    } else {
+      aproc = [](env_type&){return GLOBALS::VOID_DATA_OBJECT;};
+    }
     return [pproc=std::move(pproc),cproc=std::move(cproc),
             aproc=std::move(aproc)](env_type& env){
       if(pproc(env).is_truthy()) 
@@ -231,20 +225,20 @@ namespace heist {
   * REPRESENTING SEQUENCES: (begin <body>)
   ******************************************************************************/
 
-  bool is_begin(const data_vector& exp)      noexcept{return is_tagged_list(exp,symconst::begin);}
-  data_vector begin_actions(data_vector& exp)noexcept{return data_vector(exp.begin()+1, exp.end());}
+  bool is_begin(const data_vector& exp) noexcept{return is_tagged_list(exp,symconst::begin);}
+  data_vector begin_actions(data_vector& exp) noexcept{return data_vector(exp.begin()+1,exp.end());}
 
   // Analyzes each expression, then returns an exec proc which 
   //   sequentially invokes each expression's exec proc
   exe_fcn_t analyze_sequence(data_vector&& exps,const bool tail_call=false,const bool cps_block=false){ // used for 'begin' & lambda bodies
-    if(exps.empty())
-      return [](env_type&){return GLOBALS::VOID_DATA_OBJECT;}; // void data
-    const size_type n = exps.size();
+    // Nullary begin => <void>
+    if(exps.empty()) return [](env_type&){return GLOBALS::VOID_DATA_OBJECT;};
     // If begin only has 1 expression, return exec proc of expression
-    if(exps.size() == 1) return scm_analyze(std::move(exps[0]),tail_call,cps_block);
+    const size_type n = exps.size();
+    if(n == 1) return scm_analyze(std::move(exps[0]),tail_call,cps_block);
     // Analyze each expression
-    std::vector<exe_fcn_t> sequence_exe_procs(exps.size());
-    for(size_type i = 0, n = exps.size(); i < n; ++i)
+    std::vector<exe_fcn_t> sequence_exe_procs(n);
+    for(size_type i = 0; i < n; ++i)
       sequence_exe_procs[i] = scm_analyze(std::move(exps[i]),(i+1==n)&&tail_call,cps_block);
     // Return a lambda sequentially invoking each exec procedure
     return [n=std::move(n),sequence_exe_procs=std::move(sequence_exe_procs)]
@@ -259,16 +253,14 @@ namespace heist {
   * REPRESENTING ASSIGNMENT: (set! <var> <val>)
   ******************************************************************************/
 
-  bool is_assignment(const data_vector& exp)   noexcept{return is_tagged_list(exp,symconst::set);}
-  string assignment_variable(data_vector& exp) noexcept{return exp[1].sym;}
-  data assignment_value(data_vector& exp)      noexcept{return exp[2];}
+  bool is_assignment(const data_vector& exp) noexcept{return is_tagged_list(exp,symconst::set);}
 
   // Confirm valid argument layout for variable assignment
   void confirm_valid_assignment(const data_vector& exp) {
     if(exp.size() != 3)
       THROW_ERR("'set! didn't receive 2 arguments: (set! <var> <val>)" << EXP_ERR(exp));
     if(!exp[1].is_type(types::sym) || exp[1].sym.empty())
-      THROW_ERR("'set! 1st arg " << PROFILE(exp[1]) << " can't be reassigned"
+      THROW_ERR("'set! 1st arg " << PROFILE(exp[1]) << " can't be set"
         " (only symbols)!\n     (set! <var> <val>)" << EXP_ERR(exp));
     if(*exp[1].sym.rbegin() == '.')
       THROW_ERR("'set! 1st arg is invalid object property-chain-access [ " << exp[1] 
@@ -279,15 +271,17 @@ namespace heist {
   //   to install it as the variable in the designated env
   exe_fcn_t analyze_assignment(data_vector& exp,const bool cps_block=false) { 
     confirm_valid_assignment(exp);
+    // Set variable
     if(!symbol_is_property_chain_access(exp[1].sym)) {
-      auto var = assignment_variable(exp);
-      auto value_proc = scm_analyze(assignment_value(exp),false,cps_block);
+      auto var = exp[1].sym;
+      auto value_proc = scm_analyze(data(exp[2]),false,cps_block); // cpy to avoid mving lest we want to show the expr in an error message
       return [var=std::move(var),value_proc=std::move(value_proc),exp=std::move(exp)](env_type& env){
         if(!env->set_variable_value(var, value_proc(env)))
           THROW_ERR("Variable "<<var<<" is not bound!"<<EXP_ERR(exp));
         return GLOBALS::VOID_DATA_OBJECT; // return is void
       };
     }
+    // Set object property
     data_vector set_call(4);
     set_call[0] = "heist:core:oo:set-property!";
     set_call[1] = exp[1].sym.substr(0, exp[1].sym.rfind('.'));
@@ -330,9 +324,8 @@ namespace heist {
   }
 
   string& definition_variable(data_vector& exp)noexcept{
-    // if defining a variable, else defining a procedure
-    if(exp[1].is_type(types::sym)) return exp[1].sym; 
-    return exp[1].exp[0].sym;
+    if(exp[1].is_type(types::sym)) return exp[1].sym; // if defining a variable
+    return exp[1].exp[0].sym; // if defining a procedure
   }
 
   data definition_value(data_vector& exp)noexcept{
@@ -363,14 +356,16 @@ namespace heist {
   //   to install it as the variable in the designated env
   exe_fcn_t analyze_definition(data_vector& exp,const bool cps_block=false) { 
     confirm_valid_definition(exp);
+    // Define variable
     if(!is_obj_property_definition(exp)) {
       auto& var       = definition_variable(exp);
       auto value_proc = scm_analyze(definition_value(exp),false,cps_block);
       return [var=std::move(var),value_proc=std::move(value_proc)](env_type& env){
         env->define_variable(var,value_proc(env));
-        return GLOBALS::VOID_DATA_OBJECT; // return is void
+        return GLOBALS::VOID_DATA_OBJECT; // return is <void>
       };
     }
+    // Define object property
     return scm_analyze(convert_obj_property_defintion_to_method_call(exp),false,cps_block);
   }
 
@@ -410,21 +405,14 @@ namespace heist {
     return is_tagged_list(exp,symconst::vec_literal);
   }
 
-  // Confirm whether quoting a vector literal
-  bool quoting_a_vector_literal(const data_vector& exp)noexcept{
-    return exp[1].is_type(types::exp) && !exp[1].exp.empty() && 
-           is_vector_literal(exp[1].exp);
-  }
-
   // Quoting a hash-map literal is a special case of quotation
   bool is_hmap_literal(const data_vector& exp)noexcept{
     return is_tagged_list(exp,symconst::map_literal);
   }
 
-  // Confirm whether quoting a vector literal
-  bool quoting_an_hmap_literal(const data_vector& exp)noexcept{
-    return exp[1].is_type(types::exp) && !exp[1].exp.empty() && 
-           is_hmap_literal(exp[1].exp);
+  // Confirm whether quoting a vector/hmap literal
+  bool quoting_a_container_literal(const data_vector& exp, bool is_container_literal(const data_vector& exp)noexcept)noexcept{
+    return exp[1].is_type(types::exp) && !exp[1].exp.empty() && is_container_literal(exp[1].exp);
   }
 
   bool is_variadic_cps_procedure_signature(const size_type i, const size_type n, data_vector& exp)noexcept{
@@ -432,7 +420,7 @@ namespace heist {
   }
 
   // Returns quoted data's contents
-  data text_of_quotation(data_vector& exp)noexcept{
+  data get_quoted_data(data_vector& exp)noexcept{
     if(!exp[1].is_type(types::sym)) return exp[1];
     if(exp[1].sym==symconst::false_t || exp[1].sym==symconst::true_t)
       return boolean(exp[1].sym==symconst::true_t);
@@ -507,7 +495,7 @@ namespace heist {
   exe_fcn_t analyze_quoted_hmap_literal(data_vector& exp) {
     return analyze_quoted_vh_literal<false>(exp,"hmap-literal");
   }
-
+  
 
   // Analyzes the quote's text & returns an execution procedure for such
   exe_fcn_t analyze_quoted(data_vector& exp) {
@@ -515,13 +503,13 @@ namespace heist {
       THROW_ERR("'quote form expects one argument: (quote <quoted-data>)!"<<EXP_ERR(exp));
     
     // Quote vector literals as needed
-    if(quoting_a_vector_literal(exp)) return analyze_quoted_vector_literal(exp[1].exp);
+    if(quoting_a_container_literal(exp,is_vector_literal)) return analyze_quoted_vector_literal(exp[1].exp);
 
     // Quote hmap literals as needed
-    if(quoting_an_hmap_literal(exp)) return analyze_quoted_hmap_literal(exp[1].exp);
+    if(quoting_a_container_literal(exp,is_hmap_literal)) return analyze_quoted_hmap_literal(exp[1].exp);
     
     // Get quoted data
-    auto quoted_data = text_of_quotation(exp);
+    auto quoted_data = get_quoted_data(exp);
     
     // If quoted data is atomic, return as-is
     if(!quoted_data.is_type(types::exp))
@@ -563,34 +551,22 @@ namespace heist {
   }
 
   /******************************************************************************
-  * REPRESENTING SELF-EVALUATING EXPRESSIONS & VARIABLES
-  ******************************************************************************/
-
-  bool is_self_evaluating(const data& datum)noexcept{
-    return datum.is_self_evaluating();
-  }
-
-  bool is_variable(const data& datum)noexcept{return datum.is_type(types::sym);}
-
-  /******************************************************************************
   * REPRESENTING LAMBDA PROCEDURES (FASTER THAN FN)
   ******************************************************************************/
 
   // -- LAMBDAS: (lambda (<parameters>) <body>)
-  bool     is_lambda(const data_vector& exp)     noexcept{return is_tagged_list(exp,symconst::lambda);}
+  bool        is_lambda(const data_vector& exp)  noexcept{return is_tagged_list(exp,symconst::lambda);}
   data_vector lambda_parameters(data_vector& exp)noexcept{return exp[1].exp;}
   data_vector lambda_body(data_vector& exp)      noexcept{return data_vector(exp.begin()+2,exp.end());}
 
   // Confirm valid argument layout for a lambda
   void confirm_valid_lambda(const data_vector& exp) {
     if(exp.size() < 3)
-      THROW_ERR("'lambda special form didn't receive enough args: (lambda (<args>) <body>)"
-        << EXP_ERR(exp));
+      THROW_ERR("'lambda special form didn't receive enough args: (lambda (<args>) <body>)" << EXP_ERR(exp));
     if(!exp[1].is_type(types::exp) && !data_is_the_empty_list(exp[1]))
       THROW_ERR("'lambda 1st arg [ " << exp[1] << " ] of type \"" 
         << exp[1].type_name() << "\" wasn't a proper parameter list!"
-           "\n     (lambda (<args>) <body>)"
-        << EXP_ERR(exp));
+           "\n     (lambda (<args>) <body>)" << EXP_ERR(exp));
   }
 
   // Throw an error if 'vars' contains duplicate or non-symbol arg names, 
@@ -741,7 +717,6 @@ namespace heist {
   // Returns an exec proc to mk a lambda w/ the analyzed parameter list & body
   exe_fcn_t analyze_lambda(data_vector& exp,const bool cps_block=false) {
     // convert lambdas w/ optional args to fns
-    exe_fcn_t analyze_fn(data_vector&,const bool cps_block);
     if(is_opt_arg_lambda(exp)) 
       return scm_analyze(convert_lambda_opt_args_to_fn(exp),false,cps_block);
     // handle regular lambdas
@@ -763,11 +738,6 @@ namespace heist {
       return fcn_type(vars, body_proc, env, ""); // empty "" name by default (anon proc)
     };
   }
-
-
-  // -- PROCEDURAL APPLICATION
-  data operator_of(const data_vector& exp)     noexcept{return exp[0];}
-  data_vector operands(const data_vector& exp) noexcept{return data_vector(exp.begin()+1, exp.end());}
 
   /******************************************************************************
   * REPRESENTING FN PROCEDURES (MORE DYNAMIC THAN LAMBDA)
@@ -1431,18 +1401,18 @@ namespace heist {
   }
 
 
-  bool property_chain_is_undefined(str_vector&& chain, env_type& env)noexcept{
+  bool property_chain_is_defined(str_vector&& chain, env_type& env)noexcept{
     // get the first object instance
-    if(!env->has_variable(chain[0])) return true;
+    if(!env->has_variable(chain[0])) return false;
     data value = lookup_variable_value(chain[0],env);
     // get the call value
     for(size_type i = 1, n = chain.size(); i < n; ++i) {
-      if(!value.is_type(types::obj)) return true;
+      if(!value.is_type(types::obj)) return false;
       bool found = false;
       value = value.obj->get_property(chain[i], found);
-      if(!found) return true;
+      if(!found) return false;
     }
-    return false;
+    return true;
   }
 
 
@@ -1462,7 +1432,7 @@ namespace heist {
     if(!parse_object_property_chain_sequence(exp[1].sym,chain)) 
       return [](env_type&){return GLOBALS::FALSE_DATA_BOOLEAN;};
     return [chain=std::move(chain)](env_type& env)mutable{
-      return boolean(!property_chain_is_undefined(std::move(chain),env));
+      return boolean(property_chain_is_defined(std::move(chain),env));
     };
   }
 
@@ -1515,867 +1485,23 @@ namespace heist {
   }
 
   /******************************************************************************
-  * CONTINUATION PASSING STYLE CORE SYNTAX EXPANSION HELPERS
-  ******************************************************************************/
-
-  // Expand data's core syntax macros
-  data cps_recursively_deep_expand_core_macros(const data& d) {
-    return recursively_deep_expand_syntax_macros(d,G.GLOBAL_ENVIRONMENT_POINTER,true);
-  }
-
-  /******************************************************************************
-  * CONTINUATION-PASSING-STYLE EXPANSION OPTIMIZATION -- PASS 1
-  ******************************************************************************/
-
-  // Whether <cps_exp> contains <sym>
-  bool CPS_exp_contains_symbol(const data_vector& cps_exp,const string& sym)noexcept{
-    for(size_type i = 0, n = cps_exp.size(); i < n; ++i)
-      if((cps_exp[i].is_type(types::exp) && CPS_exp_contains_symbol(cps_exp[i].exp,sym)) ||
-         (cps_exp[i].is_type(types::sym) && cps_exp[i].sym == sym))
-        return true;
-    return false;
-  }
-
-
-  // Is a lambda of 1 arg
-  bool is_unary_arg_lambda_cps_exp(const data_vector& cps_exp)noexcept{
-    return cps_exp.size() > 2 && is_tagged_list(cps_exp,symconst::lambda) && 
-           cps_exp[1].is_type(types::exp) && cps_exp[1].exp.size() == 1 && 
-           cps_exp[1].exp[0].is_type(types::sym);
-  }
-
-
-  // Optimizable (pass 1) CPS lambda
-  bool is_optimizable_CPS_pass_1_exp(const data_vector& cps_exp)noexcept{
-    return cps_exp.size() == 3 && is_unary_arg_lambda_cps_exp(cps_exp) && 
-           cps_exp[2].is_type(types::exp) && cps_exp[2].exp.size() == 2 &&
-           cps_exp[2].exp[0].is_type(types::exp) && cps_exp[2].exp[1].is_type(types::sym) &&
-           cps_exp[2].exp[1].sym == cps_exp[1].exp[0].sym &&
-           !CPS_exp_contains_symbol(cps_exp[2].exp[0].exp,cps_exp[2].exp[1].sym);
-  }
-
-
-  // (lambda (a) (<expression-w/o-a> a)) => <expression-w/o-a>
-  void CPS_lambda_unwrapping_optimization_pass_1(data_vector& cps_exp)noexcept{
-    if(is_optimizable_CPS_pass_1_exp(cps_exp)) {
-      auto temp = cps_exp[2].exp[0].exp;
-      cps_exp = temp;
-      CPS_lambda_unwrapping_optimization_pass_1(cps_exp);
-    } else {
-      for(size_type i = 0, n = cps_exp.size(); i < n; ++i)
-        if(cps_exp[i].is_type(types::exp))
-          CPS_lambda_unwrapping_optimization_pass_1(cps_exp[i].exp);
-    }
-  }
-
-  /******************************************************************************
-  * CONTINUATION-PASSING-STYLE EXPANSION OPTIMIZATION -- PASS 2
-  ******************************************************************************/
-
-  bool data_is_continuation_parameter(const data&)noexcept;
-
-  void replace_all_instances_of_symB_with_symA(data_vector& cps_exp,const string& symA,const string& symB)noexcept{
-    for(size_type i = 0, n = cps_exp.size(); i < n; ++i) {
-      if(cps_exp[i].is_type(types::exp))
-        replace_all_instances_of_symB_with_symA(cps_exp[i].exp,symA,symB);
-      else if(cps_exp[i].is_type(types::sym) && cps_exp[i].sym == symB)
-        cps_exp[i].sym = symA;
-    }
-  }
-
-
-  // Optimizable (pass 2) CPS lambda
-  bool is_optimizable_CPS_pass_2_exp(const data_vector& cps_exp)noexcept{
-    return cps_exp.size() == 2 && cps_exp[0].is_type(types::exp) && 
-           data_is_continuation_parameter(cps_exp[1]) && 
-           is_unary_arg_lambda_cps_exp(cps_exp[0].exp) && cps_exp[0].exp.size() == 3 &&
-           cps_exp[0].exp[2].is_type(types::exp) &&
-           data_is_continuation_parameter(cps_exp[0].exp[1].exp[0]) &&
-           !CPS_exp_contains_symbol(cps_exp[0].exp,cps_exp[1].sym);
-  }
-
-
-  // ((lambda (b) <exp-w/o-a>) a) => <exp-w/o-a>,
-  // 1. With each reference to <b> replaced by <a>
-  // 2. Iff both <a> & <b> are continuations
-  void CPS_lambda_unwrapping_optimization_pass_2(data_vector& cps_exp)noexcept{
-    if(is_optimizable_CPS_pass_2_exp(cps_exp)) {
-      const auto a_param = cps_exp[1].sym, b_param = cps_exp[0].exp[1].exp[0].sym;
-      auto temp = cps_exp[0].exp[2].exp;
-      cps_exp = temp;
-      replace_all_instances_of_symB_with_symA(cps_exp,a_param,b_param);
-      CPS_lambda_unwrapping_optimization_pass_2(cps_exp);
-    } else {
-      for(size_type i = 0, n = cps_exp.size(); i < n; ++i)
-        if(cps_exp[i].is_type(types::exp))
-          CPS_lambda_unwrapping_optimization_pass_2(cps_exp[i].exp);
-    }
-  }
-
-  /******************************************************************************
-  * CONTINUATION-PASSING-STYLE EXPANSION OPTIMIZATION -- PASS 3
-  ******************************************************************************/
-
-  // Replaces the 1 instance of <symB> w/ <objA>
-  bool replace_instance_of_symB_with_objA(data_vector& cps_exp,const data& objA,const string& symB)noexcept{
-    for(size_type i = 0, n = cps_exp.size(); i < n; ++i)
-      if(cps_exp[i].is_type(types::exp) && replace_instance_of_symB_with_objA(cps_exp[i].exp,objA,symB)) {
-        return true;
-      } else if(cps_exp[i].is_type(types::sym) && cps_exp[i].sym == symB) {
-        cps_exp[i] = objA;
-        return true;
-      }
-    return false;
-  }
-
-
-  // counts instances of <sym> w/in <cps_exp>
-  void CPS_exp_count_instances_of_symbol(const data_vector& cps_exp,const string& sym,size_type& count)noexcept{
-    for(size_type i = 0, n = cps_exp.size(); i < n; ++i)
-      if(cps_exp[i].is_type(types::exp)) {
-        CPS_exp_count_instances_of_symbol(cps_exp[i].exp,sym,count);
-        if(count > 2) return;
-      } else if(cps_exp[i].is_type(types::sym) && cps_exp[i].sym == sym) {
-        if(++count > 2) return;
-      }
-  }
-
-
-  // Optimizable (pass 3) CPS lambda
-  bool is_optimizable_CPS_pass_3_exp(const data_vector& cps_exp)noexcept{
-    if(cps_exp.size() == 2 && cps_exp[0].is_type(types::exp) && 
-      is_unary_arg_lambda_cps_exp(cps_exp[0].exp) && cps_exp[0].exp.size() == 3 &&
-      cps_exp[0].exp[2].is_type(types::exp) && data_is_continuation_parameter(cps_exp[0].exp[1].exp[0])) {
-        size_type count = 0;
-        CPS_exp_count_instances_of_symbol(cps_exp[0].exp[2].exp,cps_exp[0].exp[1].exp[0].sym,count);
-        return count < 2;
-      }
-    return false;
-  }
-
-
-  // ((lambda (k) <exp-w/-only-1-instance-of-k>) <obj>) => <exp-w/-only-1-instance-of-k> 
-  // 1. <k> is a continuation
-  // 2. That 1 instance of <k> is replaced w/ <obj>
-  void CPS_lambda_unwrapping_optimization_pass_3(data_vector& cps_exp)noexcept{
-    if(is_optimizable_CPS_pass_3_exp(cps_exp)) {
-      const data a_obj = cps_exp[1];
-      const auto b_param = cps_exp[0].exp[1].exp[0].sym;
-      auto temp = cps_exp[0].exp[2].exp;
-      cps_exp = temp;
-      replace_instance_of_symB_with_objA(cps_exp,a_obj,b_param);
-      CPS_lambda_unwrapping_optimization_pass_3(cps_exp);
-    } else {
-      for(size_type i = 0, n = cps_exp.size(); i < n; ++i)
-        if(cps_exp[i].is_type(types::exp))
-          CPS_lambda_unwrapping_optimization_pass_3(cps_exp[i].exp);
-    }
-  }
-
-  /******************************************************************************
-  * CONTINUATION-PASSING-STYLE EXPANSION OPTIMIZATION -- PASS 4
-  ******************************************************************************/
-
-  // Expand the symconst::cps_ignore_arg lambda application
-  void expand_CPS_lambda_pass_4_application(data_vector& cps_exp,const size_type& i)noexcept{
-    data_vector unwrapped_exp(cps_exp[i].exp[0].exp.size()-1);
-    unwrapped_exp[0] = cps_exp[i].exp[1];
-    std::move(cps_exp[i].exp[0].exp.begin()+2,cps_exp[i].exp[0].exp.end(),unwrapped_exp.begin()+1);
-    cps_exp.erase(cps_exp.begin()+i); // erase optimized lambda application
-    cps_exp.insert(cps_exp.begin()+i, // insert expanded application
-                   std::make_move_iterator(unwrapped_exp.begin()),
-                   std::make_move_iterator(unwrapped_exp.end())); 
-  }
-
-
-  // Optimizable (pass 4) CPS lambda
-  bool is_optimizable_CPS_pass_4_exp(const data_vector& cps_exp)noexcept{
-    return cps_exp.size() == 2 && cps_exp[0].is_type(types::exp) &&
-           is_unary_arg_lambda_cps_exp(cps_exp[0].exp) &&
-           cps_exp[0].exp[1].exp[0].is_type(types::sym) &&
-           cps_exp[0].exp[1].exp[0].sym == symconst::cps_ignore_arg;
-  }
-
-
-  // ((lambda (ignore) <exp> ...) <obj>) => <obj> <exp> ...
-  void CPS_lambda_unwrapping_optimization_pass_4(data_vector& cps_exp)noexcept{
-    for(size_type i = 0, n = cps_exp.size(); i < n; ++i) {
-      if(cps_exp[i].is_type(types::exp)) {
-        if(is_optimizable_CPS_pass_4_exp(cps_exp[i].exp)) {
-          expand_CPS_lambda_pass_4_application(cps_exp,i);
-          CPS_lambda_unwrapping_optimization_pass_4(cps_exp);
-          return;
-        }
-        CPS_lambda_unwrapping_optimization_pass_4(cps_exp[i].exp);
-      }
-    }
-  }
-
-  /******************************************************************************
-  * CONTINUATION-PASSING-STYLE EXPANSION OPTIMIZATION -- PASS 5
-  ******************************************************************************/
-
-  // Revert the "lambda-set!" definition transformation
-  void expand_CPS_lambda_pass_5_definition(data_vector& cps_exp,const size_type& i)noexcept{
-    data_vector unwrapped_exp(cps_exp[i].exp[0].exp.size()-2);
-    std::move(cps_exp[i].exp[0].exp.begin()+2,cps_exp[i].exp[0].exp.end(),unwrapped_exp.begin());
-    unwrapped_exp[0].exp[0].sym = symconst::define;
-    cps_exp.erase(cps_exp.begin()+i); // erase optimized lambda application
-    cps_exp.insert(cps_exp.begin()+i, // insert expanded application
-                   std::make_move_iterator(unwrapped_exp.begin()),
-                   std::make_move_iterator(unwrapped_exp.end()));
-  }
-
-
-  // Optimizable (pass 5) CPS lambda
-  bool is_optimizable_CPS_pass_5_exp(const data_vector& cps_exp)noexcept{
-    return cps_exp.size() == 2 && cps_exp[0].is_type(types::exp) &&
-           is_unary_arg_lambda_cps_exp(cps_exp[0].exp) &&
-           ((cps_exp[1].is_type(types::bol) && !cps_exp[1].bol.val) || 
-            (cps_exp[1].is_type(types::sym) && cps_exp[1].sym == symconst::false_t)) && 
-           cps_exp[0].exp[2].is_type(types::exp) && cps_exp[0].exp[2].exp.size() == 3 && 
-           cps_exp[0].exp[2].exp[0].is_type(types::sym) && cps_exp[0].exp[2].exp[0].sym == symconst::set;
-  }
-
-
-  // Pass 5: Reifying Definitions
-  // ((lambda (<name>) (set! <name> <val>) <exp> ...) #f) => (define <name> <val>) <exp> ...
-  void CPS_lambda_unwrapping_optimization_pass_5(data_vector& cps_exp)noexcept{
-    for(size_type i = 0, n = cps_exp.size(); i < n; ++i) {
-      if(cps_exp[i].is_type(types::exp)) {
-        if(is_optimizable_CPS_pass_5_exp(cps_exp[i].exp)) {
-          expand_CPS_lambda_pass_5_definition(cps_exp,i);
-          CPS_lambda_unwrapping_optimization_pass_5(cps_exp);
-          return;
-        }
-        CPS_lambda_unwrapping_optimization_pass_5(cps_exp[i].exp);
-      }
-    }
-  }
-
-  /******************************************************************************
-  * CONTINUATION-PASSING-STYLE EXPANSION OPTIMIZATION -- DISPATCH
-  ******************************************************************************/
-
-  // Perform several optimization passes on the generated CPS to reduce lambda count 
-  // NOTE: CPS atomics are already optimized @expansion-time
-  void optimize_CPS_code_generation(data_vector& cps_exp)noexcept{
-    CPS_lambda_unwrapping_optimization_pass_1(cps_exp);
-    CPS_lambda_unwrapping_optimization_pass_2(cps_exp);
-    CPS_lambda_unwrapping_optimization_pass_3(cps_exp);
-    CPS_lambda_unwrapping_optimization_pass_4(cps_exp);
-    CPS_lambda_unwrapping_optimization_pass_5(cps_exp);
-  }
-
-  /******************************************************************************
   * CONTINUATION-PASSING-STYLE EXPANSION
   ******************************************************************************/
 
-  void confirm_valid_define_syntax(const data_vector&);
+  // Get:
+  //   0. data_vector generate_fundamental_form_cps(const data&) // convert a datum to be a CPS expression
+  //   1. bool        data_is_cps_atomic(const data&)            // if datum evaluates to itself in a CPS context
+  //   2. bool        is_cps_application(const data_vector&)     // if expression is an application tagged by <generate_fundamental_form_cps>
+  //   3. string      generate_unique_cps_hash()                 // generate a unique/hashed continuation name
+  //   4. string      generate_unique_cps_value_hash()           // generate a unique/hashed non-continuation value name
+  #include "lib/core_evaluator/cps/expander.hpp"
+
+  /******************************************************************************
+  * REPRESENTING CPS-TRANSFORMATION (EVALUATION & QUOTATION)
+  ******************************************************************************/
 
   bool is_scm_cps(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::scm_cps);}
   bool is_cps_quote(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::cps_quote);}
-  bool is_cps_application(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::cps_app_tag);}
-  bool is_using_cpsp(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::using_cpsp);}
-
-  // Heist-specific checker to not prefix C++ derived special forms w/ application tag
-  bool is_HEIST_cpp_derived_special_form(const string& app)noexcept{
-    return app == symconst::cps_quote || app == symconst::scm_cps    || app == symconst::map_literal ||
-           app == symconst::while_t   || app == symconst::vec_literal;
-  }
-
-
-  // Generate a unique hashed variant of a cps identifier name
-  // NOTE: Max Unique Hashes = (expt 18446744073709551615 18446744073709551615)
-  string generate_unique_cps_hash()noexcept{
-    if(G.CPS_HASH_IDX_1 != GLOBALS::MAX_SIZE_TYPE)
-      return symconst::continuation
-        + std::to_string(G.CPS_HASH_IDX_2) + '_' + std::to_string(G.CPS_HASH_IDX_1++);
-    return symconst::continuation
-      + std::to_string(++G.CPS_HASH_IDX_2) + '_' + std::to_string(G.CPS_HASH_IDX_1++);
-  }
-
-
-  // Generate a unique hashed variant of a cps value name
-  // NOTE: Max Unique Hashes = (expt 18446744073709551615 18446744073709551615)
-  string generate_unique_cps_value_hash()noexcept{
-    if(G.CPS_VALUE_HASH_IDX_1 != GLOBALS::MAX_SIZE_TYPE)
-      return symconst::cps_generated_val
-        + std::to_string(G.CPS_VALUE_HASH_IDX_2) + '_' + std::to_string(G.CPS_VALUE_HASH_IDX_1++);
-    return symconst::cps_generated_val
-      + std::to_string(++G.CPS_VALUE_HASH_IDX_2) + '_' + std::to_string(G.CPS_VALUE_HASH_IDX_1++);
-  }
-
-
-  // CPS atomics may be returned as is: (cps <cps-atomic>) -> <cps-atomic>
-  bool data_is_cps_atomic(const data& d)noexcept{
-    return !d.is_type(types::exp)                      || 
-           is_tagged_list(d.exp,symconst::syn_rules)   || 
-           is_tagged_list(d.exp,symconst::quote)       ||
-           is_tagged_list(d.exp,symconst::delay)       ||
-           is_tagged_list(d.exp,symconst::using_cpsp)  || 
-           is_tagged_list(d.exp,symconst::definedp)    ||
-           is_tagged_list(d.exp,symconst::delete_bang) ||
-           is_tagged_list(d.exp,symconst::infix)       ||
-           is_tagged_list(d.exp,symconst::infixr)      ||
-           is_tagged_list(d.exp,symconst::unfix)       ||
-           is_tagged_list(d.exp,symconst::defn_reader_alias);
-  }
-
-
-  data cps_expand_application(const data_vector& application) {
-    const auto app_len = application.size();
-    data_vector cps_app(app_len+2);
-    data_vector cps_exp(3);
-    cps_exp[0] = symconst::lambda;
-    cps_exp[1] = data_vector(1,generate_unique_cps_hash()); // "k"
-    cps_exp[2] = data_vector(2);
-    auto iter = cps_exp.begin()+2;
-    for(size_type i = 0; i < app_len; ++i) {
-      if(data_is_cps_atomic(application[i])) {
-        cps_app[i+1] = application[i];
-      } else {
-        iter->exp[0] = generate_fundamental_form_cps(application[i]);
-        iter->exp[1] = data_vector(3);
-        iter->exp[1].exp[0] = symconst::lambda;
-        iter->exp[1].exp[1] = data_vector(1,generate_unique_cps_value_hash()); // "arg"
-        cps_app[i+1] = iter->exp[1].exp[1].exp[0];
-        iter->exp[1].exp[2] = data_vector(2);
-        iter = iter->exp[1].exp.begin()+2;
-      }
-    }
-    cps_app[0] = symconst::cps_app_tag; // Add the cps-application prefix
-    cps_app[app_len+1] = cps_exp[1].exp[0];
-    iter->exp = std::move(cps_app);
-    return cps_exp;
-  }
-
-
-  // Generates the procedure to set <var> to <val> after binding <var> as a lambda arg
-  data_vector get_cps_defn_set_procedure(const data& continuation,const data& var,const data& val){
-    data_vector set_exp(2);
-    // Set atomic values and pass to the continuation
-    if(data_is_cps_atomic(val)) {
-      set_exp[0] = continuation;
-      set_exp[1] = data_vector(3);
-      set_exp[1].exp[0] = symconst::set;
-      set_exp[1].exp[1] = var;
-      set_exp[1].exp[2] = val;
-    // Cps-ify non-atomic values, passing a lambda as a continuation that in 
-    //   turn sets the received value & passes such to the continuation given here as an arg
-    } else {
-      set_exp[0] = generate_fundamental_form_cps(val,false,false);
-      set_exp[1] = data_vector(3);
-      set_exp[1].exp[0] = symconst::lambda;
-      set_exp[1].exp[1] = data_vector(1,generate_unique_cps_value_hash()); // "defn-val"
-      set_exp[1].exp[2] = data_vector(2);
-      set_exp[1].exp[2].exp[0] = continuation;
-      set_exp[1].exp[2].exp[1] = data_vector(3);
-      set_exp[1].exp[2].exp[1].exp[0] = symconst::set;
-      set_exp[1].exp[2].exp[1].exp[1] = var;
-      set_exp[1].exp[2].exp[1].exp[2] = set_exp[1].exp[1].exp[0]; // defn-val
-    }
-    return set_exp;
-  }
-
-
-  // Generates a CPS definition in the middle of a BEGIN or LAMBDA BODY sequence, w/ <rest_exp>
-  //   being the remaining expressions AFTER this definition in the sequence
-  // PRECONDITION: !rest_exp.empty()
-  data_vector generate_mid_seq_cps_var_defn(const data_vector& defn_exp, const data& rest_exp){
-    data_vector cps_defn(3);
-    cps_defn[0] = symconst::lambda;
-    cps_defn[1] = data_vector(1,generate_unique_cps_hash()); // topmost continuation "k"
-    cps_defn[2] = data_vector(2);
-
-    cps_defn[2].exp[1] = GLOBALS::FALSE_DATA_BOOLEAN; // initially bind defined symbol to #f
-    cps_defn[2].exp[0] = data_vector(3);
-    cps_defn[2].exp[0].exp[0] = symconst::lambda;
-    cps_defn[2].exp[0].exp[1] = data_vector(1,defn_exp[1]); // defined symbol as an argument
-    cps_defn[2].exp[0].exp[2] = data_vector(2);
-
-    // Bind Var to Value
-    cps_defn[2].exp[0].exp[2].exp[0] = data_vector(3);
-    cps_defn[2].exp[0].exp[2].exp[0].exp[0] = symconst::lambda;
-    cps_defn[2].exp[0].exp[2].exp[0].exp[1] = data_vector(1,generate_unique_cps_hash()); // continuation "k1" of set!
-    cps_defn[2].exp[0].exp[2].exp[0].exp[2] = get_cps_defn_set_procedure(cps_defn[2].exp[0].exp[2].exp[0].exp[1].exp[0],
-                                                                         defn_exp[1],defn_exp[2]);
-
-    // Continue w/ expression after binding [SELF IS THE "k1" CONTINUATION OF THE EXPRESSION ABOVE]
-    cps_defn[2].exp[0].exp[2].exp[1] = data_vector(3);
-    cps_defn[2].exp[0].exp[2].exp[1].exp[0] = symconst::lambda;
-    cps_defn[2].exp[0].exp[2].exp[1].exp[1] = data_vector(1,symconst::cps_ignore_arg); // result of set!
-    cps_defn[2].exp[0].exp[2].exp[1].exp[2] = data_vector(2);
-
-    // Pass <rest_exp> of expression to the topmost continuation if CPS-ATOMIC
-    if(data_is_cps_atomic(rest_exp)) {
-      cps_defn[2].exp[0].exp[2].exp[1].exp[2].exp[0] = cps_defn[1].exp[0];
-      cps_defn[2].exp[0].exp[2].exp[1].exp[2].exp[1] = rest_exp;
-    // Else CPS-ify <rest_exp> of expression & pass it the topmost continuation
-    } else {
-      cps_defn[2].exp[0].exp[2].exp[1].exp[2].exp[0] = generate_fundamental_form_cps(rest_exp,false,false);
-      cps_defn[2].exp[0].exp[2].exp[1].exp[2].exp[1] = cps_defn[1].exp[0];
-    }
-    return cps_defn;
-  }
-
-
-  // Generates the CPS expression needed to evaluate <rest_exp> after defining new syntax
-  data_vector generate_fundamental_form_cps_syn_defn_REST_EXP_continuation(const data& continuation,const data& rest_exp){
-    data_vector rest_cont(2);
-    // Pass <rest_exp> of expression to the topmost continuation if CPS-ATOMIC
-    if(data_is_cps_atomic(rest_exp)) {
-      rest_cont[0] = continuation;
-      rest_cont[1] = rest_exp;
-    // Else CPS-ify <rest_exp> of expression & pass it the topmost continuation
-    } else {
-      rest_cont[0] = generate_fundamental_form_cps(rest_exp,false,false);
-      rest_cont[1] = continuation;
-    }
-    return rest_cont;
-  }
-
-
-  // Generates a CPS syntax definition in the middle of a BEGIN or LAMBDA BODY sequence, w/ <rest_exp>
-  //   being the remaining expressions AFTER this syntax definition in the sequence
-  // PRECONDITION: !rest_exp.empty()
-  data_vector generate_mid_seq_cps_syn_defn(const data_vector& defn_exp, const data& rest_exp){
-    const bool atomic_syntax_rules = data_is_cps_atomic(defn_exp[2]);
-    data_vector cps_defn(3 + atomic_syntax_rules);
-    cps_defn[0] = symconst::lambda;
-    cps_defn[1] = data_vector(1,generate_unique_cps_hash()); // topmost continuation "k"
-    // Atomic Syntax-Rules reduces # of lambdas needed by 1
-    if(atomic_syntax_rules) {
-      cps_defn[2] = data_vector(3);
-      cps_defn[2].exp[0] = symconst::defn_syn;
-      cps_defn[2].exp[1] = defn_exp[1];
-      cps_defn[2].exp[2] = defn_exp[2];
-      cps_defn[3] = generate_fundamental_form_cps_syn_defn_REST_EXP_continuation(cps_defn[1].exp[0],rest_exp);
-      return cps_defn;
-    }
-    cps_defn[2] = data_vector(2);
-    cps_defn[2].exp[0] = generate_fundamental_form_cps(defn_exp[2],false,false);
-    cps_defn[2].exp[1] = data_vector(4);
-    cps_defn[2].exp[1].exp[0] = symconst::lambda;
-    cps_defn[2].exp[1].exp[1] = data_vector(1,generate_unique_cps_value_hash()); // "syntax-object"
-
-    cps_defn[2].exp[1].exp[2] = data_vector(3);
-    cps_defn[2].exp[1].exp[2].exp[0] = symconst::defn_syn;
-    cps_defn[2].exp[1].exp[2].exp[1] = defn_exp[1];
-    cps_defn[2].exp[1].exp[2].exp[2] = cps_defn[2].exp[1].exp[1].exp[0];
-    cps_defn[2].exp[1].exp[3] = generate_fundamental_form_cps_syn_defn_REST_EXP_continuation(cps_defn[1].exp[0],rest_exp);
-    return cps_defn;
-  }
-
-
-  template<data_vector(*generate_begin_defn)(const data_vector&,const data&)>
-  data_vector generate_begin_mid_seq_defn(const data_vector& defn_exp,const data& begin){
-    if(begin.exp.size() == 3 && data_is_cps_atomic(begin.exp[2])) {
-      return generate_begin_defn(defn_exp,begin.exp[2]);
-    } else {
-      data_vector begin_tail(begin.exp.size()-1);
-      begin_tail[0] = symconst::begin;
-      std::copy(begin.exp.begin()+2,begin.exp.end(),begin_tail.begin()+1);
-      return generate_begin_defn(defn_exp,begin_tail);
-    }
-  }
-
-
-  data_vector convert_proc_defn_to_lambda_defn(const data_vector& defn_exp)noexcept{
-    data_vector lambda_defn(3);
-    lambda_defn[0] = symconst::define;
-    lambda_defn[1] = defn_exp[1].exp[0]; // proc name
-    lambda_defn[2] = data_vector(defn_exp.size());
-    lambda_defn[2].exp[0] = symconst::lambda;
-    lambda_defn[2].exp[1] = data_vector(defn_exp[1].exp.begin()+1,defn_exp[1].exp.end()); // args
-    std::copy(defn_exp.begin()+2,defn_exp.end(),lambda_defn[2].exp.begin()+2); // append body to lambda
-    return lambda_defn;
-  }
-
-
-  void get_cps_lambda_body(const data_vector& lambda_exp, data_vector& lambda_cps){
-    lambda_cps[2] = data_vector(2); // lambda body
-    // If single-expression body, NO NEED FOR "BEGIN"
-    if(lambda_exp.size() == 3) { 
-      if(data_is_cps_atomic(lambda_exp[2])) {
-        lambda_cps[2].exp[0] = *lambda_cps[1].exp.rbegin(); // DYNAMIC CONTINUATION
-        lambda_cps[2].exp[1] = lambda_exp[2];
-      } else {
-        lambda_cps[2].exp[0] = generate_fundamental_form_cps(lambda_exp[2],false,false);
-        lambda_cps[2].exp[1] = *lambda_cps[1].exp.rbegin(); // DYNAMIC CONTINUATION
-      }
-    // If multi-expression body, WRAP W/ "BEGIN"
-    } else {
-      data_vector begin_recur(lambda_exp.size()-1);
-      begin_recur[0] = symconst::begin;
-      std::copy(lambda_exp.begin()+2,lambda_exp.end(),begin_recur.begin()+1);
-      lambda_cps[2] = data_vector(2);
-      lambda_cps[2].exp[0] = generate_fundamental_form_cps(begin_recur,false,false);
-      lambda_cps[2].exp[1] = *lambda_cps[1].exp.rbegin();
-    }
-  }
-
-
-  // PRECONDITION: lambda.capacity() == 3
-  void generate_cps_lambda_form(const data& code, data_vector& lambda) {
-    confirm_valid_lambda(code.exp);
-    lambda[0] = symconst::lambda;
-    lambda[1] = data_vector(1,generate_unique_cps_hash()); // "k"
-    lambda[2] = data_vector(2);
-    lambda[2].exp[0] = lambda[1].exp[0];
-    lambda[2].exp[1] = data_vector(3);
-    lambda[2].exp[1].exp[0] = symconst::lambda;
-    if(code.exp[1].exp.empty()) { // ARGLESS
-      lambda[2].exp[1].exp[1] = data_vector(1,generate_unique_cps_hash()); // "dyn-k"
-    } else { // N ARGS
-      const auto param_len = code.exp[1].exp.size();
-      lambda[2].exp[1].exp[1] = data_vector(param_len+1);
-      std::copy(code.exp[1].exp.begin(),code.exp[1].exp.end(),lambda[2].exp[1].exp[1].exp.begin());
-      lambda[2].exp[1].exp[1].exp[param_len] = generate_unique_cps_hash(); // "dyn-k"
-    }
-    get_cps_lambda_body(code.exp,lambda[2].exp[1].exp);
-  }
-
-
-  data_vector fn_unwrap_inner_lambda(const data_vector& lambda_exp)noexcept{
-    return data_vector(lambda_exp[2].exp[1].exp.begin()+1,lambda_exp[2].exp[1].exp.end());
-  }
-
-
-  data_vector get_cps_IF_consequent(const data& code, const data& continuation){
-    data_vector consequent(2);
-    if(data_is_cps_atomic(code.exp[2])) { // (k <atomic-consequent>)
-      consequent[0] = continuation;
-      consequent[1] = code.exp[2];
-    } else { // ((cps <consequent>) k)
-      consequent[0] = generate_fundamental_form_cps(code.exp[2],false,false);
-      consequent[1] = continuation;
-    }
-    return consequent;
-  }
-
-  // PRECONDITION: Assumes IF alternative exists
-  data_vector get_cps_IF_alternative(const data& code, const data& continuation){
-    data_vector alternative(2);
-    if(data_is_cps_atomic(code.exp[3])) { // (k <atomic-alternative>)
-      alternative[0] = continuation;
-      alternative[1] = code.exp[3];
-    } else { // ((cps <alternative>) k)
-      alternative[0] = generate_fundamental_form_cps(code.exp[3],false,false);
-      alternative[1] = continuation;
-    }
-    return alternative;
-  }
-
-  data_vector get_cps_IF_VOID_alternative(const data& continuation){
-    data_vector void_alternative(2);
-    void_alternative[0] = continuation; // continuation
-    void_alternative[1] = data_vector(1,"void");  // add (void)
-    return void_alternative;
-  }
-
-
-  bool cps_is_non_atomc_defclass_property(const data& d, const string& ctor_name)noexcept{
-    return d.is_type(types::exp) && d.exp.size() == 2 && 
-           d.exp[0].is_type(types::sym) && d.exp[0].sym != ctor_name && d.exp[1].is_type(types::exp);
-  }
-
-  bool cps_defclass_requires_outlined_properties(data_vector& defclass_expr, 
-                                                 std::vector<data_vector>& stripped_property_values, 
-                                                 str_vector& stripped_property_names) {
-    validate_defclass(defclass_expr);
-    const auto ctor_name = defclass_expr[1].sym;
-    bool requires_outlined_properties = false;
-    for(size_type i = 3, n = defclass_expr.size(); i < n; ++i) {
-      if(cps_is_non_atomc_defclass_property(defclass_expr[i],ctor_name)) {
-        stripped_property_names.push_back(defclass_expr[i].exp[0].sym);
-        stripped_property_values.push_back(defclass_expr[i].exp[1].exp);
-        defclass_expr.erase(defclass_expr.begin()+i);
-        --i; // account for loop's "++i" after having rm'd an item from <defclass_expr>
-        requires_outlined_properties = true;
-      }
-    }
-    return requires_outlined_properties;
-  }
-
-
-  data_vector cps_generate_macro_defn(const data& code,const bool topmost_call, const string& mac_defn_statement){
-    confirm_valid_define_syntax(code.exp);
-    data_vector cps_defn_syn(3);
-    cps_defn_syn[0] = symconst::lambda;
-    cps_defn_syn[1] = data_vector(1,generate_unique_cps_hash()); // "k"
-    cps_defn_syn[2] = data_vector(2);
-    if(data_is_cps_atomic(code.exp[2])) {
-      cps_defn_syn[2].exp[0] = cps_defn_syn[1].exp[0];
-      cps_defn_syn[2].exp[1] = data_vector(3);
-      cps_defn_syn[2].exp[1].exp[0] = mac_defn_statement;
-      cps_defn_syn[2].exp[1].exp[1] = code.exp[1];
-      cps_defn_syn[2].exp[1].exp[2] = code.exp[2];
-      return cps_defn_syn;
-    }
-    cps_defn_syn[2].exp[0] = generate_fundamental_form_cps(code.exp[2],false,false);
-    cps_defn_syn[2].exp[1] = data_vector(3);
-    cps_defn_syn[2].exp[1].exp[0] = symconst::lambda;
-    cps_defn_syn[2].exp[1].exp[1] = data_vector(1,generate_unique_cps_value_hash()); // "syntax-object"
-
-    cps_defn_syn[2].exp[1].exp[2] = data_vector(2);
-    cps_defn_syn[2].exp[1].exp[2].exp[0] = cps_defn_syn[1].exp[0];
-    cps_defn_syn[2].exp[1].exp[2].exp[1] = data_vector(3);
-    cps_defn_syn[2].exp[1].exp[2].exp[1].exp[0] = mac_defn_statement;
-    cps_defn_syn[2].exp[1].exp[2].exp[1].exp[1] = code.exp[1];
-    cps_defn_syn[2].exp[1].exp[2].exp[1].exp[2] = cps_defn_syn[2].exp[1].exp[1].exp[0];
-    if(topmost_call) optimize_CPS_code_generation(cps_defn_syn);
-    return cps_defn_syn;
-  }
-
-
-  // NOTE: <topmost_call> signals to optimize the result prior returning
-  data_vector generate_fundamental_form_cps(const data& code,const bool topmost_call,const bool core_unexpanded){
-    // EXPAND CORE SYNTAX 
-    if(core_unexpanded)
-      return generate_fundamental_form_cps(cps_recursively_deep_expand_core_macros(code),topmost_call,false);
-
-    // ATOMIC DATUM OR EXPRESSION
-    if(data_is_cps_atomic(code)) {
-      data_vector lambda(3);
-      lambda[0] = symconst::lambda;
-      lambda[1] = data_vector(1,generate_unique_cps_hash()); // "k"
-      lambda[2] = data_vector(2);
-      lambda[2].exp[0] = lambda[1].exp[0];
-      lambda[2].exp[1] = code;
-      return lambda;
-
-    // DEFCLASS
-    } else if(is_tagged_list(code.exp,symconst::defclass)) {
-      // Check if need to strip-out any property defns (if they have non-atomic values)
-      std::vector<data_vector> stripped_property_values;
-      str_vector stripped_property_names;
-      // If must strip out defns
-      auto defclass_expr = code.exp; // trasformation may mutate the <deflcass> expression
-      if(cps_defclass_requires_outlined_properties(defclass_expr,stripped_property_values,stripped_property_names)){
-        data_vector begin_expr(2+stripped_property_names.size());
-        begin_expr[0] = symconst::begin;
-        begin_expr[1] = defclass_expr;
-        size_type j = 2;
-        for(size_type i = 0, n = stripped_property_names.size(); i < n; ++i, ++j) {
-          begin_expr[j] = data_vector(4);
-          begin_expr[j].exp[0] = "proto-add-property!";
-          begin_expr[j].exp[1] = begin_expr[1].exp[1]; // prototype name
-          begin_expr[j].exp[2] = data_vector(2);
-          begin_expr[j].exp[2].exp[0] = symconst::quote;
-          begin_expr[j].exp[2].exp[1] = stripped_property_names[i];
-          begin_expr[j].exp[3] = stripped_property_values[i];
-        }
-        return generate_fundamental_form_cps(begin_expr,topmost_call,false);
-      // No external definitions needed! Treat as if cps-atomic.
-      } else {
-        data_vector lambda(3);
-        lambda[0] = symconst::lambda;
-        lambda[1] = data_vector(1,generate_unique_cps_hash()); // "k"
-        lambda[2] = data_vector(2);
-        lambda[2].exp[0] = lambda[1].exp[0];
-        lambda[2].exp[1] = code;
-        return lambda;
-      }
-
-    // DEFINE-SYNTAX
-    } else if(is_tagged_list(code.exp,symconst::defn_syn)) {
-      return cps_generate_macro_defn(code,topmost_call,symconst::defn_syn);
-
-    // CORE-SYNTAX
-    } else if(is_tagged_list(code.exp,symconst::core_syn)) {
-      return cps_generate_macro_defn(code,topmost_call,symconst::core_syn);
-
-    // SET!
-    } else if(is_tagged_list(code.exp,symconst::set)) {
-      confirm_valid_assignment(code.exp);
-      data_vector lambda(3);
-      lambda[0] = symconst::lambda;
-      lambda[1] = data_vector(1,generate_unique_cps_hash()); // "k"
-      lambda[2] = data_vector(2);
-      if(data_is_cps_atomic(code.exp[2])) {
-        lambda[2].exp[0] = lambda[1].exp[0];
-        lambda[2].exp[1] = code.exp;
-        return lambda;
-      }
-      lambda[2].exp[0] = generate_fundamental_form_cps(code.exp[2],false,false);
-      lambda[2].exp[1] = data_vector(3);
-      lambda[2].exp[1].exp[0] = symconst::lambda;
-      lambda[2].exp[1].exp[1] = data_vector(1,generate_unique_cps_value_hash()); // "value"
-      lambda[2].exp[1].exp[2] = data_vector(2);
-      lambda[2].exp[1].exp[2].exp[0] = lambda[1].exp[0];
-      lambda[2].exp[1].exp[2].exp[1] = data_vector(3);
-      lambda[2].exp[1].exp[2].exp[1].exp[0] = symconst::set;
-      lambda[2].exp[1].exp[2].exp[1].exp[1] = code.exp[1];
-      lambda[2].exp[1].exp[2].exp[1].exp[2] = lambda[2].exp[1].exp[1].exp[0];
-      if(topmost_call) optimize_CPS_code_generation(lambda);
-      return lambda;
-
-    // BEGIN
-    } else if(is_tagged_list(code.exp,symconst::begin)) {
-      data_vector lambda(3);
-      lambda[0] = symconst::lambda;
-      lambda[1] = data_vector(1,generate_unique_cps_hash()); // "k"
-      lambda[2] = data_vector(2);
-      // 0 Args
-      if(code.exp.size() == 1) {
-        lambda[2].exp[0] = lambda[1].exp[0];
-        lambda[2].exp[1] = data_vector(1,"void");
-      // 1 Arg
-      } else if(code.exp.size() == 2) {
-        if(data_is_cps_atomic(code.exp[1])) {
-          lambda[2].exp[0] = lambda[1].exp[0];
-          lambda[2].exp[1] = code.exp[1];
-        } else {
-          lambda[2].exp[0] = generate_fundamental_form_cps(code.exp[1],false,false);
-          lambda[2].exp[1] = lambda[1].exp[0];
-        }
-      // N Args
-      } else {
-        bool rec_idx = !data_is_cps_atomic(code.exp[1]);
-        if(rec_idx) {
-          if(is_tagged_list(code.exp[1].exp,symconst::define)) {
-            if(code.exp[1].exp[1].is_type(types::exp)) // Convert procedure definition to a lambda defn
-              lambda[2].exp[0] = generate_begin_mid_seq_defn<generate_mid_seq_cps_var_defn>(
-                                                             convert_proc_defn_to_lambda_defn(code.exp[1].exp),code.exp);
-            else
-              lambda[2].exp[0] = generate_begin_mid_seq_defn<generate_mid_seq_cps_var_defn>(code.exp[1].exp,code.exp);
-            lambda[2].exp[1] = lambda[1].exp[0];
-            if(topmost_call) optimize_CPS_code_generation(lambda);
-            return lambda;
-          } else if(is_tagged_list(code.exp[1].exp,symconst::defn_syn)) {
-            lambda[2].exp[0] = generate_begin_mid_seq_defn<generate_mid_seq_cps_syn_defn>(code.exp[1].exp,code.exp);
-            lambda[2].exp[1] = lambda[1].exp[0];
-            if(topmost_call) optimize_CPS_code_generation(lambda);
-            return lambda;
-          } else {
-            lambda[2].exp[0] = generate_fundamental_form_cps(code.exp[1],false,false);
-          }
-        } else {
-          lambda[2].exp[1] = code.exp[1];
-        }
-        lambda[2].exp[rec_idx] = data_vector(3);
-        lambda[2].exp[rec_idx].exp[0] = symconst::lambda;
-        lambda[2].exp[rec_idx].exp[1] = data_vector(1,symconst::cps_ignore_arg);
-        lambda[2].exp[rec_idx].exp[2] = data_vector(2);
-        if(code.exp.size() == 3 && data_is_cps_atomic(code.exp[2])) { // 2 ARGS, THE LAST BEING CPS-ATOMIC
-          lambda[2].exp[rec_idx].exp[2].exp[0] = lambda[1].exp[0];
-          lambda[2].exp[rec_idx].exp[2].exp[1] = code.exp[2];
-        } else { // 2+ ARGS, IF 2, 2ND != CPS-ATOMIC
-          data begin_recur(data_vector(code.exp.size()-1));
-          begin_recur.exp[0] = symconst::begin;
-          std::copy(code.exp.begin()+2, code.exp.end(), begin_recur.exp.begin()+1);
-          lambda[2].exp[rec_idx].exp[2].exp[0] = generate_fundamental_form_cps(begin_recur,false,false);
-          lambda[2].exp[rec_idx].exp[2].exp[1] = lambda[1].exp[0];
-        }
-      }
-      if(topmost_call) optimize_CPS_code_generation(lambda);
-      return lambda;
-
-    // LAMBDA
-    } else if(is_tagged_list(code.exp,symconst::lambda)) {
-      if(is_opt_arg_lambda(code.exp)) // convert optional-args <lambda> to a <fn>
-        return generate_fundamental_form_cps(convert_lambda_opt_args_to_fn(code.exp),topmost_call,false);
-      data_vector lambda(3);
-      generate_cps_lambda_form(code,lambda);
-      if(topmost_call) optimize_CPS_code_generation(lambda);
-      return lambda;
-
-    // FN
-    } else if(is_tagged_list(code.exp,symconst::fn)) {
-      validate_fn(code.exp);
-      data_vector fn_exp(3);
-      fn_exp[0] = symconst::lambda;
-      fn_exp[1] = data_vector(1,generate_unique_cps_hash()); // "k"
-      fn_exp[2] = data_vector(2);
-      fn_exp[2].exp[0] = fn_exp[1].exp[0];
-      fn_exp[2].exp[1] = data_vector(code.exp.size());
-      fn_exp[2].exp[1].exp[0] = symconst::fn;
-      for(size_type i = 1, n = code.exp.size(); i < n; ++i) {
-        data_vector lambda(3);
-        data lambda_exp(data_vector(1+code.exp[i].exp.size()));
-        lambda_exp.exp[0] = symconst::lambda;
-        std::copy(code.exp[i].exp.begin(),code.exp[i].exp.end(),lambda_exp.exp.begin()+1);
-        generate_cps_lambda_form(lambda_exp,lambda);
-        fn_exp[2].exp[1].exp[i] = fn_unwrap_inner_lambda(lambda);
-      }
-      if(topmost_call) optimize_CPS_code_generation(fn_exp);
-      return fn_exp;
-
-    // IF
-    } else if(is_tagged_list(code.exp,symconst::if_t)) {
-      confirm_valid_if(code.exp);
-      data_vector lambda(3);
-      lambda[0] = symconst::lambda;
-      lambda[1] = data_vector(1,generate_unique_cps_hash()); // "k"
-      // Atomic IF test
-      if(data_is_cps_atomic(code.exp[1])) { 
-        lambda[2] = data_vector(4);
-        lambda[2].exp[0] = symconst::if_t;
-        lambda[2].exp[1] = code.exp[1];
-        lambda[2].exp[2] = get_cps_IF_consequent(code,lambda[1].exp[0]);
-        if(code.exp.size() > 3) // Has IF alternative
-          lambda[2].exp[3] = get_cps_IF_alternative(code,lambda[1].exp[0]);
-        else // add pass (void) as alternative if none given
-          lambda[2].exp[3] = get_cps_IF_VOID_alternative(lambda[1].exp[0]);
-        if(topmost_call) optimize_CPS_code_generation(lambda);
-        return lambda;
-      }
-      // Non-Atomic IF test
-      lambda[2] = data_vector(2);
-      lambda[2].exp[0] = generate_fundamental_form_cps(code.exp[1],false,false);
-      lambda[2].exp[1] = data_vector(3);
-      lambda[2].exp[1].exp[0] = symconst::lambda;
-      lambda[2].exp[1].exp[1] = data_vector(1,generate_unique_cps_value_hash()); // "test-result"
-      lambda[2].exp[1].exp[2] = data_vector(4);
-      lambda[2].exp[1].exp[2].exp[0] = symconst::if_t;
-      lambda[2].exp[1].exp[2].exp[1] = lambda[2].exp[1].exp[1].exp[0];
-      lambda[2].exp[1].exp[2].exp[2] = get_cps_IF_consequent(code,lambda[1].exp[0]);
-      if(code.exp.size() > 3) // Has IF alternative
-        lambda[2].exp[1].exp[2].exp[3] = get_cps_IF_alternative(code,lambda[1].exp[0]);
-      else // add pass (void) as alternative if none given
-        lambda[2].exp[1].exp[2].exp[3] = get_cps_IF_VOID_alternative(lambda[1].exp[0]);
-      if(topmost_call) optimize_CPS_code_generation(lambda);
-      return lambda;
-
-    // DEFINE
-    } else if(is_tagged_list(code.exp,symconst::define)) {
-      confirm_valid_definition(code.exp);
-      if(is_obj_property_definition(code.exp)) { // DYNAMIC PROPERTY ADDITION
-        return generate_fundamental_form_cps(convert_obj_property_defintion_to_method_call(code.exp),topmost_call,false);
-      } else if(!code.exp[1].is_type(types::exp)) { // DEFINING VARIABLE
-        data_vector cps_defn(3);
-        cps_defn[0] = symconst::lambda;
-        cps_defn[1] = data_vector(1,generate_unique_cps_hash()); // topmost continuation "k"
-        cps_defn[2] = data_vector(2);
-        cps_defn[2].exp[1] = GLOBALS::FALSE_DATA_BOOLEAN; // initially bind defined symbol to #f
-        cps_defn[2].exp[0] = data_vector(3);
-        cps_defn[2].exp[0].exp[0] = symconst::lambda;
-        cps_defn[2].exp[0].exp[1] = data_vector(1,code.exp[1]); // defined symbol as an argument, and bind via set! (below)
-        cps_defn[2].exp[0].exp[2] = get_cps_defn_set_procedure(cps_defn[1].exp[0],code.exp[1],code.exp[2]);
-        if(topmost_call) optimize_CPS_code_generation(cps_defn);
-        return cps_defn;
-      } else { // DEFINING PROCEDURE
-        auto cps_defn = generate_fundamental_form_cps(convert_proc_defn_to_lambda_defn(code.exp),false,false); // cps lambda defn
-        if(topmost_call) optimize_CPS_code_generation(cps_defn);
-        return cps_defn;
-      }
-
-    // APPLICATION
-    } else {
-      if(code.exp.empty())
-        THROW_ERR("'scm->cps CAN'T EVAL AN EMPTY EXPRESSION!" << EXP_ERR(code.exp));
-      // Applications are expanded @eval-time (accounts for expanding macros)
-      if(code.exp[0].is_type(types::sym) && is_HEIST_cpp_derived_special_form(code.exp[0].sym))
-        return code.exp; // Don't tag applications of HEIST's C++ derived forms
-      // Tag any other application
-      bool no_tag = !is_cps_application(code.exp);
-      data_vector app(code.exp.size()+no_tag);
-      if(no_tag) app[0] = symconst::cps_app_tag;
-      std::copy(code.exp.begin(),code.exp.end(),app.begin()+no_tag);
-      return app;
-    }
-  }
 
 
   // Extra <ignore> arg used to account for the <id> procedure that will be 
@@ -2436,6 +1562,13 @@ namespace heist {
     return scm_analyze(std::move(quoted_cps));
   }
 
+  /******************************************************************************
+  * REPRESENTING THE EXECUTION-CONTEXT CPS-PREDICATE
+  ******************************************************************************/
+
+  bool is_using_cpsp(const data_vector& exp)noexcept{
+    return is_tagged_list(exp,symconst::using_cpsp);
+  }
 
   // Return whether in a <scm->cps> block or the <-cps> flag is active
   exe_fcn_t analyze_using_cpsp(data_vector& exp,const bool cps_block) {
@@ -2447,957 +1580,14 @@ namespace heist {
   }
 
   /******************************************************************************
-  * REPRESENTING MACRO SYNTACTIC EXTENSIONS -- GENERAL PARSING HELPER FUNCTIONS
+  * EXECUTING MACRO EXPANSIONS
   ******************************************************************************/
 
-  // (define-syntax <label>
-  //   (syntax-rules (<keywords>)
-  //     ((<pattern>) <template>)
-  //     ((<pattern>) <template>)
-  //     ((<pattern>) <template>))
-  //
-  // => token strings in the <keywords> list allow those symbols, and only 
-  //    those symbols, in places where they are mentioned w/in <pattern>s
-
-  // EXAMPLES:
-  // ; Redefining λ to expand to 'lambda
-  // (define-syntax λ
-  //   (syntax-rules ()
-  //     ((λ () body ...) (lambda () body ...))
-  //     ((λ (arg ...) body ...) (lambda (arg ...) body ...))))
-  //
-  // ; Macro simulating variadic multiplication if '* were a binary operation
-  // (define-syntax multiply-all 
-  //   (syntax-rules ()
-  //     ((multiply-all) 1)
-  //     ((multiply-all a) a)
-  //     ((multiply-all a b ...) (* a (multiply-all b ...)))))
-
-
-  // 0. Each macro Id entry in <MACRO_ID_TABLE> (ie <MACRO_ID_VAR_TABLE.first>) represents 
-  //      an instance of a macro identifier [in the pattern] to be expanded [in the template]
-  //      into a value(s) [from the matched expression].
-  // 1. <macId_name> gets the symbolic name of the identifier in question.
-  // 2. <macId_val_pos_map> gets a vector of value-position pairs
-  //    - "values" are those which the "name" should expand into
-  //      * >1 "value" indicates a variadic expansion of the "name"
-  //    - a "position" is a vector of indices to locate the "value" in the 
-  //      pattern-matched expression (multiple idxs to traverse the nested vectors)
-  // 3. <macId_values> returns a flatmap of the values in <macId_val_pos_map>
-  //    - this is maintained alongside <macId_val_pos_map> in a seperate structure 
-  //      internally in order to have fast reads (rather than generating a new instance
-  //      from <macId_val_pos_map> each time)
-
-  // 0. <VARARG_POSITIONS> (ie <MACRO_ID_VAR_TABLE.second>) tracks all of the position idx 
-  //      vectors of '...' symbols found in the macro pattern (1st idx of each row in the matrix
-  //      is detracted by 1 to disregard the intitial '_' & line up w/ the values of <MACRO_ID_TABLE>'s
-  //      idxs of values [from <macId_val_pos_map>] in the matched expression)
-
-  // 0. <MacroId_varArg_posPair> Holds 2 vectors, each holding nested vectors of position idxs 
-  //    (of an elt w/in nested vectors) for:
-  //    - .first: the current macro Id being parsed
-  //    - .second: the current variadic '...' symbol being detected
-
-  using macId_position_t = std::vector<size_type>;
-  using MacroId_varArg_posPair = std::pair<macId_position_t,macId_position_t>;
-  using MACRO_ID_VAL_POS_PAIR = std::pair<data_vector,macId_position_t>;
-  using MACRO_ID_VAL_POS_PAIRS = std::vector<MACRO_ID_VAL_POS_PAIR>;
-  using MACRO_ID = std::tuple<string,MACRO_ID_VAL_POS_PAIRS,data_vector>;
-  using MACRO_ID_TABLE = std::vector<MACRO_ID>;
-  using VARARG_POSITIONS = std::vector<macId_position_t>;
-  using MACRO_ID_VAR_TABLE = std::pair<MACRO_ID_TABLE,VARARG_POSITIONS>;
-
-  // Node elt in the variadic expansion process
-  struct macro_expansion_node {
-    string id_name;                             // Identifier name being expanded
-    std::vector<macro_expansion_node> children;   // Variadic subgroup children
-    std::vector<macId_position_t> positions;      // Position vector(s) of leaf node value(s)
-    data_vector values;                              // Leaf node value(s)
-    bool is_variadic = false;                     // Determines whether value corresponds to ...
-    bool is_leaf()const{return children.empty();} // Determines valid elt: true ? value : children
-    macro_expansion_node(const string& name, const bool& variadic_node = false) : id_name(name), 
-                                                                                    is_variadic(variadic_node) {}
-  };
-
-  // - Topmost node (ie node of in <MACRO_EXPANSION_TREE> is a symbol w/ children)
-  //   * NON-VARIADIC identifiers are repn'd by nodes that are both ROOTS & a LEAF
-  // - Leaves are ultimate values to be expanded into
-  // - Intermediate nodes repn any multi-layered variadic expansion [ie (a ...) ...]
-  using MACRO_EXPANSION_TREES_t = std::vector<macro_expansion_node>;
-
-
-  // Accessors
-  string& macId_name(MACRO_ID& macId_instance)                        noexcept{return std::get<0>(macId_instance);}
-  MACRO_ID_VAL_POS_PAIRS& macId_val_pos_map(MACRO_ID& macId_instance) noexcept{return std::get<1>(macId_instance);}
-  data_vector& macId_values(MACRO_ID& macId_instance)                 noexcept{return std::get<2>(macId_instance);}
-
-
-  // Confirm whether the given word is a keyword
-  bool is_keyword(const string& word, const str_vector& keywords)noexcept{
-    return std::find(keywords.begin(), keywords.end(), word) != keywords.end();
-  }
-
-
-  bool data_is_ellipsis(const data& d)noexcept{
-    return d.is_type(types::sym) && d.sym == symconst::ellipsis;
-  }
-
-
-  // Primitive symbolic literals: #t #f '()
-  bool is_primitive_symbolic_literal(const data& obj)noexcept{
-    return obj.is_type(types::sym) && 
-      (obj.sym == symconst::true_t || obj.sym == symconst::false_t || obj.sym == symconst::emptylist);
-  }
-
-
-  // Confirm <pat_entity> is a potential macro identifier
-  // => WARNING: Doesn't check for whether is a keyword (used _only_ in expansion)!
-  bool is_symbolic_macro_identifier(const data& pat_entity)noexcept{
-    return pat_entity.is_type(types::sym) && !is_primitive_symbolic_literal(pat_entity) &&
-           pat_entity.sym != symconst::ellipsis;
-  }
-
-
-  // Confirm <pat_entity> is a macro argument (non-keyword) name
-  bool is_macro_argument_label(const data& pat_entity, const str_vector& keywords)noexcept{
-    return is_symbolic_macro_identifier(pat_entity) && !is_keyword(pat_entity.sym, keywords);
-  }
-
-
-  // Confirm whether 'pattern' is argless but was given 'args' (or vise versa)
-  bool incompatible_void_arg_use(const data_vector& pattern, const data_vector& args)noexcept{
-    return (pattern.size() == 1) ^ args.empty(); // pattern_is_argless ^ args_is_argless;
-  }
-
-
-  // Associate a pattern's macro identifier to the objects it will expand into
-  void register_macro_identifier_expansion_values(MACRO_ID_TABLE& ID_TO_VAL_MAP,const string& id_name, 
-                                                  data_vector&& expansion_values,const macId_position_t& macId_pos_vector)noexcept{
-    for(auto& id : ID_TO_VAL_MAP) {
-      if(macId_name(id) == id_name) {
-        // Add to the flatmap of values
-        auto& id_values = macId_values(id);
-        id_values.insert(id_values.end(), expansion_values.begin(), expansion_values.end());
-        // Add to the map of values-to-positions
-        auto& val_pos_map = macId_val_pos_map(id);
-        val_pos_map.push_back(std::make_pair(expansion_values,macId_pos_vector));
-        return;
-      }
-    }
-    MACRO_ID_VAL_POS_PAIRS val_pos_pairs(1,std::make_pair(expansion_values,macId_pos_vector));
-    ID_TO_VAL_MAP.push_back(std::make_tuple(id_name,val_pos_pairs,expansion_values));
-  }
-
-  /******************************************************************************
-  * REPRESENTING MACRO SYNTACTIC EXTENSIONS -- PATTERN MATCHING HELPER FUNCTIONS
-  ******************************************************************************/
-
-  bool compare_pattern_args_exp_match(const data_vector&,const data_vector&,const str_vector&,MACRO_ID_VAR_TABLE&,
-                                      const size_type&,MacroId_varArg_posPair)noexcept;
-  
-
-  // Verify if pat_elt is a keyword that arg_elt is the same keyword
-  bool mismatched_keywords(const data& pat_elt, const data& arg_elt, const str_vector& keywords)noexcept{
-    if(pat_elt.is_type(types::sym) && is_keyword(pat_elt.sym,keywords))
-      return !arg_elt.is_type(types::sym) || arg_elt.sym != pat_elt.sym;
-    return false;
-  }
-
-
-  // Confirm given 2 incompatible atomics
-  bool mismatched_atomics(const data& pat_entity, const data& arg_entity)noexcept{
-    if(is_primitive_symbolic_literal(pat_entity))
-       return !is_primitive_symbolic_literal(arg_entity) || pat_entity.sym != arg_entity.sym;
-    if(pat_entity.is_type(types::sym) || pat_entity.is_type(types::exp)) return false;
-    return !pat_entity.noexcept_equal(arg_entity);
-  }
-
-
-  // Confirm the 2 given pattern/arg elts are mismatched subexpressions
-  bool mismatched_subexpressions(const data& pat_elt, const data& arg_elt, const str_vector& keywords, 
-                                 MACRO_ID_VAR_TABLE& MID_VARG_PAIR, MacroId_varArg_posPair macId_varArg_vecs, 
-                                 const size_type& args_idx, const size_type& pat_idx)noexcept{
-    if(!pat_elt.is_type(types::exp) || !arg_elt.is_type(types::exp)) return true;
-    if(pat_elt.exp.empty()) return !arg_elt.exp.empty();
-    macId_varArg_vecs.first.push_back(args_idx), macId_varArg_vecs.second.push_back(pat_idx);
-    return !compare_pattern_args_exp_match(pat_elt.exp,arg_elt.exp,keywords,MID_VARG_PAIR,0,macId_varArg_vecs);
-  }
-
-
-  // Handle '...' pattern analysis
-  bool account_for_pattern_ellipsis_and_return_whether_no_match(const data_vector& args_exp, size_type& args_idx, const data& pat_obj_prior_ellipsis,
-                                                                const size_type& number_args_left_after_variadic, const str_vector& keywords,
-                                                                MACRO_ID_VAR_TABLE& MID_VARG_PAIR,MacroId_varArg_posPair macId_varArg_vecs,
-                                                                const size_type& pat_idx)noexcept{
-    // Start associating objs based on the first obj prior "..."'s position
-    --args_idx;
-    // Confirm enough room in <args_exp> for the variadic
-    const auto& args_size = args_exp.size();
-    if(number_args_left_after_variadic + args_idx >= args_size) return true;
-    const auto va_objs_end = args_size - number_args_left_after_variadic;
-    // Confirm each variadic obj in <args_exp> matches the layout of <pat_obj_prior_ellipsis>
-    // Symbol Identifiers may expand to _any_ form
-    if(pat_obj_prior_ellipsis.is_type(types::sym)) {
-      macId_varArg_vecs.first.push_back(args_idx);
-      register_macro_identifier_expansion_values(MID_VARG_PAIR.first,pat_obj_prior_ellipsis.sym,
-                                                                     data_vector(args_exp.begin() + args_idx, 
-                                                                              args_exp.begin() + va_objs_end),
-                                                                     macId_varArg_vecs.first);
-      const auto number_of_va_objs_in_args = va_objs_end - args_idx;
-      args_idx += number_of_va_objs_in_args - 1; // advance <args_idx> to the last va obj associated
-    // Expression Identifiers _may only_ expand into expressions of the same form
-    } else {
-      for(; args_idx < va_objs_end; ++args_idx)
-        if(mismatched_subexpressions(pat_obj_prior_ellipsis,args_exp[args_idx],keywords,MID_VARG_PAIR,macId_varArg_vecs,args_idx,pat_idx))
-          return true;
-      --args_idx; // move back to the last associated obj (accounts for '++' in loop returning to)
-    }
-    // Save current position vector for ... identifier
-    macId_varArg_vecs.second.push_back(pat_idx+1);
-    MID_VARG_PAIR.second.push_back(macId_varArg_vecs.second);
-    macId_varArg_vecs.second.pop_back();
-    return false;
-  }
-
-
-  // Confirm whether the pattern sub-expression matches the 'args' sub-expression
-  bool compare_pattern_args_exp_match(const data_vector& pat_exp, const data_vector& args_exp, const str_vector& keywords,
-                                      MACRO_ID_VAR_TABLE& MID_VARG_PAIR, const size_type& pat_idx_start, 
-                                      MacroId_varArg_posPair macId_varArg_vecs)noexcept{
-    // Confirm whether <pat_exp> & <args_exp> match one another
-    size_type pat_idx = pat_idx_start, args_idx = 0, args_size = args_exp.size(), pat_size = pat_exp.size();
-    for(; pat_idx < pat_size && args_idx < args_size; ++pat_idx, ++args_idx){
-      // Check for proper "..." use in the pat_exp definition
-      if(data_is_ellipsis(pat_exp[pat_idx])) { // Guarenteed pat_idx > 0 by syntax-rules analysis
-        macId_varArg_vecs.second.push_back(pat_idx);
-        MID_VARG_PAIR.second.push_back(macId_varArg_vecs.second);
-        macId_varArg_vecs.second.pop_back();
-        if(account_for_pattern_ellipsis_and_return_whether_no_match(args_exp, args_idx,pat_exp[pat_idx-1], pat_size-pat_idx-1,
-                                                                    keywords, MID_VARG_PAIR,macId_varArg_vecs,pat_idx-1)){
-          return false;
-        }
-      // Register the pat_exp's identifier & associated expansion value
-      } else if(is_macro_argument_label(pat_exp[pat_idx],keywords)) {
-        if(pat_idx+1 == pat_size || !data_is_ellipsis(pat_exp[pat_idx+1])) {
-          macId_varArg_vecs.first.push_back(args_idx);
-          register_macro_identifier_expansion_values(MID_VARG_PAIR.first,pat_exp[pat_idx].sym,data_vector(1,args_exp[args_idx]),macId_varArg_vecs.first);
-          macId_varArg_vecs.first.pop_back();
-        }
-      // Verify matching subexpressions
-      } else if(pat_exp[pat_idx].is_type(types::exp)) {
-        if(!args_exp[args_idx].is_type(types::exp) || 
-          ((pat_idx+1 == pat_size || !data_is_ellipsis(pat_exp[pat_idx+1])) &&
-            mismatched_subexpressions(pat_exp[pat_idx],args_exp[args_idx],keywords,MID_VARG_PAIR,macId_varArg_vecs,args_idx,pat_idx))) {
-          return false;
-        }
-      // Verify literal & keyword use are aligned
-      } else if(mismatched_atomics(pat_exp[pat_idx],args_exp[args_idx]) || 
-                mismatched_keywords(pat_exp[pat_idx],args_exp[args_idx],keywords)){
-        return false;
-      }
-    }
-    // Register the last identifier if variadic portion of expansion @ the end of the pattern & empty in args
-    if(pat_idx+1 == pat_size && data_is_ellipsis(pat_exp[pat_idx]) && args_idx == args_size) {
-      if(is_macro_argument_label(pat_exp[pat_idx-1],keywords)) {
-        macId_varArg_vecs.second.push_back(pat_idx);
-        MID_VARG_PAIR.second.push_back(macId_varArg_vecs.second);
-        macId_varArg_vecs.second.pop_back();
-        macId_varArg_vecs.first.push_back(args_idx-1);
-        register_macro_identifier_expansion_values(MID_VARG_PAIR.first,pat_exp[pat_idx-1].sym,data_vector(1,args_exp[args_idx-1]),macId_varArg_vecs.first);
-        macId_varArg_vecs.first.pop_back();
-        return true;
-      }
-      return !account_for_pattern_ellipsis_and_return_whether_no_match(args_exp, args_idx, pat_exp[pat_idx-1], pat_size-pat_idx-1, 
-                                                                       keywords, MID_VARG_PAIR, macId_varArg_vecs, pat_idx-1);
-    }
-    // Verify both <pat_exp> & <arg_exp> have been fully iterated
-    return pat_idx == pat_size && args_idx == args_size;
-  }
-
-
-  // Confirm the given arg combo matches the given pattern (in terms of layout)
-  bool is_pattern_match(const data_vector& args,const str_vector& keywords,const data_vector& pattern,
-                                                           MACRO_ID_VAR_TABLE& MID_VARG_PAIR)noexcept{
-    if(incompatible_void_arg_use(pattern,args)) return false;
-    MacroId_varArg_posPair macId_varArg_vecs;
-    if(!compare_pattern_args_exp_match(pattern,args,keywords,MID_VARG_PAIR,1,macId_varArg_vecs)){
-      MID_VARG_PAIR.first.clear();
-      MID_VARG_PAIR.second.clear();
-      return false;
-    }
-    return true;
-  }
-
-
-  // Returns whether the given args correspond to the given macro
-  bool is_macro_match(const data_vector& args, const syn_type& mac, size_type& match_idx, 
-                                              MACRO_ID_VAR_TABLE& MID_VARG_PAIR)noexcept{
-    for(size_type i = 0, n = mac.patterns.size(); i < n; ++i) {
-      if(is_pattern_match(args, mac.keywords, mac.patterns[i], MID_VARG_PAIR)) {
-        match_idx = i;
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /******************************************************************************
-  * MACRO SYNTACTIC EXTENSIONS -- EXPANSION HELPER FUNCTIONS
-  ******************************************************************************/
-
-  // Recursively prints <MACRO_EXPANSION_TREES> children subgroups
-  void recur_stringify_MACRO_EXPANSION_TREES(const MACRO_EXPANSION_TREES_t& children,string& buffer)noexcept{
-    for(const auto& child : children) {
-      if(!child.is_variadic) {
-        buffer += "NON-VARIADIC = " + data(child.values).noexcept_write() + ',';
-      } else if(child.is_leaf()) {
-        buffer += data(child.values).noexcept_write() + ',';
-      } else {
-        buffer += '[';
-        recur_stringify_MACRO_EXPANSION_TREES(child.children,buffer);
-        buffer += ']';
-      }
-    }
-  }
-
-  // Stringifies <MACRO_EXPANSION_TREES> contents
-  string stringify_MACRO_EXPANSION_TREES(const MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES)noexcept{
-    string buffer("     ======================\n     MACRO_EXPANSION_TREES:\n     ");
-    // for each tree
-    for(const auto& tree : MACRO_EXPANSION_TREES) {
-      buffer += "  " + tree.id_name + ": ";
-      // print leaves immediately
-      if(!tree.is_variadic) {
-        buffer += "NON-VARIADIC = " + data(tree.values).noexcept_write() + "\n     ";
-      // recursively print subgroups
-      } else if(tree.is_leaf()) {
-        buffer += "LEAF: " + data(tree.values).noexcept_write() + "\n     ";
-      } else {
-        buffer += '[';
-        recur_stringify_MACRO_EXPANSION_TREES(tree.children,buffer);
-        buffer += "]\n     ";
-      }
-    }
-    return buffer + "======================";
-  }
-
-
-  // Generate a unique hashed id_name for the expanded symbol
-  string hash_macro_expansion_identifier(const string& id_name,const bool& finished_expanding = false)noexcept{
-    static size_type IDX_1 = 0, IDX_2 = 0;
-    if(finished_expanding) {
-      IDX_1 = IDX_2 = 0;
-      return "";
-    } else {
-      if(IDX_1 != GLOBALS::MAX_SIZE_TYPE)
-        return id_name + '-' + std::to_string(IDX_2) + '-' + std::to_string(IDX_1++);
-      return id_name + '-' + std::to_string(++IDX_2) + '-' + std::to_string(IDX_1++);
-    }
-  }
-
-
-  // Changes all <id_name> in <id_node> & below to be <tagged_symbol>
-  void propagate_new_tagged_identifier_name(const string& tagged_symbol,macro_expansion_node& id_node)noexcept{
-    id_node.id_name = tagged_symbol;
-    if(id_node.is_leaf()) return;
-    for(auto& child : id_node.children)
-      propagate_new_tagged_identifier_name(tagged_symbol,child);
-  }
-
-
-  // Get idx of <id_name> in <MACRO_EXPANSION_TREES>. Returns <GLOBALS::MAX_SIZE_TYPE> if not found.
-  size_type find_macro_identifier_leaf_index(const MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES,const string& id_name)noexcept{
-    for(size_type i = 0, n = MACRO_EXPANSION_TREES.size(); i < n; ++i)
-      if(MACRO_EXPANSION_TREES[i].id_name == id_name) return i;
-    return GLOBALS::MAX_SIZE_TYPE;
-  }
-
-
-  // Expand level-1 ids, tag all nested variadic ids, wrench up tagged children of nested variadic ids
-  void tag_and_expand_identifiers_while_wrenching_up_children(const size_type expansion_No, data_vector& expansions,
-                                                                    MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES)noexcept{
-    for(size_type i = 0, n = expansions.size(); i < n; ++i) {
-      if(expansions[i].is_type(types::exp)) {
-        tag_and_expand_identifiers_while_wrenching_up_children(expansion_No,expansions[i].exp,MACRO_EXPANSION_TREES);
-      } else if(is_symbolic_macro_identifier(expansions[i])) {
-        auto val_idx = find_macro_identifier_leaf_index(MACRO_EXPANSION_TREES,expansions[i].sym);
-        if(val_idx == GLOBALS::MAX_SIZE_TYPE) continue; // symbol != variadic macro identifier
-        // Splice in level-1 (non-nested) ... value
-        if(MACRO_EXPANSION_TREES[val_idx].is_leaf()) {
-          expansions[i] = MACRO_EXPANSION_TREES[val_idx].values[expansion_No];
-        // Tag nested ... identifier to be expanded further, & wrench up the associated child node as a new (tagged) root
-        } else {
-          auto tagged_symbol = hash_macro_expansion_identifier(expansions[i].sym);
-          expansions[i].sym = tagged_symbol; // tag symbol
-          MACRO_EXPANSION_TREES.push_back(MACRO_EXPANSION_TREES[val_idx].children[expansion_No]); // wrench up child
-          propagate_new_tagged_identifier_name(tagged_symbol,*MACRO_EXPANSION_TREES.rbegin()); // tag up wrenched child
-        }
-      }
-    }
-  }
-
-
-  // <verify_all_identifiers_have_same_variadic_length> helper
-  void confirm_identifier_variadic_length_is_consistent(size_type& total_expansions,     const data_vector& exp,
-                                                        const data_vector& expanded_exp, const data_vector& args,
-                                                        const string& name,              const size_type& result, 
-                                                        const MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES){
-    if(total_expansions == GLOBALS::MAX_SIZE_TYPE) {
-      total_expansions = result;
-    } else if(total_expansions != result && result != GLOBALS::MAX_SIZE_TYPE) {
-      THROW_ERR("'syntax-rules Different variadic identifiers can't expand in the same template expression!"
-        "\n     Length 1 = " << total_expansions << ", Length 2 = " << result << 
-        "\n     In subexpression: [ " << exp << " ]"
-        "\n     Of template expansion: [ " << expanded_exp << " ]\n" 
-        << stringify_MACRO_EXPANSION_TREES(MACRO_EXPANSION_TREES) << FCN_ERR(name,args));
-    }
-  }
-
-
-  // Returns the length that the identifiers match (throw error if any are off)
-  size_type verify_all_identifiers_have_same_variadic_length(const data_vector& args, const string& name, const data_vector& exp, 
-                                                             const data_vector& expanded_exp, const MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES){
-    size_type total_expansions = GLOBALS::MAX_SIZE_TYPE;
-    for(auto& elt : exp) {
-      if(elt.is_type(types::exp)) {
-        confirm_identifier_variadic_length_is_consistent(total_expansions,exp,expanded_exp,args,name,
-          verify_all_identifiers_have_same_variadic_length(args,name,elt.exp,expanded_exp,MACRO_EXPANSION_TREES),
-          MACRO_EXPANSION_TREES);
-      } else if(is_symbolic_macro_identifier(elt)) {
-        auto val_idx = find_macro_identifier_leaf_index(MACRO_EXPANSION_TREES,elt.sym);
-        if(val_idx == GLOBALS::MAX_SIZE_TYPE) continue; // symbol != variadic macro identifier
-        confirm_identifier_variadic_length_is_consistent(total_expansions,exp,expanded_exp,args,name,
-          MACRO_EXPANSION_TREES[val_idx].is_leaf() ? MACRO_EXPANSION_TREES[val_idx].values.size() : 
-                                                     MACRO_EXPANSION_TREES[val_idx].children.size(),
-          MACRO_EXPANSION_TREES);
-      }
-    }
-    return total_expansions;
-  }
-
-
-  // Non-Variadics have been expanded, expand all (possibly nested) variadics identifiers
-  // NOTE: Traverses in POST-ORDER!
-  void expand_macro_variadic_identifiers(const data_vector& args, const string& name, data_vector& expanded_exp,
-                                                               MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES){
-    for(size_type i = 0; i < expanded_exp.size(); ++i) {
-      if(i+1 < expanded_exp.size() && data_is_ellipsis(expanded_exp[i+1])) {
-        // Expand variadic symbolic identifer immediately (no ctoring of any expression)
-        if(is_symbolic_macro_identifier(expanded_exp[i])) {
-          auto val_idx = find_macro_identifier_leaf_index(MACRO_EXPANSION_TREES,expanded_exp[i].sym);
-          if(val_idx == GLOBALS::MAX_SIZE_TYPE) continue; // symbol != variadic macro identifier
-          // confirm expanding into a non-nested variadic identifier
-          if(!MACRO_EXPANSION_TREES[val_idx].is_leaf())
-            THROW_ERR("'syntax-rules Misplaced \"...\" after improper non-nested variadic identifier [ " 
-              << expanded_exp[i].sym << " ]\n     in [ " << expanded_exp << " ]\n"
-              << stringify_MACRO_EXPANSION_TREES(MACRO_EXPANSION_TREES) << FCN_ERR(name,args));
-          // erase the identifier & "...", then insert the variadic expansion values
-          auto& expansions = MACRO_EXPANSION_TREES[val_idx].values;
-          expanded_exp.erase(expanded_exp.begin()+i,expanded_exp.begin()+i+2);
-          expanded_exp.insert(expanded_exp.begin()+i,expansions.begin(),expansions.end());
-          i += expansions.size() - 1; // -1 accounts for loop's "++i"
-        // Expand variadic expressions by constructing N expressions filled in w/ N values
-        } else if(expanded_exp[i].is_type(types::exp)) {
-          // verify ... follows an expression using the same # of expansion values per identifier
-          size_type total_expansions = verify_all_identifiers_have_same_variadic_length(args,name,expanded_exp[i].exp,
-                                                                                        expanded_exp,MACRO_EXPANSION_TREES);
-          if(total_expansions == GLOBALS::MAX_SIZE_TYPE)
-            THROW_ERR("'syntax-rules Misplaced \"...\" after non-variadic subexpression [ " 
-              << expanded_exp[i].exp << " ]\n     in [ " << expanded_exp << " ]" << FCN_ERR(name,args));
-          data_vector expansions(total_expansions,expanded_exp[i].exp);
-          // tag <expansions> nested identifiers, tag associated tree groups & 
-          //   wrench them up to be a root (WHILE KEEPING THE NEW ROOTS IN PLACE)
-          for(size_type i = 0, n = expansions.size(); i < n; ++i)
-            tag_and_expand_identifiers_while_wrenching_up_children(i,expansions[i].exp,MACRO_EXPANSION_TREES);
-          // expand the ctord exps & re-traverse to expand any nested ...
-          expanded_exp.erase(expanded_exp.begin()+i,expanded_exp.begin()+i+2);
-          expanded_exp.insert(expanded_exp.begin()+i,expansions.begin(),expansions.end());
-          --i; // mv back to account for loop's "++" & completely re-traverse expanded exp
-        // NOTE: SHOULD NEVER BE INVOKED, BUT KEPT HERE AS A SAFETY GUARD
-        } else {
-          THROW_ERR("'syntax-rules Misplaced \"...\" after non-variadic identifier [ " 
-            << expanded_exp[i].sym << " ]\n     in [ " << expanded_exp << " ]\n"
-            << stringify_MACRO_EXPANSION_TREES(MACRO_EXPANSION_TREES) << FCN_ERR(name,args));
-        }
-      // Parse the nested non-variadic expression
-      } else if(expanded_exp[i].is_type(types::exp)) {
-        expand_macro_variadic_identifiers(args,name,expanded_exp[i].exp,MACRO_EXPANSION_TREES);
-      }
-    } // End of for
-  }
-  
-
-  // Expands non-variadics, and guarentees:
-  //   0. No expressions begin w/ ...
-  //   2. Any SYMBOLIC identifier followed by ... is variadic
-  //      => NOTE: EXPRESSIONS FOLLOWED BY ... HAVE __NOT__ BEEN VERIFIED THO !!!
-  void expand_non_variadic_macro_symbols(const data_vector& args, const string& name, data_vector& expanded_exp, 
-                                                               MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES){
-    for(size_type i = 0; i < expanded_exp.size(); ++i) {
-      if(is_symbolic_macro_identifier(expanded_exp[i])) {
-        // Expand non-variadic identifiers
-        auto val_idx = find_macro_identifier_leaf_index(MACRO_EXPANSION_TREES,expanded_exp[i].sym);
-        if(i+1 == expanded_exp.size() || !data_is_ellipsis(expanded_exp[i+1])) {
-          if(val_idx != GLOBALS::MAX_SIZE_TYPE && !MACRO_EXPANSION_TREES[val_idx].is_variadic)
-            expanded_exp[i] = MACRO_EXPANSION_TREES[val_idx].values[0];
-        // Skip past ... if at a variadic identifier (handled in <expand_macro_variadic_identifiers>)
-        } else if(val_idx != GLOBALS::MAX_SIZE_TYPE && MACRO_EXPANSION_TREES[val_idx].is_variadic) {
-          ++i;
-        // Catch non-macro syntax identifiers OR non-variadic syntax identifier followed by ...
-        } else {
-          THROW_ERR("'syntax-rules Misplaced \"...\" after non-variadic identifier [ " 
-            << expanded_exp[i].sym << " ]\n     in [ " << expanded_exp << " ]" << FCN_ERR(name,args));
-        }
-      } else if(expanded_exp[i].is_type(types::exp)) {
-        // Recursively expand symbolic identifiers
-        expand_non_variadic_macro_symbols(args,name,expanded_exp[i].exp,MACRO_EXPANSION_TREES);
-        // Skip past variadics after expressions (handled in <expand_macro_variadic_identifiers>)
-        if(i+1 < expanded_exp.size() && data_is_ellipsis(expanded_exp[i+1])) ++i;
-      } else if(data_is_ellipsis(expanded_exp[i])) {
-        if(i) {
-          THROW_ERR("'syntax-rules Misplaced \"...\" after non-variadic identifier [ " 
-            << expanded_exp[i-1].sym << " ]\n     in [ " << expanded_exp << " ]" << FCN_ERR(name,args));
-        } else {
-          THROW_ERR("'syntax-rules Misplaced \"...\" at front of a template expression!" 
-            << expanded_exp << FCN_ERR(name,args));
-        }
-      }
-    }
-  }
-
-  /******************************************************************************
-  * MACRO SYNTACTIC EXTENSIONS -- UNWRAP ESCAPED VARIADIC TOKENS
-  ******************************************************************************/
-
-  bool string_is_an_escaped_variadic_token(const string& str)noexcept{
-    if(str.size() < 4 || str.compare(str.size()-3,3,"...")) 
-      return false;
-    for(size_type i = 0, n = str.size()-3; i < n; ++i)
-      if(str[i] != '\\') return false;
-    return true;
-  }
-
-
-  bool datum_is_an_escaped_variadic_token(const data& d)noexcept{
-    return d.is_type(types::sym) && string_is_an_escaped_variadic_token(d.sym);
-  }
-
-
-  void unwrap_macro_escaped_variadic_tokens(data_vector& expanded)noexcept{
-    for(size_type i = 0, n = expanded.size(); i < n; ++i) {
-      if(expanded[i].is_type(types::exp))
-        unwrap_macro_escaped_variadic_tokens(expanded[i].exp);
-      else if(datum_is_an_escaped_variadic_token(expanded[i]))
-        expanded[i].sym = expanded[i].sym.substr(1);
-    }
-  }
-
-  /******************************************************************************
-  * MACRO SYNTACTIC EXTENSIONS -- DYNAMICALLY HASH syntax-hash IDENTIFIERS
-  ******************************************************************************/
-
-  // Generate a unique hashed variant of the given macro arg name for safe expansion
-  // NOTE: Max Unique Hashes = (expt 18446744073709551615 18446744073709551615)
-  string safe_expansion_hashed_macro_arg(const string& label)noexcept{
-    if(G.MACRO_HASH_IDX_1 != GLOBALS::MAX_SIZE_TYPE)
-      return "heist:core:sh:" + label + '-' 
-        + std::to_string(G.MACRO_HASH_IDX_2) + '-' 
-        + std::to_string(G.MACRO_HASH_IDX_1++);
-    return "heist:core:sh:" + label + '-' 
-      + std::to_string(++G.MACRO_HASH_IDX_2) + '-' 
-      + std::to_string(G.MACRO_HASH_IDX_1++);
-  }
-
-
-  void recursively_apply_syntax_hash_to_identifiers(data_vector& expanded_exp, const str_vector& hashed_ids, const str_vector& to_hash_ids)noexcept{
-    const auto n = to_hash_ids.size();
-    for(auto& datum : expanded_exp) {
-      if(datum.is_type(types::sym)) {
-        for(size_type i = 0; i < n; ++i) {
-          if(to_hash_ids[i] == datum.sym) {
-            datum.sym = hashed_ids[i];
-            break;
-          }
-        }
-      } else if(datum.is_type(types::exp)) {
-        recursively_apply_syntax_hash_to_identifiers(datum.exp,hashed_ids,to_hash_ids);
-      }
-    }
-  }
-
-
-  void apply_syntax_hash_to_identifiers(data_vector& expanded_exp, const str_vector& to_hash_ids)noexcept{
-    // Get the dynamic (runtime) hash of each <syntax-hash> identifier in the macro
-    str_vector hashed_ids(to_hash_ids.size());
-    for(size_type i = 0, n = to_hash_ids.size(); i < n; ++i)
-      hashed_ids[i] = safe_expansion_hashed_macro_arg(to_hash_ids[i]);
-    recursively_apply_syntax_hash_to_identifiers(expanded_exp,hashed_ids,to_hash_ids);
-  }
-
-  /******************************************************************************
-  * MACRO SYNTACTIC EXTENSIONS -- MATRIX DATA CLEANING HELPER FCNS PRIOR TREE
-  ******************************************************************************/
-
-  void remove_VA_POS_MATRIX_duplicate_instances(VARARG_POSITIONS& VA_POS_MATRIX)noexcept{
-    const auto sameRows = [](auto& row1, auto& row2) {
-      if(row1.size() != row2.size()) return false;
-      for(size_type i = 0, n = row1.size(); i < n; ++i)
-        if(row1[i] != row2[i]) return false;
-      return true;
-    };
-    for(size_type i = 0; i < VA_POS_MATRIX.size(); ++i)
-      for(size_type j = i+1; j < VA_POS_MATRIX.size();) {
-        if(sameRows(VA_POS_MATRIX[i],VA_POS_MATRIX[j]))
-          VA_POS_MATRIX.erase(VA_POS_MATRIX.begin()+j);
-        else
-           ++j;
-      }
-  }
-
-
-  // Correlate positions in pattern moreso to those in args by negating result of skipping initial '_'
-  void decrement_first_elt_of_each_VA_POS_VECTOR(VARARG_POSITIONS& VA_POS_MATRIX)noexcept{
-    for(size_type i = 0, n = VA_POS_MATRIX.size(); i < n; ++i) --VA_POS_MATRIX[i][0];
-  }
-
-
-  // Compose the above 2 helper fcns functions to clean the position data
-  void clean_VA_POS_MATRIX_for_MACRO_ID_comparision(VARARG_POSITIONS& VA_POS_MATRIX)noexcept{
-    remove_VA_POS_MATRIX_duplicate_instances(VA_POS_MATRIX);
-    decrement_first_elt_of_each_VA_POS_VECTOR(VA_POS_MATRIX);
-    // Sort variadics based on descending # of idxs, 
-    //   to process subgroups of nested ... prior outer ...
-    std::sort(VA_POS_MATRIX.begin(),VA_POS_MATRIX.end(),
-      [](macId_position_t& e1,macId_position_t& e2){return e1.size()>e2.size();});
-  }
-
-
-  // Break down sequential grouped instances of variadic identifier matches into individual instances
-  void split_ID_TO_VAL_MAP_children_into_unique_entries(MACRO_ID_TABLE& ID_TO_VAL_MAP)noexcept{
-    for(auto& id_val_pos_tuple : ID_TO_VAL_MAP) {
-      auto& val_pos_pairs = macId_val_pos_map(id_val_pos_tuple);
-      for(size_type i = 0; i < val_pos_pairs.size(); ++i) {
-        // Expand the set of values into single value instances
-        if(val_pos_pairs[i].first.size() > 1) {
-          MACRO_ID_VAL_POS_PAIRS indiv_val_pos_instances;
-          auto posv = val_pos_pairs[i].second;
-          for(size_type j = 1, n = val_pos_pairs[i].first.size(); j < n; ++j) {
-            ++(*posv.rbegin());
-            indiv_val_pos_instances.push_back(std::make_pair(data_vector(1,val_pos_pairs[i].first[j]),posv));
-          }
-          // Erase the excess values in the original value set
-          val_pos_pairs[i].first.erase(val_pos_pairs[i].first.begin()+1,val_pos_pairs[i].first.end());
-          // Add the values/positions as individual instances
-          val_pos_pairs.insert(val_pos_pairs.begin()+i+1,std::make_move_iterator(indiv_val_pos_instances.begin()),
-                                                         std::make_move_iterator(indiv_val_pos_instances.end()));
-        }
-      }
-    }
-  }
-
-
-  // Determine if <id_posv> begins w/ the elts in <prefix>
-  bool id_posv_begins_with_prefix(const macId_position_t& id_posv, const macId_position_t& prefix)noexcept{
-    if(id_posv.size() < prefix.size()) return false;
-    for(size_type i = 0, n = prefix.size(); i < n; ++i)
-      if(id_posv[i] != prefix[i]) return false;
-    return true;
-  }
-
-
-  // init <va_prefix> w/ the prefix values of <id_posv>
-  void get_new_VA_POSV_prefix(macId_position_t& va_prefix, const macId_position_t& id_posv)noexcept{
-    std::copy(id_posv.begin(),id_posv.begin()+va_prefix.size(),va_prefix.begin());
-  }
-
-
-  // Cleans & reorganizes the <MACRO_ID_VAR_TABLE> table for easier analysis
-  void clean_MID_VARG_PAIR_for_macro_expansion_analysis(MACRO_ID_VAR_TABLE& MID_VARG_PAIR) {
-    split_ID_TO_VAL_MAP_children_into_unique_entries(MID_VARG_PAIR.first);
-    clean_VA_POS_MATRIX_for_MACRO_ID_comparision(MID_VARG_PAIR.second);
-  }
-
-
-  // Adds values & positions to a <macro_expansion_node>
-  // => NOTE: LAST UNUSED ARG IS JUST TO MATCH THE SAME FCN PTR TYPE AS <extract_id_children_subgroup>
-  void accumulate_id_leaf_values_and_positions(macro_expansion_node& id_node, MACRO_ID_VAL_POS_PAIR& val_pos_pair, MACRO_EXPANSION_TREES_t&)noexcept{
-    id_node.values.insert(id_node.values.end(),val_pos_pair.first.begin(),val_pos_pair.first.end());
-    id_node.positions.push_back(val_pos_pair.second);
-  }
-
-
-  // Confirm <posv_matrix> contains <sought_posv>
-  bool matrix_contains_vector(const macId_position_t& sought_posv, const std::vector<macId_position_t>& posv_matrix)noexcept{
-    for(auto& posv : posv_matrix) {
-      if(posv.size() != sought_posv.size()) continue;
-      bool same_posv = true;
-      for(size_type i = 0, n = posv.size(); i < n; ++i)
-        if(posv[i] != sought_posv[i]) {
-          same_posv = false;
-          break;
-        }
-      if(same_posv) return true;
-    }
-    return false;
-  }
-
-
-  // Recursive search for <extract_id_children_subgroup>, returns whether found position in subgroup
-  bool extract_id_children_subgroup_recur(macro_expansion_node& child, MACRO_ID_VAL_POS_PAIR& val_pos_pair)noexcept{
-    if(child.is_leaf()) return matrix_contains_vector(val_pos_pair.second,child.positions);
-    for(auto& grand_child : child.children)
-      if(extract_id_children_subgroup_recur(grand_child,val_pos_pair))
-        return true;
-    return false;
-  }
-
-
-  // Extracts the subgroup from <generated_subgroups> containing <val_pos_pair> & puts it into <id_node>
-  // => NOTE: if <generated_subgroups> DOESN'T have <val_pos_pair>, it is assumed to be already in <id_node>
-  void extract_id_children_subgroup(macro_expansion_node& id_node, MACRO_ID_VAL_POS_PAIR& val_pos_pair,
-                                                          MACRO_EXPANSION_TREES_t& generated_subgroups)noexcept{
-    for(size_type i = 0, n = generated_subgroups.size(); i < n; ++i)
-      if(extract_id_children_subgroup_recur(generated_subgroups[i],val_pos_pair)) {
-        id_node.children.push_back(generated_subgroups[i]);
-        generated_subgroups.erase(generated_subgroups.begin()+i);
-        return; // found the subgroup, no more search needed!
-      }
-  }
-
-
-  // Constructs <MACRO_EXPANSION_TREES> based on <ID_TO_VAL_MAP> & <VA_POS_MATRIX>
-  // (transformation yields an easier means to expand nested variadic expressions by)
-  void derive_and_construct_macro_expansion_tree(MACRO_ID_TABLE& ID_TO_VAL_MAP, VARARG_POSITIONS& VA_POS_MATRIX, 
-                                                        MACRO_EXPANSION_TREES_t& MACRO_EXPANSION_TREES)noexcept{
-    // For each identifier instance
-    for(auto& macId_instance : ID_TO_VAL_MAP) {
-      // Create the macro identifier expansion tree's root
-      macro_expansion_node macId_node(macId_name(macId_instance));
-      auto& val_pos_map = macId_val_pos_map(macId_instance);
-
-      // For each ... instance
-      for(auto& va_posv : VA_POS_MATRIX) {
-        auto sought_id_posv_prefix = va_posv;
-        --(*sought_id_posv_prefix.rbegin()); // 1st identifier associated w/ ... appears 1 idx prior ...
-        
-        // If identifier does match against ... instance
-        if(id_posv_begins_with_prefix(val_pos_map[0].second,sought_id_posv_prefix)) {
-          macId_node.is_variadic = true;
-          sought_id_posv_prefix.pop_back(); // rm last idx to match against (no longer relevant to match)
-
-          // Mk a subgroup node for the variadic expansion
-          macro_expansion_node subgroup_node(macId_node.id_name,true);
-
-          // If !macId_node.is_leaf(), keep a buffer of the current children subgroups
-          //   from which to derive a higher level of subgroups (from nested ...)
-          MACRO_EXPANSION_TREES_t generated_subgroups;
-
-          // Fcn to build up the tree, based on whether currently aggregating leaves or combining subgroups
-          void(*build_macro_expansion_tree)(macro_expansion_node&,MACRO_ID_VAL_POS_PAIR&,MACRO_EXPANSION_TREES_t&)noexcept = nullptr;
-          // Add the leaf values as needed
-          if(macId_node.is_leaf()) {
-            accumulate_id_leaf_values_and_positions(subgroup_node,val_pos_map[0],generated_subgroups);
-            build_macro_expansion_tree = accumulate_id_leaf_values_and_positions;
-          // Get the current subgroup set as needed
-          } else {
-            generated_subgroups = std::move(macId_node.children);
-            macId_node.children.clear();
-            extract_id_children_subgroup(subgroup_node,val_pos_map[0],generated_subgroups);
-            build_macro_expansion_tree = extract_id_children_subgroup;
-          }
-
-          // For each value instance of the identifier 
-          for(size_type i = 1, n = val_pos_map.size(); i < n; ++i) {
-            // if value posv matches the current ... subgroup instance
-            if(id_posv_begins_with_prefix(val_pos_map[i].second,sought_id_posv_prefix)) {
-              build_macro_expansion_tree(subgroup_node,val_pos_map[i],generated_subgroups);
-            // if value posv matches a new ... subgroup instance
-            } else {
-              // AT A NEW SUBGROUP!
-              get_new_VA_POSV_prefix(sought_id_posv_prefix,val_pos_map[i].second);
-              // Add the current subgroup as a child, & reset the current subgroup node
-              macId_node.children.push_back(subgroup_node);
-              subgroup_node = macro_expansion_node(macId_node.id_name,true);
-              build_macro_expansion_tree(subgroup_node,val_pos_map[i],generated_subgroups);
-            }
-          } // End of for
-
-          // Add the current subgroup as a child
-          macId_node.children.push_back(subgroup_node);
-
-        } // End of if
-      } // End of for
-      if(!macId_node.is_variadic) {
-        // Save the leaf non-variadic value (in this instance, root = leaf)
-        macId_node.values = val_pos_map[0].first;
-        macId_node.positions.push_back(val_pos_map[0].second);
-      }
-
-      // Register the generated macro id expansion tree
-      if(macId_node.is_variadic && macId_node.children.size() == 1) 
-        MACRO_EXPANSION_TREES.push_back(std::move(macId_node.children[0]));
-      else
-        MACRO_EXPANSION_TREES.push_back(std::move(macId_node));
-    } // End of for
-  }
-
-
-  void expand_macro(const data_vector& args, const string& name, data_vector& expanded_exp, 
-                                                    MACRO_ID_VAR_TABLE& MID_VARG_PAIR){
-    MACRO_EXPANSION_TREES_t MACRO_EXPANSION_TREES;
-    clean_MID_VARG_PAIR_for_macro_expansion_analysis(MID_VARG_PAIR);
-    derive_and_construct_macro_expansion_tree(MID_VARG_PAIR.first,MID_VARG_PAIR.second,MACRO_EXPANSION_TREES);
-    expand_non_variadic_macro_symbols(args,name,expanded_exp,MACRO_EXPANSION_TREES);
-    expand_macro_variadic_identifiers(args,name,expanded_exp,MACRO_EXPANSION_TREES);
-    unwrap_macro_escaped_variadic_tokens(expanded_exp);
-    hash_macro_expansion_identifier("",true); // reset hash idxs
-  }
-
-  /******************************************************************************
-  * MACRO SYNTACTIC EXTENSIONS -- ELLIPSIS HASHING & UNHASHING
-  ******************************************************************************/
-
-  bool data_is_hashable_ellipsis(const data& d)noexcept{
-    return data_is_ellipsis(d) || datum_is_an_escaped_variadic_token(d);
-  }
-
-  bool data_is_hashed_ellipsis(const data& d)noexcept{
-    return d.is_type(types::sym) && string_begins_with(d.sym,symconst::ellipsis_hash);
-  }
-
-  void hash_all_ellipsis_in_macro_args(data_vector& args)noexcept{
-    for(size_type i = 0, n = args.size(); i < n; ++i) {
-      if(args[i].is_type(types::exp)) {
-        hash_all_ellipsis_in_macro_args(args[i].exp);
-      } else if(data_is_hashable_ellipsis(args[i])) {
-        args[i].sym = symconst::ellipsis_hash + args[i].sym;
-      }
-    }
-  }
-
-  void unhash_all_ellipsis_in_macro_args(data_vector& args)noexcept{
-    static const size_type ellipsis_hash_prefix_length = strlen(symconst::ellipsis_hash);
-    for(size_type i = 0, n = args.size(); i < n; ++i) {
-      if(args[i].is_type(types::exp)) {
-        unhash_all_ellipsis_in_macro_args(args[i].exp);
-      } else if(data_is_hashed_ellipsis(args[i])) {
-        args[i].sym = args[i].sym.substr(ellipsis_hash_prefix_length);
-      }
-    }
-  }
-
-  /******************************************************************************
-  * MACRO SYNTACTIC EXTENSIONS -- SYNTAX TRANSFORMER APPLICATION/EXECUTION
-  ******************************************************************************/
-
-  data_vector convert_transformer_data_result_to_syntax(data&& result, const data_vector& macro_expr) {
-    data result_as_syntax;
-    if(!convert_data_to_evaluable_syntax(result,result_as_syntax))
-      THROW_ERR("Syntax Transformer Callable for macro \"" << macro_expr 
-        << "\" didn't result in an evaluable datum:\n     " 
-        << PROFILE(result) << EXP_ERR(macro_expr));
-    if(!result_as_syntax.is_type(types::exp)) {
-      data_vector begin_expr(2);
-      begin_expr[0] = symconst::begin;
-      begin_expr[1] = std::move(result_as_syntax);
-      return begin_expr;
-    }
-    return result_as_syntax.exp;
-  }
-
-
-  data derive_quoted_macro_exression(const data_vector& macro_expr,env_type& env) {
-    data_vector quoted_macro_expr(2);
-    quoted_macro_expr[0] = symconst::quote;
-    quoted_macro_expr[1] = macro_expr;
-    return scm_eval(std::move(quoted_macro_expr),env);
-  }
-
-
-  // Expands the given syntax-transformer procedure & returns success status (ie whether matched)
-  void apply_syntax_transformer_callable(const data_vector& args,const fcn_type& mac,
-                                         data_vector& expanded_exp,env_type& env) {
-    data_vector macro_expr(args.size()+1);
-    macro_expr[0] = mac.name;
-    std::copy(args.begin(), args.end(), macro_expr.begin() + 1);
-    data_vector transformer_args(1,derive_quoted_macro_exression(macro_expr,env));
-    expanded_exp = convert_transformer_data_result_to_syntax(execute_application(mac,transformer_args,env),macro_expr);
-  }
-
-
-  // Expands the given syntax-rules object & returns success status (ie whether matched)
-  bool execute_syntax_rules_transform(const data_vector& args,const syn_type& mac,
-                                      data_vector& expanded_exp,MACRO_ID_VAR_TABLE& MID_VARG_PAIR) {
-    size_type match_idx = 0; // idx of the pattern & template w/in 'mac' that the label & args match
-    if(is_macro_match(args, mac, match_idx, MID_VARG_PAIR)) {
-      expanded_exp = mac.templates[match_idx]; // prefilled, then has contents expanded into it
-      if(!mac.hashed_template_ids[match_idx].empty()) // dynamic <syntax-hash> application
-        apply_syntax_hash_to_identifiers(expanded_exp,mac.hashed_template_ids[match_idx]);
-      expand_macro(args, mac.label, expanded_exp, MID_VARG_PAIR);
-      return true;
-    }
-    return false;
-  }
-
-  /******************************************************************************
-  * MACRO SYNTACTIC EXTENSIONS -- EXPANSION MAIN FUNCTIONS
-  ******************************************************************************/
-
-  // Confirm whether 'application_label' is a potential macro label
-  bool application_is_a_potential_macro(const string& application_label, 
-                                        const str_vector& label_registry)noexcept{
-    if(application_label.empty()) return false;
-    for(const auto& label : label_registry)
-      if(label == application_label)
-        return true;
-    return false;
-  }
-
-
-  // Returns whether the given label & args form a macro found in 'macs'.
-  // If true, it also transforms the macro by expanding it into 'expanded_exp'
-  bool handle_macro_transformation(const string& label,const data_vector& args, 
-                                   const frame_macs& macs,data_vector& expanded_exp,
-                                   env_type& env){
-    //  Map of pattern identifier & expansion value pairs
-    MACRO_ID_VAR_TABLE MID_VARG_PAIR;
-    // Search for macro matches
-    for(const auto& mac : macs) {
-      // Syntax-rules object
-      if(mac.is_type(types::syn)) {
-        if(label == mac.syn.label && execute_syntax_rules_transform(args,mac.syn,expanded_exp,MID_VARG_PAIR)) return true;
-      // Syntax-transformer procedure (extracted from a callable)
-      } else if(mac.is_type(types::fcn)) {
-        if(label == mac.fcn.name) {
-          apply_syntax_transformer_callable(args,mac.fcn,expanded_exp,env);
-          return true;
-        }
-      // Unkown macro value: ERROR!
-      } else {
-        THROW_ERR("HEIST MACRO EXPANDER: UNKNOWN MACRO VALUE " << PROFILE(mac)
-          << "\n     CURRENTLY ONLY SUPPORTING SYNTAX-RULES OBJECTS & PROCEDURES!" 
-          << FCN_ERR(label,args));
-      }
-    }
-    return false;
-  }
-
-
-  // Returns whether the given label & args form a macro found in 'env'.
-  // If true, it also transforms the macro by expanding it into 'expanded_exp'
-  bool expand_macro_if_in_env(const string& label,data_vector args, 
-                              env_type& env,data_vector& expanded_exp){
-    env_type env_iterator = env;
-    hash_all_ellipsis_in_macro_args(args);
-    while(env_iterator != nullptr) {
-      if(handle_macro_transformation(label,args,env_iterator->macros(),expanded_exp,env)) {
-        unhash_all_ellipsis_in_macro_args(expanded_exp);
-        return true;
-      }
-      env_iterator = env_iterator->parent;
-    }
-    return false;
-  }
+  // Get:
+  //   0. bool expand_macro_if_in_env(const string& label,data_vector args,env_type& env,data_vector& expanded)  // expand into <expanded> & return success
+  //   1. bool is_macro_argument_label(const data& d, const str_vector& keywords)                                // <d> is a syntax-rules identifier
+  //   2. bool data_is_ellipsis(const data& d)                                                                   // <d> is the "..." symbol
+  #include "lib/core_evaluator/macro_expander.hpp"
 
   /******************************************************************************
   * MACRO SYNTAX-RULES ANALYSIS VALIDATION HELPER FUNCTIONS:
@@ -3669,7 +1859,7 @@ namespace heist {
   }
 
   /******************************************************************************
-  * ANALYSIS-TIME & ALWAYS-GLOBAL-SCOPE MACRO
+  * REPRESENTING ANALYSIS-TIME & ALWAYS-GLOBAL-SCOPE SYNTACTIC EXTENSIONS
   ******************************************************************************/
 
   bool is_core_syntax(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::core_syn);}
@@ -3691,6 +1881,68 @@ namespace heist {
       // Trigger the definition at runtime
       core_proc(env);
       return GLOBALS::VOID_DATA_OBJECT;
+    };
+  }
+
+  /******************************************************************************
+  * REPRESENTING VARIABLES (& POTENTIAL OBJECT PROPERTY CHAINS!)
+  ******************************************************************************/
+
+  // (string-split <call> ".")
+  void get_object_property_chain_sequence(const string& call, str_vector& chain){
+    chain.push_back("");
+    for(const auto& ch : call) {
+      if(ch == '.')
+        chain.push_back("");
+      else
+        *chain.rbegin() += ch;
+    }
+    // verify no ".." found or ".<call>" or "<call>."
+    for(const auto& link : chain)
+      if(link.empty())
+        THROW_ERR('\''<<call<<" invalid property access (missing an object and/or property)!"
+          << EXP_ERR(call));
+  }
+
+
+  // Returns the ultimate value of the call-chain
+  data get_object_property_chain_value(string&& call, str_vector&& chain, env_type& env) {
+    // get the first object instance
+    data value = lookup_variable_value(chain[0],env);
+    // get the call value
+    for(size_type i = 1, n = chain.size(); i < n; ++i) {
+      if(!value.is_type(types::obj))
+        THROW_ERR('\''<<call<<" can't access property "<<chain[i]<<" in non-object "
+          << PROFILE(value) << '!' << EXP_ERR(call));
+      bool found = false;
+      // if NOT at the end of a call chain, call MUST refer to an object
+      if(i+1 < n) {
+        value = value.obj->get_property(chain[i], found);
+      // if at the end of a call chain, could be referencing a method, so save "self" for extension
+      } else {
+        obj_type self = value.obj;
+        value = value.obj->get_property(chain[i], found);
+        if(value.is_type(types::fcn)) value.fcn.bind_self(self);
+      }
+      if(!found)
+        THROW_ERR('\''<<call<<' '<<chain[i]<<" isn't a property in object\n     " 
+          << value << " of class name [ " << value.obj->proto->class_name << " ]!" << EXP_ERR(call));
+    }
+    return value;
+  }
+
+
+  exe_fcn_t analyze_variable(string variable) {
+    // If a regular variable (no object property chain)
+    if(!symbol_is_property_chain_access(variable))
+      return [variable=std::move(variable)](env_type& env){
+        return lookup_variable_value(variable,env);
+      };
+    // Object accessing members/methods!
+    str_vector chain; // split the call chain into object series
+    get_object_property_chain_sequence(variable,chain);
+    return [variable=std::move(variable),chain=std::move(chain)](env_type& env)mutable{
+      return get_object_property_chain_value(std::move(variable),std::move(chain),env);
     };
   }
 
@@ -3753,68 +2005,6 @@ namespace heist {
 
   bool tracing_procedure(const string& name)noexcept{
     return !G.TRACED_FUNCTION_NAME.empty() && G.TRACED_FUNCTION_NAME == name;
-  }
-
-  /******************************************************************************
-  * ANALYZING VARIABLES (& POTENTIAL OBJECT PROPERTY CHAINS!)
-  ******************************************************************************/
-
-  // (string-split <call> ".")
-  void get_object_property_chain_sequence(const string& call, str_vector& chain){
-    chain.push_back("");
-    for(const auto& ch : call) {
-      if(ch == '.')
-        chain.push_back("");
-      else
-        *chain.rbegin() += ch;
-    }
-    // verify no ".." found or ".<call>" or "<call>."
-    for(const auto& link : chain)
-      if(link.empty())
-        THROW_ERR('\''<<call<<" invalid property access (missing an object and/or property)!"
-          << EXP_ERR(call));
-  }
-
-
-  // Returns the ultimate value of the call-chain
-  data get_object_property_chain_value(string&& call, str_vector&& chain, env_type& env) {
-    // get the first object instance
-    data value = lookup_variable_value(chain[0],env);
-    // get the call value
-    for(size_type i = 1, n = chain.size(); i < n; ++i) {
-      if(!value.is_type(types::obj))
-        THROW_ERR('\''<<call<<" can't access property "<<chain[i]<<" in non-object "
-          << PROFILE(value) << '!' << EXP_ERR(call));
-      bool found = false;
-      // if NOT at the end of a call chain, call MUST refer to an object
-      if(i+1 < n) {
-        value = value.obj->get_property(chain[i], found);
-      // if at the end of a call chain, could be referencing a method, so save "self" for extension
-      } else {
-        obj_type self = value.obj;
-        value = value.obj->get_property(chain[i], found);
-        if(value.is_type(types::fcn)) value.fcn.bind_self(self);
-      }
-      if(!found)
-        THROW_ERR('\''<<call<<' '<<chain[i]<<" isn't a property in object\n     " 
-          << value << " of class name [ " << value.obj->proto->class_name << " ]!" << EXP_ERR(call));
-    }
-    return value;
-  }
-
-
-  exe_fcn_t analyze_variable(string variable) {
-    // If a regular variable (no object property chain)
-    if(!symbol_is_property_chain_access(variable))
-      return [variable=std::move(variable)](env_type& env){
-        return lookup_variable_value(variable,env);
-      };
-    // Object accessing members/methods!
-    str_vector chain; // split the call chain into object series
-    get_object_property_chain_sequence(variable,chain);
-    return [variable=std::move(variable),chain=std::move(chain)](env_type& env)mutable{
-      return get_object_property_chain_value(std::move(variable),std::move(chain),env);
-    };
   }
 
   /******************************************************************************
@@ -3948,7 +2138,6 @@ namespace heist {
     return d.is_type(types::sym) && string_begins_with(d.sym,symconst::continuation);
   }
 
-
   bool procedure_defined_outside_of_CPS_block(const data& p)noexcept{
     return p.is_type(types::fcn) && 
             (p.fcn.is_primitive() || 
@@ -3963,9 +2152,51 @@ namespace heist {
   }
 
   /******************************************************************************
+  * OPERATOR APPLICATION EXTRACTION
+  ******************************************************************************/
+
+  data get_operator(const data_vector& exp)noexcept{
+    return exp[0];
+  }
+
+  data_vector get_operands(const data_vector& exp)noexcept{
+    return data_vector(exp.begin()+1, exp.end());
+  }
+
+  /******************************************************************************
   * CPS-BLOCK APPLICATION
   ******************************************************************************/
 
+  // Convert the <application> expression to be in CPS
+  data cps_expand_application(const data_vector& application) {
+    const auto app_len = application.size();
+    data_vector cps_app(app_len+2);
+    data_vector cps_exp(3);
+    cps_exp[0] = symconst::lambda;
+    cps_exp[1] = data_vector(1,generate_unique_cps_hash()); // "k"
+    cps_exp[2] = data_vector(2);
+    auto iter = cps_exp.begin()+2;
+    for(size_type i = 0; i < app_len; ++i) {
+      if(data_is_cps_atomic(application[i])) {
+        cps_app[i+1] = application[i];
+      } else {
+        iter->exp[0] = generate_fundamental_form_cps(application[i]);
+        iter->exp[1] = data_vector(3);
+        iter->exp[1].exp[0] = symconst::lambda;
+        iter->exp[1].exp[1] = data_vector(1,generate_unique_cps_value_hash()); // "arg"
+        cps_app[i+1] = iter->exp[1].exp[1].exp[0];
+        iter->exp[1].exp[2] = data_vector(2);
+        iter = iter->exp[1].exp.begin()+2;
+      }
+    }
+    cps_app[0] = symconst::cps_app_tag; // Add the cps-application prefix
+    cps_app[app_len+1] = cps_exp[1].exp[0];
+    iter->exp = std::move(cps_app);
+    return cps_exp;
+  }
+
+
+  // Evaluate the argument execution procedures
   void eval_application_arg_procs(const std::vector<exe_fcn_t>& arg_procs,data_vector& arg_vals,env_type& env){
     for(size_type i = 0, n = arg_procs.size(); i < n; ++i)
       arg_vals[i] = arg_procs[i](env);
@@ -3974,8 +2205,8 @@ namespace heist {
 
   // Application of CPS-block defined procedure in a CPS block
   exe_fcn_t analyze_CPS_block_application_of_CPS_proc(data_vector& exp,const bool tail_call){
-    auto op_proc  = scm_analyze(operator_of(exp),false,true);
-    auto arg_exps = operands(exp);
+    auto op_proc  = scm_analyze(get_operator(exp),false,true);
+    auto arg_exps = get_operands(exp);
     std::vector<exe_fcn_t> arg_procs(arg_exps.size());
     for(size_type i = 0, n = arg_exps.size(); i < n; ++i)
       arg_procs[i] = scm_analyze(std::move(arg_exps[i]),false,true);
@@ -4015,7 +2246,7 @@ namespace heist {
 
   // Application of a macro OR non-CPS-block defined procedure entity in a CPS block
   exe_fcn_t analyze_CPS_block_application_of_non_CPS_proc(data_vector& exp,const bool tail_call){
-    auto arg_exps = operands(exp);
+    auto arg_exps = get_operands(exp);
     // Save name of invoking entity (iff a symbol) to check for a possible macro
     string op_name = exp[0].is_type(types::sym) ? exp[0].sym : "";
     // If possible analysis-time macro, expand and return analysis of the expansion
@@ -4063,7 +2294,7 @@ namespace heist {
       exp.erase(exp.begin()); // Rm the cps-application prefix
       return analyze_CPS_block_application(exp,tail_call);
     }
-    auto arg_exps = operands(exp);
+    auto arg_exps = get_operands(exp);
     // Save name of invoking entity (iff a symbol) to check for a possible macro
     string op_name = exp[0].is_type(types::sym) ? exp[0].sym : "";
     // If possible analysis-time macro, expand and return analysis of the expansion
@@ -4075,7 +2306,7 @@ namespace heist {
           << "\") didn't match any patterns!" << EXP_ERR(exp));
       }
     }
-    auto op_proc = scm_analyze(operator_of(exp),false,cps_block);
+    auto op_proc = scm_analyze(get_operator(exp),false,cps_block);
     // If _NOT_ a possible macro, analyze the applicator's args ahead of time
     if(!application_is_a_potential_macro(op_name,G.MACRO_LABEL_REGISTRY)) {
       std::vector<exe_fcn_t> arg_procs(arg_exps.size());
@@ -4116,8 +2347,8 @@ namespace heist {
 
   // -- ANALYZE (SYNTAX)
   exe_fcn_t scm_analyze(data&& datum,const bool tail_call,const bool cps_block) { // analyze expression
-    if(is_self_evaluating(datum))            return [d=std::move(datum)](env_type&){return d;};
-    else if(is_variable(datum))              return analyze_variable(datum.sym);
+    if(datum.is_self_evaluating())           return [d=std::move(datum)](env_type&){return d;};
+    else if(datum.is_type(types::sym))       return analyze_variable(datum.sym);
     else if(datum.exp.empty())                      THROW_ERR("Can't eval an empty expression!"<<EXP_ERR("()"));
     else if(is_quoted(datum.exp))            return analyze_quoted(datum.exp);
     else if(is_assignment(datum.exp))        return analyze_assignment(datum.exp,cps_block);
@@ -4419,7 +2650,7 @@ bool confirm_valid_command_line_args(int argc,char* argv[],int& script_pos,
       puts(HEIST_COMMAND_LINE_ARGS);
       return true;
     } else if(cmd_flag == "-infix") {
-      LOADED_FILES.push_back(HEIST_DIRECTORY_FILE_PATH "/lib/infix.scm");
+      LOADED_FILES.push_back(HEIST_DIRECTORY_FILE_PATH "/lib/core_evaluator/infix.scm");
     } else if(cmd_flag == "-dynamic-call-trace") {
       trace_calls = true;
     } else if(cmd_flag == "-trace-args") {
