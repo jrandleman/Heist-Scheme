@@ -3,7 +3,7 @@
 ### With `python3`, ___and___ `clang++` or `g++`:
 0. Open `/installers/`
 1. Run `$ python3 installer.py`
-   * _Use `$ python3 installer.py -debug` to compile with `-Wall -Wextra`!_
+   * _Use `$ python3 installer.py -debug` to compile with `-O0 -Wall -Wextra`!_
 
 ### Otherwise:
 0. Compile & run `/installers/installer.cpp` using C++17

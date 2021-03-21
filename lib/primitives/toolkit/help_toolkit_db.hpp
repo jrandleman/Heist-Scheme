@@ -11466,7 +11466,7 @@ Contents:
      ---------------------------------------
      A) Open "/installers/"
      B) Run "$ python3 installer.py"
-        *) Use "$ python3 installer.py -debug" to compile with "-Wall -Wextra"!
+        *) Use "$ python3 installer.py -debug" to compile with "-O0 -Wall -Wextra"!
 
   1. Otherwise:
      ----------
