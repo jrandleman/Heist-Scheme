@@ -3016,7 +3016,7 @@ Other primitives of this nature include:<br>
 
 6. __With Input From File__: `(with-input-from-file <filename-string> <nullary-callable>)`
 
-7. __With Output From File__: `(with-output-from-file <filename-string> <nullary-callable>)`
+7. __With Output From File__: `(with-output-to-file <filename-string> <nullary-callable>)`
 
 8. __Generate Input Port__: `(open-input-file <filename-string>)`
 

@@ -71,6 +71,20 @@ namespace heist {
   }
 
   /******************************************************************************
+  * GET CURRENT INPUT/OUTPUT PORT AS FILE POINTERS
+  ******************************************************************************/
+
+  FILE* get_current_output_port(const data_vector& args, const char* name, const char* format) {
+    if(G.CURRENT_OUTPUT_PORT.is_open()) return *G.CURRENT_OUTPUT_PORT.fp;
+    THROW_ERR('\''<<name<<" current output port is closed!" << format << FCN_ERR(name,args));
+  }
+
+  FILE* get_current_input_port(const data_vector& args, const char* name, const char* format) {
+    if(G.CURRENT_INPUT_PORT.is_open()) return *G.CURRENT_INPUT_PORT.fp;
+    THROW_ERR('\''<<name<<" current input port is closed!" << format << FCN_ERR(name,args));
+  }
+
+  /******************************************************************************
   * PRIMITIVE ARGUMENT ANALYSIS HELPERS
   ******************************************************************************/
 
@@ -3409,7 +3423,7 @@ namespace heist {
     if(args.size()==total_non_port_args+1) {
       if(args[total_non_port_args].is_type(types::fop) && 
          args[total_non_port_args].fop.is_open()) {
-        outs = args[total_non_port_args].fop.port(); 
+        outs = *args[total_non_port_args].fop.fp; 
         return true;
       } else if(args[total_non_port_args].is_type(types::str)) {
         return false;
@@ -3909,7 +3923,7 @@ namespace heist {
           return !args[0].str->empty();
         }
         if(args[0].is_type(types::fip) && args[0].fip.is_open()) {
-          ins = args[0].fip.port();
+          ins = *args[0].fip.fp;
           // NOT reading from stdin requires a specialized parsing algorithm
           if(ins != stdin) {
             if(feof(ins)) return false;
@@ -3968,14 +3982,14 @@ namespace heist {
     // throw error otherwise & return void data
     } catch(const READER_ERROR& read_error) {
       if(is_non_repl_reader_error(read_error))
-        alert_non_repl_reader_error(G.CURRENT_OUTPUT_PORT,read_error,outs_str);
+        alert_non_repl_reader_error(stdout,read_error,outs_str);
       else
-        alert_reader_error(G.CURRENT_OUTPUT_PORT,read_error,outs_str);
-      fflush(G.CURRENT_OUTPUT_PORT);
+        alert_reader_error(stdout,read_error,outs_str);
+      fflush(stdout);
       throw SCM_EXCEPT::READ;
     } catch(const size_type& read_error_index) {
-      alert_reader_error(G.CURRENT_OUTPUT_PORT,read_error_index,outs_str);
-      fflush(G.CURRENT_OUTPUT_PORT);
+      alert_reader_error(stdout,read_error_index,outs_str);
+      fflush(stdout);
       throw SCM_EXCEPT::READ;
     }
   }
@@ -4438,18 +4452,16 @@ namespace heist {
       THROW_ERR('\'' << name << " received incorrect # of args:" 
         << format << FCN_ERR(name,args));
     auto procedure = validate_and_extract_callable(args[1], name, format, args);
-    // add file to the port registry
-    GLOBALS::PORT_REGISTRY.push_back(get_port(args[0],name,format,args));
     // apply the given procedure w/ a port to the file
-    data_vector port_arg(1,port_ctor(GLOBALS::PORT_REGISTRY.size()-1));
+    data_vector port_arg(1,port_ctor(get_port(args[0],name,format,args)));
     return execute_application(procedure,port_arg);
   }
 
 
   // Call an argless procedure with a file's port as the default port
-  template<typename PORT_GETTER>
+  template<typename PORT_GETTER, typename PORT_TYPE>
   data primitive_WITH_FILE(data_vector& args,  const char* name,
-                           const char* format, FILE*& DEFAULT_PORT,
+                           const char* format, PORT_TYPE& DEFAULT_PORT,
                            PORT_GETTER get_port){
     // confirm given a filename string & a procedure
     if(args.size() != 2)
@@ -4457,15 +4469,13 @@ namespace heist {
         << format << FCN_ERR(name,args));
     auto procedure = validate_and_extract_callable(args[1], name, format, args);
     // save & set the current port
-    FILE* original_port = DEFAULT_PORT;
-    DEFAULT_PORT = get_port(args[0], name, format, args);
+    auto original_port = DEFAULT_PORT;
+    DEFAULT_PORT = PORT_TYPE(get_port(args[0], name, format, args));
     // apply the given procedure
     data_vector null_arg;
-    auto result   = execute_application(procedure,null_arg);
+    auto result = execute_application(procedure,null_arg);
     // reset the current port
-    if(DEFAULT_PORT && DEFAULT_PORT != stdin && 
-       DEFAULT_PORT != stdout && DEFAULT_PORT != stderr) fclose(DEFAULT_PORT);
-    DEFAULT_PORT = original_port;
+    DEFAULT_PORT = std::move(original_port);
     return result;
   }
 
@@ -4481,14 +4491,13 @@ namespace heist {
   }
 
 
-  bool is_readable_open_input_port(data& d)noexcept{
-    return d.is_type(types::fip) && d.fip.is_open() && d.fip.port() != stdin;
+  bool is_nonstd_open_input_port(data& d)noexcept{
+    return d.is_type(types::fip) && d.fip.is_open() && *d.fip.fp != stdin;
   }
 
 
-  bool is_writable_open_output_port(data& d)noexcept{
-    return d.is_type(types::fop) &&  d.fop.is_open() && 
-           d.fop.port() != stdout && d.fop.port() != stderr;
+  bool is_nonstd_open_output_port(data& d)noexcept{
+    return d.is_type(types::fop) &&  d.fop.is_open() && *d.fop.fp != stdout && *d.fop.fp != stderr;
   }
 
 
@@ -4503,10 +4512,10 @@ namespace heist {
       THROW_ERR('\''<<name<<" 2nd arg " << PROFILE(args[1]) << "\n     isn't an integer:" 
         "\n     (" << name << " <open-port> <integer-offset>)" << FCN_ERR(name,args));
     int result = 0;
-    if(is_readable_open_input_port(args[0])){
-      result = fseek(args[0].fip.port(), (long int)args[1].num.extract_inexact(), origin);
-    } else if(is_writable_open_output_port(args[0])){
-      result = fseek(args[0].fop.port(), (long int)args[1].num.extract_inexact(), origin);
+    if(is_nonstd_open_input_port(args[0])){
+      result = fseek(*args[0].fip.fp, (long int)args[1].num.extract_inexact(), origin);
+    } else if(is_nonstd_open_output_port(args[0])){
+      result = fseek(*args[0].fop.fp, (long int)args[1].num.extract_inexact(), origin);
     }
     return boolean(!result);
   }
@@ -4528,11 +4537,12 @@ namespace heist {
     if(args.size() != 1)
       THROW_ERR("'load received incorrect # of arguments!" << format << FCN_ERR("load", args));
     FILE* ins = confirm_valid_input_file(args[0],"load",format,args);
+    FILE* outs = get_current_output_port(args, "load", format);
     size_type exp_count = 1;
     while(!feof(ins)) {
       // Try reading & evaluating an expression
       try {
-        scm_eval(std::move(primitive_read_from_port(G.CURRENT_OUTPUT_PORT,ins)[0]),env);
+        scm_eval(std::move(primitive_read_from_port(outs,ins)[0]),env);
         ++exp_count;
       // Catch, notify 'load' error occurred, & rethrow
       } catch(const SCM_EXCEPT& load_error) {
@@ -4565,12 +4575,13 @@ namespace heist {
     if(args.size() != 1)
       THROW_ERR("'cps-load received incorrect # of arguments!" << format << FCN_ERR("cps-load", args));
     FILE* ins = confirm_valid_input_file(args[0],"cps-load",format,args);
+    FILE* outs = get_current_output_port(args, "cps-load", format);
     size_type exp_count = 1;
     data AST = data_vector();
     while(!feof(ins)) {
       // Try reading & evaluating an expression
       try {
-        AST.exp.push_back(primitive_read_from_port(G.CURRENT_OUTPUT_PORT,ins)[0]);
+        AST.exp.push_back(primitive_read_from_port(outs,ins)[0]);
         ++exp_count;
       // Catch, notify 'CPS-load' error occurred, & rethrow
       } catch(const SCM_EXCEPT& load_error) {
@@ -4641,11 +4652,12 @@ namespace heist {
   void primitive_read_file_being_compiled(data_vector& args, data_vector& expressions, 
                                           const char* name, const char* format){
     FILE* ins = confirm_valid_input_file(args[0],name,format,args);
+    FILE* outs = get_current_output_port(args, name, format);
     size_type exp_count = 1;
     while(!feof(ins)) {
       // Try reading an expression
       try {
-        expressions.push_back(primitive_read_from_port(G.CURRENT_OUTPUT_PORT,ins)[0]);
+        expressions.push_back(primitive_read_from_port(outs,ins)[0]);
         ++exp_count;
       // Catch, notify 'compile' error occurred, & rethrow
       } catch(const SCM_EXCEPT& compile_error) {
@@ -4887,21 +4899,21 @@ namespace heist {
     // Cook the raw error string
     string error_str = prepare_error_string(*args[1].str, args.size() == 3);
     // Alert error
-    fprintf(G.CURRENT_OUTPUT_PORT, 
+    fprintf(stdout, 
             "\n%s%s%s in %s: %s", afmt(err_format), err_type, afmt(AFMT_01), 
             args[0].sym.c_str(), error_str.c_str());
     // Check for irritants (if provided, these are optional)
     if(args.size() == 3)
-      fprintf(G.CURRENT_OUTPUT_PORT, " with irritant %s", args[2].noexcept_write().c_str());
+      fprintf(stdout, " with irritant %s", args[2].noexcept_write().c_str());
     else if(args.size() > 3) {
       data_vector irritant_list(args.begin()+2, args.end());
-      fprintf(G.CURRENT_OUTPUT_PORT, " with irritants %s", 
+      fprintf(stdout, " with irritants %s", 
               primitive_LIST_to_CONS_constructor(irritant_list.begin(),
                                                  irritant_list.end()
                                                 ).noexcept_write().c_str());
     }
-    fprintf(G.CURRENT_OUTPUT_PORT, "%s\n%s", afmt(AFMT_0), stack_trace_str("").c_str());
-    fflush(G.CURRENT_OUTPUT_PORT);
+    fprintf(stdout, "%s\n%s", afmt(AFMT_0), stack_trace_str("").c_str());
+    fflush(stdout);
     throw SCM_EXCEPT::EVAL;
   }
 
@@ -5694,12 +5706,12 @@ namespace heist {
     } catch(const READER_ERROR& read_error) {
       print_csv_reader_error_alert(seq_prefix[1] == 'v' ? "VECTOR" : "LIST");
       if(is_non_repl_reader_error(read_error))
-           alert_non_repl_reader_error(G.CURRENT_OUTPUT_PORT,read_error,scm_expr);
-      else alert_reader_error(G.CURRENT_OUTPUT_PORT,read_error,scm_expr);
+           alert_non_repl_reader_error(stdout,read_error,scm_expr);
+      else alert_reader_error(stdout,read_error,scm_expr);
       throw SCM_EXCEPT::READ;
     } catch(const size_type& read_error_index) {
       print_csv_reader_error_alert(seq_prefix[1] == 'v' ? "VECTOR" : "LIST");
-      alert_reader_error(G.CURRENT_OUTPUT_PORT,read_error_index,scm_expr);
+      alert_reader_error(stdout,read_error_index,scm_expr);
       throw SCM_EXCEPT::READ;
     }
   }

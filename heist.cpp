@@ -128,22 +128,6 @@ namespace heist {
   }
 }
 
-/******************************************************************************
-* GLOBAL PORT REGISTRY CLEANUP
-******************************************************************************/
-
-namespace heist {
-  void close_port_registry()noexcept{
-    for(size_type i = 2, n = GLOBALS::PORT_REGISTRY.size(); i < n; ++i)
-      if(GLOBALS::PORT_REGISTRY[i] && 
-         GLOBALS::PORT_REGISTRY[i]!=stdout && GLOBALS::PORT_REGISTRY[i]!=stderr &&
-         GLOBALS::PORT_REGISTRY[i]!=stdin){
-        fclose(GLOBALS::PORT_REGISTRY[i]);
-        GLOBALS::PORT_REGISTRY[i] = nullptr;
-      }
-  }
-}
-
 
 #ifndef HEIST_CPP_INTEROP_HPP_ // @NOT-EMBEDDED-IN-C++
 #ifndef HEIST_INTERPRETING_COMPILED_AST // @ONLY-INTERPRETER
@@ -326,10 +310,8 @@ int compile_script(char* argv[], const int& compile_pos, std::string& compile_as
       "\n  => Please send your code to jrandleman@scu.edu to fix"
       "\n     the interpreter's bug!"
       "\n  => Terminating Heist Scheme Interpretation.\n\n" << afmt(heist::AFMT_0));
-    heist::close_port_registry();
     return 1;
   }
-  heist::close_port_registry();
   return 0;
 }
 
@@ -341,10 +323,8 @@ int load_scripts(const std::vector<const char*>& LOADED_FILES) {
   bool old_cps_val = heist::G.USING_CPS_CMD_LINE_FLAG;
   heist::G.USING_CPS_CMD_LINE_FLAG = false;
   for(auto filename : LOADED_FILES)
-    if(int result = load_script(filename); result) {
-      heist::close_port_registry();
+    if(int result = load_script(filename); result)
       return result;
-    }
   heist::G.USING_CPS_CMD_LINE_FLAG = old_cps_val;
   return 0;
 }
@@ -373,19 +353,14 @@ int main(int argc, char* argv[]) {
   if(!LOADED_FILES.empty()) 
     if(int result = load_scripts(LOADED_FILES); result) return result;
   // Interpret a Script (as needed)
-  if(script_pos != -1) {
-    int result = load_script(argv[script_pos]);
-    heist::close_port_registry();
-    return result;
-  }
+  if(script_pos != -1)
+    return load_script(argv[script_pos]);
   // Compile a Script (as needed)
   if(compile_pos != -1) 
     return compile_script(argv, compile_pos, compile_as);
   // Run the REPL
   puts("Heist Scheme Version 7.0\nEnter '(help)' for Help, '(exit)' to Exit");
-  int result = heist::launch_repl();
-  heist::close_port_registry();
-  return result;
+  return heist::launch_repl();
 }
 
 /******************************************************************************
@@ -393,7 +368,8 @@ int main(int argc, char* argv[]) {
 ******************************************************************************/
 
 #else // @ONLY-COMPILER
-void POPULATE_ARGV_REGISTRY(int argc,int& i,char* argv[])noexcept{
+void POPULATE_ARGV_REGISTRY(int argc,char* argv[])noexcept{
+  int i = 0;
   while(i < argc) heist::GLOBALS::ARGV.push_back(heist::str_type(argv[i++]));
 }
 
@@ -424,11 +400,8 @@ int interpret_premade_AST_code(){
 }
 
 int main(int argc, char* argv[]) {
-  int i = 0;
-  POPULATE_ARGV_REGISTRY(argc,i,argv);
-  int result = interpret_premade_AST_code(); 
-  heist::close_port_registry();
-  return result;
+  POPULATE_ARGV_REGISTRY(argc,argv);
+  return interpret_premade_AST_code();
 }
 #endif // @ONLY-COMPILER
 #undef afmt

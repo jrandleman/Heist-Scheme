@@ -78,7 +78,7 @@ namespace heist {
 ******************************************************************************/
 
 #include "scheme_types/boolean.hpp"                                  // struct boolean
-#include "scheme_types/port.hpp"                                     // struct iport, struct oport
+#include "scheme_types/ports/port.hpp"                               // struct iport/oport, fcn noexcept_get_current_output_port, fcn noexcept_get_current_input_port
 #include "scheme_types/syntax_rules_objects/syntax_rules_object.hpp" // struct syntax_rules_object
 #include "scheme_types/functions/function_object.hpp"                // struct function_object
 #include "scheme_types/data/data.hpp"                                // enum class types, struct data
@@ -129,6 +129,7 @@ namespace heist {
 #include "scheme_types/environments/implementation.hpp"
 #include "scheme_types/data/implementation.hpp"
 #include "scheme_types/objects/implementation.hpp"
+#include "scheme_types/ports/implementation.hpp"
 
 /******************************************************************************
 * HEIST COMMAND-LINE FLAG SET

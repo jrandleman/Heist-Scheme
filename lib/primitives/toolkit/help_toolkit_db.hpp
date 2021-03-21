@@ -262,7 +262,7 @@ static constexpr const char* HELP_MENU_PROCEDURES_FILES[] = {
 
 static constexpr const char* HELP_MENU_PROCEDURES_PORTS[] = {
   "open-port?",           "closed-port?",          "current-input-port",   "current-output-port",
-  "call-with-input-file", "call-with-output-file", "with-input-from-file", "with-output-from-file", 
+  "call-with-input-file", "call-with-output-file", "with-input-from-file", "with-output-to-file", 
   "open-input-file",      "open-output-file",      "open-output-file+",    "open-output-file!",
   "rewind-port!",         "port-seek!",            "port-seek-front!",     "close-port", 
 };
@@ -9403,10 +9403,10 @@ Invoke <nullary-callable> with <filename-string> set as the new "current-input-p
 
 
 }, {
-"with-output-from-file",
+"with-output-to-file",
 "Procedure",
 R"(
-(with-output-from-file <filename-string> <nullary-callable>)
+(with-output-to-file <filename-string> <nullary-callable>)
 )",
 R"(
 Invoke <nullary-callable> with <filename-string> set as the new "current-output-port".

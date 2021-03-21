@@ -18,7 +18,7 @@
 namespace heist {
   // Evaluate Heist Scheme Expression in String
   data eval(std::string exp) noexcept {
-    if(!G.GLOBAL_ENVIRONMENT_POINTER) set_default_global_environment(), atexit(close_port_registry);
+    if(!G.GLOBAL_ENVIRONMENT_POINTER) set_default_global_environment();
     data_vector abstract_syntax_tree;
     try {
       // Evaluate AST if successfully parsed an expression
@@ -69,7 +69,7 @@ namespace heist {
   //  => NOTE: "append_env_to_args" is used by higher-order procedures to apply
   //           heist procedures received as arguments
   void define(const std::string& heist_primitive_name, prm_ptr_t cpp_function, bool append_env_to_args=false) noexcept {
-    if(!G.GLOBAL_ENVIRONMENT_POINTER) set_default_global_environment(), atexit(close_port_registry);
+    if(!G.GLOBAL_ENVIRONMENT_POINTER) set_default_global_environment();
     G.GLOBAL_ENVIRONMENT_POINTER->define_variable(heist_primitive_name, fcn_type(heist_primitive_name,cpp_function));
     if(append_env_to_args)
       GLOBALS::USER_DEFINED_PRIMITIVES_REQUIRING_ENV.push_back(cpp_function);
@@ -78,14 +78,14 @@ namespace heist {
 
   // Define Heist Scheme Variable
   void define(const std::string& heist_variable_name, const data& variable_value) noexcept {
-    if(!G.GLOBAL_ENVIRONMENT_POINTER) set_default_global_environment(), atexit(close_port_registry);
+    if(!G.GLOBAL_ENVIRONMENT_POINTER) set_default_global_environment();
     G.GLOBAL_ENVIRONMENT_POINTER->define_variable(heist_variable_name, variable_value);
   }
 
 
   // Apply Heist Scheme Callable by Value
   data apply(data& heist_procedure, data_vector args) noexcept {
-    if(!G.GLOBAL_ENVIRONMENT_POINTER) set_default_global_environment(), atexit(close_port_registry);
+    if(!G.GLOBAL_ENVIRONMENT_POINTER) set_default_global_environment();
     if(!primitive_data_is_a_callable(heist_procedure)) {
       PRINT_ERR("Invalid Heist Scheme Callable: " << PROFILE(heist_procedure));
       return data();
@@ -107,7 +107,7 @@ namespace heist {
 
   // Apply Heist Scheme Callable by Name
   data apply(const std::string& heist_procedure_name, data_vector args) noexcept {
-    if(!G.GLOBAL_ENVIRONMENT_POINTER) set_default_global_environment(), atexit(close_port_registry);
+    if(!G.GLOBAL_ENVIRONMENT_POINTER) set_default_global_environment();
     try {
       auto val = lookup_variable_value(heist_procedure_name,G.GLOBAL_ENVIRONMENT_POINTER);
       return execute_callable(val, args, G.GLOBAL_ENVIRONMENT_POINTER);

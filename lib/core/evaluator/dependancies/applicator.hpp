@@ -19,13 +19,14 @@ void output_debug_call_trace(const fcn_type& procedure,const data_vector& argume
   const auto tail_c_color = tail_call ? AFMT_32 : AFMT_31;
   const auto callce_color = callceing ? AFMT_32 : AFMT_31;
   // Output Trace Data
-  fprintf(G.CURRENT_OUTPUT_PORT,
+  FILE* outs = noexcept_get_current_output_port();
+  fprintf(outs,
           "%s%s#<CALL-TRACE>%s Tail-Call: %s%s%s, Call/ce: %s%s%s %s]=>%s %s%s\n",
           afmt(AFMT_01), afmt(AFMT_35), afmt(AFMT_01), 
           afmt(tail_c_color), in_tail_call, afmt(AFMT_01), 
           afmt(callce_color), using_callce, afmt(AFMT_01), 
           afmt(AFMT_35), afmt(AFMT_01), call_signature.c_str(), afmt(AFMT_0));
-  fflush(G.CURRENT_OUTPUT_PORT);
+  fflush(outs);
 }
 
 
@@ -36,28 +37,31 @@ void print_call_trace_depth_indentation(const fcn_type& procedure,const bool tai
     recursive_depth = procedure.recursive_depth();
     if(recursive_depth && tail_call) --recursive_depth;
   }
+  FILE* outs = noexcept_get_current_output_port();
   for(size_type i = 0; i <= recursive_depth; ++i) {
-    if(i & 1) fputc(' ',G.CURRENT_OUTPUT_PORT);
-    else      fputc('|',G.CURRENT_OUTPUT_PORT);
+    if(i & 1) fputc(' ',outs);
+    else      fputc('|',outs);
   }
-  fflush(G.CURRENT_OUTPUT_PORT);
+  fflush(outs);
 }
 
 
 // Print the current recursive depth as indentation, and the current invocation signature
 void output_call_trace_invocation(const fcn_type& procedure, const data_vector& arguments,const bool tail_call=false)noexcept{
+  FILE* outs = noexcept_get_current_output_port();
   auto call_signature = procedure_call_signature(procedure.printable_procedure_name(),arguments);
   print_call_trace_depth_indentation(procedure,tail_call);
-  fprintf(G.CURRENT_OUTPUT_PORT, "%s\n", call_signature.c_str());
-  fflush(G.CURRENT_OUTPUT_PORT);
+  fprintf(outs, "%s\n", call_signature.c_str());
+  fflush(outs);
 }
 
 
 // Print the current recursive depth as indentation, and the result string
 void output_call_trace_result(const fcn_type& procedure, const data& result)noexcept{
+  FILE* outs = noexcept_get_current_output_port();
   print_call_trace_depth_indentation(procedure);
-  fprintf(G.CURRENT_OUTPUT_PORT, "%s\n", result.noexcept_write().c_str());
-  fflush(G.CURRENT_OUTPUT_PORT);
+  fprintf(outs, "%s\n", result.noexcept_write().c_str());
+  fflush(outs);
 }
 
 

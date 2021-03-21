@@ -232,6 +232,8 @@ namespace heist {
       case types::cls: return "0x" + pointer_to_hexstring(cls.ptr);
       case types::obj: return "0x" + pointer_to_hexstring(obj.ptr);
       case types::prc: return "0x" + pointer_to_hexstring(prc.ptr);
+      case types::fip: return "0x" + pointer_to_hexstring(fip.fp.ptr);
+      case types::fop: return "0x" + pointer_to_hexstring(fop.fp.ptr);
       default: return "";
     }
   }

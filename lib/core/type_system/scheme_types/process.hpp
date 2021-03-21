@@ -48,8 +48,8 @@ namespace heist {
     bool LAST_PRINTED_TO_STDOUT         = false;
 
     /* CURRENT DEFAULT INPUT & OUTPUT PORTS */
-    FILE* CURRENT_INPUT_PORT  = stdin;
-    FILE* CURRENT_OUTPUT_PORT = stdout;
+    iport CURRENT_INPUT_PORT  = stdin;
+    oport CURRENT_OUTPUT_PORT = stdout;
 
     /* GENSYM UNIQUE HASHING KEYS */
     size_type GENSYM_HASH_IDX_1 = 0, GENSYM_HASH_IDX_2 = 0;

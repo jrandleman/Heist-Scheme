@@ -4333,9 +4333,10 @@ namespace heist {
   ******************************************************************************/
 
   data primitive_PPRINT(data_vector& args) {
-    FILE* outs = G.CURRENT_OUTPUT_PORT;
-    bool is_port = confirm_valid_output_args(args, outs, 1, "pretty-print", 
-                    "\n     (pretty-print <obj> <optional-open-output-port-or-string>)");
+    static constexpr const char * const format = 
+      "\n     (pretty-print <obj> <optional-open-output-port-or-string>)";
+    FILE* outs = get_current_output_port(args, "pretty-print", format);
+    bool is_port = confirm_valid_output_args(args, outs, 1, "pretty-print", format);
     if(!args[0].is_type(types::dne)) {
       if(is_port) {
         fputs(args[0].pprint().c_str(), outs);
@@ -4349,9 +4350,10 @@ namespace heist {
   }
 
   data primitive_WRITE(data_vector& args) {
-    FILE* outs = G.CURRENT_OUTPUT_PORT;
-    bool is_port = confirm_valid_output_args(args, outs, 1, "write", 
-                    "\n     (write <obj> <optional-open-output-port-or-string>)");
+    static constexpr const char * const format = 
+      "\n     (write <obj> <optional-open-output-port-or-string>)";
+    FILE* outs = get_current_output_port(args, "write", format);
+    bool is_port = confirm_valid_output_args(args, outs, 1, "write", format);
     if(!args[0].is_type(types::dne)) {
       if(is_port) {
         fputs(args[0].write().c_str(), outs);
@@ -4365,9 +4367,10 @@ namespace heist {
   }
 
   data primitive_NEWLINE(data_vector& args) {
-    FILE* outs = G.CURRENT_OUTPUT_PORT;
-    bool is_port = confirm_valid_output_args(args, outs, 0, "newline", 
-                    "\n     (newline <optional-open-output-port-or-string>)");
+    static constexpr const char * const format = 
+      "\n     (newline <optional-open-output-port-or-string>)";
+    FILE* outs = get_current_output_port(args, "newline", format);
+    bool is_port = confirm_valid_output_args(args, outs, 0, "newline", format);
     if(is_port) {
       fputc('\n', outs);
       fflush(outs);
@@ -4379,23 +4382,24 @@ namespace heist {
   }
 
   data primitive_DISPLAY(data_vector& args) {
-    FILE* outs = G.CURRENT_OUTPUT_PORT;
-    bool is_port = confirm_valid_output_args(args, outs, 1, "display", 
-                    "\n     (display <obj> <optional-open-output-port-or-string>)");
+    static constexpr const char * const format = 
+      "\n     (display <obj> <optional-open-output-port-or-string>)";
+    FILE* outs = get_current_output_port(args, "display", format);
+    bool is_port = confirm_valid_output_args(args, outs, 1, "display", format);
     if(is_port)
       return primitive_display_port_logic(args[0], outs);
     return make_str(*args[1].str + args[0].display());
   }
 
   data primitive_WRITE_CHAR(data_vector& args) {
-    FILE* outs = G.CURRENT_OUTPUT_PORT;
-    bool is_port = confirm_valid_output_args(args, outs, 1, "write-char", 
-                    "\n     (write-char <char> <optional-open-output-port-or-string>)");
+    static constexpr const char * const format = 
+      "\n     (write-char <char> <optional-open-output-port-or-string>)";
+    FILE* outs = get_current_output_port(args, "write-char", format);
+    bool is_port = confirm_valid_output_args(args, outs, 1, "write-char", format);
     // confirm given a character
     if(!args[0].is_type(types::chr))
       THROW_ERR("'write-char arg "<<PROFILE(args[0])<<" isn't a character:" 
-        "\n     (write-char <char> <optional-open-output-port-or-string>)"
-        << FCN_ERR("write-char", args));
+        << format << FCN_ERR("write-char", args));
     if(is_port) {
       fputc(args[0].chr, outs);
       fflush(outs);
@@ -4527,9 +4531,12 @@ namespace heist {
   ******************************************************************************/
 
   data primitive_READ(data_vector& args) {
+    static constexpr const char * const format = 
+      "\n     (read <optional-open-input-port-or-string>)";
+    FILE* outs = get_current_output_port(args, "read", format);
+    FILE* ins = get_current_input_port(args, "read", format);
     // Confirm either given an open input port or string or no args
-    FILE* outs = G.CURRENT_OUTPUT_PORT, *ins = G.CURRENT_INPUT_PORT;
-    bool reading_stdin = (G.CURRENT_INPUT_PORT == stdin), reading_string = false;
+    bool reading_stdin = (ins == stdin), reading_string = false;
     if(!confirm_valid_input_args_and_non_EOF(args, ins, "read", reading_stdin, reading_string)) 
       return chr_type(EOF);
     if(reading_string)
@@ -4538,9 +4545,12 @@ namespace heist {
   }
 
   data primitive_READ_STRING(data_vector& args) {
+    static constexpr const char * const format = 
+      "\n     (read-string <optional-open-input-port-or-string>)";
+    FILE* outs = get_current_output_port(args, "read-string", format);
+    FILE* ins = get_current_input_port(args, "read-string", format);
     // return string w/ next valid scheme expression, if successfully parsed one
-    FILE* outs = G.CURRENT_OUTPUT_PORT, *ins = G.CURRENT_INPUT_PORT;
-    bool reading_stdin = (G.CURRENT_INPUT_PORT == stdin), reading_string = false;
+    bool reading_stdin = (ins == stdin), reading_string = false;
     if(!confirm_valid_input_args_and_non_EOF(args, ins, "read-string", reading_stdin, reading_string)) 
       return chr_type(EOF);
     if(reading_string)
@@ -4549,9 +4559,12 @@ namespace heist {
   }
 
   data primitive_READ_LINE(data_vector& args) {
+    static constexpr const char * const format = 
+      "\n     (read-line <optional-open-input-port-or-string>)";
+    FILE* outs = get_current_output_port(args, "read-line", format);
+    FILE* ins = get_current_input_port(args, "read-line", format);
     // Confirm either given an open input port or no args
-    FILE* outs = G.CURRENT_OUTPUT_PORT, *ins = G.CURRENT_INPUT_PORT;
-    bool reading_stdin = (G.CURRENT_INPUT_PORT == stdin), reading_string = false;
+    bool reading_stdin = (ins == stdin), reading_string = false;
     if(!confirm_valid_input_args_and_non_EOF(args, ins, "read-line", reading_stdin, reading_string)) 
       return chr_type(EOF);
     // Read a line of input into a string
@@ -4569,9 +4582,12 @@ namespace heist {
   }
 
   data primitive_READ_CHAR(data_vector& args) {
+    static constexpr const char * const format = 
+      "\n     (read-char <optional-open-input-port-or-string>)";
+    FILE* outs = get_current_output_port(args, "read-char", format);
+    FILE* ins = get_current_input_port(args, "read-char", format);
     // Confirm either given an open input port or no args
-    FILE* outs = G.CURRENT_OUTPUT_PORT, *ins = G.CURRENT_INPUT_PORT;
-    bool reading_stdin = (G.CURRENT_INPUT_PORT == stdin), reading_string = false;
+    bool reading_stdin = (ins == stdin), reading_string = false;
     if(!confirm_valid_input_args_and_non_EOF(args, ins, "read-char", reading_stdin, reading_string)) 
       return chr_type(EOF);
     // Read a char from a string as needed
@@ -4594,9 +4610,12 @@ namespace heist {
   }
 
   data primitive_PEEK_CHAR(data_vector& args) {
+    static constexpr const char * const format = 
+      "\n     (peek-char <optional-open-input-port-or-string>)";
+    FILE* outs = get_current_output_port(args, "peek-char", format);
+    FILE* ins = get_current_input_port(args, "peek-char", format);
     // Confirm either given an open input port or no args
-    FILE* outs = G.CURRENT_OUTPUT_PORT, *ins = G.CURRENT_INPUT_PORT;
-    bool reading_stdin = (G.CURRENT_INPUT_PORT == stdin), reading_string = false;
+    bool reading_stdin = (ins == stdin), reading_string = false;
     if(!confirm_valid_input_args_and_non_EOF(args, ins, "peek-char", reading_stdin, reading_string)) 
       return chr_type(EOF);
   // Peek a char from a string as needed
@@ -4625,9 +4644,11 @@ namespace heist {
   }
 
   data primitive_CHAR_READYP(data_vector& args) {
+    static constexpr const char * const format = 
+      "\n     (char-ready? <optional-open-input-port-or-string>)";
+    FILE* ins = get_current_input_port(args, "char-ready?", format);
     // Confirm either given an open input port or no args
-    FILE* ins = G.CURRENT_INPUT_PORT;
-    bool reading_stdin = (G.CURRENT_INPUT_PORT == stdin), reading_string = false;
+    bool reading_stdin = (ins == stdin), reading_string = false;
     if(!confirm_valid_input_args_and_non_EOF(args, ins, "char-ready?", reading_stdin, reading_string)) 
       return GLOBALS::FALSE_DATA_BOOLEAN;
     // Empty strings trigger EOF above, hence will always have a character ready here
@@ -4642,9 +4663,11 @@ namespace heist {
 
   // slurp a port's contents into a string
   data primitive_SLURP_PORT(data_vector& args){
+    static constexpr const char * const format = 
+      "\n     (slurp-port <optional-open-input-port-or-string>)";
+    FILE* ins = get_current_input_port(args, "slurp-port", format);
     // confirm given a filename string & slurp file if so
-    FILE* ins = G.CURRENT_INPUT_PORT;
-    bool reading_stdin = (G.CURRENT_INPUT_PORT == stdin), reading_string = false;
+    bool reading_stdin = (ins == stdin), reading_string = false;
     if(!confirm_valid_input_args_and_non_EOF(args, ins, "slurp-port", reading_stdin, reading_string)) 
       return make_str("");
     if(reading_string) return make_str(*args[0].str);
@@ -4807,18 +4830,12 @@ namespace heist {
   // retrieve the current default input & output ports
   data primitive_CURRENT_INPUT_PORT(data_vector& args){
     confirm_no_args_given(args,"current-input-port");
-    for(size_type i = 0, n = GLOBALS::PORT_REGISTRY.size(); i < n; ++i)
-      if(G.CURRENT_INPUT_PORT == GLOBALS::PORT_REGISTRY[i]) 
-        return iport(i);
-    return iport();
+    return G.CURRENT_INPUT_PORT;
   }
 
   data primitive_CURRENT_OUTPUT_PORT(data_vector& args){
     confirm_no_args_given(args,"current-output-port");
-    for(size_type i = 0, n = GLOBALS::PORT_REGISTRY.size(); i < n; ++i)
-      if(G.CURRENT_OUTPUT_PORT == GLOBALS::PORT_REGISTRY[i]) 
-        return oport(i);
-    return oport();
+    return G.CURRENT_OUTPUT_PORT;
   }
 
   // call an unary procedure with a file's port as its argument
@@ -4865,43 +4882,35 @@ namespace heist {
   data primitive_OPEN_INPUT_FILE(data_vector& args){
     // confirm given a filename string
     confirm_given_one_arg(args,"open-input-file","<filename-string>");
-    GLOBALS::PORT_REGISTRY.push_back(confirm_valid_input_file(args[0],"open-input-file",
-      "\n     (open-input-file <filename-string>)",args));
-    return iport(GLOBALS::PORT_REGISTRY.size()-1);
+    return iport(confirm_valid_input_file(args[0],"open-input-file","\n     (open-input-file <filename-string>)",args));
   }
 
   data primitive_OPEN_OUTPUT_FILE(data_vector& args){ // open iff filename dne
     // confirm given a filename string
     confirm_given_one_arg(args,"open-output-file","<filename-string>");
-    GLOBALS::PORT_REGISTRY.push_back(confirm_valid_output_file(args[0],"open-output-file",
-      "\n     (open-output-file <filename-string>)",args));
-    return oport(GLOBALS::PORT_REGISTRY.size()-1);
+    return oport(confirm_valid_output_file(args[0],"open-output-file","\n     (open-output-file <filename-string>)",args));
   }
 
   data primitive_OPEN_OUTPUT_FILE_PLUS(data_vector& args){ // open via "append"
     // confirm given a filename string
     confirm_given_one_arg(args,"open-output-file+","<filename-string>");
-    GLOBALS::PORT_REGISTRY.push_back(confirm_valid_output_append_file(args[0],"open-output-file+",
-      "\n     (open-output-file+ <filename-string>)",args));
-    return oport(GLOBALS::PORT_REGISTRY.size()-1);
+    return oport(confirm_valid_output_append_file(args[0],"open-output-file+","\n     (open-output-file+ <filename-string>)",args));
   }
 
   data primitive_OPEN_OUTPUT_FILE_BANG(data_vector& args){ // deletes if exists, and opens anew
     // confirm given a filename string, & rm file if exists
     confirm_given_one_string_arg(args, "open-output-file!", "\n     (open-output-file! <filename-string>)");
     try { std::filesystem::remove_all(*args[0].str); } catch(...) {}
-    GLOBALS::PORT_REGISTRY.push_back(confirm_valid_output_file(args[0],"open-output-file!",
-      "\n     (open-output-file! <filename-string>)",args));
-    return oport(GLOBALS::PORT_REGISTRY.size()-1);
+    return oport(confirm_valid_output_file(args[0],"open-output-file!","\n     (open-output-file! <filename-string>)",args));
   }
 
   // rewind input or output port
   data primitive_REWIND_PORT_BANG(data_vector& args){
     confirm_given_1_open_port(args, "rewind-port!");
-    if(is_readable_open_input_port(args[0])){
-      rewind(args[0].fip.port());
-    } else if(is_writable_open_output_port(args[0])){
-      rewind(args[0].fop.port());
+    if(is_nonstd_open_input_port(args[0])){
+      rewind(*args[0].fip.fp);
+    } else if(is_nonstd_open_output_port(args[0])){
+      rewind(*args[0].fop.fp);
     }
     return GLOBALS::VOID_DATA_OBJECT;
   }
@@ -4917,12 +4926,10 @@ namespace heist {
   // close input or output port
   data primitive_CLOSE_PORT(data_vector& args){
     confirm_given_1_open_port(args, "close-port");
-    if(is_readable_open_input_port(args[0])){
-      fclose(args[0].fip.port());
-      args[0].fip.port() = nullptr;
-    } else if(is_writable_open_output_port(args[0])){
-      fclose(args[0].fop.port());
-      args[0].fop.port() = nullptr;
+    if(is_nonstd_open_input_port(args[0])){
+      args[0].fip.close();
+    } else if(is_nonstd_open_output_port(args[0])){
+      args[0].fop.close();
     }
     return GLOBALS::VOID_DATA_OBJECT;
   }
@@ -5528,12 +5535,12 @@ namespace heist {
     } catch(const READER_ERROR& read_error) {
       heist_json_parser::print_json_reader_error_alert();
       if(is_non_repl_reader_error(read_error))
-           alert_non_repl_reader_error(G.CURRENT_OUTPUT_PORT,read_error,input);
-      else alert_reader_error(G.CURRENT_OUTPUT_PORT,read_error,input);
+           alert_non_repl_reader_error(stdout,read_error,input);
+      else alert_reader_error(stdout,read_error,input);
       throw SCM_EXCEPT::READ;
     } catch(const size_type& read_error_index) {
       heist_json_parser::print_json_reader_error_alert();
-      alert_reader_error(G.CURRENT_OUTPUT_PORT,read_error_index,input);
+      alert_reader_error(stdout,read_error_index,input);
       throw SCM_EXCEPT::READ;
     }
   }
