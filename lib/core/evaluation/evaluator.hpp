@@ -19,7 +19,7 @@ namespace heist {
   }
 
   bool symbol_is_property_chain_access(const string& sym)noexcept{
-    return sym.find('.') != string::npos && sym != "." && sym != "..";
+    return sym.find('.') != string::npos && sym != string(sym.size(),'.');
   }
 
   data lookup_variable_value(const string& var, env_type& env) {
