@@ -4473,7 +4473,14 @@ namespace heist {
     DEFAULT_PORT = PORT_TYPE(get_port(args[0], name, format, args));
     // apply the given procedure
     data_vector null_arg;
-    auto result = execute_application(procedure,null_arg);
+    data result;
+    try {
+      result = execute_application(procedure,null_arg);
+    } catch(const SCM_EXCEPT& err) {
+      // reset the current port prior re-throwing the error
+      DEFAULT_PORT = std::move(original_port);
+      throw err;
+    }
     // reset the current port
     DEFAULT_PORT = std::move(original_port);
     return result;
