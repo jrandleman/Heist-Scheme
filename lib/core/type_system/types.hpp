@@ -35,9 +35,9 @@ namespace heist {
 * CUSTOM DEPENDANCIES
 ******************************************************************************/
 
-#include "type_dependancies/symbolic_constants.hpp" // namespace symconst
-#include "type_dependancies/garbage_collector.hpp"  // struct tgc_ptr
-#include "scheme_types/numerics/complex.hpp"        // class scm_numeric::Snum
+#include "dependancies/symbolic_constants.hpp" // namespace symconst
+#include "dependancies/garbage_collector.hpp"  // struct tgc_ptr
+#include "scheme_types/numerics/complex.hpp"   // class scm_numeric::Snum
 
 /******************************************************************************
 * HEIST-SCHEME-OBJECT INTERNAL TYPE ALIASES
@@ -112,13 +112,13 @@ namespace heist {
 * PROCESS-INDEPENDENT GLOBAL VARIABLES
 ******************************************************************************/
 
-#include "type_dependancies/process_indpendent_global_variables.hpp"
+#include "dependancies/process_indpendent_global_variables.hpp"
 
 /******************************************************************************
 * ERROR-HANDLING MACROS
 ******************************************************************************/
 
-#include "type_dependancies/error_handling.hpp"
+#include "dependancies/error_handling.hpp"
 
 /******************************************************************************
 * HEIST-SCHEME-OBJECT TYPE IMPLEMENTATIONS
