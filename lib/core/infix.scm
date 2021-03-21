@@ -49,7 +49,6 @@
     ((_ a b ...) (lambda (a) b ...))))
 (infix! 1 ->)
 
-(core-syntax    = (syntax-rules () ((_ n v) (define n v))))
 (core-syntax   <- (syntax-rules () ((_ n v) (set! n v))))
 (core-syntax  **= (syntax-rules () ((_ n v) (set! n (** n v)))))
 (core-syntax   *= (syntax-rules () ((_ n v) (set! n (* n v)))))
@@ -59,4 +58,8 @@
 (core-syntax mod= (syntax-rules () ((_ n v) (set! n (mod n v)))))
 (core-syntax   += (syntax-rules () ((_ n v) (set! n (+ n v)))))
 (core-syntax   -= (syntax-rules () ((_ n v) (set! n (- n v)))))
+(core-syntax = 
+  (syntax-rules () 
+    ((_ (n ...) v) (define (n ...) v))
+    ((_ n v) (define n v))))
 (infixr! 0 = <- **= *= /= %= //= mod= += -=)
