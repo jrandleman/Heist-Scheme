@@ -3717,15 +3717,8 @@ namespace heist {
   #undef throw_invalid_sprintf_precision
 
 
-  void unpack_sequence_into_FORMATTED_string(string& formatted, data& d, sprintf_token_t::token_t token, 
+  void unpack_sequence_into_FORMATTED_string(string& formatted, data& d, string(data::*stringify)()const, 
                                              const char* format, const char* name, data_vector& args) {
-    // Get the stringification function for sequence elements
-    string(data::*stringify)()const = nullptr;
-    switch(token) {
-      case sprintf_token_t::token_t::ellipsis: stringify = &data::display; break;
-      case sprintf_token_t::token_t::wellipsis: stringify = &data::write; break;
-      default: stringify = &data::pprint; break; // sprintf_token_t::token_t::pellipsis
-    }
     // Unpack vectors
     if(d.is_type(types::vec)) {
       for(size_type i = 0, n = d.vec->size(); i < n; ++i) {
@@ -3782,10 +3775,14 @@ namespace heist {
         case sprintf_token_t::token_t::a:  formatted += args[i].display(); break;
         case sprintf_token_t::token_t::wa: formatted += args[i].write();   break;
         case sprintf_token_t::token_t::pa: formatted += args[i].pprint();  break;
-        case sprintf_token_t::token_t::ellipsis: // intentional fallthrough
-        case sprintf_token_t::token_t::wellipsis: // intentional fallthrough
+        case sprintf_token_t::token_t::ellipsis:
+          unpack_sequence_into_FORMATTED_string(formatted,args[i],&data::display,format,name,args); 
+          break;
+        case sprintf_token_t::token_t::wellipsis:
+          unpack_sequence_into_FORMATTED_string(formatted,args[i],&data::write,format,name,args); 
+          break;
         case sprintf_token_t::token_t::pellipsis:
-          unpack_sequence_into_FORMATTED_string(formatted,args[i],tokens[i-1].token,format,name,args); 
+          unpack_sequence_into_FORMATTED_string(formatted,args[i],&data::pprint,format,name,args); 
           break;
         case sprintf_token_t::token_t::dollar:  
           if(!data_is_a_valid_dollar_value(args[i])) THROW_BAD_FORMAT_ARG("real finite numeric");
