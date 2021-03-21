@@ -90,7 +90,7 @@
 #include "lib/core/type_system/types.hpp"
 #include "lib/primitives/primitives.hpp"
 #include "lib/core/input_parser.hpp"
-#include "lib/core/evaluation/evaluator.hpp"
+#include "lib/core/evaluator/evaluator.hpp"
 #include "lib/core/repl.hpp"
 
 /******************************************************************************
