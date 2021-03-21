@@ -112,7 +112,7 @@ namespace heist {
 * PROCESS-INDEPENDENT GLOBAL VARIABLES
 ******************************************************************************/
 
-#include "dependancies/process_indpendent_global_variables.hpp"
+#include "dependancies/process_independent_global_variables.hpp"
 
 /******************************************************************************
 * ERROR-HANDLING MACROS
