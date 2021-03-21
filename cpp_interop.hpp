@@ -70,7 +70,7 @@ namespace heist {
   //           heist procedures received as arguments
   void define(const std::string& heist_primitive_name, prm_ptr_t cpp_function, bool append_env_to_args=false) noexcept {
     if(!G.GLOBAL_ENVIRONMENT_POINTER) set_default_global_environment(), atexit(close_port_registry);
-    define_variable(heist_primitive_name, fcn_type(heist_primitive_name,cpp_function), G.GLOBAL_ENVIRONMENT_POINTER);
+    G.GLOBAL_ENVIRONMENT_POINTER->define_variable(heist_primitive_name, fcn_type(heist_primitive_name,cpp_function));
     if(append_env_to_args)
       GLOBALS::USER_DEFINED_PRIMITIVES_REQUIRING_ENV.push_back(cpp_function);
   }
@@ -79,7 +79,7 @@ namespace heist {
   // Define Heist Scheme Variable
   void define(const std::string& heist_variable_name, const data& variable_value) noexcept {
     if(!G.GLOBAL_ENVIRONMENT_POINTER) set_default_global_environment(), atexit(close_port_registry);
-    define_variable(heist_variable_name, variable_value, G.GLOBAL_ENVIRONMENT_POINTER);
+    G.GLOBAL_ENVIRONMENT_POINTER->define_variable(heist_variable_name, variable_value);
   }
 
 
