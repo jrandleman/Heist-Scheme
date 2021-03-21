@@ -392,7 +392,7 @@
   (lambda (heist:core:quasiquote-expr)
     (if (= (length heist:core:quasiquote-expr) 2)
         (heist:core:quasiquote:optimize (heist:core:quasiquote->quote (cadr heist:core:quasiquote-expr) 0))
-        (syntax-error 'quasiquote "Quasiquote wasn't given exactly 1 arg!" heist:core:quasiquote-expr))))
+        (syntax-error 'quasiquote "Quasiquote wasn't given exactly 1 arg," heist:core:quasiquote-expr))))
 
 ;; =========================================================
 ;; =========== "NEW" MACRO FOR ANONYMOUS OBJECTS ===========
