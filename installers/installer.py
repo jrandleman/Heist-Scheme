@@ -5,15 +5,15 @@
 import os
 import sys
 
-COMPILE_WITH_WARNINGS = len(sys.argv) == 2 and sys.argv[1] == "-debug"
+DEBUGGING = len(sys.argv) == 2 and sys.argv[1] == "-debug"
 
 ###############################################################################
 # Compilation Commands for Clang++ & G++
 ###############################################################################
 
-if COMPILE_WITH_WARNINGS:
-  clangCompilationCmd = "clang++ -std=c++17 -O3 -Wall -Wextra -o ../heist ../heist.cpp"
-  gccCompilationCmd = "g++ -std=c++17 -Wno-psabi -O3 -Wall -Wextra -o ../heist ../heist.cpp"
+if DEBUGGING:
+  clangCompilationCmd = "clang++ -std=c++17 -O0 -Wall -Wextra -o ../heist ../heist.cpp"
+  gccCompilationCmd = "g++ -std=c++17 -Wno-psabi -O0 -Wall -Wextra -o ../heist ../heist.cpp"
 else:
   clangCompilationCmd = "clang++ -std=c++17 -O3 -o ../heist ../heist.cpp"
   gccCompilationCmd = "g++ -std=c++17 -Wno-psabi -O3 -o ../heist ../heist.cpp"

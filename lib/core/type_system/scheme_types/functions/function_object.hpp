@@ -8,7 +8,7 @@ namespace heist {
   struct function_object {
 
     // Type alias for the current recursive depth
-    using depth_t = tgc_ptr<size_type>;
+    using depth_t = tgc_ptr<size_type,0>;
 
 
     // General invariants (applies to both primitives & compound procedures)

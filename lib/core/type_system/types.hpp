@@ -47,7 +47,7 @@ namespace heist {
   using exp_type = data_vector;                                 // expression
   using par_type = tgc_ptr<std::pair<struct data,struct data>>; // pair
   using num_type = scm_numeric::Snum;                           // number (float/int/frac)
-  using str_type = tgc_ptr<string>;                             // string
+  using str_type = tgc_ptr<string,0>;                           // string
   using chr_type = int;                                         // character ("int" allows EOF to be a char)
   using sym_type = string;                                      // symbol
   using vec_type = tgc_ptr<data_vector>;                        // vector

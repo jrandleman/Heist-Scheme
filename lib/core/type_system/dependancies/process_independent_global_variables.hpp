@@ -15,7 +15,7 @@ namespace heist::GLOBALS {
 
 
   /* ARGV REGISTRY OF STRINGS */
-  std::vector<tgc_ptr<string>> ARGV;
+  std::vector<str_type> ARGV;
 
 
   /* STACK TRACE */

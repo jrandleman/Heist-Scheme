@@ -1,6 +1,20 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- garbage_collector.hpp
 // => Contains shared_ptr/GC struct for the C++ Heist Scheme Interpreter
 
+//
+// The <tgc_ptr> struct below provides reference-counting pointers, and comes 
+//   in 2 flavors: cycle-safe, and cycle-unsafe (the latter avoiding GC overhead).
+//
+// By default it's cycle-safe, BUT passing in 0 for <INIT_TGC_CAPACITY> when 
+//   instantiating the struct makes it cycle-unsafe.
+//
+// The reasonable among you may well wonder why in the world should there be 2 options
+//   when <std::shared_ptr> already exists as a standardized means to have cycle-unsafe
+//   reference-counting pointers. The reasoning? The establishment of a common interface 
+//   among ALL reference-counting pointers (regardless of cycle safety) throughout the
+//   entire Heist-Scheme interpreter.
+//
+
 #ifndef HEIST_GARBAGE_COLLECTOR_HPP_
 #define HEIST_GARBAGE_COLLECTOR_HPP_
 
@@ -44,6 +58,9 @@ namespace heist {
 
     // REGISTER & REMOVE PTR FROM TGC
     void register_in_TGC()noexcept{
+      // Verify either NOT storing in GC, OR have a proper scalar
+      static_assert(INIT_TGC_CAPACITY == 0 || TGC_CAPACITY_SCALAR > 1, 
+                    "Cycle-safe pointers reguire a 'TGC_CAPACITY_SCALAR' > 1!");
       // Place in GC (most common)
       if(TGC_LEN < TGC_CAP) {
         TYPED_GARBAGE_COLLECTOR[TGC_LEN++] = TGC_ENTRY(ref_count,ptr);
@@ -78,12 +95,12 @@ namespace heist {
     tgc_ptr(const VAL_T& obj)noexcept{
       ptr = new VAL_T(obj);
       ref_count = new std::size_t(1);
-      register_in_TGC();
+      if constexpr (INIT_TGC_CAPACITY > 0) register_in_TGC();
     }
     tgc_ptr(VAL_T&& obj)noexcept{
       ptr = new VAL_T(std::move(obj));
       ref_count = new std::size_t(1);
-      register_in_TGC();
+      if constexpr (INIT_TGC_CAPACITY > 0) register_in_TGC();
     }
     tgc_ptr(const tgc_ptr& tgc_p)noexcept{
       if(!tgc_p.use_count()) return;
@@ -103,7 +120,7 @@ namespace heist {
       if(*ref_count > 1) {
         --(*ref_count);
       } else { // last obj
-        deregister_in_TGC();
+        if constexpr (INIT_TGC_CAPACITY > 0) deregister_in_TGC();
         delete ref_count;
         delete ptr;
       }
@@ -126,11 +143,14 @@ namespace heist {
       tgc_p.ptr = nullptr, tgc_p.ref_count = nullptr;
     }
 
-    // UNDERLYING POINTER ACCESSORS (PRECONDITIONS: *ref_count > 0)
+    // UNDERLYING POINTER ACCESSORS (PRECONDITION: ref_count && *ref_count > 0)
     VAL_T& operator*()noexcept{return *ptr;}
     VAL_T* operator->()noexcept{return ptr;}
     const VAL_T& operator*()const noexcept{return *ptr;}
     const VAL_T* operator->()const noexcept{return ptr;}
+
+    // CYCLE-SAFETY PREDICATE
+    bool is_cycle_safe()const noexcept{return INIT_TGC_CAPACITY;}
 
     // POINTER COMPARISON
     bool operator==(const tgc_ptr& p)const noexcept{return ptr == p.ptr;}
@@ -148,7 +168,11 @@ namespace heist {
 
     // DTOR
     ~tgc_ptr()noexcept{ 
-      if(TGC_CAP) delete_tgc_ptr(); // TGC not yet invoked
+      if constexpr (INIT_TGC_CAPACITY > 0) {
+        if(TGC_CAP) delete_tgc_ptr(); // TGC not yet invoked
+      } else {
+        delete_tgc_ptr();
+      }
     }
   }; // End of struct tgc_ptr
 
