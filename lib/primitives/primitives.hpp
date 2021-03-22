@@ -2012,44 +2012,30 @@ namespace heist {
   // primitive "circular-list?" procedure:
   data primitive_CIRCULAR_LISTP(data_vector& args) {
     confirm_given_one_arg(args,"circular-list?");
-    // if not pair, GUARENTEED not a circular list
-    if(!args[0].is_type(types::par))
-      return GLOBALS::FALSE_DATA_BOOLEAN;
-    if(primitive_list_is_acyclic_and_null_terminated(args[0]) == list_status::cyclic)
-      return GLOBALS::TRUE_DATA_BOOLEAN;
-    return GLOBALS::FALSE_DATA_BOOLEAN;
+    return boolean(args[0].is_type(types::par) && get_list_status(args[0]) == list_status::circular);
   }
 
   // primitive "list*?" procedure:
   data primitive_LIST_STARP(data_vector& args) {
     confirm_given_one_arg(args, "list*?");
-    // if not pair, GUARENTEED not a dotted list
-    if(!args[0].is_type(types::par))
-      return GLOBALS::FALSE_DATA_BOOLEAN;
-    if(primitive_list_is_acyclic_and_null_terminated(args[0]) == list_status::no_null)
-      return GLOBALS::TRUE_DATA_BOOLEAN;
-    return GLOBALS::FALSE_DATA_BOOLEAN;
+    return boolean(args[0].is_type(types::par) && get_list_status(args[0]) == list_status::dotted);
   }
 
   // primitive "list?" procedure:
   //   => where 'list' := finite & null-terminated pair sequence
   data primitive_LISTP(data_vector& args) {
     confirm_given_one_arg(args,"list?");
-    if(data_is_proper_list(args[0]))
-      return GLOBALS::TRUE_DATA_BOOLEAN;
-    return GLOBALS::FALSE_DATA_BOOLEAN;
+    return boolean(data_is_proper_list(args[0]));
   }
 
   // primitive "alist?" procedure:
   data primitive_ALISTP(data_vector& args) {
     confirm_given_one_arg(args, "alist?");
-    // if not pair, GUARENTEED not an association list
-    if(!args[0].is_type(types::par))
-      return GLOBALS::FALSE_DATA_BOOLEAN;
     // valid association lists are finite, terminate with '(), and only contain other pairs
-    return boolean(
-            (primitive_list_is_acyclic_and_null_terminated(args[0]) == list_status::ok) && 
-             primitive_list_only_contains_pairs(args[0]));
+    return boolean(data_is_the_empty_list(args[0]) || 
+                   (args[0].is_type(types::par) && 
+                    get_list_status(args[0]) == list_status::proper && 
+                    primitive_list_only_contains_pairs(args[0])));
   }
 
   // primitive "last-pair" procedure:
@@ -2370,7 +2356,7 @@ namespace heist {
   data primitive_LENGTH_PLUS(data_vector& args) {
     confirm_given_one_sequence_arg(args, "length+");
     if(args[0].is_type(types::par) &&
-      primitive_list_is_acyclic_and_null_terminated(args[0]) == list_status::cyclic){
+      get_list_status(args[0]) == list_status::circular){
       return GLOBALS::FALSE_DATA_BOOLEAN;
     }
     return primitive_compute_seq_length(args,"length+",

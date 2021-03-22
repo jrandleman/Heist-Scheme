@@ -9,8 +9,8 @@
 * COPYING EXTERNAL HELPER TYPE & FUNCTION
 ******************************************************************************/
 
-enum class list_status {ok, cyclic, no_null};
-list_status primitive_list_is_acyclic_and_null_terminated(const data& curr_pair)noexcept;
+enum class list_status {proper, circular, dotted};
+list_status get_list_status(const data& curr_pair)noexcept;
 
 /******************************************************************************
 * PAIR DEEP-COPYING HELPERS
@@ -89,9 +89,9 @@ data copy_non_circular_list(const data& d) {
 
 
 data deep_copy_pair(const data& d) {
-  switch(primitive_list_is_acyclic_and_null_terminated(d)) {
-    case list_status::ok: 
-    case list_status::no_null: 
+  switch(get_list_status(d)) {
+    case list_status::proper: 
+    case list_status::dotted: 
       return copy_non_circular_list<true>(d);
     default: return copy_circular_list<true>(d);
   }
@@ -144,9 +144,9 @@ data deep_copy_obj(const data& d) {
 ******************************************************************************/
 
 data shallow_copy_pair(const data& d) {
-  switch(primitive_list_is_acyclic_and_null_terminated(d)) {
-    case list_status::ok: 
-    case list_status::no_null: 
+  switch(get_list_status(d)) {
+    case list_status::proper: 
+    case list_status::dotted: 
       return copy_non_circular_list<false>(d);
     default: return copy_circular_list<false>(d);
   }

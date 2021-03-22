@@ -47,7 +47,7 @@ namespace heist {
   string escape_chars(const string& str)noexcept;
   string unescape_chars(const string& str)noexcept;
   num_type    primitive_guarenteed_list_length(const data& d)noexcept;
-  list_status primitive_list_is_acyclic_and_null_terminated(const data& curr_pair)noexcept;
+  list_status get_list_status(const data& curr_pair)noexcept;
   data_vector    primitive_read_from_port(FILE* outs, FILE* ins);
   constexpr bool IS_OPEN_PAREN(const char& c) noexcept;
   constexpr bool IS_CLOSE_PAREN(const char& c) noexcept;
@@ -229,7 +229,7 @@ namespace heist {
   bool data_is_proper_list(const data& d)noexcept{
     return data_is_the_empty_list(d) || // data is the empty list
            (d.is_type(types::par) &&    // OR a finite & '()-terminated pair sequence
-            (primitive_list_is_acyclic_and_null_terminated(d) == list_status::ok));
+            (get_list_status(d) == list_status::proper));
   }
 
 
@@ -277,7 +277,7 @@ namespace heist {
     if(d.is_type(types::str))     return heist_sequence::str;
     if(data_is_the_empty_list(d)) return heist_sequence::nul;
     if(d.is_type(types::par) && 
-      primitive_list_is_acyclic_and_null_terminated(d) == list_status::ok)
+      get_list_status(d) == list_status::proper)
       return heist_sequence::lis;
     THROW_ERR('\''<<name<<" given arg "<<PROFILE(d)<<" isn't a proper sequence!" 
         << format << FCN_ERR(name,args)); // throws
@@ -307,7 +307,7 @@ namespace heist {
 
 
   bool data_is_circular_list(const data& d)noexcept{
-    return d.is_type(types::par) && primitive_list_is_acyclic_and_null_terminated(d) == list_status::cyclic;
+    return d.is_type(types::par) && get_list_status(d) == list_status::circular;
   }
 
 
@@ -535,11 +535,11 @@ namespace heist {
     if(!args[0].is_type(types::par)) {
       THROW_ERR('\''<<name<<' '<<PROFILE(args[0])<<" isn't a proper list:"
         "\n     ("<<name<<" <list>)"<<FCN_ERR(name,args));
-    } else if(auto list_stat = primitive_list_is_acyclic_and_null_terminated(args[0]); 
-      list_stat == list_status::cyclic) {
+    } else if(auto list_stat = get_list_status(args[0]); 
+      list_stat == list_status::circular) {
       THROW_ERR('\''<<name<<' '<<PROFILE(args[0])<<" isn't an acyclic list:"
         "\n     ("<<name<<" <list>)"<<FCN_ERR(name,args));
-    } else if(list_stat == list_status::no_null) {
+    } else if(list_stat == list_status::dotted) {
       THROW_ERR('\''<<name<<' '<<PROFILE(args[0])<<" isn't a '() terminated list:"
         "\n     ("<<name<<" <list>)"<<FCN_ERR(name,args));
     }
@@ -875,11 +875,11 @@ namespace heist {
     if(!args[0].is_type(types::par) && !data_is_the_empty_list(args[0]))
       THROW_ERR("'string-join 1st arg " << PROFILE(args[0]) 
         << " isn't a proper list:" << format << FCN_ERR("string-join",args));
-    else if(auto list_stat = primitive_list_is_acyclic_and_null_terminated(args[0]); 
-      list_stat == list_status::cyclic)
+    else if(auto list_stat = get_list_status(args[0]); 
+      list_stat == list_status::circular)
       THROW_ERR("'string-join 1st arg " << PROFILE(args[0]) 
         << " isn't an acyclic list:" << format << FCN_ERR("string-join",args));
-    else if(list_stat == list_status::no_null)
+    else if(list_stat == list_status::dotted)
       THROW_ERR("'string-join 1st arg " << PROFILE(args[0]) 
         << " isn't a '() terminated list:" << format << FCN_ERR("string-join",args));
     // confirm proper list only has strings
@@ -1106,7 +1106,7 @@ namespace heist {
 
   // "list?" & "alist?" helper. Uses the 1st half of the Floyd Loop Detection 
   //   Algorithm (doesn't need to find WHERE the cycle is).
-  list_status primitive_list_is_acyclic_and_null_terminated(const data& curr_pair)noexcept{
+  list_status get_list_status(const data& curr_pair)noexcept{
     data slow = curr_pair, fast = curr_pair;
     while(fast.is_type(types::par) && fast.par->second.is_type(types::par)) {
       slow = slow.par->second;             // move 1 node/iteration
@@ -1116,14 +1116,14 @@ namespace heist {
     // if found end of the list, return whether ends in '()
     if(!fast.is_type(types::par))
       return data_is_the_empty_list(fast) 
-              ? list_status::ok 
-              : list_status::no_null;
+              ? list_status::proper 
+              : list_status::dotted;
     if(!fast.par->second.is_type(types::par))
       return data_is_the_empty_list(fast.par->second) 
-              ? list_status::ok 
-              : list_status::no_null;
+              ? list_status::proper 
+              : list_status::dotted;
     // if didn't find end of the list, contains a cycle.
-    return list_status::cyclic; 
+    return list_status::circular; 
   }
 
 
@@ -1786,7 +1786,7 @@ namespace heist {
     const auto n = args.size();
     // Confirm Precondition 2 
     if(args[n-1].is_type(types::par) && 
-      primitive_list_is_acyclic_and_null_terminated(args[n-1]) == list_status::cyclic)
+      get_list_status(args[n-1]) == list_status::circular)
       THROW_ERR("'append <list> last argument "<<PROFILE(args[n-1])
         <<" isn't an acyclic list:"<< format << FCN_ERR("append", args));
     // Confirm Precondition 1
@@ -1795,11 +1795,11 @@ namespace heist {
       if(!args[i].is_type(types::par))
         THROW_ERR("'append <list> argument #" << i+1 << ' ' << PROFILE(args[i]) 
           << " isn't a pair:" << format << FCN_ERR("append", args));
-      else if(auto stat = primitive_list_is_acyclic_and_null_terminated(args[i]); 
-        stat == list_status::cyclic) {
+      else if(auto stat = get_list_status(args[i]); 
+        stat == list_status::circular) {
         THROW_ERR("'append <list> argument #" << i+1 << ' ' << PROFILE(args[i]) 
           << " isn't an acyclic list:" << format << FCN_ERR("append", args));
-      } else if(stat == list_status::no_null)
+      } else if(stat == list_status::dotted)
         THROW_ERR("'append <list> argument #" << i+1 << ' ' << PROFILE(args[i]) 
           << " isn't a '() terminated list:" << format << FCN_ERR("append", args));
     }
@@ -1950,7 +1950,7 @@ namespace heist {
     for(size_type i = 1, n = total_lists; i < n; ++i) {
       if(!data_is_the_empty_list(args[i])) {
         if(!args[i].is_type(types::par) || 
-           primitive_list_is_acyclic_and_null_terminated(args[i]) != list_status::ok)
+           get_list_status(args[i]) != list_status::proper)
           THROW_ERR("'seq= <list> arg #"<<i+1<<' '<<PROFILE(args[i])
             <<" isn't a proper null-terminated list:"
             << format << FCN_ERR("seq=", args));
@@ -3750,7 +3750,7 @@ namespace heist {
     } else if(data_is_the_empty_list(d)) {
       return;
     // Unpack proper lists
-    } else if(d.is_type(types::par) && primitive_list_is_acyclic_and_null_terminated(d) == list_status::ok) {
+    } else if(d.is_type(types::par) && get_list_status(d) == list_status::proper) {
       auto iter = d;
       while(iter.is_type(types::par)) {
         formatted += (iter.par->first.*stringify)();
