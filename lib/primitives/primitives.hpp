@@ -6071,7 +6071,7 @@ namespace heist {
     primitive_confirm_data_is_a_callable(args[0], "heist:core:apply-with-continuation", format, args);
     primitive_confirm_data_is_a_callable(*args.rbegin(),"heist:core:apply-with-continuation",format,args);
     data_vector application_args(args.begin()+1,args.end());
-    return execute_callable_callable_with_continuation(args[0],application_args);
+    return execute_callable_with_continuation(args[0],application_args);
   }
 
   /******************************************************************************
