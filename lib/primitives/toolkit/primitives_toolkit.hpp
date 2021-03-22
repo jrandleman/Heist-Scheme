@@ -39,7 +39,6 @@ namespace heist {
   // -- FROM PRIMITIVES & ITS TOOLKIT
   void shallow_unpack_list_into_exp(data& curr_pair, data_vector& args_list)noexcept;
   void primitive_UNFOLD_template(data_vector&,data_vector&,const char*,const char* format);
-  // string procedure_name(const data_vector& p)noexcept;
   string escape_chars(const string& str)noexcept;
   string unescape_chars(const string& str)noexcept;
   num_type primitive_guarenteed_list_length(const data& d)noexcept;
