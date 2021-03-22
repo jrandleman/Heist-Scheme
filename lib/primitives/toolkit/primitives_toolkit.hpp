@@ -20,12 +20,10 @@ namespace heist {
   enum class heist_sequence {lis, nul, vec, str};
 
 
-  //       -- FROM THE EVALUATOR
+  // -- EXTERNAL
   bool is_non_escaped_double_quote(size_type i, const string& input)noexcept;
   bool prepare_string_for_AST_generation(string& input);
-  bool data_is_continuation_parameter(const data& d)noexcept;
   bool expand_macro_if_in_env(const string&,data_vector,env_type&,data_vector&);
-  bool seek_call_value_in_local_object(data& value, const string& property, bool& is_member);
   void parse_input_exp(string&& input, data_vector& abstract_syntax_tree);
   void skip_string_literal(size_type& i, const string& input)noexcept;
   void set_default_global_environment();
@@ -38,17 +36,15 @@ namespace heist {
   std::pair<chr_type,string> data_is_named_char(const size_type&,const string&)noexcept;
 
 
-  //          -- FROM PRIMITIVES & ITS TOOLKIT
-  template<typename OBJECT_TYPE>
-  void   define_setter_method_for_member(OBJECT_TYPE& proto, env_type& env, const string& member_name);
-  void   shallow_unpack_list_into_exp(data& curr_pair, data_vector& args_list)noexcept;
-  void   primitive_UNFOLD_template(data_vector&,data_vector&,const char*,const char* format);
-  string procedure_name(const data_vector& p)noexcept;
+  // -- FROM PRIMITIVES & ITS TOOLKIT
+  void shallow_unpack_list_into_exp(data& curr_pair, data_vector& args_list)noexcept;
+  void primitive_UNFOLD_template(data_vector&,data_vector&,const char*,const char* format);
+  // string procedure_name(const data_vector& p)noexcept;
   string escape_chars(const string& str)noexcept;
   string unescape_chars(const string& str)noexcept;
-  num_type    primitive_guarenteed_list_length(const data& d)noexcept;
+  num_type primitive_guarenteed_list_length(const data& d)noexcept;
   list_status get_list_status(const data& curr_pair)noexcept;
-  data_vector    primitive_read_from_port(FILE* outs, FILE* ins);
+  data_vector primitive_read_from_port(FILE* outs, FILE* ins);
   constexpr bool IS_OPEN_PAREN(const char& c) noexcept;
   constexpr bool IS_CLOSE_PAREN(const char& c) noexcept;
 

@@ -6,8 +6,13 @@
 
 namespace heist {
 
+  /******************************************************************************
+  * HELPER FUNCTION PROTOTYPES
+  ******************************************************************************/
+
   data scm_eval(data&& datum, env_type& env);
   exe_fcn_t scm_analyze(data&& datum,const bool tail_call,const bool cps_block);
+  bool data_is_continuation_parameter(const data& d)noexcept;
 
   /******************************************************************************
   * AST-ANALYSIS HELPER FUNCTIONS
