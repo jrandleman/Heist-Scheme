@@ -33,24 +33,24 @@ in fact, _every standard library primitive is implemented as if it were an exten
 
 Before getting into extending Heist Scheme with C++ primitives though, you'll first want to 
 learn about the underlying C++ type system of Heist Scheme objects. You can learn about this
-type system in `TYPES.md`. 
+type system in [`TYPES.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/docs/TYPES.md). 
 
 Should you want more information about working with Heist objects of a particular type, I'd
-recommend perusing `lib/primitives/stdlib/data` for extensive examples of C++ primitives 
-interoperating with the types described in `TYPES.md`.
+recommend perusing [`lib/primitives/stdlib/data`](https://github.com/jrandleman/Heist-Scheme/tree/master/lib/primitives/stdlib/data) 
+for extensive examples of C++ primitives interoperating with the types described in [`TYPES.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/docs/TYPES.md).
 
 
 ### Writing C++ Primitives
 
 C++ primitives must have the following type signature: `heist::data(std::vector<heist::data>&&)`.
-If those types don't make sense to you, read `TYPES.md`. 
+If those types don't make sense to you, read [`TYPES.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/docs/TYPES.md). 
 
 The vector represents the primitive's "argument list" -- all of Heist's C++ primitves are N-ary, 
 meaning that the number (and type!) of arguments being passed has to be validated by you.
 
 C++ primitives extending Heist automatically have access to `lib/core/type_system/types.hpp`,
-which (last time I'll mention it I swear) is extensively explored by `TYPES.md`. Additionally, 
-C++ primitives also automatically have access to the `lib/primitives/primitive_toolkit.hpp` 
+which (last time I'll mention it I swear) is extensively explored by [`TYPES.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/docs/TYPES.md). 
+Additionally, C++ primitives also automatically have access to the `lib/primitives/primitive_toolkit.hpp` 
 library, which is designed to aid in the development of C++ extensions to Heist Scheme (it's 
 hardly 200 lines of code and well worth the read).
 
