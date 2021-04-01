@@ -59,15 +59,16 @@ into C++ primitive extension files by way of `#include`, they are all prefixed b
 hence can easily be avoided when it comes to managing macro name collisions.
   * These "leaked" macros can be found in [`lib/core/type_system/dependancies/error_handling.hpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/lib/core/type_system/dependancies/error_handling.hpp)
 
-A quick note on C++ namespacing: while all of the C++ primitives in [`lib/primitives/stdlib`](https://github.com/jrandleman/Heist-Scheme/blob/master/lib/primitives/stdlib) are 
-implemented in the `heist` namespace, this isn't strictly needed, and in fact isn't generally 
+A quick note on C++ namespacing: while all of the C++ primitives in [`lib/primitives/stdlib`](https://github.com/jrandleman/Heist-Scheme/blob/master/lib/primitives/stdlib) 
+are implemented in the `heist` namespace, this isn't strictly needed, and in fact isn't generally 
 recommended for 3rd-party primitives. Rather, you should either always explicitly write out the 
 `heist::` prefix, or selectively alias elements of the `heist` namespace (ie `using heist::data;`).
 
 
 ### Registering Primitives
 
-Primitive files are registered in [`lib/primitives/primitives.json`](https://github.com/jrandleman/Heist-Scheme/blob/master/lib/primitives/primitives.json). Take a look at it now!
+Primitive files are registered in [`lib/primitives/primitives.json`](https://github.com/jrandleman/Heist-Scheme/blob/master/lib/primitives/primitives.json). 
+Take a look at it now!
 
 You'll see that the file contains a single JSON object. This object is a set of primitive
 file associations, with filename-string keys and primitive-object values. 
