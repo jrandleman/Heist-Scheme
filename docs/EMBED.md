@@ -1,4 +1,4 @@
-# Embedding Heist Scheme in C++17:
+# Embedding Heist Scheme in C++17
 
 ## Why Embed?
 
