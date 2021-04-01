@@ -27,7 +27,7 @@ functions interoperating with the types described in `TYPES.md`.
 Programs embedding Heist Scheme must `#include` the `interop.hpp` header. This defines 3
 functions -- designed for use in single-threaded environments -- in the `heist` namespace:
 
-0. `heist::data eval(std::string exp)`
+1. `heist::data eval(std::string exp)`
    * Evaluate `exp` as Heist Scheme code.
      - Returns the result of the evaluation.
      - Returns `*exit-success*` or `*exit-failure*` as a _symbol_ if Heist's `exit` gets
@@ -35,16 +35,17 @@ functions -- designed for use in single-threaded environments -- in the `heist` 
      - Note this can be called on string literals by using the `_heist` suffix, IE:
        `auto thricePi = "(* 3 (acos -1))"_heist;`
 
-1. `heist::data apply(std::string heist_procedure_name, std::vector<heist::data> args)`
+2. `heist::data apply(std::string heist_procedure_name, std::vector<heist::data> args)`
    * Apply `args` to `heist_procedure_name` & return the result
    * Alternatively, can pass a `heist::data` callable instead of a `std::string` procedure name
 
-2. `define`
-   * Comes in 2 flavors:<br>
-     0. `void define(std::string heist_variable_name, heist::data variable_value)`
+3. `define`
+   * Comes in 2 flavors:
+
+     1. `void define(std::string heist_variable_name, heist::data variable_value)`
         * Binds `heist_variable_name` to `variable_value` in Heist's global environment
-        
-     1. `void define(std::string primitive_name, heist::prm_ptr_t heist_primitive_function_ptr)`
+
+     2. `void define(std::string primitive_name, heist::prm_ptr_t heist_primitive_function_ptr)`
         * Binds `heist_primitive_function_ptr` as a C++ primitive to `primitive_name` in Heist's
           global environment
           - Note that `heist::prm_ptr_t` is equivalent to `heist::data(*)(std::vector<heist::data>&&)`
