@@ -2,9 +2,10 @@
 
 ## Why Embed?
 
-Whereas `EXTEND.md` discusses extending Heist Scheme with C++17, embedding enables 
+Whereas [`EXTEND.md`](./EXTEND.md) discusses extending Heist Scheme with C++17, embedding enables 
 extending C++17 with Heist Scheme!<br>
-Refer to `examples/embedded_heist_demo.cpp` to see Heist Scheme being embedded in action!
+Refer to [`examples/embedded_heist_demo.cpp`](../examples/embedded_heist_demo.cpp) to see Heist 
+Scheme being embedded in action!
 
 
 
@@ -15,16 +16,17 @@ Refer to `examples/embedded_heist_demo.cpp` to see Heist Scheme being embedded i
 
 Before getting into embedding Heist Scheme in C++ though, you'll first want to learn 
 about the underlying C++ type system of Heist Scheme objects. You can learn about this 
-type system in `TYPES.md`. 
+type system in [`TYPES.md`](./TYPES.md). 
 
 Should you want more information about working with Heist objects of a particular type, 
-I'd recommend perusing `lib/primitives/stdlib/data` for extensive examples of C++ 
-functions interoperating with the types described in `TYPES.md`.
+I'd recommend perusing [`lib/primitives/stdlib/data`](../lib/primitives/stdlib/data) 
+for extensive examples of C++ functions interoperating with the types described in 
+[`TYPES.md`](./TYPES.md).
 
 
 ### Actually Embedding
 
-Programs embedding Heist Scheme must `#include` the `interop.hpp` header.<br>
+Programs embedding Heist Scheme must `#include` the [`interop.hpp`](../interop.hpp) header.<br>
 This defines 3 functions (designed for use in single-threaded environments) in the `heist` namespace:
 
 1. `heist::data eval(std::string exp)`
@@ -47,9 +49,9 @@ This defines 3 functions (designed for use in single-threaded environments) in t
         * Binds `heist_primitive_function_ptr` as a C++ primitive to `primitive_name` in Heist's
           global environment
           - Note that `heist::prm_ptr_t` is equivalent to `heist::data(*)(std::vector<heist::data>&&)`
-            * See `EXTEND.md` for more info on extending Heist Scheme with your own C++ primitives!
+            * See [`EXTEND.md`](./EXTEND.md) for more info on extending Heist Scheme with your own C++ primitives!
         * Pass an extra `true` variable to the end of this function to have the calling environment's pointer<br>
           appended to the end of `heist_primitive_function_ptr`'s arg-list when applied by Heist
           - This enables a form of dynamic scoping, as the environment pointer can in turn be passed<br>
             as an optional 3rd argument to `primitive_toolkit::apply_callable`
-          - Again, see `EXTEND.md` for info on implementing your own C++ primitives for Heist Scheme!
+          - Again, see [`EXTEND.md`](./EXTEND.md) for info on implementing your own C++ primitives for Heist Scheme!
