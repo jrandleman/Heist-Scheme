@@ -1,4 +1,4 @@
-# Installing Heist Scheme in a New Directory:
+# Installing Heist Scheme in a New Directory
 
 ### With `python3`, ___and___ `clang++` or `g++`:
 0. Open `/installers/`
