@@ -41,6 +41,7 @@ functions -- designed for use in single-threaded environments -- in the `heist` 
 
 2. `define`
    * Comes in 2 flavors:
+   
      0. `void define(std::string heist_variable_name, heist::data variable_value)`
         * Binds `heist_variable_name` to `variable_value` in Heist's global environment
      1. `void define(std::string primitive_name, heist::prm_ptr_t heist_primitive_function_ptr)`
