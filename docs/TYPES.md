@@ -29,8 +29,8 @@ reference-counting mechanism.
       optimization technique.
       - For example, Heist strings are cycle-unsafe pointers under the hood, since they 
         never to produce cyclical references.
-      - However, function environment pointers are cycle-safe, since closures can end up
-        causing cyclical environment references.
+      - However, environment pointers are cycle-safe, since closures can cause cyclical 
+        environment references.
       - Heist uses these smart pointers to create objects with "reference semantics".
 
 Error handling is done by macros to get access to C++'s `__FILE__`, `__LINE__`, and 
