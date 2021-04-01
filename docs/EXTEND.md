@@ -48,18 +48,18 @@ If those types don't make sense to you, read [`TYPES.md`](https://github.com/jra
 The vector represents the primitive's "argument list" -- all of Heist's C++ primitves are N-ary, 
 meaning that the number (and type!) of arguments being passed has to be validated by you.
 
-C++ primitives extending Heist automatically have access to `lib/core/type_system/types.hpp`,
+C++ primitives extending Heist automatically have access to [`lib/core/type_system/types.hpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/lib/core/type_system/types.hpp), 
 which (last time I'll mention it I swear) is extensively explored by [`TYPES.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/docs/TYPES.md). 
-Additionally, C++ primitives also automatically have access to the `lib/primitives/primitive_toolkit.hpp` 
+Additionally, C++ primitives also automatically have access to the [`lib/primitives/primitive_toolkit.hpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/lib/primitives/primitive_toolkit.hpp) 
 library, which is designed to aid in the development of C++ extensions to Heist Scheme (it's 
 hardly 200 lines of code and well worth the read).
 
 A quick note on C++ macros: while there are macros from the interpreter that can and will leak
 into C++ primitive extension files by way of `#include`, they are all prefixed by `HEIST_` and 
 hence can easily be avoided when it comes to managing macro name collisions.
-  * These "leaked" macros can be found in `lib/core/type_system/dependancies/error_handling.hpp`
+  * These "leaked" macros can be found in [`lib/core/type_system/dependancies/error_handling.hpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/lib/core/type_system/dependancies/error_handling.hpp)
 
-A quick note on C++ namespacing: while all of the C++ primitives in `lib/primitives/stdlib` are 
+A quick note on C++ namespacing: while all of the C++ primitives in [`lib/primitives/stdlib`](https://github.com/jrandleman/Heist-Scheme/blob/master/lib/primitives/stdlib) are 
 implemented in the `heist` namespace, this isn't strictly needed, and in fact isn't generally 
 recommended for 3rd-party primitives. Rather, you should either always explicitly write out the 
 `heist::` prefix, or selectively alias elements of the `heist` namespace (ie `using heist::data;`).
@@ -67,7 +67,7 @@ recommended for 3rd-party primitives. Rather, you should either always explicitl
 
 ### Registering Primitives
 
-Primitive files are registered in `lib/primitives/primitives.json`. Take a look at it now!
+Primitive files are registered in [`lib/primitives/primitives.json`](https://github.com/jrandleman/Heist-Scheme/blob/master/lib/primitives/primitives.json). Take a look at it now!
 
 You'll see that the file contains a single JSON object. This object is a set of primitive
 file associations, with filename-string keys and primitive-object values. 
@@ -80,19 +80,21 @@ in Heist's global environment.
 
 Simply add you own 3rd-party C++/Scheme primitive file at the end of the JSON object as a new key, 
 and adjust its value accordingly. Note that your primitive filename string should be the full 
-path to said file on your machine -- `stdlib.scm` is a special case handled by the interpreter with 
-some extra logic (since there's no way to know the full path to Heist ahead of time on every user's 
-machine!).
+path to said file on your machine -- [`stdlib.scm`](https://github.com/jrandleman/Heist-Scheme/blob/master/lib/primitives/stdlib/lang/stdlib.scm) 
+is a special case handled by the interpreter with some extra logic (since there's no way to know 
+the full path to Heist ahead of time on every user's machine!).
   * Note that you want to include your bonus primitives at the end of the JSON object to preserve 
     registration order and not befuddle dependancies -- C++ files are always `#include`d in the
-    order they appear in `primitives.json`, and Scheme files are loaded in similar fashion.
+    order they appear in [`primitives.json`](https://github.com/jrandleman/Heist-Scheme/blob/master/lib/primitives/primitives.json), 
+    and Scheme files are loaded in similar fashion.
 
-Finally, follow `INSTALL.md` to re-install Heist Scheme along with your new primitives, et voila! 
-You've officially extended Heist Scheme!
+Finally, follow [`INSTALL.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/docs/INSTALL.md) 
+to re-install Heist Scheme along with your new primitives, et voila! You've officially extended Heist Scheme!
 
 A quick note on dynamic scope: it can be useful for C++ primitives to have access to the calling 
 environment to emulate dynamic scoping (think of `eval`'s `*local-environment*` flag). You can request 
 such for your own C++ primitives by prefixing their key in the JSON object with an asterisk `*` (see 
-`primitive_EVAL` in `primitives.json` for an example). This tells Heist to push the calling `env_type` 
+`primitive_EVAL` in [`primitives.json`](https://github.com/jrandleman/Heist-Scheme/blob/master/lib/primitives/primitives.json) 
+for an example). This tells Heist to push the calling `env_type` 
 environment pointer to the end of the arguments-list when applying your primitive. This environment 
 pointer can in turn be passed as an optional 3rd argument to `primitive_toolkit::apply_callable`.
