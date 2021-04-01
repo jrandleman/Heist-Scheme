@@ -11514,9 +11514,9 @@ Instructions as to how you might install Heist Scheme on your machine.
 Given you're reading this right now, you're presumably familiar with it lol
 
 Contents:
-  ===============================================
-  How to install Heist Scheme in a new directory:
-  ===============================================
+  ===========================================
+  Installing Heist Scheme in a New Directory:
+  ===========================================
 
   0. With "python3", and "clang++" or "g++":
      ---------------------------------------
