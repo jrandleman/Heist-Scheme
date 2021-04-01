@@ -24,8 +24,8 @@ functions interoperating with the types described in `TYPES.md`.
 
 ### Actually Embedding
 
-Programs embedding Heist Scheme must `#include` the `interop.hpp` header. This defines 3
-functions -- designed for use in single-threaded environments -- in the `heist` namespace:
+Programs embedding Heist Scheme must `#include` the `interop.hpp` header.<br>
+This defines 3 functions (designed for use in single-threaded environments) in the `heist` namespace:
 
 1. `heist::data eval(std::string exp)`
    * Evaluate `exp` as Heist Scheme code.
