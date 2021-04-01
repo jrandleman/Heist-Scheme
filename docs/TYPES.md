@@ -24,8 +24,9 @@ eference-counting mechanism.
   - Allocate and initialize a cycle-safe pointer: `auto p = tgc_ptr<typename>(value)` 
   - Allocate and initialize a cycle-unsafe pointer: `auto p = tgc_ptr<typename,0>(value)`
     * If not given a `value`, `tgc_ptr`s are equivalent to `nullptr` by default.
-    * Cycle-unsafe pointers are effectively `std::shared_ptr`. Forsaking cycle-safety
-      creates faster/"thinner" pointers, so such is simply an optimization technique.
+    * Cycle-unsafe pointers are effectively `std::shared_ptr`.<br>
+      Forsaking cycle-safety creates faster/"thinner" pointers, so such is simply an 
+      optimization technique.
       - For example, Heist strings are cycle-unsafe pointers under the hood, since they 
         never to produce cyclical references.
       - However, function environment pointers are cycle-safe, since closures make it
