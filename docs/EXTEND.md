@@ -88,7 +88,7 @@ machine!).
     order they appear in `primitives.json`, and Scheme files are loaded in similar fashion.
 
 Finally, follow `INSTALLER.md` to re-install Heist Scheme along with your new primitives, et voila! 
-You've officially extended Heist Scheme \*insert-thunderous-applause-here\*!
+You've officially extended Heist Scheme!
 
 A quick note on dynamic scope: it can be useful for C++ primitives to have access to the calling 
 environment to emulate dynamic scoping (think of `eval`'s `*local-environment*` flag). You can request 
