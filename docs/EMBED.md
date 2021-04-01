@@ -40,8 +40,7 @@ functions -- designed for use in single-threaded environments -- in the `heist` 
    * Alternatively, can pass a `heist::data` callable instead of a `std::string` procedure name
 
 2. `define`
-   * Comes in 2 flavors:
-   
+   * Comes in 2 flavors:<br>
      0. `void define(std::string heist_variable_name, heist::data variable_value)`
         * Binds `heist_variable_name` to `variable_value` in Heist's global environment
      1. `void define(std::string primitive_name, heist::prm_ptr_t heist_primitive_function_ptr)`
