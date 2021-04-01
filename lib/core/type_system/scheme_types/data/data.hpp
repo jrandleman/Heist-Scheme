@@ -1,8 +1,8 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- data.hpp
 // => Contains Heist-Scheme-Object "data" data structure for the C++ Heist Scheme Interpreter
 
-#ifndef HEIST_DATA_HPP_
-#define HEIST_DATA_HPP_
+#ifndef HEIST_SCHEME_CORE_DATA_HPP_
+#define HEIST_SCHEME_CORE_DATA_HPP_
 
 namespace heist {
 

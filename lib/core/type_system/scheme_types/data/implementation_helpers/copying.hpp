@@ -2,8 +2,8 @@
 // => Contains helper functions for "struct data" value copying for the C++ 
 //    Heist Scheme Interpreter
 
-#ifndef HEIST_DATA_COPYING_HPP_
-#define HEIST_DATA_COPYING_HPP_
+#ifndef HEIST_SCHEME_CORE_DATA_COPYING_HPP_
+#define HEIST_SCHEME_CORE_DATA_COPYING_HPP_
 
 /******************************************************************************
 * COPYING EXTERNAL HELPER TYPE & FUNCTION

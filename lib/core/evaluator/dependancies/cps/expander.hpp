@@ -8,8 +8,8 @@
 //   3. string      generate_unique_cps_hash()                 // generate a unique/hashed continuation name
 //   4. string      generate_unique_cps_value_hash()           // generate a unique/hashed non-continuation value name
 
-#ifndef HEIST_CPS_EXPANDER_HPP_
-#define HEIST_CPS_EXPANDER_HPP_
+#ifndef HEIST_SCHEME_CORE_CPS_EXPANDER_HPP_
+#define HEIST_SCHEME_CORE_CPS_EXPANDER_HPP_
 
 /******************************************************************************
 * CONTINUATION-PASSING-STYLE EXPANSION OPTIMIZATION
@@ -24,7 +24,7 @@
 
 // Expand data's core syntax macros
 data cps_recursively_deep_expand_core_macros(const data& d) {
-  return recursively_deep_expand_syntax_macros(d,G.GLOBAL_ENVIRONMENT_POINTER,true);
+  return stdlib_controlflow::recursively_deep_expand_syntax_macros(d,G.GLOBAL_ENVIRONMENT_POINTER,true);
 }
 
 /******************************************************************************
@@ -623,7 +623,7 @@ data_vector generate_fundamental_form_cps(const data& code,const bool topmost_ca
   // APPLICATION
   } else {
     if(code.exp.empty())
-      THROW_ERR("'scm->cps CAN'T EVAL AN EMPTY EXPRESSION!" << EXP_ERR(code.exp));
+      HEIST_THROW_ERR("'scm->cps CAN'T EVAL AN EMPTY EXPRESSION!" << HEIST_EXP_ERR(code.exp));
     // Applications are expanded @eval-time (accounts for expanding macros)
     if(code.exp[0].is_type(types::sym) && is_HEIST_cpp_derived_special_form(code.exp[0].sym))
       return code.exp; // Don't tag applications of HEIST's C++ derived forms

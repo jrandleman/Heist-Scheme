@@ -3,12 +3,12 @@
 //    C++ Heist Scheme Interpreter
 // => Defines the "extend_environment" procedure
 
-#ifndef HEIST_ENVIRONMENT_EXTENSION_HPP_
-#define HEIST_ENVIRONMENT_EXTENSION_HPP_
+#ifndef HEIST_SCHEME_CORE_ENVIRONMENT_EXTENSION_HPP_
+#define HEIST_SCHEME_CORE_ENVIRONMENT_EXTENSION_HPP_
 
 namespace heist {
 
-  // Helper procedure provided by "input_parser.hpp"
+  // Helper procedure provided by "lib/core/reader/parser.hpp"
   bool string_begins_with(const string& str, const char* substr, size_type begin = 0)noexcept;
 
   /******************************************************************************
@@ -33,10 +33,10 @@ namespace heist {
     string defn_signature('(' + name);
     for(const auto& var : vars) defn_signature += ' ' + var;
     // Return the comparison between the called & defined procedure signatures
-    return '\n' + string(afmt(AFMT_35)) + "  >> Invalid Syntax:" + 
-                  string(afmt(AFMT_01)) + ' ' + call_signature + 
-           '\n' + string(afmt(AFMT_35)) + "  >> Defined Syntax:" + 
-                  string(afmt(AFMT_01)) + ' ' + defn_signature + ')';
+    return '\n' + string(HEIST_AFMT(AFMT_35)) + "  >> Invalid Syntax:" + 
+                  string(HEIST_AFMT(AFMT_01)) + ' ' + call_signature + 
+           '\n' + string(HEIST_AFMT(AFMT_35)) + "  >> Defined Syntax:" + 
+                  string(HEIST_AFMT(AFMT_01)) + ' ' + defn_signature + ')';
   }
 
 
@@ -93,22 +93,22 @@ namespace heist {
   void confirm_valid_environment_extension(str_vector& vars, data_vector& vals, const string& name){
     // Confirm nullary signature matches
     if(nullary_invocation_of_non_nullary_procedure(vars,vals))
-      THROW_ERR("Too few arguments supplied!" << improper_call_alert(name,vals,vars));
+      HEIST_THROW_ERR("Too few arguments supplied!" << improper_call_alert(name,vals,vars));
     if(non_nullary_invocation_of_nullary_procedure(vars,vals))
-      THROW_ERR("Too many arguments supplied!" << improper_call_alert(name,vals,vars));
+      HEIST_THROW_ERR("Too many arguments supplied!" << improper_call_alert(name,vals,vars));
     // Transform variadic arg's corresponding values into a list (if present)
     const bool is_cps_variadic = is_cps_variadic_arg_declaration(vars);
     if(variadic_arg_declaration(vars,is_cps_variadic)) {
       if(invalid_variadic_arg_declaration(vars,vals,is_cps_variadic))
-        THROW_ERR("Too few arguments supplied!" << improper_call_alert(name,vals,vars));
+        HEIST_THROW_ERR("Too few arguments supplied!" << improper_call_alert(name,vals,vars));
       transform_variadic_vals_into_a_list(vars,vals,is_cps_variadic);
     }
     // Confirm argument number and parameter number match
     const auto vars_length = vars.size(), vals_length = vals.size();
     if(vars_length < vals_length)
-      THROW_ERR("Too many arguments supplied!" << improper_call_alert(name,vals,vars));
+      HEIST_THROW_ERR("Too many arguments supplied!" << improper_call_alert(name,vals,vars));
     else if(vars_length > vals_length)
-      THROW_ERR("Too few arguments supplied!" << improper_call_alert(name,vals,vars));
+      HEIST_THROW_ERR("Too few arguments supplied!" << improper_call_alert(name,vals,vars));
   }
 
   /******************************************************************************

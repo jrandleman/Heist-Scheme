@@ -2,8 +2,8 @@
 // => Defines Numeric class for Heist Scheme Complex Numbers
 // => NOTE: ACTS AS A WRAPPER AROUND 2 <class Snum_real> OBJECTS!
 
-#ifndef HEIST_COMPLEX_HPP_
-#define HEIST_COMPLEX_HPP_
+#ifndef HEIST_SCHEME_CORE_COMPLEX_HPP_
+#define HEIST_SCHEME_CORE_COMPLEX_HPP_
 
 #include "real.hpp"
 

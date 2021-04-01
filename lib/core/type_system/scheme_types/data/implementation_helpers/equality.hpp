@@ -2,8 +2,8 @@
 // => Contains helper functions for "struct data" value equality for the C++ 
 //    Heist Scheme Interpreter
 
-#ifndef HEIST_DATA_EQUALITY_HELPERS_HPP_
-#define HEIST_DATA_EQUALITY_HELPERS_HPP_
+#ifndef HEIST_SCHEME_CORE_DATA_EQUALITY_HELPERS_HPP_
+#define HEIST_SCHEME_CORE_DATA_EQUALITY_HELPERS_HPP_
 
 /******************************************************************************
 * GENERIC DATA EQUALITY METHOD TYPE ALIAS

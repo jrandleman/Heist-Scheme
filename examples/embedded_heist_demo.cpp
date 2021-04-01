@@ -1,7 +1,7 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- embedded_heist_demo.cpp
-// => Demos Heist's ability to act as an embedded scripting langauge w/in C++
+// => Demos Heist's ability to act as an embedded scripting language w/in C++
 
-#include "../cpp_interop.hpp" // -:- READ THIS FOR DETAILS! -:-
+#include "../interop.hpp" // -:- READ THIS & "docs/EMBED.md" FOR DETAILS! -:-
 
 
 // C++ Factorial Function
@@ -11,8 +11,8 @@ auto big_int_cpp_factorial_recur(const heist::num_type& n,const heist::num_type&
 }
 
 
-// Heist C++ primitive signature: heist::data(*)(std::vector<heist::data>&)
-heist::data my_factorial(std::vector<heist::data>& args){ // C++ Hiest User-Defined Primitive
+// Heist C++ primitive signature: heist::data(*)(std::vector<heist::data>&&)
+heist::data my_factorial(std::vector<heist::data>&& args){ // C++ Hiest User-Defined Primitive
   if(args.size() != 1 || !args[0].is_type(heist::types::num)) {
     std::cerr << "Invalid Arguments given to '!: " << args << '\n';
     return heist::data(); // empty data is of type "undefined" by default

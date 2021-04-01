@@ -1,8 +1,8 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- implementation.hpp
 // => Contains method implementations of "struct data" for the C++ Heist Scheme Interpreter
 
-#ifndef HEIST_DATA_IMPLEMENTATION_HPP_
-#define HEIST_DATA_IMPLEMENTATION_HPP_
+#ifndef HEIST_SCHEME_CORE_DATA_IMPLEMENTATION_HPP_
+#define HEIST_SCHEME_CORE_DATA_IMPLEMENTATION_HPP_
 
 namespace heist {
 

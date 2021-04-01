@@ -6,8 +6,8 @@
 //   1. bool is_macro_argument_label(const data& d, const str_vector& keywords)                                // <d> is a syntax-rules identifier
 //   2. bool data_is_ellipsis(const data& d)                                                                   // <d> is the "..." symbol
 
-#ifndef HEIST_MACRO_EXPANDER_HPP_
-#define HEIST_MACRO_EXPANDER_HPP_
+#ifndef HEIST_SCHEME_CORE_MACRO_EXPANDER_HPP_
+#define HEIST_SCHEME_CORE_MACRO_EXPANDER_HPP_
 
 /******************************************************************************
 * REPRESENTING MACRO SYNTACTIC EXTENSIONS -- SYNTAX-RULES PARSING TYPE ALIASES
@@ -410,11 +410,11 @@ void confirm_identifier_variadic_length_is_consistent(size_type& total_expansion
   if(total_expansions == GLOBALS::MAX_SIZE_TYPE) {
     total_expansions = result;
   } else if(total_expansions != result && result != GLOBALS::MAX_SIZE_TYPE) {
-    THROW_ERR("'syntax-rules Different variadic identifiers can't expand in the same template expression!"
+    HEIST_THROW_ERR("'syntax-rules Different variadic identifiers can't expand in the same template expression!"
       "\n     Length 1 = " << total_expansions << ", Length 2 = " << result << 
       "\n     In subexpression: [ " << exp << " ]"
       "\n     Of template expansion: [ " << expanded_exp << " ]\n" 
-      << stringify_MACRO_EXPANSION_TREES(MACRO_EXPANSION_TREES) << FCN_ERR(name,args));
+      << stringify_MACRO_EXPANSION_TREES(MACRO_EXPANSION_TREES) << HEIST_FCN_ERR(name,args));
   }
 }
 
@@ -453,9 +453,9 @@ void expand_macro_variadic_identifiers(const data_vector& args, const string& na
         if(val_idx == GLOBALS::MAX_SIZE_TYPE) continue; // symbol != variadic macro identifier
         // confirm expanding into a non-nested variadic identifier
         if(!MACRO_EXPANSION_TREES[val_idx].is_leaf())
-          THROW_ERR("'syntax-rules Misplaced \"...\" after improper non-nested variadic identifier [ " 
+          HEIST_THROW_ERR("'syntax-rules Misplaced \"...\" after improper non-nested variadic identifier [ " 
             << expanded_exp[i].sym << " ]\n     in [ " << expanded_exp << " ]\n"
-            << stringify_MACRO_EXPANSION_TREES(MACRO_EXPANSION_TREES) << FCN_ERR(name,args));
+            << stringify_MACRO_EXPANSION_TREES(MACRO_EXPANSION_TREES) << HEIST_FCN_ERR(name,args));
         // erase the identifier & "...", then insert the variadic expansion values
         auto& expansions = MACRO_EXPANSION_TREES[val_idx].values;
         expanded_exp.erase(expanded_exp.begin()+i,expanded_exp.begin()+i+2);
@@ -467,8 +467,8 @@ void expand_macro_variadic_identifiers(const data_vector& args, const string& na
         size_type total_expansions = verify_all_identifiers_have_same_variadic_length(args,name,expanded_exp[i].exp,
                                                                                       expanded_exp,MACRO_EXPANSION_TREES);
         if(total_expansions == GLOBALS::MAX_SIZE_TYPE)
-          THROW_ERR("'syntax-rules Misplaced \"...\" after non-variadic subexpression [ " 
-            << expanded_exp[i].exp << " ]\n     in [ " << expanded_exp << " ]" << FCN_ERR(name,args));
+          HEIST_THROW_ERR("'syntax-rules Misplaced \"...\" after non-variadic subexpression [ " 
+            << expanded_exp[i].exp << " ]\n     in [ " << expanded_exp << " ]" << HEIST_FCN_ERR(name,args));
         data_vector expansions(total_expansions,expanded_exp[i].exp);
         // tag <expansions> nested identifiers, tag associated tree groups & 
         //   wrench them up to be a root (WHILE KEEPING THE NEW ROOTS IN PLACE)
@@ -480,9 +480,9 @@ void expand_macro_variadic_identifiers(const data_vector& args, const string& na
         --i; // mv back to account for loop's "++" & completely re-traverse expanded exp
       // NOTE: SHOULD NEVER BE INVOKED, BUT KEPT HERE AS A SAFETY GUARD
       } else {
-        THROW_ERR("'syntax-rules Misplaced \"...\" after non-variadic identifier [ " 
+        HEIST_THROW_ERR("'syntax-rules Misplaced \"...\" after non-variadic identifier [ " 
           << expanded_exp[i].sym << " ]\n     in [ " << expanded_exp << " ]\n"
-          << stringify_MACRO_EXPANSION_TREES(MACRO_EXPANSION_TREES) << FCN_ERR(name,args));
+          << stringify_MACRO_EXPANSION_TREES(MACRO_EXPANSION_TREES) << HEIST_FCN_ERR(name,args));
       }
     // Parse the nested non-variadic expression
     } else if(expanded_exp[i].is_type(types::exp)) {
@@ -510,8 +510,8 @@ void expand_non_variadic_macro_symbols(const data_vector& args, const string& na
         ++i;
       // Catch non-macro syntax identifiers OR non-variadic syntax identifier followed by ...
       } else {
-        THROW_ERR("'syntax-rules Misplaced \"...\" after non-variadic identifier [ " 
-          << expanded_exp[i].sym << " ]\n     in [ " << expanded_exp << " ]" << FCN_ERR(name,args));
+        HEIST_THROW_ERR("'syntax-rules Misplaced \"...\" after non-variadic identifier [ " 
+          << expanded_exp[i].sym << " ]\n     in [ " << expanded_exp << " ]" << HEIST_FCN_ERR(name,args));
       }
     } else if(expanded_exp[i].is_type(types::exp)) {
       // Recursively expand symbolic identifiers
@@ -520,11 +520,11 @@ void expand_non_variadic_macro_symbols(const data_vector& args, const string& na
       if(i+1 < expanded_exp.size() && data_is_ellipsis(expanded_exp[i+1])) ++i;
     } else if(data_is_ellipsis(expanded_exp[i])) {
       if(i) {
-        THROW_ERR("'syntax-rules Misplaced \"...\" after non-variadic identifier [ " 
-          << expanded_exp[i-1].sym << " ]\n     in [ " << expanded_exp << " ]" << FCN_ERR(name,args));
+        HEIST_THROW_ERR("'syntax-rules Misplaced \"...\" after non-variadic identifier [ " 
+          << expanded_exp[i-1].sym << " ]\n     in [ " << expanded_exp << " ]" << HEIST_FCN_ERR(name,args));
       } else {
-        THROW_ERR("'syntax-rules Misplaced \"...\" at front of a template expression!" 
-          << expanded_exp << FCN_ERR(name,args));
+        HEIST_THROW_ERR("'syntax-rules Misplaced \"...\" at front of a template expression!" 
+          << expanded_exp << HEIST_FCN_ERR(name,args));
       }
     }
   }
@@ -857,10 +857,10 @@ void unhash_all_ellipsis_in_macro_args(data_vector& args)noexcept{
 
 data_vector convert_transformer_data_result_to_syntax(data&& result, const data_vector& macro_expr) {
   data result_as_syntax;
-  if(!convert_data_to_evaluable_syntax(result,result_as_syntax))
-    THROW_ERR("Syntax Transformer Callable for macro \"" << macro_expr 
+  if(!primitive_toolkit::convert_data_to_evaluable_syntax(result,result_as_syntax))
+    HEIST_THROW_ERR("Syntax Transformer Callable for macro \"" << macro_expr 
       << "\" didn't result in an evaluable datum:\n     " 
-      << PROFILE(result) << EXP_ERR(macro_expr));
+      << HEIST_PROFILE(result) << HEIST_EXP_ERR(macro_expr));
   if(!result_as_syntax.is_type(types::exp)) {
     data_vector begin_expr(2);
     begin_expr[0] = symconst::begin;
@@ -885,8 +885,7 @@ void apply_syntax_transformer_callable(const data_vector& args,const fcn_type& m
   data_vector macro_expr(args.size()+1);
   macro_expr[0] = mac.name;
   std::copy(args.begin(), args.end(), macro_expr.begin() + 1);
-  data_vector transformer_args(1,derive_quoted_macro_exression(macro_expr,env));
-  expanded_exp = convert_transformer_data_result_to_syntax(execute_application(mac,transformer_args,env),macro_expr);
+  expanded_exp = convert_transformer_data_result_to_syntax(execute_application(mac,data_vector(1,derive_quoted_macro_exression(macro_expr,env)),env),macro_expr);
 }
 
 
@@ -939,9 +938,9 @@ bool handle_macro_transformation(const string& label,const data_vector& args,
       }
     // Unkown macro value: ERROR!
     } else {
-      THROW_ERR("HEIST MACRO EXPANDER: UNKNOWN MACRO VALUE " << PROFILE(mac)
+      HEIST_THROW_ERR("HEIST MACRO EXPANDER: UNKNOWN MACRO VALUE " << HEIST_PROFILE(mac)
         << "\n     CURRENTLY ONLY SUPPORTING SYNTAX-RULES OBJECTS & PROCEDURES!" 
-        << FCN_ERR(label,args));
+        << HEIST_FCN_ERR(label,args));
     }
   }
   return false;

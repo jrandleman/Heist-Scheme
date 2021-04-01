@@ -1,8 +1,8 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- real.hpp
 // => Defines Numeric class for Heist Scheme Real Numbers (BigInt, etc.)
 
-#ifndef HEIST_REAL_HPP_
-#define HEIST_REAL_HPP_
+#ifndef HEIST_SCHEME_CORE_REAL_HPP_
+#define HEIST_SCHEME_CORE_REAL_HPP_
 
 #include <cctype>
 #include <cfloat>

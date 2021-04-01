@@ -15,8 +15,8 @@
 //   entire Heist-Scheme interpreter.
 //
 
-#ifndef HEIST_GARBAGE_COLLECTOR_HPP_
-#define HEIST_GARBAGE_COLLECTOR_HPP_
+#ifndef HEIST_SCHEME_CORE_GARBAGE_COLLECTOR_HPP_
+#define HEIST_SCHEME_CORE_GARBAGE_COLLECTOR_HPP_
 
 // GOAL: Combine reference counting w/ "GC" for cycle-safe "shared_ptr"s
 // APPROACH: Regular reference counting, w/ any ptr refs > 0 also

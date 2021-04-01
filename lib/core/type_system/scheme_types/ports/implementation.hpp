@@ -1,8 +1,8 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- implementation.hpp
 // => Contains method implementations of port objects for the C++ Heist Scheme Interpreter
 
-#ifndef HEIST_PORT_IMPLEMENTATION_HPP_
-#define HEIST_PORT_IMPLEMENTATION_HPP_
+#ifndef HEIST_SCHEME_CORE_PORT_IMPLEMENTATION_HPP_
+#define HEIST_SCHEME_CORE_PORT_IMPLEMENTATION_HPP_
 
 // NOTE: <pointer_to_hexstring> comes from "scheme_types/data/implementation_helpers/stringification.hpp"
 

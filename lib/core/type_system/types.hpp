@@ -1,8 +1,8 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- types.hpp
 // => Contains type aliases & structures for the C++ Heist Scheme Interpreter
 
-#ifndef HEIST_TYPES_HPP_
-#define HEIST_TYPES_HPP_
+#ifndef HEIST_SCHEME_CORE_TYPES_HPP_
+#define HEIST_SCHEME_CORE_TYPES_HPP_
 
 /******************************************************************************
 * STANDARD LIBRARY DEPENDANCIES (MORE IN "scheme_types/numerics/complex.hpp")
@@ -69,7 +69,7 @@ namespace heist {
 ******************************************************************************/
 
 namespace heist {
-  using prm_ptr_t = struct data(*)(data_vector&);          // primitive procedure ptr
+  using prm_ptr_t = struct data(*)(data_vector&&);         // primitive procedure ptr
   using exe_fcn_t = std::function<struct data(env_type&)>; // fcn execution procedure
 }
 

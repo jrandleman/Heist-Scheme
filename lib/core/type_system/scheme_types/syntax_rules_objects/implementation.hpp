@@ -1,8 +1,8 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- implementation.hpp
 // => Contains implementation of "syntax_rules_object"'s equality for the C++ Heist Scheme Interpreter
 
-#ifndef HEIST_SYNTAX_RULES_OBJECT_IMPLEMENTATION_HPP_
-#define HEIST_SYNTAX_RULES_OBJECT_IMPLEMENTATION_HPP_
+#ifndef HEIST_SCHEME_CORE_SYNTAX_RULES_OBJECT_IMPLEMENTATION_HPP_
+#define HEIST_SCHEME_CORE_SYNTAX_RULES_OBJECT_IMPLEMENTATION_HPP_
 
 namespace heist {
   bool syntax_rules_object::operator==(const syntax_rules_object& s) const noexcept {

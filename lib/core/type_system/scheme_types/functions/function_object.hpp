@@ -1,8 +1,8 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- function_object.hpp
 // => Contains "function_object" data structure for the C++ Heist Scheme Interpreter
 
-#ifndef HEIST_FUNCTION_OBJECT_HPP_
-#define HEIST_FUNCTION_OBJECT_HPP_
+#ifndef HEIST_SCHEME_CORE_FUNCTION_OBJECT_HPP_
+#define HEIST_SCHEME_CORE_FUNCTION_OBJECT_HPP_
 
 namespace heist {
   struct function_object {

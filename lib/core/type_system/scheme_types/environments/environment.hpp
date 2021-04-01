@@ -2,8 +2,8 @@
 // => Contains "create_frame" procedure & "environment" data structure 
 //    for the C++ Heist Scheme Interpreter
 
-#ifndef HEIST_ENVIRONMENT_HPP_
-#define HEIST_ENVIRONMENT_HPP_
+#ifndef HEIST_SCHEME_CORE_ENVIRONMENT_HPP_
+#define HEIST_SCHEME_CORE_ENVIRONMENT_HPP_
 
 namespace heist {
 

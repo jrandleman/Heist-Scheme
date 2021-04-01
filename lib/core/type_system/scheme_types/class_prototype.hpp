@@ -1,8 +1,8 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- class_prototype.hpp
 // => Contains "class_prototype" data structure for the C++ Heist Scheme Interpreter
 
-#ifndef HEIST_CLASS_PROTOTYPE_HPP_
-#define HEIST_CLASS_PROTOTYPE_HPP_
+#ifndef HEIST_SCHEME_CORE_CLASS_PROTOTYPE_HPP_
+#define HEIST_SCHEME_CORE_CLASS_PROTOTYPE_HPP_
 
 namespace heist {
   struct class_prototype {

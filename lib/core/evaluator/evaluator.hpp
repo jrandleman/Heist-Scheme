@@ -1,17 +1,15 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- evaluator.hpp
 // => Contains the "scm_eval" & "scm_analyze" procedures for the C++ Heist Scheme Interpreter
 
-#ifndef HEIST_CORE_EVALUATOR_HPP_
-#define HEIST_CORE_EVALUATOR_HPP_
+#ifndef HEIST_SCHEME_CORE_EVALUATOR_HPP_
+#define HEIST_SCHEME_CORE_EVALUATOR_HPP_
 
 namespace heist {
 
   /******************************************************************************
-  * HELPER FUNCTION PROTOTYPES
+  * HELPER FUNCTION PROTOTYPE (DEFINED BELOW)
   ******************************************************************************/
 
-  data scm_eval(data&& datum, env_type& env);
-  exe_fcn_t scm_analyze(data&& datum,const bool tail_call,const bool cps_block);
   bool data_is_continuation_parameter(const data& d)noexcept;
 
   /******************************************************************************
@@ -31,7 +29,7 @@ namespace heist {
     bool found = false;
     auto val = env->lookup_variable_value(var, found);
     if(found) return val;
-    THROW_ERR("Variable " << var << " is not bound!");
+    HEIST_THROW_ERR("Variable " << var << " is not bound!");
   }
 
   /******************************************************************************
@@ -47,17 +45,17 @@ namespace heist {
       "\n     (define-reader-alias <alias-symbol> <name-symbol>)"
       "\n     (define-reader-alias <alias-symbol-to-delete>)";
     if(exp.size() == 1 || exp.size() > 3)
-      THROW_ERR("'define-reader-alias receive incorrect # of symbols!" << format << EXP_ERR(exp));
+      HEIST_THROW_ERR("'define-reader-alias receive incorrect # of symbols!" << format << HEIST_EXP_ERR(exp));
     if(!exp[1].is_type(types::sym))
-      THROW_ERR("'define-reader-alias 1st arg isn't a symbol!" << format << EXP_ERR(exp));
+      HEIST_THROW_ERR("'define-reader-alias 1st arg isn't a symbol!" << format << HEIST_EXP_ERR(exp));
     data val;
     if(exp.size() == 2) {
-      val = delete_reader_alias(exp[1].sym);
+      val = stdlib_syntax::delete_reader_alias(exp[1].sym);
     } else {
       if(!exp[2].is_type(types::sym))
-        THROW_ERR("'define-reader-alias 2nd arg isn't a symbol!" << format << EXP_ERR(exp));
+        HEIST_THROW_ERR("'define-reader-alias 2nd arg isn't a symbol!" << format << HEIST_EXP_ERR(exp));
       if(exp[1].sym != exp[2].sym) // no-op if defining a symbol to itself
-        register_reader_alias(exp[1].sym,exp[2].sym);
+        stdlib_syntax::register_reader_alias(exp[1].sym,exp[2].sym);
       val = data(types::dne);
     }
     return [val=std::move(val)](env_type&){return val;};
@@ -72,11 +70,11 @@ namespace heist {
 
   void confirm_valid_if(const data_vector& exp) {
     if(exp.size() < 3) 
-      THROW_ERR("'if didn't receive enough args:"
-        "\n     (if <predicate> <consequent> <optional-alternative>)" << EXP_ERR(exp));
+      HEIST_THROW_ERR("'if didn't receive enough args:"
+        "\n     (if <predicate> <consequent> <optional-alternative>)" << HEIST_EXP_ERR(exp));
     if(exp.size() > 4) 
-      THROW_ERR("'if received too many args:"
-        "\n     (if <predicate> <consequent> <optional-alternative>)" << EXP_ERR(exp));
+      HEIST_THROW_ERR("'if received too many args:"
+        "\n     (if <predicate> <consequent> <optional-alternative>)" << HEIST_EXP_ERR(exp));
   }
 
   // Returns lambda so that if true, only eval consequent: 
@@ -136,13 +134,13 @@ namespace heist {
   // Confirm valid argument layout for variable assignment
   void confirm_valid_assignment(const data_vector& exp) {
     if(exp.size() != 3)
-      THROW_ERR("'set! didn't receive 2 arguments: (set! <var> <val>)" << EXP_ERR(exp));
+      HEIST_THROW_ERR("'set! didn't receive 2 arguments: (set! <var> <val>)" << HEIST_EXP_ERR(exp));
     if(!exp[1].is_type(types::sym) || exp[1].sym.empty())
-      THROW_ERR("'set! 1st arg " << PROFILE(exp[1]) << " can't be set"
-        " (only symbols)!\n     (set! <var> <val>)" << EXP_ERR(exp));
+      HEIST_THROW_ERR("'set! 1st arg " << HEIST_PROFILE(exp[1]) << " can't be set"
+        " (only symbols)!\n     (set! <var> <val>)" << HEIST_EXP_ERR(exp));
     if(*exp[1].sym.rbegin() == '.')
-      THROW_ERR("'set! 1st arg is invalid object property-chain-access [ " << exp[1] 
-          << " ] ends with a '.':\n     (set! <var> <val>)" << EXP_ERR(exp));
+      HEIST_THROW_ERR("'set! 1st arg is invalid object property-chain-access [ " << exp[1] 
+          << " ] ends with a '.':\n     (set! <var> <val>)" << HEIST_EXP_ERR(exp));
   }
 
   // Analyzes value being assigned, & returns an execution procedure 
@@ -155,7 +153,7 @@ namespace heist {
       auto value_proc = scm_analyze(data(exp[2]),false,cps_block); // cpy to avoid mving lest we want to show the expr in an error message
       return [var=std::move(var),value_proc=std::move(value_proc),exp=std::move(exp)](env_type& env){
         if(!env->set_variable_value(var, value_proc(env)))
-          THROW_ERR("Variable "<<var<<" is not bound!"<<EXP_ERR(exp));
+          HEIST_THROW_ERR("Variable "<<var<<" is not bound!"<<HEIST_EXP_ERR(exp));
         return GLOBALS::VOID_DATA_OBJECT; // return is void
       };
     }
@@ -180,25 +178,25 @@ namespace heist {
   // Confirm valid argument layout for variable & procedure definitions
   void confirm_valid_definition(const data_vector& exp) {
     if(exp.size() < 3)
-      THROW_ERR("'define didn't receive enough arguments!\n     (define <var> <val>)"
-        "\n     (define (<procedure-name> <args>) <body>)" << EXP_ERR(exp));
+      HEIST_THROW_ERR("'define didn't receive enough arguments!\n     (define <var> <val>)"
+        "\n     (define (<procedure-name> <args>) <body>)" << HEIST_EXP_ERR(exp));
     if(!exp[1].is_type(types::sym) && !exp[1].is_type(types::exp))
-      THROW_ERR("'define 1st arg [ " << exp[1] << " ] of type \"" 
+      HEIST_THROW_ERR("'define 1st arg [ " << exp[1] << " ] of type \"" 
         << exp[1].type_name() << "\" can't be defined (only symbols):"
         "\n     (define <var> <val>)"
-        "\n     (define (<procedure-name> <args>) <body>)" << EXP_ERR(exp));
+        "\n     (define (<procedure-name> <args>) <body>)" << HEIST_EXP_ERR(exp));
     if(exp[1].is_type(types::exp) && 
         (exp[1].exp.empty() || !exp[1].exp[0].is_type(types::sym)))
-      THROW_ERR("'define procedure name [ " 
+      HEIST_THROW_ERR("'define procedure name [ " 
         << (exp[1].exp.empty() ? data("undefined") : exp[1].exp[0]) << " ] of type \"" 
         << (exp[1].exp.empty() ? "undefined" : exp[1].exp[0].type_name())
         << "\" is invalid (must be a symbol)!"
         "\n     (define <var> <val>)"
-        "\n     (define (<procedure-name> <args>) <body>)" << EXP_ERR(exp));
+        "\n     (define (<procedure-name> <args>) <body>)" << HEIST_EXP_ERR(exp));
     if(exp[1].is_type(types::sym) && exp.size() > 3)
-      THROW_ERR("'define can only define 1 value to a variable (received " << exp.size()-2 << " vals)!"
+      HEIST_THROW_ERR("'define can only define 1 value to a variable (received " << exp.size()-2 << " vals)!"
         "\n     (define <var> <val>)"
-        "\n     (define (<procedure-name> <args>) <body>)" << EXP_ERR(exp));
+        "\n     (define (<procedure-name> <args>) <body>)" << HEIST_EXP_ERR(exp));
   }
 
   string& definition_variable(data_vector& exp)noexcept{
@@ -256,7 +254,7 @@ namespace heist {
   // Extracts the delayed expression and returns an exec proc ctor'ing a promise
   exe_fcn_t analyze_delay(data_vector& exp,const bool cps_block=false) {
     if(exp.size() != 2) 
-      THROW_ERR("'delay expects 1 argument: (delay <delay-expression>)" << EXP_ERR(exp));
+      HEIST_THROW_ERR("'delay expects 1 argument: (delay <delay-expression>)" << HEIST_EXP_ERR(exp));
     if(!cps_block)
       return [delayed_datum=std::move(exp[1])](env_type& env){
         return make_del(delayed_datum,env,false);
@@ -302,7 +300,7 @@ namespace heist {
     if(!exp[1].is_type(types::sym)) return exp[1];
     if(exp[1].sym==symconst::false_t || exp[1].sym==symconst::true_t)
       return boolean(exp[1].sym==symconst::true_t);
-    return convert_string_to_symbol(exp[1].sym);
+    return stdlib_type_coercions::convert_string_to_symbol(exp[1].sym);
   }
 
 
@@ -313,8 +311,8 @@ namespace heist {
   bool is_quoted_cons(data_vector& exp, const string& quote_name) {
     // Confirm (.) does not terminate the list
     if(!exp.empty() && data_is_dot_operator(*exp.rbegin()))
-      THROW_ERR("Unexpected dot ("<<G.dot<<") terminated the quoted list! -- ANALYZE_QUOTED"
-        << EXP_ERR('(' << quote_name << ' ' << data(exp).write() << ')'));
+      HEIST_THROW_ERR("Unexpected dot ("<<G.dot<<") terminated the quoted list! -- ANALYZE_QUOTED"
+        << HEIST_EXP_ERR('(' << quote_name << ' ' << data(exp).write() << ')'));
     // Iff exp begins w/ (.) & has a length of 2, it may be a valid instance of 
     //   quoting a variadic lambda [ ie '(lambda (. l) l) ] -- thus such is valid
     if(exp.size()==2 && data_is_dot_operator(exp[0]) && !data_is_dot_operator(exp[1]))
@@ -323,8 +321,8 @@ namespace heist {
     for(size_type i = 0, n = exp.size(); i+2 < n; ++i) {
       if(data_is_dot_operator(exp[i])) {
         if(is_variadic_cps_procedure_signature(i,n,exp)) return false;
-        THROW_ERR("Unexpected dot ("<<G.dot<<") at position #"<<i+1<<" in quotation! -- ANALYZE_QUOTED"
-          << EXP_ERR('(' << quote_name << ' ' << data(exp).write() << ')'));
+        HEIST_THROW_ERR("Unexpected dot ("<<G.dot<<") at position #"<<i+1<<" in quotation! -- ANALYZE_QUOTED"
+          << HEIST_EXP_ERR('(' << quote_name << ' ' << data(exp).write() << ')'));
       }
     }
     // Determine whether at a cons or a list
@@ -341,7 +339,7 @@ namespace heist {
   exe_fcn_t analyze_quoted_vh_literal(data_vector& exp, const char* name) {
     data_vector args(exp.begin()+1,exp.end());
     if(is_quoted_cons(args, symconst::quote))
-      THROW_ERR('\''<<name<<" had an unexpected dot ("<<G.dot<<")!"<<EXP_ERR(exp));
+      HEIST_THROW_ERR('\''<<name<<" had an unexpected dot ("<<G.dot<<")!"<<HEIST_EXP_ERR(exp));
     // return an empty vector if given no args
     if(args.empty()) {
       if constexpr (IS_VECTOR_LITERAL)
@@ -378,7 +376,7 @@ namespace heist {
   // Analyzes the quote's text & returns an execution procedure for such
   exe_fcn_t analyze_quoted(data_vector& exp) {
     if(exp.size() != 2) 
-      THROW_ERR("'quote form expects one argument: (quote <quoted-data>)!"<<EXP_ERR(exp));
+      HEIST_THROW_ERR("'quote form expects one argument: (quote <quoted-data>)!"<<HEIST_EXP_ERR(exp));
     
     // Quote vector literals as needed
     if(quoting_a_container_literal(exp,is_vector_literal)) return analyze_quoted_vector_literal(exp[1].exp);
@@ -440,11 +438,11 @@ namespace heist {
   // Confirm valid argument layout for a lambda
   void confirm_valid_lambda(const data_vector& exp) {
     if(exp.size() < 3)
-      THROW_ERR("'lambda special form didn't receive enough args: (lambda (<args>) <body>)" << EXP_ERR(exp));
-    if(!exp[1].is_type(types::exp) && !data_is_the_empty_list(exp[1]))
-      THROW_ERR("'lambda 1st arg [ " << exp[1] << " ] of type \"" 
+      HEIST_THROW_ERR("'lambda special form didn't receive enough args: (lambda (<args>) <body>)" << HEIST_EXP_ERR(exp));
+    if(!exp[1].is_type(types::exp))
+      HEIST_THROW_ERR("'lambda 1st arg [ " << exp[1] << " ] of type \"" 
         << exp[1].type_name() << "\" wasn't a proper parameter list!"
-           "\n     (lambda (<args>) <body>)" << EXP_ERR(exp));
+           "\n     (lambda (<args>) <body>)" << HEIST_EXP_ERR(exp));
   }
 
   // Throw an error if 'vars' contains duplicate or non-symbol arg names, 
@@ -453,19 +451,19 @@ namespace heist {
     const size_type n = vars.size();
     // variadic (.) arg must have a label afterwards
     if(n != 0 && symbol_is_dot_operator(vars[n-1].sym))
-      THROW_ERR("Expected one item after variadic dot ("<<G.dot<<")! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+      HEIST_THROW_ERR("Expected one item after variadic dot ("<<G.dot<<")! -- ANALYZE_LAMBDA"<<HEIST_EXP_ERR(exp));
     // Search the vars list of the fcn's args for improper (.) use & duplicate arg names
     for(size_type i = 0; i < n; ++i) {
       if(!vars[i].is_type(types::sym)) // args must be symbols
-        THROW_ERR("Non-Symbolic parameter [ "<<vars[i]<<" ] is an invalid arg name! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+        HEIST_THROW_ERR("Non-Symbolic parameter [ "<<vars[i]<<" ] is an invalid arg name! -- ANALYZE_LAMBDA"<<HEIST_EXP_ERR(exp));
       if(i+2 != n && symbol_is_dot_operator(vars[i].sym)) { // variadic (.) must come just prior the last arg
         if(i+3 == n && string_begins_with(vars[i+2].sym, symconst::continuation))
           continue; // allow continuations after variadic
-        THROW_ERR("More than one item found after variadic dot ("<<G.dot<<")! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+        HEIST_THROW_ERR("More than one item found after variadic dot ("<<G.dot<<")! -- ANALYZE_LAMBDA"<<HEIST_EXP_ERR(exp));
       }
       for(size_type j = i+1; j < n; ++j)
         if(vars[i].sym == vars[j].sym) // duplicate arg name detected
-          THROW_ERR("Duplicate arg name \""<<vars[i]<<"\" supplied! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+          HEIST_THROW_ERR("Duplicate arg name \""<<vars[i]<<"\" supplied! -- ANALYZE_LAMBDA"<<HEIST_EXP_ERR(exp));
     }
   }
 
@@ -500,7 +498,7 @@ namespace heist {
     const size_type n = vars.size();
     // variadic (.) arg must have a label afterwards
     if(n != 0 && data_is_dot_operator(vars[n-1]))
-      THROW_ERR("Expected one item after variadic dot ("<<G.dot<<")! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+      HEIST_THROW_ERR("Expected one item after variadic dot ("<<G.dot<<")! -- ANALYZE_LAMBDA"<<HEIST_EXP_ERR(exp));
     // Search the vars list of the fcn's args for improper (.) use & duplicate arg names
     bool found_opt_arg = false;
     for(size_type i = 0; i < n; ++i) {
@@ -510,22 +508,22 @@ namespace heist {
           if(i+3 == n && vars[i+2].is_type(types::sym) && string_begins_with(vars[i+2].sym, symconst::continuation)) 
             return; // allow continuations after variadic
           if(i+2 != n) 
-            THROW_ERR("More than one item found after variadic dot ("<<G.dot<<")! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+            HEIST_THROW_ERR("More than one item found after variadic dot ("<<G.dot<<")! -- ANALYZE_LAMBDA"<<HEIST_EXP_ERR(exp));
           if(!vars[i+1].is_type(types::sym))
-            THROW_ERR("Variadic arg can't accept optional values! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+            HEIST_THROW_ERR("Variadic arg can't accept optional values! -- ANALYZE_LAMBDA"<<HEIST_EXP_ERR(exp));
           return;
         // Confirm haven't already discovered an arg w/ an optional value
         } else if(found_opt_arg) {
-          THROW_ERR("All mandatory args must precede all optional args! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+          HEIST_THROW_ERR("All mandatory args must precede all optional args! -- ANALYZE_LAMBDA"<<HEIST_EXP_ERR(exp));
         }
       // Confirm valid optional arg format
       } else if(vars[i].is_type(types::exp)) {
         found_opt_arg = true;
         if(vars[i].exp.size() != 2 || !vars[i].exp[0].is_type(types::sym))
-          THROW_ERR("Improper optional arg format: (<optional-arg-name> <value>) -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+          HEIST_THROW_ERR("Improper optional arg format: (<optional-arg-name> <value>) -- ANALYZE_LAMBDA"<<HEIST_EXP_ERR(exp));
       // ERROR: Neither symbolic arg name, nor optional arg expression
       } else {
-        THROW_ERR("Arg wasn't an optional-arg expression or symbolic name! -- ANALYZE_LAMBDA"<<EXP_ERR(exp));
+        HEIST_THROW_ERR("Arg wasn't an optional-arg expression or symbolic name! -- ANALYZE_LAMBDA"<<HEIST_EXP_ERR(exp));
       }
     }
   }
@@ -634,12 +632,12 @@ namespace heist {
 
   void validate_fn_hmap_arg_literal(const data_vector& exp, const data_vector& hmap_arg) {
     if(!(hmap_arg.size() & 1)) // with literal tag, odd # of items = even # of args
-      THROW_ERR("'fn invalid hmap literal in arg paramters,"
-        "\n     uneven # of elts: " << data(hmap_arg) << FN_LAYOUT << EXP_ERR(exp));
+      HEIST_THROW_ERR("'fn invalid hmap literal in arg paramters,"
+        "\n     uneven # of elts: " << data(hmap_arg) << FN_LAYOUT << HEIST_EXP_ERR(exp));
     for(size_type i = 1, n = hmap_arg.size(); i < n; i += 2) {
       if(hmap_arg[i].is_type(types::exp))
-        THROW_ERR("'fn invalid hmap literal in arg paramters,"
-          "\n     found unhashable container key: " << data(hmap_arg) << FN_LAYOUT << EXP_ERR(exp));
+        HEIST_THROW_ERR("'fn invalid hmap literal in arg paramters,"
+          "\n     found unhashable container key: " << data(hmap_arg) << FN_LAYOUT << HEIST_EXP_ERR(exp));
       if(hmap_arg[i+1].is_type(types::exp)) 
         validate_fn_arg_quote_or_container_literal(exp,hmap_arg[i+1].exp);
     }
@@ -648,8 +646,8 @@ namespace heist {
   void validate_fn_list_arg_literal(const data_vector& exp, const data_vector& list_arg) {
     for(size_type i = 0, n = list_arg.size(); i < n; ++i) {
       if(data_is_dot_operator(list_arg[i]) && i+2 != n) {
-        THROW_ERR("'fn invalid variadic list literal in arg (\".\" must be 2nd to last arg): "
-          << data(list_arg) << FN_LAYOUT << EXP_ERR(exp));
+        HEIST_THROW_ERR("'fn invalid variadic list literal in arg (\".\" must be 2nd to last arg): "
+          << data(list_arg) << FN_LAYOUT << HEIST_EXP_ERR(exp));
       } else if(list_arg[i].is_type(types::exp)) {
         validate_fn_arg_quote_or_container_literal(exp,list_arg[i].exp);
       }
@@ -663,8 +661,8 @@ namespace heist {
       validate_fn_list_arg_literal(exp, container);
     } else if(container[0].sym == symconst::quote) {
       if(container.size() != 2 || !container[1].is_type(types::sym))
-        THROW_ERR("'fn invalid quote in arg, did NOT quote a single symbol: " 
-          << data(container) << FN_LAYOUT << EXP_ERR(exp));
+        HEIST_THROW_ERR("'fn invalid quote in arg, did NOT quote a single symbol: " 
+          << data(container) << FN_LAYOUT << HEIST_EXP_ERR(exp));
     } else if(container[0].sym == symconst::vec_literal) {
       validate_fn_vect_arg_literal(exp, container);
     } else if(container[0].sym == symconst::map_literal) {
@@ -689,8 +687,8 @@ namespace heist {
     for(size_type i = 0, n = args.size(); i < n; ++i) {
       // validate symbol's proper variadic arg use
       if(fn_invalid_variadic_arg(i,n,args)) {
-        THROW_ERR("'fn invalid variadic arg use (\".\" must be 2nd to last arg,"
-          "\n     & last arg must be symbolic): " << data(args) << FN_LAYOUT << EXP_ERR(exp));
+        HEIST_THROW_ERR("'fn invalid variadic arg use (\".\" must be 2nd to last arg,"
+          "\n     & last arg must be symbolic): " << data(args) << FN_LAYOUT << HEIST_EXP_ERR(exp));
       // validate quote/hmap/vector/list literal
       } else if(args[i].is_type(types::exp)) {
         validate_fn_arg_quote_or_container_literal(exp,args[i].exp);
@@ -700,12 +698,12 @@ namespace heist {
 
   void validate_fn(const data_vector& exp) {
     if(exp.size() == 1)
-      THROW_ERR("'fn didn't receive any match expressions!" FN_LAYOUT << EXP_ERR(exp));
+      HEIST_THROW_ERR("'fn didn't receive any match expressions!" FN_LAYOUT << HEIST_EXP_ERR(exp));
     for(size_type i = 1, n = exp.size(); i < n; ++i) {
       if(!exp[i].is_type(types::exp) || exp[i].exp.size() < 2)
-        THROW_ERR("'fn invalid non-exp match expression: " << PROFILE(exp[i]) << "!" FN_LAYOUT << EXP_ERR(exp));
+        HEIST_THROW_ERR("'fn invalid non-exp match expression: " << HEIST_PROFILE(exp[i]) << "!" FN_LAYOUT << HEIST_EXP_ERR(exp));
       if(!exp[i].exp[0].is_type(types::exp))
-        THROW_ERR("'fn invalid args-list in match expression: " << PROFILE(exp[i]) << "!" FN_LAYOUT << EXP_ERR(exp));
+        HEIST_THROW_ERR("'fn invalid args-list in match expression: " << HEIST_PROFILE(exp[i]) << "!" FN_LAYOUT << HEIST_EXP_ERR(exp));
       validate_fn_arg_signature(exp,exp[i].exp[0].exp);
     }
   }
@@ -783,34 +781,34 @@ namespace heist {
   // -- ERROR HANDLING
   void validate_defclass(data_vector& exp) {
     if(exp.size() < 3)
-      THROW_ERR("'defclass not enough arguments given!" DEFCLASS_LAYOUT << EXP_ERR(exp));
+      HEIST_THROW_ERR("'defclass not enough arguments given!" DEFCLASS_LAYOUT << HEIST_EXP_ERR(exp));
     if(!exp[1].is_type(types::sym))
-      THROW_ERR("'defclass 1st arg "<<PROFILE(exp[1])<<" isn't a symbolic class name!" DEFCLASS_LAYOUT << EXP_ERR(exp));
+      HEIST_THROW_ERR("'defclass 1st arg "<<HEIST_PROFILE(exp[1])<<" isn't a symbolic class name!" DEFCLASS_LAYOUT << HEIST_EXP_ERR(exp));
     if(!exp[2].is_type(types::exp))
-      THROW_ERR("'defclass 2nd arg "<<PROFILE(exp[2])<<" isn't an inherited prototype definition!" DEFCLASS_LAYOUT << EXP_ERR(exp));
+      HEIST_THROW_ERR("'defclass 2nd arg "<<HEIST_PROFILE(exp[2])<<" isn't an inherited prototype definition!" DEFCLASS_LAYOUT << HEIST_EXP_ERR(exp));
     if(exp[2].exp.size() > 1)
-      THROW_ERR("'defclass 2nd arg "<<PROFILE(exp[2])<<" has more than 1 inherited prototype (no multi inheritance)!" DEFCLASS_LAYOUT << EXP_ERR(exp));
+      HEIST_THROW_ERR("'defclass 2nd arg "<<HEIST_PROFILE(exp[2])<<" has more than 1 inherited prototype (no multi inheritance)!" DEFCLASS_LAYOUT << HEIST_EXP_ERR(exp));
     if(exp[2].exp.size() == 1 && !exp[2].exp[0].is_type(types::sym))
-      THROW_ERR("'defclass 2nd arg (inherited entity) "<<PROFILE(exp[2])<<" isn't a symbolic class prototype name!" DEFCLASS_LAYOUT << EXP_ERR(exp));
+      HEIST_THROW_ERR("'defclass 2nd arg (inherited entity) "<<HEIST_PROFILE(exp[2])<<" isn't a symbolic class prototype name!" DEFCLASS_LAYOUT << HEIST_EXP_ERR(exp));
     string ctor_name = exp[1].sym;
     for(size_type i = 3, n = exp.size(); i < n; ++i) {
       if(!exp[i].is_type(types::exp) || exp[i].exp.size() < 2)
-        THROW_ERR("'defclass invalid <member-or-method-instance> => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
+        HEIST_THROW_ERR("'defclass invalid <member-or-method-instance> => " << HEIST_PROFILE(exp[i]) << DEFCLASS_LAYOUT << HEIST_EXP_ERR(exp));
       if(exp[i].exp[0].is_type(types::sym)) { // member | fn ctor
         if(exp[i].exp[0].sym == ctor_name) { // fn ctor
           if(exp[i].exp.size() == 1)
-            THROW_ERR("'defclass <constructor> missing fn arg-body instances => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
+            HEIST_THROW_ERR("'defclass <constructor> missing fn arg-body instances => " << HEIST_PROFILE(exp[i]) << DEFCLASS_LAYOUT << HEIST_EXP_ERR(exp));
           for(size_type j = 1, n = exp[i].exp.size(); j < n; ++j)
             if(!exp[i].exp[j].is_type(types::exp) || exp[i].exp[j].exp.size() < 2 || !exp[i].exp[j].exp[0].is_type(types::exp))
-              THROW_ERR("'defclass <constructor> invalid fn arg-body instances => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
+              HEIST_THROW_ERR("'defclass <constructor> invalid fn arg-body instances => " << HEIST_PROFILE(exp[i]) << DEFCLASS_LAYOUT << HEIST_EXP_ERR(exp));
           continue;
         }
         if(exp[i].exp.size() != 2)
-          THROW_ERR("'defclass invalid <member-or-method-instance> => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
+          HEIST_THROW_ERR("'defclass invalid <member-or-method-instance> => " << HEIST_PROFILE(exp[i]) << DEFCLASS_LAYOUT << HEIST_EXP_ERR(exp));
         if(exp[i].exp[0].sym == "super")
-          THROW_ERR("'defclass invalid member name, <super> already defined => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
+          HEIST_THROW_ERR("'defclass invalid member name, <super> already defined => " << HEIST_PROFILE(exp[i]) << DEFCLASS_LAYOUT << HEIST_EXP_ERR(exp));
         if(exp[i].exp[0].sym == "prototype")
-          THROW_ERR("'defclass invalid member name, <prototype> already defined => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
+          HEIST_THROW_ERR("'defclass invalid member name, <prototype> already defined => " << HEIST_PROFILE(exp[i]) << DEFCLASS_LAYOUT << HEIST_EXP_ERR(exp));
         continue;
       }
       if(exp[i].exp[0].is_type(types::exp)) { // method
@@ -820,12 +818,12 @@ namespace heist {
               convert_opt_args_method_or_ctor_to_fn_expr(ctor_name,exp[i].exp);
               break;
             }
-            THROW_ERR("'defclass invalid <member-or-method-instance> => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
+            HEIST_THROW_ERR("'defclass invalid <member-or-method-instance> => " << HEIST_PROFILE(exp[i]) << DEFCLASS_LAYOUT << HEIST_EXP_ERR(exp));
           }
         }
         continue;
       }
-      THROW_ERR("'defclass invalid <member-or-method-instance> => " << PROFILE(exp[i]) << DEFCLASS_LAYOUT << EXP_ERR(exp));
+      HEIST_THROW_ERR("'defclass invalid <member-or-method-instance> => " << HEIST_PROFILE(exp[i]) << DEFCLASS_LAYOUT << HEIST_EXP_ERR(exp));
     }
   }
 
@@ -833,16 +831,16 @@ namespace heist {
     if(exp[2].exp.empty()) return;
     auto result = lookup_variable_value(exp[2].exp[0].sym,env);
     if(!result.is_type(types::cls))
-      THROW_ERR("'defclass inheritance entity " << PROFILE(exp[2].exp[0]) << " isn't a class prototype!" 
-        << DEFCLASS_LAYOUT << EXP_ERR(exp));
+      HEIST_THROW_ERR("'defclass inheritance entity " << HEIST_PROFILE(exp[2].exp[0]) << " isn't a class prototype!" 
+        << DEFCLASS_LAYOUT << HEIST_EXP_ERR(exp));
     proto.super = result.cls;
   }
 
   void validate_unique_property_name(data_vector& exp,const string& name,const str_vector& seen_names,const char* message){
     for(const auto& n : seen_names)
       if(name == n)
-        THROW_ERR("'defclass " << exp[1].sym << " => \"" << name << "\" " << message << '!'
-          << DEFCLASS_LAYOUT << EXP_ERR(exp));
+        HEIST_THROW_ERR("'defclass " << exp[1].sym << " => \"" << name << "\" " << message << '!'
+          << DEFCLASS_LAYOUT << HEIST_EXP_ERR(exp));
   }
 
 
@@ -1125,8 +1123,8 @@ namespace heist {
     }
     // validate has a condition
     if(exp.size() < 2 || !exp[1].is_type(types::exp) || exp[1].exp.empty())
-      THROW_ERR("'while 1st argument isn't a condition/return list!"
-        "\n     (while (<condition> <optional-return-expr> ...) <body> ...)" << EXP_ERR(exp));
+      HEIST_THROW_ERR("'while 1st argument isn't a condition/return list!"
+        "\n     (while (<condition> <optional-return-expr> ...) <body> ...)" << HEIST_EXP_ERR(exp));
     // analyze condition & return exprs (if exists, else returns <void>)
     exe_fcn_t return_exe, condition_exe = scm_analyze(data(exp[1].exp[0]));
     if(exp[1].exp.size() > 1) {
@@ -1166,25 +1164,25 @@ namespace heist {
 
   void confirm_valid_infix_infixr_unfix_syntax(data_vector& exp, const char* name) {
     if(exp.size() < 2)
-      THROW_ERR('\''<<name<<" didn't receive enough arguments!"
+      HEIST_THROW_ERR('\''<<name<<" didn't receive enough arguments!"
         "\n     ("<<name<<" <precedence-level-integer-literal> <symbol> ...)"
         "\n     ("<<name<<" <symbol> ...)" 
         "\n     <precedence-level> range: ["<<LLONG_MIN<<','<<LLONG_MAX<<']'
-        << EXP_ERR(exp));
+        << HEIST_EXP_ERR(exp));
     size_type symbols_start_idx = 1 + exp[1].is_type(types::num);
     if(symbols_start_idx == 2 && !exp[1].num.is_integer())
-      THROW_ERR('\''<<name<<" precedence level isn't an integer!"
+      HEIST_THROW_ERR('\''<<name<<" precedence level isn't an integer!"
         "\n     ("<<name<<" <precedence-level-integer-literal> <symbol> ...)"
         "\n     ("<<name<<" <symbol> ...)" 
         "\n     <precedence-level> range: ["<<LLONG_MIN<<','<<LLONG_MAX<<']'
-        << EXP_ERR(exp));
+        << HEIST_EXP_ERR(exp));
     for(size_type n = exp.size(); symbols_start_idx < n; ++symbols_start_idx)
       if(!exp[symbols_start_idx].is_type(types::sym))
-        THROW_ERR('\''<<name<<" argument #"<<symbols_start_idx+1<<", "<<PROFILE(exp[symbols_start_idx])
+        HEIST_THROW_ERR('\''<<name<<" argument #"<<symbols_start_idx+1<<", "<<HEIST_PROFILE(exp[symbols_start_idx])
           << ", isn't a symbol!\n     ("<<name<<" <precedence-level-integer-literal> <symbol> ...)"
              "\n     ("<<name<<" <symbol> ...)" 
              "\n     <precedence-level> range: ["<<LLONG_MIN<<','<<LLONG_MAX<<']'
-             << EXP_ERR(exp));
+             << HEIST_EXP_ERR(exp));
   }
 
   void remove_preexisting_operators_from_table(const data_vector& exp, const int symbol_offset)noexcept{
@@ -1201,11 +1199,11 @@ namespace heist {
   // redefines operators iff already defined
   exe_fcn_t register_infix_operators(const data_vector& exp,const char* name,bool is_left_assoc) {
     if(exp.size() < 3)
-      THROW_ERR('\''<<name<<" didn't receive enough arguments!"
+      HEIST_THROW_ERR('\''<<name<<" didn't receive enough arguments!"
         "\n     ("<<name<<" <precedence-level-integer-literal> <symbol> ...)"
         "\n     ("<<name<<" <symbol> ...)" 
         "\n     <precedence-level> range: ["<<LLONG_MIN<<','<<LLONG_MAX<<']'
-        << EXP_ERR(exp));
+        << HEIST_EXP_ERR(exp));
     remove_preexisting_operators_from_table(exp,2);
     long long level = exp[1].num.extract_inexact();
     for(size_type i = 2, n = exp.size(); i < n; ++i)
@@ -1250,11 +1248,11 @@ namespace heist {
 
   exe_fcn_t analyze_unfix(data_vector& exp){
     if(exp.size() < 2)
-      THROW_ERR("'unfix! didn't receive enough arguments!\n     (unfix! <symbol> ...)"<<EXP_ERR(exp));
+      HEIST_THROW_ERR("'unfix! didn't receive enough arguments!\n     (unfix! <symbol> ...)"<<HEIST_EXP_ERR(exp));
     for(size_type i = 1, n = exp.size(); i < n; ++i)
       if(!exp[i].is_type(types::sym))
-        THROW_ERR("'unfix! argument #"<<i+1<<", "<<PROFILE(exp[i])<< ", isn't a symbol!"
-          "\n     (unfix! <symbol> ...)"<<EXP_ERR(exp));
+        HEIST_THROW_ERR("'unfix! argument #"<<i+1<<", "<<HEIST_PROFILE(exp[i])<< ", isn't a symbol!"
+          "\n     (unfix! <symbol> ...)"<<HEIST_EXP_ERR(exp));
     remove_preexisting_operators_from_table(exp,1);
     return [](env_type&){return GLOBALS::VOID_DATA_OBJECT;};
   }
@@ -1297,9 +1295,9 @@ namespace heist {
   // NOTE: USE runtime-syntax? core-syntax? reader-syntax? TO CHECK MACROS !!!
   exe_fcn_t analyze_definedp(data_vector& exp) {
     if(exp.size() != 2)
-      THROW_ERR("'defined? didn't receive 1 argument!\n     (defined? <symbol>)"<<EXP_ERR(exp));
+      HEIST_THROW_ERR("'defined? didn't receive 1 argument!\n     (defined? <symbol>)"<<HEIST_EXP_ERR(exp));
     if(!exp[1].is_type(types::sym))
-      THROW_ERR("'defined? arg "<<PROFILE(exp[1])<<" isn't a symbol!\n     (defined? <symbol>)"<<EXP_ERR(exp));
+      HEIST_THROW_ERR("'defined? arg "<<HEIST_PROFILE(exp[1])<<" isn't a symbol!\n     (defined? <symbol>)"<<HEIST_EXP_ERR(exp));
     // Check if non-member-access symbol is defined in the environment
     if(!symbol_is_property_chain_access(exp[1].sym))
       return [variable=std::move(exp[1].sym)](env_type& env){
@@ -1343,9 +1341,9 @@ namespace heist {
 
   exe_fcn_t analyze_delete(data_vector& exp) {
     if(exp.size() != 2)
-      THROW_ERR("'delete! didn't receive 1 argument!\n     (delete! <symbol>)"<<EXP_ERR(exp));
+      HEIST_THROW_ERR("'delete! didn't receive 1 argument!\n     (delete! <symbol>)"<<HEIST_EXP_ERR(exp));
     if(!exp[1].is_type(types::sym))
-      THROW_ERR("'delete! arg "<<PROFILE(exp[1])<<" isn't a symbol!\n     (delete! <symbol>)"<<EXP_ERR(exp));
+      HEIST_THROW_ERR("'delete! arg "<<HEIST_PROFILE(exp[1])<<" isn't a symbol!\n     (delete! <symbol>)"<<HEIST_EXP_ERR(exp));
     // Check if non-member-access symbol is defined in the environment
     if(!symbol_is_property_chain_access(exp[1].sym))
       return [variable=std::move(exp[1].sym)](env_type& env){
@@ -1407,7 +1405,7 @@ namespace heist {
   // Process convert & eval exp in CPS (Continuation Passing Style)
   exe_fcn_t analyze_scm_cps(data_vector& exp) {
     if(exp.size() == 1)
-      THROW_ERR("'scm->cps expects at least 1 expression: (scm->cps <exp-1> ... <exp-N>)"<<EXP_ERR(exp));
+      HEIST_THROW_ERR("'scm->cps expects at least 1 expression: (scm->cps <exp-1> ... <exp-N>)"<<HEIST_EXP_ERR(exp));
     data_vector cps_exp;
     if(exp.size() == 2) {
       cps_exp = generate_fundamental_form_cps(exp[1]);
@@ -1425,7 +1423,7 @@ namespace heist {
   // Returns the generated CPS form of exp as a quoted list of data
   exe_fcn_t analyze_cps_quote(data_vector& exp,const bool cps_block) {
     if(exp.size() == 1)
-      THROW_ERR("'cps-quote expects at least 1 expression: (cps-quote <exp-1> ... <exp-N>)"<<EXP_ERR(exp));
+      HEIST_THROW_ERR("'cps-quote expects at least 1 expression: (cps-quote <exp-1> ... <exp-N>)"<<HEIST_EXP_ERR(exp));
     data_vector quoted_cps(2);
     quoted_cps[0] = symconst::quote;
     if(exp.size() == 2) {
@@ -1451,7 +1449,7 @@ namespace heist {
   // Return whether in a <scm->cps> block or the <-cps> flag is active
   exe_fcn_t analyze_using_cpsp(data_vector& exp,const bool cps_block) {
     if(exp.size() != 1)
-      THROW_ERR("'using-cps? expects 0 args: (using-cps?)"<<EXP_ERR(exp));
+      HEIST_THROW_ERR("'using-cps? expects 0 args: (using-cps?)"<<HEIST_EXP_ERR(exp));
     return [cps_block](env_type&){
       return boolean(cps_block||G.USING_CPS_CMD_LINE_FLAG);
     };
@@ -1485,9 +1483,9 @@ namespace heist {
       "\n     <pattern-template-clause> = ((<pattern>) <template>)";
     // Confirm each pattern identifier only appears once
     if(std::find(identifiers.begin(),identifiers.end(),pattern[i].sym) != identifiers.end())
-      THROW_ERR("'syntax-rules " << pattern[i].sym << " identifier found twice!"
+      HEIST_THROW_ERR("'syntax-rules " << pattern[i].sym << " identifier found twice!"
         "\n     Each syntax-rules pattern identifier MUST be unique!\n     " 
-        << stringify_expr<&data::noexcept_write>(pattern) << format << EXP_ERR(exp));
+        << stringify_expr<&data::noexcept_write>(pattern) << format << HEIST_EXP_ERR(exp));
     identifiers.push_back(pattern[i].sym);
   }
 
@@ -1500,8 +1498,8 @@ namespace heist {
     // Confirm pattern subexpression doesn't begin w/ '...'
     if(pattern.empty()) return; // guarenteed to be part of a recursive call (topmost pattern asserted non-empty)
     if(!pattern.empty() && data_is_ellipsis(pattern[0]))
-      THROW_ERR("'syntax-rules \"...\" may NEVER begin a pattern subexpression!"
-        "\n     " << stringify_expr<&data::noexcept_write>(pattern) << format <<EXP_ERR(exp));
+      HEIST_THROW_ERR("'syntax-rules \"...\" may NEVER begin a pattern subexpression!"
+        "\n     " << stringify_expr<&data::noexcept_write>(pattern) << format <<HEIST_EXP_ERR(exp));
     if(is_macro_argument_label(pattern[0],keywords))
       confirm_unique_syntax_rules_pattern_identifier(pattern,0,exp,identifiers);
     bool seen_ellipses = false;
@@ -1509,17 +1507,17 @@ namespace heist {
       if(data_is_ellipsis(pattern[i])) {
         // Confirm each subexpression has at most 1 '...'
         if(seen_ellipses){
-          THROW_ERR("'syntax-rules \"...\" may only appear ONCE per pattern subexpression!"
+          HEIST_THROW_ERR("'syntax-rules \"...\" may only appear ONCE per pattern subexpression!"
             "\n     " << stringify_expr<&data::noexcept_write>(pattern) <<
             "\n     -> IE: (a ... (b ...)) => VALID: 1 '...' PER EXPRESSION!"
             "\n            (a ... b ...)   => INVALID: 2 '...' IN A SINGLE EXPRESSION!"
-            << format <<EXP_ERR(exp));
+            << format <<HEIST_EXP_ERR(exp));
         } 
         // Confirm '...' doesn't follow a literal or keyword in the pattern
         if(data_is_literal_or_keyword(pattern[i-1],keywords)){
-          THROW_ERR("'syntax-rules \"...\" may only be preceded by a non-literal-non-keyword"
+          HEIST_THROW_ERR("'syntax-rules \"...\" may only be preceded by a non-literal-non-keyword"
             "\n     symbol or expression!\n     " << stringify_expr<&data::noexcept_write>(pattern) 
-            << format <<EXP_ERR(exp));
+            << format <<HEIST_EXP_ERR(exp));
         }
         seen_ellipses = true;
       } else if(pattern[i].is_type(types::exp)) {
@@ -1540,17 +1538,17 @@ namespace heist {
       // Confirm pattern-template clause begins w/ a non-empty pattern expression
       if(!exp[i].is_type(types::exp) || exp[i].exp.size() < 2 || 
          !exp[i].exp[0].is_type(types::exp) || exp[i].exp[0].exp.empty())
-        THROW_ERR("'syntax-rules " << PROFILE(exp[i])
-          << " is an invalid ((<pattern>) <template>) clause!" << format << EXP_ERR(exp));
+        HEIST_THROW_ERR("'syntax-rules " << HEIST_PROFILE(exp[i])
+          << " is an invalid ((<pattern>) <template>) clause!" << format << HEIST_EXP_ERR(exp));
       // Confirm pattern begins w/ a symbol
       if(!exp[i].exp[0].exp[0].is_type(types::sym))
-        THROW_ERR("'syntax-rules patterns MUST begin with a symbol!"
-          "\n     " << stringify_expr<&data::noexcept_write>(exp[i].exp[0].exp) << format << EXP_ERR(exp));
+        HEIST_THROW_ERR("'syntax-rules patterns MUST begin with a symbol!"
+          "\n     " << stringify_expr<&data::noexcept_write>(exp[i].exp[0].exp) << format << HEIST_EXP_ERR(exp));
       // Confirm pattern's topmost subexpression depth doesn't start w/ '...'
       if(exp[i].exp[0].exp.size() > 1 && data_is_ellipsis(exp[i].exp[0].exp[1]))
-        THROW_ERR("'syntax-rules pattern '...' identifier must be preceded"
+        HEIST_THROW_ERR("'syntax-rules pattern '...' identifier must be preceded"
           " by a symbol or expression identifier!\n     " 
-          << stringify_expr<&data::noexcept_write>(exp[i].exp[0].exp) << format << EXP_ERR(exp));
+          << stringify_expr<&data::noexcept_write>(exp[i].exp[0].exp) << format << HEIST_EXP_ERR(exp));
       // Confirm each pattern identifier only appears once
       str_vector identifiers;
       confirm_proper_syntax_rules_pattern_layout(exp[i].exp[0].exp,exp,mac.keywords,identifiers);
@@ -1561,13 +1559,13 @@ namespace heist {
   // Confirm syntax-rules keywords list is valid, and extract it if so
   void extract_syntax_rules_keywords(const data_vector& exp,syn_type& mac,const char* format) {
     if(!exp[1].is_type(types::exp))
-      THROW_ERR("'syntax-rules 1st arg "<<PROFILE(exp[1])<<" isn't a list of keyword symbols:"
-        <<format<<EXP_ERR(exp));
+      HEIST_THROW_ERR("'syntax-rules 1st arg "<<HEIST_PROFILE(exp[1])<<" isn't a list of keyword symbols:"
+        <<format<<HEIST_EXP_ERR(exp));
     for(const auto& e : exp[1].exp) {
       if(!e.is_type(types::sym))
-        THROW_ERR("'syntax-rules keyword "<<PROFILE(e)<<" must be a symbol!"<<format<<EXP_ERR(exp));
+        HEIST_THROW_ERR("'syntax-rules keyword "<<HEIST_PROFILE(e)<<" must be a symbol!"<<format<<HEIST_EXP_ERR(exp));
       if(e.sym == symconst::ellipsis)
-        THROW_ERR("'syntax-rules \"...\" identifier may never be a keyword!"<<format<<EXP_ERR(exp));
+        HEIST_THROW_ERR("'syntax-rules \"...\" identifier may never be a keyword!"<<format<<HEIST_EXP_ERR(exp));
       mac.keywords.push_back(e.sym); // Extract keywords
     }
   }
@@ -1578,7 +1576,7 @@ namespace heist {
       "\n     (syntax-rules (<keyword-list>) <pattern-template-clauses>)"
       "\n     <pattern-template-clause> = ((<pattern>) <template>)";
     if(exp.size() < 3) // Confirm correct # of arguments
-      THROW_ERR("'syntax-rules received incorrect # of arguments!"<<format<<EXP_ERR(exp));
+      HEIST_THROW_ERR("'syntax-rules received incorrect # of arguments!"<<format<<HEIST_EXP_ERR(exp));
     extract_syntax_rules_keywords(exp,mac,format);
     confirm_proper_syntax_rules_pattern_template_clauses(exp,mac,format);
   }
@@ -1621,7 +1619,7 @@ namespace heist {
   bool datum_is_syntax_hashed_symbol(const data& datum, const data_vector& exp){
     if(datum.is_type(types::exp) && is_tagged_list(datum.exp,symconst::syn_hash)) {
       if(datum.exp.size() != 2 || !datum.exp[1].is_type(types::sym))
-        THROW_ERR("'syntax-hash didn't receive 1 symbol arg: (syntax-hash <symbol>)" << EXP_ERR(exp));
+        HEIST_THROW_ERR("'syntax-hash didn't receive 1 symbol arg: (syntax-hash <symbol>)" << HEIST_EXP_ERR(exp));
       return true;
     }
     return false;
@@ -1683,29 +1681,29 @@ namespace heist {
     if(std::find(G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.begin(),
                  G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.end(),exp[1].sym) != 
        G.ANALYSIS_TIME_MACRO_LABEL_REGISTRY.end()) {
-      THROW_ERR("'define-syntax label \""<<exp[1].sym<<"\" is already 'core-syntax!"
-        "\n     (define-syntax <label> <syntax-transformer>)"<<EXP_ERR(exp));
+      HEIST_THROW_ERR("'define-syntax label \""<<exp[1].sym<<"\" is already 'core-syntax!"
+        "\n     (define-syntax <label> <syntax-transformer>)"<<HEIST_EXP_ERR(exp));
     }
   }
 
 
   void confirm_valid_define_syntax(const data_vector& exp) {
     if(exp.size() != 3)
-      THROW_ERR("'define-syntax expects 2 arguments:"
-        "\n     (define-syntax <label> <syntax-transformer>)"<<EXP_ERR(exp));
+      HEIST_THROW_ERR("'define-syntax expects 2 arguments:"
+        "\n     (define-syntax <label> <syntax-transformer>)"<<HEIST_EXP_ERR(exp));
     if(!exp[1].is_type(types::sym))
-      THROW_ERR("'define-syntax 1st arg "<<PROFILE(exp[1])
-        <<" isn't a symbolic label!" << EXP_ERR(exp));
+      HEIST_THROW_ERR("'define-syntax 1st arg "<<HEIST_PROFILE(exp[1])
+        <<" isn't a symbolic label!" << HEIST_EXP_ERR(exp));
   }
 
 
   data extract_syntax_transformer(data&& mac, const data_vector& exp) {
     if(mac.is_type(types::syn)) return std::move(mac);
-    if(primitive_data_is_a_callable(mac))
-      return primitive_extract_callable_procedure(mac);
-    THROW_ERR("'define-syntax syntax-transformer 2nd arg "<<PROFILE(exp[2])
+    if(primitive_toolkit::data_is_callable(mac))
+      return primitive_toolkit::convert_callable_to_procedure(mac);
+    HEIST_THROW_ERR("'define-syntax syntax-transformer 2nd arg "<<HEIST_PROFILE(exp[2])
       <<" isn't a syntax-rules object or callable:\n     (define-syntax "
-        "<label> <syntax-transformer>)"<<EXP_ERR(exp));
+        "<label> <syntax-transformer>)"<<HEIST_EXP_ERR(exp));
   }
 
 
@@ -1746,9 +1744,9 @@ namespace heist {
     static constexpr const char * const format = 
       "\n     (core-syntax <label> <syntax-transformer>)";
     if(exp.size() < 3)
-      THROW_ERR("'core-syntax didn't receive enough args!"<<format<<EXP_ERR(exp));
+      HEIST_THROW_ERR("'core-syntax didn't receive enough args!"<<format<<HEIST_EXP_ERR(exp));
     if(!exp[1].is_type(types::sym))
-      THROW_ERR("'core-syntax 1st arg "<<PROFILE(exp[1])<<" isn't a symbolic label!"<<format<<EXP_ERR(exp));
+      HEIST_THROW_ERR("'core-syntax 1st arg "<<HEIST_PROFILE(exp[1])<<" isn't a symbolic label!"<<format<<HEIST_EXP_ERR(exp));
     // Eval the syntax defn in the global env at runtime
     exp[0] = symconst::defn_syn;
     auto core_syntax_name = exp[1].sym;
@@ -1778,8 +1776,8 @@ namespace heist {
     // verify no ".." found or ".<call>" or "<call>."
     for(const auto& link : chain)
       if(link.empty())
-        THROW_ERR('\''<<call<<" invalid property access (missing an object and/or property)!"
-          << EXP_ERR(call));
+        HEIST_THROW_ERR('\''<<call<<" invalid property access (missing an object and/or property)!"
+          << HEIST_EXP_ERR(call));
   }
 
 
@@ -1790,8 +1788,8 @@ namespace heist {
     // get the call value
     for(size_type i = 1, n = chain.size(); i < n; ++i) {
       if(!value.is_type(types::obj))
-        THROW_ERR('\''<<call<<" can't access property "<<chain[i]<<" in non-object "
-          << PROFILE(value) << '!' << EXP_ERR(call));
+        HEIST_THROW_ERR('\''<<call<<" can't access property "<<chain[i]<<" in non-object "
+          << HEIST_PROFILE(value) << '!' << HEIST_EXP_ERR(call));
       bool found = false;
       // if NOT at the end of a call chain, call MUST refer to an object
       if(i+1 < n) {
@@ -1803,8 +1801,8 @@ namespace heist {
         if(value.is_type(types::fcn)) value.fcn.bind_self(self);
       }
       if(!found)
-        THROW_ERR('\''<<call<<' '<<chain[i]<<" isn't a property in object\n     " 
-          << value << " of class name [ " << value.obj->proto->class_name << " ]!" << EXP_ERR(call));
+        HEIST_THROW_ERR('\''<<call<<' '<<chain[i]<<" isn't a property in object\n     " 
+          << value << " of class name [ " << value.obj->proto->class_name << " ]!" << HEIST_EXP_ERR(call));
     }
     return value;
   }
@@ -1829,8 +1827,8 @@ namespace heist {
   ******************************************************************************/
 
   // Get: 
-  //   0. data execute_application(data& procedure, data_vector& arguments, env_type& env, bool tail_call, bool applying_in_cps);
-  //   1. data execute_application(data&& procedure, data_vector& arguments, env_type& env, bool tail_call, bool applying_in_cps);
+  //   0. data execute_application(data& procedure, data_vector&& arguments, env_type& env, bool tail_call, bool applying_in_cps);
+  //   1. data execute_application(data&& procedure, data_vector&& arguments, env_type& env, bool tail_call, bool applying_in_cps);
   #include "dependancies/applicator.hpp"
 
   /******************************************************************************
@@ -1848,8 +1846,8 @@ namespace heist {
   // generates <data proc>: macro avoids extra copies
   #define evaluate_operator(OPERATOR_PROC,OPERATOR_ENV)\
     auto proc = OPERATOR_PROC(OPERATOR_ENV);\
-    if(proc.is_type(types::obj) && primitive_data_is_a_functor(proc))\
-      proc = primitive_extract_callable_procedure(proc);\
+    if(proc.is_type(types::obj) && primitive_toolkit::data_is_functor(proc))\
+      proc = primitive_toolkit::convert_callable_to_procedure(proc);\
     else if(proc.is_type(types::cls))\
       proc = proc.cls->user_ctor;
 
@@ -1936,20 +1934,18 @@ namespace heist {
           arg_procs.pop_back();
           eval_application_arg_procs(arg_procs,arg_vals,env);
           // Pass the result of the proc to the continuation
-          auto result_arg = data_vector(1,execute_application(proc,arg_vals,env,false,true));
-          // Pass the result of the proc to the continuation
-          return execute_application(continuation,result_arg,env,tail_call,true);
+          return execute_application(continuation,data_vector(1,execute_application(proc,std::move(arg_vals),env,false,true)),env,tail_call,true);
         }
         // Apply the proc w/ the continuation
         size_type i = 0, n = arg_procs.size()-1;
         for(; i < n; ++i) arg_vals[i] = arg_procs[i](env);
         arg_vals[n] = continuation; // don't re-eval the continuation
-        return execute_application(proc,arg_vals,env,false,true);
+        return execute_application(proc,std::move(arg_vals),env,false,true);
       // Else, apply the proc defined IN the CPS block as-is
       } else {
         data_vector arg_vals(arg_procs.size());
         eval_application_arg_procs(arg_procs,arg_vals,env);
-        return execute_application(proc,arg_vals,env,tail_call,true);
+        return execute_application(proc,std::move(arg_vals),env,tail_call,true);
       }
     };
   }
@@ -1965,8 +1961,8 @@ namespace heist {
       if(data_vector expanded; expand_macro_if_in_env(op_name, arg_exps, G.GLOBAL_ENVIRONMENT_POINTER, expanded)) {
         return scm_analyze(generate_fundamental_form_cps(expanded),tail_call,true);
       } else {
-        THROW_ERR("'core-syntax expression (label \"" << op_name 
-          << "\") didn't match any patterns!" << EXP_ERR(exp));
+        HEIST_THROW_ERR("'core-syntax expression (label \"" << op_name 
+          << "\") didn't match any patterns!" << HEIST_EXP_ERR(exp));
       }
     }
     // If possible macro, expand the application if so, else analyze args at eval
@@ -2013,8 +2009,8 @@ namespace heist {
       if(data_vector expanded; expand_macro_if_in_env(op_name, arg_exps, G.GLOBAL_ENVIRONMENT_POINTER, expanded)) {
         return scm_analyze(std::move(expanded),tail_call,cps_block);
       } else {
-        THROW_ERR("'core-syntax expression (label \"" << op_name 
-          << "\") didn't match any patterns!" << EXP_ERR(exp));
+        HEIST_THROW_ERR("'core-syntax expression (label \"" << op_name 
+          << "\") didn't match any patterns!" << HEIST_EXP_ERR(exp));
       }
     }
     auto op_proc = scm_analyze(get_operator(exp),false,cps_block);
@@ -2028,7 +2024,7 @@ namespace heist {
         data_vector arg_vals(arg_procs.size());
         eval_application_arg_procs(arg_procs,arg_vals,env);
         evaluate_operator(op_proc,env); // generates <data proc>
-        return execute_application(proc,arg_vals,env,tail_call,cps_block);
+        return execute_application(proc,std::move(arg_vals),env,tail_call,cps_block);
       };
     }
     // If possible macro, expand the application if so, else analyze args at eval
@@ -2043,7 +2039,7 @@ namespace heist {
       for(size_type i = 0, n = arg_exps.size(); i < n; ++i)
         arg_vals[i] = scm_analyze(data(arg_exps[i]),false,cps_block)(env);
       evaluate_operator(op_proc,env); // generates <data proc>
-      return execute_application(proc,arg_vals,env,tail_call,cps_block);
+      return execute_application(proc,std::move(arg_vals),env,tail_call,cps_block);
     };
   }
 
@@ -2057,7 +2053,7 @@ namespace heist {
   exe_fcn_t scm_analyze(data&& datum,const bool tail_call,const bool cps_block) { // analyze expression
     if(datum.is_self_evaluating())           return [d=std::move(datum)](env_type&){return d;};
     else if(datum.is_type(types::sym))       return analyze_variable(datum.sym);
-    else if(datum.exp.empty())                      THROW_ERR("Can't eval an empty expression!"<<EXP_ERR("()"));
+    else if(datum.exp.empty())                      HEIST_THROW_ERR("Can't eval an empty expression!"<<HEIST_EXP_ERR("()"));
     else if(is_quoted(datum.exp))            return analyze_quoted(datum.exp);
     else if(is_assignment(datum.exp))        return analyze_assignment(datum.exp,cps_block);
     else if(is_definition(datum.exp))        return analyze_definition(datum.exp,cps_block);
@@ -2080,8 +2076,8 @@ namespace heist {
     else if(is_unfix(datum.exp))             return analyze_unfix(datum.exp);
     else if(is_defn_reader_alias(datum.exp)) return analyze_defn_reader_alias(datum.exp);
     else if(is_while(datum.exp))             return analyze_while(datum.exp,cps_block);
-    else if(is_vector_literal(datum.exp))           THROW_ERR("Misplaced keyword 'vector-literal outside of a quotation! -- ANALYZE"   <<EXP_ERR(datum.exp));
-    else if(is_hmap_literal(datum.exp))             THROW_ERR("Misplaced keyword 'hmap-literal outside of a quotation! -- ANALYZE"     <<EXP_ERR(datum.exp));
+    else if(is_vector_literal(datum.exp))           HEIST_THROW_ERR("Misplaced keyword 'vector-literal outside of a quotation! -- ANALYZE"   <<HEIST_EXP_ERR(datum.exp));
+    else if(is_hmap_literal(datum.exp))             HEIST_THROW_ERR("Misplaced keyword 'hmap-literal outside of a quotation! -- ANALYZE"     <<HEIST_EXP_ERR(datum.exp));
     return analyze_application(datum.exp,tail_call,cps_block);
   }
 

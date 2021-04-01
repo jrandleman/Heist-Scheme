@@ -2,19 +2,131 @@
 // => Contains helper functions for "struct data" value stringification for the C++ 
 //    Heist Scheme Interpreter
 
-#ifndef HEIST_DATA_STRINGIFICATION_HELPERS_HPP_
-#define HEIST_DATA_STRINGIFICATION_HELPERS_HPP_
+#ifndef HEIST_SCHEME_CORE_DATA_STRINGIFICATION_HELPERS_HPP_
+#define HEIST_SCHEME_CORE_DATA_STRINGIFICATION_HELPERS_HPP_
 
 /******************************************************************************
 * PRINTER HELPER FUNCTION PROTOTYPES
 ******************************************************************************/
 
 // DATA PREDICATES
-bool data_is_stream_pair(const data& d)noexcept;
-bool data_is_proper_list(const data& d)noexcept;
+namespace stdlib_streams { bool data_is_stream_pair(const data& d)noexcept; }
+namespace primitive_toolkit { bool data_is_proper_list(const data& d)noexcept; }
 
-// STRING SPECIAL CHARACTER ESCAPING
-string escape_chars(const string& str)noexcept;
+/******************************************************************************
+* CHARACTER ESCAPING & UNESCAPING HELPER PROCEDURES
+******************************************************************************/
+
+// Confirm character c is an escaped character
+constexpr bool is_escapable_char(const char& c)noexcept{
+  return c=='\''||c=='"'||c=='?'||c=='\\'||c=='a'||
+         c=='b' ||c=='f'||c=='n'||c=='r'||c=='t' ||
+         c=='v';
+}
+
+
+// Constexpr isxdigit
+constexpr bool ishexdigit(const char& c)noexcept{
+  return (c>='0' && c<='9')||(c>='A' && c<='F')||(c>='a' && c<='f');
+}
+
+
+// Confirm char is an escape hexadecimal char
+constexpr bool is_hex_escape(const char& c, const char& c2)noexcept{
+  return c=='x' && ishexdigit(c2);
+}
+
+
+// Confirm char is an escape octal char
+constexpr bool is_oct_escape(const char& c)noexcept{
+  return c>='0' && c<='7';
+}
+
+
+// Retrieve the special character variant of the given escaped character
+constexpr char special_char_variant(const char& c)noexcept{
+  switch(c) {
+    case 'a': return '\a'; case 'b': return '\b';
+    case 'f': return '\f'; case 'n': return '\n';
+    case 'r': return '\r'; case 't': return '\t';
+    case 'v': return '\v'; default:  return c;
+  }
+}
+
+
+// Inserts the unescaped hex/oct as a char & rm's its escaped representation
+void insert_hex_oct_escaped_char(string& unescaped, const string& str,size_type& i,const int& base)noexcept{
+  unescaped += char(std::stoi(str.substr(i), nullptr, base));
+  ++i;
+  const auto is_parsed_digit = (base == 16) ? ishexdigit : is_oct_escape;
+  while(str[i] && is_parsed_digit(str[i])) ++i;
+  --i; // account for 'unescape_chars's for-loop ++i
+}
+
+
+// Unescape escaped special characters in the given string (ie "\\n" => "\n")
+string unescape_chars(const string& str)noexcept{
+  string unescaped; 
+  unescaped.reserve(str.size());
+  for(size_type i = 0; i < str.size(); ++i) {
+    if(str[i] == '\\' && str[i+1]) {
+      if(is_escapable_char(str[i+1])) {
+        ++i;
+        unescaped += special_char_variant(str[i]);
+      } else if(is_hex_escape(str[i+1],str[i+2])) {
+        i += 2;
+        insert_hex_oct_escaped_char(unescaped,str,i,16);
+      } else if(is_oct_escape(str[i+1])) {
+        ++i;
+        insert_hex_oct_escaped_char(unescaped,str,i,8);
+      } else {
+        unescaped += str[i];
+      }
+    } else {
+      unescaped += str[i];
+    }
+  }
+  return unescaped;
+}
+
+
+// Escape the given char <c>
+// PRECONDITION: c == '"' || c == '\\' || !isprint(c)
+string escaped_char(int c)noexcept{
+  c %= 256;
+  if(c < 0) c += 256;
+  switch(c) {
+    case '"':  return "\\\"";
+    case '\\': return "\\\\";
+    case '\a': return "\\a";
+    case '\b': return "\\b";
+    case '\f': return "\\f";
+    case '\n': return "\\n";
+    case '\r': return "\\r";
+    case '\t': return "\\t";
+    case '\v': return "\\v";
+    default: // Escape non-printable chars that are NOT one of the above in hex
+      auto left_digit = (c/16), right_digit = (c%16);
+      char hex_str[5] = "\\x";
+      hex_str[2] = char((left_digit>9?'a'+left_digit-10:'0'+left_digit));
+      hex_str[3] = char((right_digit>9?'a'+right_digit-10:'0'+right_digit)); 
+      hex_str[4] = 0;
+      return string(hex_str,4);
+  }
+}
+
+
+// Escape special characters in the given string (ie "\n" => "\\n")
+string escape_chars(const string& str)noexcept{
+  string escaped;
+  for(size_type i = 0, n = str.size(); i < n; ++i) {
+    if(str[i] != '"' && str[i] != '\\' && isprint(str[i]))
+      escaped += char(str[i]);
+    else
+      escaped += escaped_char(str[i]);
+  }
+  return escaped;
+} 
 
 /******************************************************************************
 * GENERIC DATA STRINGIFICATION METHOD TYPE ALIAS
@@ -52,7 +164,7 @@ template<DATA_STRINGIFIER to_str>
 void cio_acyclic_list_str_recur(string& list_str, const data& pair_object) {
   // store car
   if(pair_object.par->first.is_type(types::par)) {
-    if(data_is_stream_pair(pair_object.par->first)) {
+    if(stdlib_streams::data_is_stream_pair(pair_object.par->first)) {
       list_str += "#<stream>";
     } else {
       list_str += '(';
@@ -89,7 +201,7 @@ void stringify_list_recur(string& list_str, const data& slow, const data& fast, 
   }
   // store car
   if(slow.par->first.is_type(types::par)) {
-    if(data_is_stream_pair(slow.par->first)) {
+    if(stdlib_streams::data_is_stream_pair(slow.par->first)) {
       list_str += "#<stream>";
     } else {
       list_str += '(';
@@ -120,7 +232,7 @@ void stringify_list_recur(string& list_str, const data& slow, const data& fast, 
 // Stringify list
 template<DATA_STRINGIFIER to_str>
 string stringify_list(const data& pair_object) {
-  if(data_is_stream_pair(pair_object)) return "#<stream>";
+  if(stdlib_streams::data_is_stream_pair(pair_object)) return "#<stream>";
   string list_str;
   stringify_list_recur<to_str>(list_str, pair_object.par, pair_object.par, nullptr);
   return '(' + list_str + ')';
@@ -234,7 +346,7 @@ void stringify_list_data(pprint_data& list_as_strs, size_type& length, const par
   // Strify car
   if(!p->first.is_type(types::par)) {
     list_as_strs.push_back(pprint_datum(p->first.pprint(),p->first.is_type(types::sym)));
-  } else if(!data_is_proper_list(p->first)) {
+  } else if(!primitive_toolkit::data_is_proper_list(p->first)) {
     list_as_strs.push_back(p->first.write());
   } else {
     pprint_data sub_exp;
@@ -249,7 +361,7 @@ void stringify_list_data(pprint_data& list_as_strs, size_type& length, const par
   }
   if(!p->second.is_type(types::par))
     list_as_strs.push_back(pprint_datum(p->second.pprint(),p->second.is_type(types::sym)));
-  else if(!data_is_proper_list(p->second))
+  else if(!primitive_toolkit::data_is_proper_list(p->second))
     list_as_strs.push_back(p->second.write());
   else
     stringify_list_data(list_as_strs,length,p->second.par);
@@ -346,7 +458,7 @@ end_of_pprint:
 // Pretty printer
 string pretty_print(const data& d) {
   // If non-proper-list-pair, print as-is
-  if(!data_is_proper_list(d)) return d.write();
+  if(!primitive_toolkit::data_is_proper_list(d)) return d.write();
   // Else check if pair as string is of valid length
   auto as_string = d.write();
   if(as_string.size() <= G.PPRINT_MAX_COLUMN_WIDTH)

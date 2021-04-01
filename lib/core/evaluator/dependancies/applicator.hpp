@@ -1,8 +1,8 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- applicator.hpp
 // => Contains the "execute_application" procedure for the C++ Heist Scheme Interpreter
 
-#ifndef HEIST_APPLICATOR_HPP_
-#define HEIST_APPLICATOR_HPP_
+#ifndef HEIST_SCHEME_CORE_APPLICATOR_HPP_
+#define HEIST_SCHEME_CORE_APPLICATOR_HPP_
 
 /******************************************************************************
 * TRACING PROCEDURE CALLS
@@ -22,10 +22,10 @@ void output_debug_call_trace(const fcn_type& procedure,const data_vector& argume
   FILE* outs = noexcept_get_current_output_port();
   fprintf(outs,
           "%s%s#<CALL-TRACE>%s Tail-Call: %s%s%s, Call/ce: %s%s%s %s]=>%s %s%s\n",
-          afmt(AFMT_01), afmt(AFMT_35), afmt(AFMT_01), 
-          afmt(tail_c_color), in_tail_call, afmt(AFMT_01), 
-          afmt(callce_color), using_callce, afmt(AFMT_01), 
-          afmt(AFMT_35), afmt(AFMT_01), call_signature.c_str(), afmt(AFMT_0));
+          HEIST_AFMT(AFMT_01), HEIST_AFMT(AFMT_35), HEIST_AFMT(AFMT_01), 
+          HEIST_AFMT(tail_c_color), in_tail_call, HEIST_AFMT(AFMT_01), 
+          HEIST_AFMT(callce_color), using_callce, HEIST_AFMT(AFMT_01), 
+          HEIST_AFMT(AFMT_35), HEIST_AFMT(AFMT_01), call_signature.c_str(), HEIST_AFMT(AFMT_0));
   fflush(outs);
 }
 
@@ -84,7 +84,7 @@ void register_call_in_stack_trace(fcn_type& procedure,data_vector& arguments)noe
 
 
 // -- APPLYING PRIMITIVE PROCEDURES
-data apply_primitive_procedure(data& proc,data_vector& args,env_type& env,const bool tail_call){
+data apply_primitive_procedure(data& proc,data_vector&& args,env_type& env,const bool tail_call){
   // Output tracing information as needed
   auto tracing_proc = tracing_procedure(proc.fcn.name);
   if(tracing_proc) output_call_trace_invocation(proc.fcn,args);
@@ -94,11 +94,11 @@ data apply_primitive_procedure(data& proc,data_vector& args,env_type& env,const 
   // Extend partially applied args as needed
   if(!proc.fcn.param_instances.empty()) {
     if(args.empty())
-      THROW_ERR('\''<<proc.fcn.printable_procedure_name()<<" partial procedure didn't receive any arguments!"
+      HEIST_THROW_ERR('\''<<proc.fcn.printable_procedure_name()<<" partial procedure didn't receive any arguments!"
         << "\n     Partial Bindings: " << procedure_call_signature(proc.fcn.printable_procedure_name(),proc.fcn.param_instances[0]));
     args.insert(args.begin(),proc.fcn.param_instances[0].begin(),proc.fcn.param_instances[0].end());
   }
-  auto result = proc.fcn.prm(args);
+  auto result = proc.fcn.prm(std::move(args));
   // Clear call from stack strace
   if(!GLOBALS::STACK_TRACE.empty()) GLOBALS::STACK_TRACE.pop_back();
   // Output result's trace as needed
@@ -133,10 +133,10 @@ tail_call_recur:
 // Analogue to "apply", except no need to analyze the body of compound 
 //   procedures (already done). Hence only calls the execution procedure 
 //   for the proc's body w/ the extended environment
-data execute_application(data& procedure,data_vector& arguments,env_type& env,const bool tail_call,const bool applying_in_cps){
+data execute_application(data& procedure,data_vector&& arguments,env_type& env,const bool tail_call,const bool applying_in_cps){
   if(!procedure.is_type(types::fcn))
-    THROW_ERR("Invalid application of non-procedure "<<PROFILE(procedure)<<'!'
-      <<FCN_ERR(procedure.noexcept_write(),arguments));
+    HEIST_THROW_ERR("Invalid application of non-procedure "<<HEIST_PROFILE(procedure)<<'!'
+      <<HEIST_FCN_ERR(procedure.noexcept_write(),arguments));
   // save call to stack trace output
   register_call_in_stack_trace(procedure.fcn,arguments);
   // output debugger call trace as needed
@@ -144,7 +144,7 @@ data execute_application(data& procedure,data_vector& arguments,env_type& env,co
     output_debug_call_trace(procedure.fcn,arguments,tail_call,procedure.fcn.is_using_dynamic_scope());
   // execute primitive procedure directly
   if(procedure.fcn.is_primitive())
-    return apply_primitive_procedure(procedure,arguments,env,tail_call);
+    return apply_primitive_procedure(procedure,std::move(arguments),env,tail_call);
   // compound proc -- create the procedure body's extended environment frame
   exe_fcn_t fcn_body;
   auto extended_env = procedure.fcn.get_extended_environment(arguments,fcn_body,applying_in_cps);
@@ -160,8 +160,8 @@ data execute_application(data& procedure,data_vector& arguments,env_type& env,co
   auto& recursive_depth = procedure.fcn.recursive_depth();
   if(recursive_depth > G.MAX_RECURSION_DEPTH) {
     recursive_depth = 0;
-    THROW_ERR("Maximum recursion depth of "<<G.MAX_RECURSION_DEPTH<<" exceeded!"
-      << FCN_ERR(procedure.fcn.printable_procedure_name(), arguments));
+    HEIST_THROW_ERR("Maximum recursion depth of "<<G.MAX_RECURSION_DEPTH<<" exceeded!"
+      << HEIST_FCN_ERR(procedure.fcn.printable_procedure_name(), arguments));
   }
   // output tracing information as needed
   auto tracing_proc = tracing_procedure(procedure.fcn.name);
@@ -183,8 +183,8 @@ data execute_application(data& procedure,data_vector& arguments,env_type& env,co
 }
 
 // R-value overload
-data execute_application(data&& procedure,data_vector& arguments,env_type& env,const bool tail_call,const bool applying_in_cps){
-  return execute_application(procedure,arguments,env,tail_call,applying_in_cps);
+data execute_application(data&& procedure,data_vector&& arguments,env_type& env,const bool tail_call,const bool applying_in_cps){
+  return execute_application(procedure,std::move(arguments),env,tail_call,applying_in_cps);
 }
 
 #endif

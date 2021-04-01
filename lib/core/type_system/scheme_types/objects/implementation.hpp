@@ -1,8 +1,8 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- implementation.hpp
 // => Contains method implementations of "object_type" for the C++ Heist Scheme Interpreter
 
-#ifndef HEIST_OBJECT_IMPLEMENTATION_HPP_
-#define HEIST_OBJECT_IMPLEMENTATION_HPP_
+#ifndef HEIST_SCHEME_CORE_OBJECT_IMPLEMENTATION_HPP_
+#define HEIST_SCHEME_CORE_OBJECT_IMPLEMENTATION_HPP_
 
 #include "implementation_helpers/object_property_manipulation_logic.hpp"
 

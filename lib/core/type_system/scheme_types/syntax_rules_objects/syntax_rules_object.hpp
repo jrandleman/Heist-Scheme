@@ -1,8 +1,8 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- syntax_rules_object.hpp
 // => Contains "syntax_rules_object" data structure for the C++ Heist Scheme Interpreter
 
-#ifndef HEIST_SYNTAX_RULES_OBJECT_HPP_
-#define HEIST_SYNTAX_RULES_OBJECT_HPP_
+#ifndef HEIST_SCHEME_CORE_SYNTAX_RULES_OBJECT_HPP_
+#define HEIST_SCHEME_CORE_SYNTAX_RULES_OBJECT_HPP_
 
 namespace heist {
   struct syntax_rules_object {

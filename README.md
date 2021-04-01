@@ -12,7 +12,7 @@
 
 0. Launch REPL: `$ heist`
 1. Interpret Script: `$ heist -script <script-filename> <argv1> <argv2> ...`
-2. Embed Heist in C++: `#include` [`cpp_interop.hpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/cpp_interop.hpp) in your code!
+2. Embed Heist in C++: `#include` [`interop.hpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/interop.hpp) in your code!
    * See [`examples/embedded_heist_demo.cpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/examples/embedded_heist_demo.cpp) for a demo!
 
 ------------------------
@@ -1848,7 +1848,7 @@ Other primitives of this nature include:<br>
    * Compiled Script: passed to the executable of the compiled C++ file
 
 8. __EXIT_SUCCESS & EXIT_FAILURE__: `*exit-success*`, `*exit-failure*`
-   * Designed to be used in conjunction with [`(exit)`](#Control-Flow-Procedures)
+   * Designed to be used in conjunction with [`exit`](#Control-Flow-Procedures)
 
 9. __General Current Platform Name__: `*heist-platform*`
    * Possible results: `'windows` | `'apple` | `'linux` | `'unix` | `'posix` | `'unknown`
@@ -2173,8 +2173,8 @@ Other primitives of this nature include:<br>
    * `(string-trim-both <string> <optional-predicate?>)`
    * _Note: `<predicate?>` defaults to `char-whitespace?`_
 
-9. __Replacement__: Replace `<string1>` between indices `<start>` & `<end>` with `<string2>`
-   * `(string-replace <string1> <string2> <start> <end>)`
+9. __Replacement__: Replace `<string1>` between indices `<start-index>` & `<end-index>` with `<string2>`
+   * `(string-replace <string1> <string2> <start-index> <end-index>)`
    * _See [`regex-replace`](#regex-uses-ecmascript-syntax) & [`regex-replace-all`](#regex-uses-ecmascript-syntax) for a regex-based alternative!_
 
 10. __String Contains Substring (From Left)__: Get index of 1st instance
@@ -2987,16 +2987,28 @@ Other primitives of this nature include:<br>
 
 3. __Change Current Working Directory__: `(chdir <directory-path-string>)`
 
-4. __File/Directory Predicate__: `(file? <filename-string>)`
+4. __File Predicate__: `(file? <filename-string>)`
 
-5. __Delete File/Directory__: `(delete-file! <filename-string>)`
+5. __Directory Predicate__: `(directory? <directory-name-string>)`
 
-6. __Rename File/Directory__: `(rename-file! <old-name-string> <new-name-string>)`
+6. __Path Predicate__: `(path? <path-string>)`
+   * _Equivalent to `(or (file? <path-string>) (directory? <path-string>))`!_
 
-7. __Copy File/Directory__: `(copy-file <source-path-string> <destination-path-string>)`
+7. __Get Directory Entries List__: `(directory-entries <directory-name-string>)`
+   * _Returns `#f` if `<directory-name-string>` doesn't denote a directory!_
 
-8. __Get File Size__: `(file-size <filename-string>)`
-   * _Behavior is platform-dependant when invoked on directories!_
+8. __Get Directory Entries List w/o Dot-Files__: `(directory-entries* <directory-name-string>)`
+   * _Returns `#f` if `<directory-name-string>` doesn't denote a directory!_
+   * _"Dot-file" here refers to any file beginning with "."!_
+
+9. __Delete Path__: `(delete-path! <path-string>)`
+
+10. __Rename Path__: `(rename-path! <old-name-string> <new-name-string>)`
+
+11. __Copy Path__: `(copy-path <source-path-string> <destination-path-string>)`
+
+12. __Get File Size__: `(file-size <filename-string>)`
+    * _Behavior is platform-dependant when invoked on directories!_
 
 
 
@@ -3027,7 +3039,7 @@ Other primitives of this nature include:<br>
     * _Both creates new files & appends to existing files!_
 
 11. __Destructively Generate Output Port__: `(open-output-file! <filename-string>)`
-    * _Equivalent to `(begin (delete-file! <filename-string>) (open-output-file <filename-string>))`_
+    * _Equivalent to `(begin (delete-path! <filename-string>) (open-output-file <filename-string>))`_
 
 12. __Rewind Port__: `(rewind-port! <input-or-output-port>)`
 
@@ -3124,7 +3136,7 @@ Other primitives of this nature include:<br>
 
 9. __Register Values as Truthy__: `(set-truthy! <obj> ...)`
    * Note that `#f` can NEVER be set as truthy!
-   * Effectively removes `<datum> ...` from the set of falsey values.
+   * Effectively removes `<obj> ...` from the set of falsey values.
    * By default, everything EXCEPT `#f` is truthy in Heist Scheme.
 
 10. __Get Falsey Values List__: `(falsey-values)`
@@ -3135,9 +3147,10 @@ Other primitives of this nature include:<br>
 ## Control Flow Procedures:
 0. __Exit__: `(exit <optional-integer-exit-code>)`
    * Note: `<optional-integer-exit-code>` defaults to [`*exit-success*`](#Heist-Primitive-Variables)
-   * If triggered while embedded in C++ ([`cpp_interop.hpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/cpp_interop.hpp)), eval'd code<br>
+   * Note: Unlike C++'s `std::exit`, this `exit` calls all destructors prior exiting!
+   * If triggered while embedded in C++ ([`interop.hpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/interop.hpp)), eval'd code<br>
      returns either [`*exit-success*`](#Heist-Primitive-Variables) or [`*exit-failure*`](#Heist-Primitive-Variables) as a SYMBOL!
-   * If triggered in [`*null-environment*`](#Heist-Primitive-Variables), evaluation returns the given code immediately!
+   * If triggered in [`*null-environment*`](#Heist-Primitive-Variables), evaluation of the given code ends immediately!
 
 1. __Trigger Error__: `(error <errorful-obj-symbol> <error-string> <optional-errorful-objs>)`
 

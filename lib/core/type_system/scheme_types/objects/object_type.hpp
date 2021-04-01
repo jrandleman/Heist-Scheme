@@ -1,8 +1,8 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- object_type.hpp
 // => Contains "object_type" data structure for the C++ Heist Scheme Interpreter
 
-#ifndef HEIST_OBJECT_TYPE_HPP_
-#define HEIST_OBJECT_TYPE_HPP_
+#ifndef HEIST_SCHEME_CORE_OBJECT_TYPE_HPP_
+#define HEIST_SCHEME_CORE_OBJECT_TYPE_HPP_
 
 namespace heist {
   struct object_type {

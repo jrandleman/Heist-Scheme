@@ -1,8 +1,8 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- implementation.hpp
 // => Contains methods implementations of "struct environment" for the C++ Heist Scheme Interpreter
 
-#ifndef HEIST_ENVIRONMENT_IMPLEMENTATION_HPP_
-#define HEIST_ENVIRONMENT_IMPLEMENTATION_HPP_
+#ifndef HEIST_SCHEME_CORE_ENVIRONMENT_IMPLEMENTATION_HPP_
+#define HEIST_SCHEME_CORE_ENVIRONMENT_IMPLEMENTATION_HPP_
 
 #include "implementation_helpers/environment_extension.hpp" // defines the "extend_environment" procedure
 

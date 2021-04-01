@@ -1,8 +1,8 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- optimizer.hpp
 // => Contains the "optimize_CPS_code_generation" procedure for the C++ Heist Scheme Interpreter
 
-#ifndef HEIST_CPS_OPTIMIZER_HPP_
-#define HEIST_CPS_OPTIMIZER_HPP_
+#ifndef HEIST_SCHEME_CORE_CPS_OPTIMIZER_HPP_
+#define HEIST_SCHEME_CORE_CPS_OPTIMIZER_HPP_
 
 /******************************************************************************
 * CONTINUATION-PASSING-STYLE EXPANSION OPTIMIZATION -- PASS 1

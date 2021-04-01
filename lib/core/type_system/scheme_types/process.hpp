@@ -3,8 +3,8 @@
 //    and "symbol_is_dot_operator"/"data_is_dot_operator" helper functions for the C++ 
 //    Heist Scheme Interpreter
 
-#ifndef HEIST_PROCESS_HPP_
-#define HEIST_PROCESS_HPP_
+#ifndef HEIST_SCHEME_CORE_PROCESS_HPP_
+#define HEIST_SCHEME_CORE_PROCESS_HPP_
 
 namespace heist {
 

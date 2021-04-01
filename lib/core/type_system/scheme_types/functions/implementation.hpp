@@ -1,8 +1,8 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- implementation.hpp
 // => Contains methods implementations of "struct function_object" for the C++ Heist Scheme Interpreter
 
-#ifndef HEIST_FUNCTION_OBJECT_IMPLEMENTATION_HPP_
-#define HEIST_FUNCTION_OBJECT_IMPLEMENTATION_HPP_
+#ifndef HEIST_SCHEME_CORE_FUNCTION_OBJECT_IMPLEMENTATION_HPP_
+#define HEIST_SCHEME_CORE_FUNCTION_OBJECT_IMPLEMENTATION_HPP_
 
 namespace heist {
 
@@ -356,8 +356,8 @@ namespace heist {
         }
         unpacked_params.clear(), values.clear();
       }
-      THROW_ERR("'fn arguments "<<data(arguments)<<" don't match any signatures!\n     -> Possible Signatures:" 
-        << get_possible_signatures(param_instances,name) << FCN_ERR(name,arguments));
+      HEIST_THROW_ERR("'fn arguments "<<data(arguments)<<" don't match any signatures!\n     -> Possible Signatures:" 
+        << get_possible_signatures(param_instances,name) << HEIST_FCN_ERR(name,arguments));
     }
   }; // End of namespace fn_param_matching
 
@@ -367,8 +367,8 @@ namespace heist {
 
   // Default continuation to provide to cps procs applied in a non-cps context
   namespace DEFAULT_TOPMOST_CONTINUATION {
-    data id(data_vector& args) {
-      if(args.size() != 1) THROW_ERR("'id not given 1 argument: (id <obj>)" << FCN_ERR("id",args));
+    data id(data_vector&& args) {
+      if(args.size() != 1) HEIST_THROW_ERR("'id not given 1 argument: (id <obj>)" << HEIST_FCN_ERR("id",args));
       return args[0];
     }
   };

@@ -1,8 +1,8 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- map_object.hpp
 // => Contains "map_object" data structure for the C++ Heist Scheme Interpreter
 
-#ifndef HEIST_MAP_OBJECT_HPP_
-#define HEIST_MAP_OBJECT_HPP_
+#ifndef HEIST_SCHEME_CORE_MAP_OBJECT_HPP_
+#define HEIST_SCHEME_CORE_MAP_OBJECT_HPP_
 
 namespace heist {
   struct map_object {

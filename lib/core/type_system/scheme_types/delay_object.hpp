@@ -1,8 +1,8 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- delay_object.hpp
 // => Contains "delay_object" data structure for the C++ Heist Scheme Interpreter
 
-#ifndef HEIST_DELAY_OBJECT_HPP_
-#define HEIST_DELAY_OBJECT_HPP_
+#ifndef HEIST_SCHEME_CORE_DELAY_OBJECT_HPP_
+#define HEIST_SCHEME_CORE_DELAY_OBJECT_HPP_
 
 namespace heist {
   struct delay_object {

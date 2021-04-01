@@ -1,8 +1,8 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- process_indpendent_global_variables.hpp
 // => Contains process-independent global variables for the C++ Heist Scheme Interpreter
 
-#ifndef HEIST_PROCESS_INDEPENDENT_GLOBAL_VARIABLES_HPP_
-#define HEIST_PROCESS_INDEPENDENT_GLOBAL_VARIABLES_HPP_
+#ifndef HEIST_SCHEME_CORE_PROCESS_INDEPENDENT_GLOBAL_VARIABLES_HPP_
+#define HEIST_SCHEME_CORE_PROCESS_INDEPENDENT_GLOBAL_VARIABLES_HPP_
 
 namespace heist::GLOBALS {
 
@@ -37,7 +37,7 @@ namespace heist::GLOBALS {
 
 
   /* REGISTRY OF PRIMITIVES ALSO REQUIRING AN ENVIRONMENT (TO APPLY A PROCEDURE) */
-  #ifdef HEIST_CPP_INTEROP_HPP_ // @EMBEDDED-IN-C++
+  #ifdef HEIST_SCHEME_CORE_CPP_INTEROP_HPP_ // @EMBEDDED-IN-C++
     std::vector<prm_ptr_t> USER_DEFINED_PRIMITIVES_REQUIRING_ENV;
   #endif
 

@@ -1,8 +1,8 @@
 // Author: Jordan Randleman -- jrandleman@scu.edu -- object_property_manipulation_logic.hpp
 // => Contains helper functions of "../implementation.hpp" for the C++ Heist Scheme Interpreter
 
-#ifndef HEIST_OBJECT_PROPERTY_MANIPULATION_LOGIC_HPP_
-#define HEIST_OBJECT_PROPERTY_MANIPULATION_LOGIC_HPP_
+#ifndef HEIST_SCHEME_CORE_OBJECT_PROPERTY_MANIPULATION_LOGIC_HPP_
+#define HEIST_SCHEME_CORE_OBJECT_PROPERTY_MANIPULATION_LOGIC_HPP_
 
 namespace heist {
 
