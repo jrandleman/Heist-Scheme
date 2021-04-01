@@ -1,5 +1,7 @@
-# Understanding `lib/core/type_system`: The C++ Types Underlying "Heist Scheme Objects"
+# Understanding `lib/core/type_system`
+## The C++ Types Underlying "Heist Scheme Objects"
 
+--------------------------------
 ## `dependancies`:
 
 Directory containing functionality support for Heist Scheme `struct data` objects.
