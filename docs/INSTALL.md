@@ -1,12 +1,12 @@
 # Installing Heist Scheme in a New Directory
 
 ### With `python3`, ___and___ `clang++` or `g++`:
-0. Open `/installers/`
+0. Open [`/installers/`](../installers)
 1. Run `$ python3 installer.py`
    * _Use `$ python3 installer.py -debug` to compile with `-O0 -Wall -Wextra`!_
 
 ### Otherwise:
-0. Open `/installers/`
+0. Open [`/installers/`](../installers)
 1. Compile & run `installer.cpp` using C++17
 2. Compile the interpreter: `$ clang++ -std=c++17 -O3 -o heist heist.cpp`
    * Flag details:
