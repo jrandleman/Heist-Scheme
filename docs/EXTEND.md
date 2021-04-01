@@ -33,10 +33,10 @@ in fact, _every standard library primitive is implemented as if it were an exten
 
 Before getting into extending Heist Scheme with C++ primitives though, you'll first want to 
 learn about the underlying C++ type system of Heist Scheme objects. You can learn about this
-type system in [`TYPES.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/docs/TYPES.md). 
+type system in [`TYPES.md`](./TYPES.md). 
 
 Should you want more information about working with Heist objects of a particular type, I'd
-recommend perusing [`lib/primitives/stdlib/data`](https://github.com/jrandleman/Heist-Scheme/tree/master/lib/primitives/stdlib/data) 
+recommend perusing [`lib/primitives/stdlib/data`](../lib/primitives/stdlib/data) 
 for extensive examples of C++ primitives interoperating with the types described in [`TYPES.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/docs/TYPES.md).
 
 
