@@ -22,7 +22,7 @@ I'd recommend perusing `lib/primitives/stdlib/data` for extensive examples of C+
 functions interoperating with the types described in `TYPES.md`.
 
 
-### Acually Embedding
+### Actually Embedding
 
 Programs embedding Heist Scheme must `#include` the `interop.hpp` header. This defines 3
 functions -- designed for use in single-threaded environments -- in the `heist` namespace:
@@ -40,7 +40,7 @@ functions -- designed for use in single-threaded environments -- in the `heist` 
    * Alternatively, can pass a `heist::data` callable instead of a `std::string` procedure name
 
 3. `define`
-   * Comes in 2 flavors:<br>
+   * Comes in 2 flavors:
      1. `void define(std::string heist_variable_name, heist::data variable_value)`
         * Binds `heist_variable_name` to `variable_value` in Heist's global environment
      2. `void define(std::string primitive_name, heist::prm_ptr_t heist_primitive_function_ptr)`
@@ -48,9 +48,8 @@ functions -- designed for use in single-threaded environments -- in the `heist` 
           global environment
           - Note that `heist::prm_ptr_t` is equivalent to `heist::data(*)(std::vector<heist::data>&&)`
             * See `EXTEND.md` for more info on extending Heist Scheme with your own C++ primitives!
-        * Pass a an extra `true` variable to the end of this function in order to have the calling
-          environment's pointer appended the end of `heist_primitive_function_ptr`'s arg-list
-          when applied by Heist
+        * Pass a an extra `true` variable to the end of this function to have the calling environment's pointer<br>
+          appended the end of `heist_primitive_function_ptr`'s arg-list when applied by Heist
           - This enables a form of dynamic scoping, as the environment pointer can in turn be passed
             to `primitive_toolkit::apply_callable`
           - Again, see `EXTEND.md` for info on implementing your own C++ primitives for Heist Scheme!
