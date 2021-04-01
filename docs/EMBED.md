@@ -3,8 +3,8 @@
 ## Why Embed?
 
 Whereas `EXTEND.md` discusses extending Heist Scheme with C++17, embedding enables 
-extending C++17 with Heist Scheme! Refer to `examples/embedded_heist_demo.cpp` to see
-Heist Scheme being embedded in action!
+extending C++17 with Heist Scheme!<br>
+Refer to `examples/embedded_heist_demo.cpp` to see Heist Scheme being embedded in action!
 
 
 
