@@ -11482,7 +11482,7 @@ Header file enabling C++17 interop with Heist Scheme!
   *) Interop is designed for SINGLE-THREADED environments!
   *) Defines 4 C++17 Functions for Interop w/ Heist:
      0. eval   // evaluate heist code string, same as _heist literal (check out the header!)
-     1. apply  // apply args to Heist callable (procedure or functor)
+     1. apply  // apply args to Heist callable (procedure/prototype-constructor/functor)
      2. define // define C++17 Heist primitive _OR_ a global Heist variable
 )",
 
