@@ -35,10 +35,10 @@ reference-counting mechanism.
 
 Error handling is done by macros to get access to C++'s `__FILE__`, `__LINE__`, and 
 `__func__` for clearer error messages.<br>
-This is principally done by:
-* `HEIST_THROW_ERR(err_message)`: The `err_message` arg is passed to `std::cerr`, hence 
-  `HEIST_THROW_ERR("not a string: " << 42.0)` is valid. As implied, this macro does 
-  `throw` a C++ exception, and hence should ***NEVER*** be used in a `noexcept` context.
+This is principally done by `HEIST_THROW_ERR(err_message)`.
+* The `err_message` arg is passed to `std::cerr`, hence `HEIST_THROW_ERR("not a string: " << 42.0)` 
+  is valid. As implied, this macro does `throw` a C++ exception, and hence should ***NEVER*** be 
+  used in a `noexcept` context.
   - Note that `HEIST_THROW_ERR` will automatically apply ANSI escape-code colors to the
     resulting printed error message, so long as `-nansi` is inactive.
   - These errors cancel individual REPL expression evaluations, and terminate scripts.
