@@ -42,14 +42,14 @@ for extensive examples of C++ primitives interoperating with the types described
 
 ### Writing C++ Primitives
 
-C++ primitives must have the following type signature: `heist::data(std::vector<heist::data>&&)`.
+C++ primitives must have the following type signature: `heist::data(std::vector<heist::data>&&)`.<br>
 If those types don't make sense to you, read [`TYPES.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/docs/TYPES.md). 
 
 The vector represents the primitive's "argument list" -- all of Heist's C++ primitves are N-ary, 
 meaning that the number (and type!) of arguments being passed has to be validated by you.
 
 C++ primitives extending Heist automatically have access to [`lib/core/type_system/types.hpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/lib/core/type_system/types.hpp), 
-which (last time I'll mention it I swear) is extensively explored by [`TYPES.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/docs/TYPES.md). 
+which is extensively explored by [`TYPES.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/docs/TYPES.md). 
 Additionally, C++ primitives also automatically have access to the [`lib/primitives/primitive_toolkit.hpp`](https://github.com/jrandleman/Heist-Scheme/blob/master/lib/primitives/primitive_toolkit.hpp) 
 library, which is designed to aid in the development of C++ extensions to Heist Scheme (it's 
 hardly 200 lines of code and well worth the read).
