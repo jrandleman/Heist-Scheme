@@ -16,23 +16,25 @@ by those extending the Heist Scheme interpreter.
     ever encounter such and wonder where it's defined.
 
 The garbage collector is simply a smart-pointer class that effectively provides 
-cycle-safe shared pointers. As such, this is less of a true "garbage collector" 
-and more of a souped-up reference-counting mechanism.
+cycle-safe shared pointers.<br>
+As such, this is less of a true "garbage collector" and more of a souped-up r
+eference-counting mechanism.
 * The pointer class is called `tgc_ptr` (typed garbage collection pointer), and is 
   used as follows:
-  - Allocate & create a cycle-safe pointer: `auto p = tgc_ptr<typename>(value)` 
-  - Allocate & create a cycle-unsafe pointer: `auto p = tgc_ptr<typename,0>(value)`.
+  - Allocate and initialize a cycle-safe pointer: `auto p = tgc_ptr<typename>(value)` 
+  - Allocate and initialize a cycle-unsafe pointer: `auto p = tgc_ptr<typename,0>(value)`
     * If not given a `value`, `tgc_ptr`s are equivalent to `nullptr` by default.
     * Cycle-unsafe pointers are effectively `std::shared_ptr`. Forsaking cycle-safety
       creates faster/"thinner" pointers, so such is simply an optimization technique.
-      - For example, Heist strings are cycle-unsafe smart pointers under the hood, 
-        since they are guarenteed never to contain cyclical references to themselves.
+      - For example, Heist strings are cycle-unsafe pointers under the hood, since they 
+        never to produce cyclical references.
       - However, function environment pointers are cycle-safe, since closures make it
         such that there could end up being a cycle in environment references.
       - Heist uses these smart pointers to create objects with "reference semantics".
 
 Error handling is done by macros to get access to C++'s `__FILE__`, `__LINE__`, and 
-`__func__` for clearer error messages. This is principally done by:
+`__func__` for clearer error messages.<br>
+This is principally done by:
 * `HEIST_THROW_ERR(err_message)`: The `err_message` arg is passed to `std::cerr`, hence 
   `HEIST_THROW_ERR("not a string: " << 42.0)` is valid. As implied, this macro does 
   `throw` a C++ exception, and hence should ***NEVER*** be used in a `noexcept` context.
