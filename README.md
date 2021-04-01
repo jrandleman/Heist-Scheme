@@ -7,7 +7,7 @@
 
 ------------------------
 # Using Heist Scheme:
-=> _See [`INSTALL.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/INSTALL.md) for new directory installation instructions!_<br>
+=> _See [`INSTALL.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/docs/INSTALL.md) for new directory installation instructions!_<br>
 => _Tested on OSX & Linux with Clang++ & G++, and **should** work on Windows (adheres C++17 standard)_<br>
 
 0. Launch REPL: `$ heist`
