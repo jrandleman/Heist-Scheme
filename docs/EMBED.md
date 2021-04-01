@@ -48,8 +48,8 @@ This defines 3 functions (designed for use in single-threaded environments) in t
           global environment
           - Note that `heist::prm_ptr_t` is equivalent to `heist::data(*)(std::vector<heist::data>&&)`
             * See `EXTEND.md` for more info on extending Heist Scheme with your own C++ primitives!
-        * Pass a an extra `true` variable to the end of this function to have the calling environment's pointer<br>
-          appended the end of `heist_primitive_function_ptr`'s arg-list when applied by Heist
+        * Pass an extra `true` variable to the end of this function to have the calling environment's pointer<br>
+          appended to the end of `heist_primitive_function_ptr`'s arg-list when applied by Heist
           - This enables a form of dynamic scoping, as the environment pointer can in turn be passed
             to `primitive_toolkit::apply_callable`
           - Again, see `EXTEND.md` for info on implementing your own C++ primitives for Heist Scheme!
