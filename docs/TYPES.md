@@ -2,7 +2,7 @@
 ## The C++ Types Underlying "Heist Scheme Objects"
 
 --------------------------------
-## `dependancies`:
+## `dependancies`
 
 Directory containing functionality support for Heist Scheme `struct data` objects.
   * `struct data` is defined in `lib/core/type_system/scheme_types/data` (see below).
@@ -17,8 +17,8 @@ by those extending the Heist Scheme interpreter.
 
 The garbage collector is simply a smart-pointer class that effectively provides 
 cycle-safe shared pointers.<br>
-As such, this is less of a true "garbage collector" and more of a souped-up r
-eference-counting mechanism.
+As such, this is less of a true "garbage collector" and more of a souped-up
+reference-counting mechanism.
 * The pointer class is called `tgc_ptr` (typed garbage collection pointer), and is 
   used as follows:
   - Allocate and initialize a cycle-safe pointer: `auto p = tgc_ptr<typename>(value)` 
@@ -29,8 +29,8 @@ eference-counting mechanism.
       optimization technique.
       - For example, Heist strings are cycle-unsafe pointers under the hood, since they 
         never to produce cyclical references.
-      - However, function environment pointers are cycle-safe, since closures make it
-        such that there could end up being a cycle in environment references.
+      - However, function environment pointers are cycle-safe, since closures can end up
+        causing cyclical environment references.
       - Heist uses these smart pointers to create objects with "reference semantics".
 
 Error handling is done by macros to get access to C++'s `__FILE__`, `__LINE__`, and 
@@ -47,7 +47,7 @@ This is principally done by:
 
 
 --------------------------------
-## `scheme_types`:
+## `scheme_types`
 
 Directory containing the definition and implementation of the Heist `struct data` object, 
 as well as those of the underlying types associated with `struct data`'s composite values.
