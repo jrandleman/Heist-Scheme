@@ -70,7 +70,7 @@ to understand and interoperate with Heist Scheme directly from C++, such is a bi
 -- for example -- should you only want to extend Heist Scheme with custom C++ primitives for
 a subset of Heist's type system. 
 
-Luckily, no such redundancy is required -- so long as one carefully reviews the definition 
+Luckily, no such redundancy is required: so long as one carefully reviews the definition 
 of `struct data` in [`/scheme_types/data/data.hpp`](../lib/core/type_system/scheme_types/data/data.hpp) 
 (the core Heist object) in conjunction with the definitions of their chosen subset of types, 
 they'll be able to quickly become productive in writing C++ to extend Heist Scheme's features.
