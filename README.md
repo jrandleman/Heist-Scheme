@@ -12,8 +12,8 @@
 
 0. Launch REPL: `$ heist`
 1. Interpret Script: `$ heist -script <script-filename> <argv1> <argv2> ...`
-2. Embed Heist in C++17: See [`EMBED.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/docs/EMBED.md)!
-3. Extend Heist with Primitives: See [`EXTEND.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/docs/EXTEND.md)!
+2. Embed Heist in C++: See [`EMBED.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/docs/EMBED.md)!
+3. Extend Heist with C++ Primitives: See [`EXTEND.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/docs/EXTEND.md)!
 
 ------------------------
 # Notable Features:
