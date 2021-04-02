@@ -56,14 +56,14 @@ as well as those of the underlying types associated with `struct data`'s composi
 
 `struct data` is defined in `scheme_types/data/data.hpp`, and uses a `union` under the hood 
 as an efficient means of storing a wide set of value types, the aliases of which can be found 
-in `lib/core/type_system/types.hpp` (discussed below). 
+in [`lib/core/type_system/types.hpp`](../lib/core/type_system/types.hpp) (discussed below). 
 
-Type headers found directly in the `scheme_types` directory are simple enough such that their
-definition and implementation could be trivially fit into a single file. Larger types, such 
-as `data` and `function_object`, are put in their own subdirectories. Each of these 
-subdirectories will contain a definition file (usually named after the type it defines) and 
-an implementation file (`implementation.hpp`). Occasionally, a type may also define another 
-subdirectory as well in order to hold supplemental library code. 
+Type headers found directly in the [`scheme_types`](../lib/core/type_system/scheme_types) 
+directory are simple enough such that their definition and implementation could be trivially 
+fit into a single file. Larger types, such as `data` and `function_object`, are put in their 
+own subdirectories. Each of these subdirectories will contain a definition file (usually named 
+after the type it defines) and an implementation file (`implementation.hpp`). Occasionally, a 
+type may also define another subdirectory as well in order to hold supplemental library code. 
 
 While the perusal of _all_ these type definition files would certainly enrich one's capacity 
 to understand and interoperate with Heist Scheme directly from C++, such is a bit overkill 
@@ -71,16 +71,16 @@ to understand and interoperate with Heist Scheme directly from C++, such is a bi
 a subset of Heist's type system. 
 
 Luckily, no such redundancy is required -- so long as one carefully reviews the definition 
-of `struct data` in `/scheme_types/data/data.hpp` (the core Heist object) in conjunction with 
-the definitions of their chosen subset of types, they'll be able to quickly become productive
-in writing C++ to extend Heist Scheme's features.
+of `struct data` in [`/scheme_types/data/data.hpp`](../lib/core/type_system/scheme_types/data/data.hpp) 
+(the core Heist object) in conjunction with the definitions of their chosen subset of types, 
+they'll be able to quickly become productive in writing C++ to extend Heist Scheme's features.
 
 
 Note: In addition to reviewing type definitions, type implementation files also serve as 
 good mechanisms by which to gain exposure to Heist Scheme's underlying facilities.
 
-Note: More information on extending Heist with C++ primitives can be found in `EXTEND.md`!
-  * See `EMBED.md` for information on embedding Heist Scheme as a scripting language in C++17!
+Note: More information on extending Heist with C++ primitives can be found in [`EXTEND.md`](./EXTEND.md)!
+  * See [`EMBED.md`](./EMBED.md) for information on embedding Heist Scheme as a scripting language in C++17!
 
 
 ### Exploring `struct data`:
