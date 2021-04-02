@@ -41,17 +41,9 @@ This defines 3 functions (designed for use in single-threaded environments) in t
    * Apply `args` to `heist_procedure_name` & return the result
    * Alternatively, can pass a `heist::data` callable instead of a `std::string` procedure name
 
-3. `define`
-   * Comes in 2 flavors:
-     1. `void define(std::string heist_variable_name, heist::data variable_value)`
-        * Binds `heist_variable_name` to `variable_value` in Heist's global environment
-     2. `void define(std::string primitive_name, heist::prm_ptr_t heist_primitive_function_ptr)`
-        * Binds `heist_primitive_function_ptr` as a C++ primitive to `primitive_name` in Heist's
-          global environment
-          - Note that `heist::prm_ptr_t` is equivalent to `heist::data(*)(std::vector<heist::data>&&)`
-            * See [`EXTEND.md`](./EXTEND.md) for more info on extending Heist Scheme with your own C++ primitives!
-        * Pass an extra `true` variable to the end of this function to have the calling environment's pointer<br>
-          appended to the end of `heist_primitive_function_ptr`'s arg-list when applied by Heist
-          - This enables a form of dynamic scoping, as the environment pointer can in turn be passed<br>
-            as an optional 3rd argument to `primitive_toolkit::apply_callable`
-          - Again, see [`EXTEND.md`](./EXTEND.md) for info on implementing your own C++ primitives for Heist Scheme!
+3. `void define(std::string heist_variable_name, heist::data variable_value)`
+   * Bind `heist_variable_name` to `variable_value` in Heist's global environment
+   * Alternatively, can pass a `heist::data(*)(std::vector<heist::data>&&)` C++ primitive<br> 
+     instead of a `heist::data` variable value name
+     - See [`EXTEND.md`](./EXTEND.md) for more info on extending Heist Scheme with your own C++ primitives!
+     
