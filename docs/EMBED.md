@@ -43,5 +43,5 @@ This defines 3 functions (designed for use in single-threaded environments) in t
 3. `void define(std::string variable_name, heist::data variable_value)`
    * Bind `variable_name` to `variable_value` in Heist's global environment
    * Alternatively, can pass a `heist::data(*)(std::vector<heist::data>&&)` C++ primitive function pointer<br>
-     instead of a `heist::data` variable value name
+     instead of a `heist::data` variable value
      - See [`EXTEND.md`](./EXTEND.md) for more info on extending Heist Scheme with your own C++ primitives!
