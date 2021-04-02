@@ -5,15 +5,17 @@
 ## [`dependancies`](../lib/core/type_system/dependancies)
 
 Directory containing functionality support for Heist Scheme `struct data` objects.
-  * `struct data` is defined in `lib/core/type_system/scheme_types/data` (see below).
+  * `struct data` is defined in [`lib/core/type_system/scheme_types/data`](../lib/core/type_system/scheme_types/data) (see below).
 
-Includes the garbage collector, error-handling macro definitions, most global variables, 
-and predefined symbolic constants.<br>
+Includes the [garbage collector](../lib/core/type_system/dependancies/garbage_collector.hpp), 
+[error-handling macro definitions](../lib/core/type_system/dependancies/error_handling.hpp), 
+[most global variables](../lib/core/type_system/dependancies/process_independent_global_variables.hpp), 
+and [predefined symbolic constants](../lib/core/type_system/dependancies/symbolic_constants.hpp).<br>
 However, the latter two are only used internally, and hence can be largely ignored 
 by those extending the Heist Scheme interpreter. 
   * The only thing to keep in mind here is that the `heist::GLOBALS` namespace is
-    defined in `dependancies/process_independent_global_variables.hpp`, should you 
-    ever encounter such and wonder where it's defined.
+    defined in [`dependancies/process_independent_global_variables.hpp`](../lib/core/type_system/dependancies/process_independent_global_variables.hpp), 
+    should you ever encounter such and wonder where it's defined.
 
 The garbage collector is simply a smart-pointer class that effectively provides 
 cycle-safe shared pointers.<br>
