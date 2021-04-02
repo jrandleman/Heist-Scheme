@@ -85,9 +85,9 @@ path to said file on your machine -- [`stdlib.scm`](../lib/primitives/stdlib/lan
 is a special case handled by the interpreter with some extra logic (since there's no way to know 
 the full path to Heist ahead of time on every user's machine!).
   * Note that you want to include your bonus primitives at the end of the JSON object to preserve 
-    registration order and not befuddle dependancies -- C++ files are always `#include`d in the
-    order they appear in [`primitives.json`](../lib/primitives/primitives.json), 
-    and Scheme files are loaded in similar fashion.
+    registration order and not befuddle dependancies -- C++ files are `#include`d in the order 
+    they appear in [`primitives.json`](../lib/primitives/primitives.json), and Scheme files are 
+    loaded in similar fashion.
 
 Finally, follow [`INSTALL.md`](./INSTALL.md) to re-install Heist Scheme along with your new primitives, 
 et voila! You've officially extended Heist Scheme!
