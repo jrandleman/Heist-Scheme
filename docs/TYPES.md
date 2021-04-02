@@ -203,7 +203,8 @@ constructors) and performs platform-identification at preprocessor-time.
 #### ___Special Case: Valueless Types!___
 
 These are type enums that have no associated value member in `struct data`'s internal `union`,
-rather they denote a single, unique, & immutable value designed for special treatment:
+rather they denote a single, unique, & immutable value designed for special treatment. Note that 
+the `heist::types` enumeration may be found in [`scheme_types/data/data.hpp`](../lib/core/type_system/scheme_types/data/data.hpp).
 
   0. `heist::types::undefined`:
      * `struct data`'s default type, denoting an indeterminate value
