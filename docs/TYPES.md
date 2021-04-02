@@ -177,27 +177,27 @@ constructors) and performs platform-identification at preprocessor-time.
      * Vector alias, a `tgc_ptr` to `std::vector<struct data>`
   3. `heist::map_type`:
      * Hash-map (hmap) alias, a `tgc_ptr` to `struct map_object`
-       - See [`lib/core/type_system/scheme_types/map_object.hpp`](../lib/core/type_system/scheme_types/map_object.hpp)!
+       - See [`lib/core/type_system/scheme_types/map_object.hpp`](../lib/core/type_system/scheme_types/map_object.hpp)
 
 
 #### ___OO:___
 
   0. `heist::cls_type`:
      * Class prototype alias, `tgc_ptr` to `struct class_prototype`
-       - See [`lib/core/type_system/scheme_types/class_prototype.hpp`](../lib/core/type_system/scheme_types/class_prototype.hpp)!
+       - See [`lib/core/type_system/scheme_types/class_prototype.hpp`](../lib/core/type_system/scheme_types/class_prototype.hpp)
   1. `heist::obj_type`:
      * Object alias, `tgc_ptr` to `struct object_type`
-       - See [`lib/core/type_system/scheme_types/objects/object_type.hpp`](../lib/core/type_system/scheme_types/objects/object_type.hpp)!
+       - See [`lib/core/type_system/scheme_types/objects/object_type.hpp`](../lib/core/type_system/scheme_types/objects/object_type.hpp)
 
 
 #### ___Code Wrappers:___
 
   0. `heist::del_type`:
      * Delayed expression alias, `tgc_ptr` to `struct delay_object`
-       - See [`lib/core/type_system/scheme_types/delay_object.hpp`](../lib/core/type_system/scheme_types/delay_object.hpp)!
+       - See [`lib/core/type_system/scheme_types/delay_object.hpp`](../lib/core/type_system/scheme_types/delay_object.hpp)
   1. `heist::fcn_type`:
      * Function object alias, equivalent to `struct function_object`
-       - See [`lib/core/type_system/scheme_types/functions/function_object.hpp`](../lib/core/type_system/scheme_types/functions/function_object.hpp)!
+       - See [`lib/core/type_system/scheme_types/functions/function_object.hpp`](../lib/core/type_system/scheme_types/functions/function_object.hpp)
 
 
 #### ___Special Case: Valueless Types!___
