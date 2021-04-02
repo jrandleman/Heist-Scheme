@@ -168,7 +168,7 @@ constructors) and performs platform-identification at preprocessor-time.
   0. `heist::str_type`:
      * String alias, a `tgc_ptr` to `std::string`
   1. `heist::par_type`:
-     * Pair alias, a `tgc_ptr` to `<std::pair<struct data,struct data>>`
+     * Pair alias, a `tgc_ptr` to `std::pair<struct data,struct data>`
   2. `heist::vec_type`:
      * Vector alias, a `tgc_ptr` to `std::vector<struct data>`
   3. `heist::map_type`:
@@ -192,7 +192,7 @@ constructors) and performs platform-identification at preprocessor-time.
      * Delayed expression alias, `tgc_ptr` to `struct delay_object`
        - See `lib/core/type_system/scheme_types/delay_object.hpp`!
   1. `heist::fcn_type`:
-     * Function object alias, see `struct function_object`
+     * Function object alias, equivalent to `struct function_object`
        - See `lib/core/type_system/scheme_types/functions/function_object.hpp`!
 
 
