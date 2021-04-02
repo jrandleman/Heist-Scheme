@@ -1,4 +1,4 @@
-# Understanding `lib/core/type_system`
+# Understanding [`lib/core/type_system`](../lib/core/type_system)
 ## The C++ Types Underlying "Heist Scheme Objects"
 
 --------------------------------
