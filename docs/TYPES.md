@@ -202,7 +202,7 @@ These are type enums that have no associated value member in `struct data`'s int
 rather they denote a single, unique, & immutable value designed for special treatment:
 
   0. `heist::types::undefined`:
-     * `struct data`'s default type, denotes an indeterminate value
+     * `struct data`'s default type, denoting an indeterminate value
      * Create an undefined datum via the following: `heist::data()`
   1. `heist::types::dne`:
      * Denotes the `void` value, with "dne" having been chosen to stand for "does not exist"
@@ -224,7 +224,7 @@ when implementing serious extensions to Heist's "kernel" in `lib/core/evaluator/
   2. `heist::prc_type`:
      * Process invariant set: used internally by `universe` objects.
        - `tgc_ptr` to `struct process_invariants_t`, who's definition can be found in
-         `lib/core/type_system/scheme_types/process.hpp`!
+         `lib/core/type_system/scheme_types/process.hpp`
 
 
 ### Common Container `tgc_ptr` Constructor Wrappers:
