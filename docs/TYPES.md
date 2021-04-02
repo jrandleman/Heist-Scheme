@@ -2,7 +2,7 @@
 ## The C++ Types Underlying "Heist Scheme Objects"
 
 --------------------------------
-## `dependancies`
+## [`dependancies`](../lib/core/type_system/dependancies)
 
 Directory containing functionality support for Heist Scheme `struct data` objects.
   * `struct data` is defined in `lib/core/type_system/scheme_types/data` (see below).
@@ -47,7 +47,7 @@ This is principally done by `HEIST_THROW_ERR(err_message)`.
 
 
 --------------------------------
-## `scheme_types`
+## [`scheme_types`](../lib/core/type_system/scheme_types)
 
 Directory containing the definition and implementation of the Heist `struct data` object, 
 as well as those of the underlying types associated with `struct data`'s composite values.
@@ -132,7 +132,7 @@ Remember to check out any file in the `/lib/primitives/stdlib` directory for num
 
 
 --------------------------------
-## `types.hpp`
+## [`types.hpp`](../lib/core/type_system/types.hpp)
 
 The type system's wrapper header file. Contains the vast majority of Heist's standard library 
 inclusions, all of its `dependancies` and `type_system` inclusions, as well as the type aliases 
