@@ -119,8 +119,8 @@ Additional properties of `struct data` include:
   4. `.is_falsey()`, `.is_truthy()`:<br>
      Determine the falsey & truthy semantics of any given `data` object.
      * By default, only boolean false (`#f`) is false, whereas everything else is true. 
-       - However, Heist allows the user to "falsify" particular values in order to register them 
-         as a "fail" in conditional branch statements. 
+       - However, Heist allows users to "falsify" values in order to register them as a "fail" in 
+         conditional branch statements. 
        - See the `set-falsey!`, `set-truthy!`, `falsey-values` primitives for more information!
        - Note that boolean false `#f` can **never** be registered as truthy, nor may boolean true 
          `#t` **ever** be registered as falsey.
