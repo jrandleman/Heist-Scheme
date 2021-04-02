@@ -72,7 +72,7 @@ to understand and interoperate with Heist Scheme directly from C++, such is a bi
 a subset of Heist's type system. 
 
 Luckily, no such redundancy is required: so long as one carefully reviews the definition 
-of `struct data` in [`/scheme_types/data/data.hpp`](../lib/core/type_system/scheme_types/data/data.hpp) 
+of `struct data` in [`scheme_types/data/data.hpp`](../lib/core/type_system/scheme_types/data/data.hpp) 
 (the core Heist object) in conjunction with the definitions of their chosen subset of types, 
 they'll be able to quickly become productive in writing C++ to extend Heist Scheme's features.
 
@@ -91,7 +91,7 @@ of each enum "type" having a corresponding value member name in the `data` objec
 `data_obj.is_type(heist::types::str)` denotes that the `str` member is active in `data_obj`'s
 internal union. Accessing a different member name in `data_obj` than that which is designated 
 by `data_obj.type` causes undefined behavior. The `heist::types` enumeration may be found in 
-[`/scheme_types/data/data.hpp`](../lib/core/type_system/scheme_types/data/data.hpp).
+[`scheme_types/data/data.hpp`](../lib/core/type_system/scheme_types/data/data.hpp).
 
 Additional properties of `struct data` include:
 
@@ -128,7 +128,7 @@ Additional properties of `struct data` include:
        - Note that boolean false `#f` can **never** be registered as truthy, nor may boolean true 
          `#t` **ever** be registered as falsey.
 
-Make sure to check out any file in the [`/lib/primitives/stdlib`](../lib/primitives/stdlib)
+Make sure to check out any file in the [`lib/primitives/stdlib`](../lib/primitives/stdlib)
 directory for numerous examples of `data` objects being used!
 
 
@@ -140,7 +140,7 @@ directory for numerous examples of `data` objects being used!
 The type system's wrapper header file. Contains the vast majority of Heist's standard library 
 inclusions, all of its [`dependancies`](../lib/core/type_system/dependancies) and 
 [`type_system`](../lib/core/type_system) inclusions, as well as the type aliases referenced by 
-`struct data` in [`/scheme_types/data/data.hpp`](../lib/core/type_system/scheme_types/data/data.hpp).
+`struct data` in [`scheme_types/data/data.hpp`](../lib/core/type_system/scheme_types/data/data.hpp).
 
 Also contains functionality to easily create smart pointers (wrappers around `tgc_ptr`'s 
 constructors) and performs platform-identification at preprocessor-time.
