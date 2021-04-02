@@ -128,8 +128,8 @@ Additional properties of `struct data` include:
        - Note that boolean false `#f` can **never** be registered as truthy, nor may boolean true 
          `#t` **ever** be registered as falsey.
 
-Remember to check out any file in the [`/lib/primitives/stdlib`](../lib/primitives/stdlib) directory 
-for numerous examples of `data` objects being used!
+Make sure to check out any file in the [`/lib/primitives/stdlib`](../lib/primitives/stdlib)
+directory for numerous examples of `data` objects being used!
 
 
 
