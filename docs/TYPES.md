@@ -151,20 +151,20 @@ constructors) and performs platform-identification at preprocessor-time.
 #### ___Atomics:___
 
   0. `heist::num_type`: 
-     * Numeric alias, see `scm_numeric::Snum` in `lib/core/type_system/scheme_types/numerics/complex.hpp`
+     * Numeric alias, see `scm_numeric::Snum` in [`lib/core/type_system/scheme_types/numerics/complex.hpp`](../lib/core/type_system/scheme_types/numerics/complex.hpp)
   1. `heist::chr_type`:
      * Character alias, equivalent to `int` to represent `EOF` as a character
   2. `heist::sym_type`:
      * Symbol alias, equivalent to `std::string`
   3. `heist::bol_type`
-     * Boolean alias, see `struct boolean` in `lib/core/type_system/scheme_types/boolean.hpp`
+     * Boolean alias, see `struct boolean` in [`lib/core/type_system/scheme_types/boolean.hpp`](../lib/core/type_system/scheme_types/boolean.hpp)
   4. `heist::syn_type`
      * Syntax-rule-object alias, see `struct syntax_rules_object` in 
-       `lib/core/type_system/scheme_types/syntax_rules_objects/syntax_rules_object.hpp`
+       [`lib/core/type_system/scheme_types/syntax_rules_objects/syntax_rules_object.hpp`](../lib/core/type_system/scheme_types/syntax_rules_objects/syntax_rules_object.hpp)
   5. `heist::fip_type`:
-     * File input port alias, see `struct iport` in `lib/core/type_system/scheme_types/ports/port.hpp`
+     * File input port alias, see `struct iport` in [`lib/core/type_system/scheme_types/ports/port.hpp`](../lib/core/type_system/scheme_types/ports/port.hpp)
   6. `heist::fop_type`:
-     * File output port alias, see `struct oport` in `lib/core/type_system/scheme_types/ports/port.hpp`
+     * File output port alias, see `struct oport` in [`lib/core/type_system/scheme_types/ports/port.hpp`](../lib/core/type_system/scheme_types/ports/port.hpp)
 
 
 #### ___Containers:___
@@ -177,27 +177,27 @@ constructors) and performs platform-identification at preprocessor-time.
      * Vector alias, a `tgc_ptr` to `std::vector<struct data>`
   3. `heist::map_type`:
      * Hash-map (hmap) alias, a `tgc_ptr` to `struct map_object`
-       - See `lib/core/type_system/scheme_types/map_object.hpp`!
+       - See [`lib/core/type_system/scheme_types/map_object.hpp`](../lib/core/type_system/scheme_types/map_object.hpp)!
 
 
 #### ___OO:___
 
   0. `heist::cls_type`:
      * Class prototype alias, `tgc_ptr` to `struct class_prototype`
-       - See `lib/core/type_system/scheme_types/class_prototype.hpp`!
+       - See [`lib/core/type_system/scheme_types/class_prototype.hpp`](../lib/core/type_system/scheme_types/class_prototype.hpp)!
   1. `heist::obj_type`:
      * Object alias, `tgc_ptr` to `struct object_type`
-       - See `lib/core/type_system/scheme_types/objects/object_type.hpp`!
+       - See [`lib/core/type_system/scheme_types/objects/object_type.hpp`](../lib/core/type_system/scheme_types/objects/object_type.hpp)!
 
 
 #### ___Code Wrappers:___
 
   0. `heist::del_type`:
      * Delayed expression alias, `tgc_ptr` to `struct delay_object`
-       - See `lib/core/type_system/scheme_types/delay_object.hpp`!
+       - See [`lib/core/type_system/scheme_types/delay_object.hpp`](../lib/core/type_system/scheme_types/delay_object.hpp)!
   1. `heist::fcn_type`:
      * Function object alias, equivalent to `struct function_object`
-       - See `lib/core/type_system/scheme_types/functions/function_object.hpp`!
+       - See [`lib/core/type_system/scheme_types/functions/function_object.hpp`](../lib/core/type_system/scheme_types/functions/function_object.hpp)!
 
 
 #### ___Special Case: Valueless Types!___
@@ -216,19 +216,19 @@ rather they denote a single, unique, & immutable value designed for special trea
 #### ___Special Case: Internal Types!___
 
 These are type aliases designed mostly for internal use, though understanding them is important
-when implementing serious extensions to Heist's "kernel" in `lib/core/evaluator/evaluator.hpp`:
+when implementing serious extensions to Heist's "kernel" in [`lib/core/evaluator/evaluator.hpp`](../lib/core/evaluator/evaluator.hpp):
 
   0. `heist::env_type`:
      * Environment pointer alias. Passable after `args` to `primitive_toolkit::apply_callable`.
        - `tgc_ptr` to `struct environment`, who's definition can be found in
-         `lib/core/type_system/scheme_types/environments/environment.hpp`
+         [`lib/core/type_system/scheme_types/environments/environment.hpp`](../lib/core/type_system/scheme_types/environments/environment.hpp)
   1. `heist::exp_type`:
      * Syntax expression alias, equivalent to `std::vector<struct data>`
        - Used to denote "list literals" read in by the reader prior evaluation
   2. `heist::prc_type`:
      * Process invariant set: used internally by `universe` objects.
        - `tgc_ptr` to `struct process_invariants_t`, who's definition can be found in
-         `lib/core/type_system/scheme_types/process.hpp`
+         [`lib/core/type_system/scheme_types/process.hpp`](../lib/core/type_system/scheme_types/process.hpp)
 
 
 ### Common Container `tgc_ptr` Constructor Wrappers:
