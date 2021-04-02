@@ -32,8 +32,7 @@ This defines 3 functions (designed for use in single-threaded environments) in t
 1. `heist::data eval(std::string exp)`
    * Evaluate `exp` as Heist Scheme code.
      - Returns the result of the evaluation.
-     - Returns `*exit-success*` or `*exit-failure*` as a _symbol_ if Heist's `exit` gets
-       triggered as a result of evaluating `exp`
+     - Returns `*exit-success*` or `*exit-failure*` as a _symbol_ if Heist's `exit` gets triggered as a result of evaluating `exp`
      - Note this can be called on string literals by using the `_heist` suffix, IE:
        `auto thricePi = "(* 3 (acos -1))"_heist;`
 
@@ -43,6 +42,6 @@ This defines 3 functions (designed for use in single-threaded environments) in t
 
 3. `void define(std::string variable_name, heist::data variable_value)`
    * Bind `variable_name` to `variable_value` in Heist's global environment
-   * Alternatively, can pass a `heist::data(*)(std::vector<heist::data>&&)` C++ primitive<br> 
+   * Alternatively, can pass a `heist::data(*)(std::vector<heist::data>&&)` C++ primitive function pointer<br>
      instead of a `heist::data` variable value name
      - See [`EXTEND.md`](./EXTEND.md) for more info on extending Heist Scheme with your own C++ primitives!
