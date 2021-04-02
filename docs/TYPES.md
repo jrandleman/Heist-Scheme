@@ -92,21 +92,21 @@ by `data_obj.type` causes undefined behavior. The `heist::types` enumeration may
 
 Additional properties of `struct data` include:
 
-  0. `.is_type(const heist::types&)`:
+  0. `.is_type(const heist::types&)`:<br>
      Referenced above, this methods serves as a readable means by which to validate a `data`
      object's current type. Note that the current type may be accessed via the `.type` member.
-  1. `.copy()` & `.shallow_copy()`:
+  1. `.copy()` & `.shallow_copy()`:<br>
       Deep & shallow copying. Shallow copying is sometimes refered to as "structural" copying 
       since its approach relies on reallocating the base data-structure representing any given 
       `data` object, then copying all of said object's member values. "Deep-copying" simply 
       recursively reallocates data structures while copying atomic values. 
-  2. `.write()`, `.display()`, `.pprint()`:
+  2. `.write()`, `.display()`, `.pprint()`:<br>
       Stringify a `data` object into a machine-readable, human-readable, or machine-readable
       (& auto-indented) `std::string`.
       * Note that these will also automatically invoke `defclass` object polymorphism as needed!
         - I.E. if an object has a `self->string` methods defined, such will be invoked if a `data`
           object containing the object's pointer invokes any of the above methods.
-  3. `.eq()`, `.eqv()`, `.equal()`:
+  3. `.eq()`, `.eqv()`, `.equal()`:<br>
      Shallow, structural, and deep equality. Ideally, `.eq()` is a pointer comparison, whereas
      `.eqv()` will recurse through a structure once, only to compare each of the members of the 
      structure with `.eq()`. `.equal()`, however, continuously recursively parses data structures 
@@ -116,7 +116,7 @@ Additional properties of `struct data` include:
      * Note that these methods are why the `data` object doesn't support `operator==`: as since 
        scheme doesn't have only one notion of equality (and by extension identity), it doesn't 
        make sense to impose such on the type system while interpreting the language.
-  4. `.is_falsey()`, `.is_truthy()`:
+  4. `.is_falsey()`, `.is_truthy()`:<br>
      Determine the falsey & truthy semantics of any given `data` object.
      * By default, only boolean false (`#f`) is false, whereas everything else is true. 
        - However, Heist allows the user to "falsify" particular values in order to register them 
