@@ -4,7 +4,7 @@
 
 No matter how fast Heist Scheme is or gets, there's no escaping that it's a dynamically-typed
 interpreted language. While this is hardly an issue for scripting, it does mean that Heist
-Scheme -- as with JavaScript and Python -- can chug when it comes to CPU-intensive programs.
+Scheme (as with JavaScript and Python) can chug when it comes to CPU-intensive programs.
 
 As such, it can be fruitful to implement performance-sensitive functions as C++ primitives
 that Heist Scheme interoperates with (similar to TensorFlow's use in the Python community).
