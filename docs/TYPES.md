@@ -54,9 +54,10 @@ This is principally done by `HEIST_THROW_ERR(err_message)`.
 Directory containing the definition and implementation of the Heist `struct data` object, 
 as well as those of the underlying types associated with `struct data`'s composite values.
 
-`struct data` is defined in `scheme_types/data/data.hpp`, and uses a `union` under the hood 
-as an efficient means of storing a wide set of value types, the aliases of which can be found 
-in [`lib/core/type_system/types.hpp`](../lib/core/type_system/types.hpp) (discussed below). 
+`struct data` is defined in [`scheme_types/data/data.hpp`](../lib/core/type_system/scheme_types/data/data.hpp), 
+and uses a `union` under the hood as an efficient means of storing a wide set of value types, 
+the aliases of which can be found in [`lib/core/type_system/types.hpp`](../lib/core/type_system/types.hpp) 
+(discussed below). 
 
 Type headers found directly in the [`scheme_types`](../lib/core/type_system/scheme_types) 
 directory are simple enough such that their definition and implementation could be trivially 
@@ -90,7 +91,7 @@ of each enum "type" having a corresponding value member name in the `data` objec
 `data_obj.is_type(heist::types::str)` denotes that the `str` member is active in `data_obj`'s
 internal union. Accessing a different member name in `data_obj` than that which is designated 
 by `data_obj.type` causes undefined behavior. The `heist::types` enumeration may be found in 
-`/scheme_types/data/data.hpp`.
+[`/scheme_types/data/data.hpp`](../lib/core/type_system/scheme_types/data/data.hpp).
 
 Additional properties of `struct data` include:
 
@@ -127,8 +128,8 @@ Additional properties of `struct data` include:
        - Note that boolean false `#f` can **never** be registered as truthy, nor may boolean true 
          `#t` **ever** be registered as falsey.
 
-Remember to check out any file in the `/lib/primitives/stdlib` directory for numerous examples of 
-`data` objects being used!
+Remember to check out any file in the [`/lib/primitives/stdlib`](../lib/primitives/stdlib) directory 
+for numerous examples of `data` objects being used!
 
 
 
@@ -137,8 +138,9 @@ Remember to check out any file in the `/lib/primitives/stdlib` directory for num
 ## [`types.hpp`](../lib/core/type_system/types.hpp)
 
 The type system's wrapper header file. Contains the vast majority of Heist's standard library 
-inclusions, all of its `dependancies` and `type_system` inclusions, as well as the type aliases 
-referenced by `struct data` in `/scheme_types/data/data.hpp`.
+inclusions, all of its [`dependancies`](../lib/core/type_system/dependancies) and 
+[`type_system`](../lib/core/type_system) inclusions, as well as the type aliases referenced by 
+`struct data` in [`/scheme_types/data/data.hpp`](../lib/core/type_system/scheme_types/data/data.hpp).
 
 Also contains functionality to easily create smart pointers (wrappers around `tgc_ptr`'s 
 constructors) and performs platform-identification at preprocessor-time.
