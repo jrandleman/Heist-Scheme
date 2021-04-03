@@ -38,8 +38,18 @@ namespace heist {
       // Handle EOF Signal
       if(ch == EOF && ins == stdin) {
         clearerr(stdin);
-        if(in_repl) return data_vector(1,chr_type(EOF)); // called by REPL
-        return data_vector();                            // called by <read>
+        // Called by <read>
+        if(!in_repl) {
+          if(!input.empty()) fputs("\n",outs);
+          return data_vector();
+        }
+        // Called by REPL: if entire expression is EOF, exit immediately
+        if(input.empty()) return data_vector(1,chr_type(EOF));
+        // Called by REPL: if found EOF 1/2 way thru an expression, cancel the current expression
+        input.clear(), tmp_buffer.clear();
+        fputs("\n",outs);
+        announce_input(outs);
+        continue;
       }
       // Try parsing the expression, & read more input if unsuccessful 
       try {
