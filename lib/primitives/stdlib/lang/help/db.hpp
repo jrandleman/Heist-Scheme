@@ -44,8 +44,8 @@ static constexpr const char* HELP_MENU_CONSTANTS[] = {
 };
 
 static constexpr const char* HELP_MENU_TOPICS[] = { 
-  "summary",     "macro-system", "conventions", "notation", 
-  "namespacing", "comments",     "cps",         "*dot*",
+  "summary",  "conventions", "notation", "namespacing", 
+  "comments", "macro-system", "cps",     "*dot*",
 };
 
 static constexpr const char* HELP_MENU_DOCUMENTATION[] = { 
@@ -74,13 +74,13 @@ static constexpr const char* HELP_MENU_SPECIALS[] = {
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES[] = { 
-  "help",         "build",       "objects",         "prototypes", "coroutines",
-  "streams",      "numbers",     "equality",        "chars",      "strings",
-  "pairs",        "vectors",     "hmaps",           "sequences",  "predicates",
-  "evalapply",    "copying",     "delayforce",      "coercion",   "output",
-  "formatoutput", "input",       "files",           "ports",      "sysinterface", 
-  "invariants",   "controlflow", "call/cc",         "syntax",     "json",
-  "csv",          "gensyms",     "compose-bind-id", 
+  "help",         "build",        "numbers",     "equality",  "chars",
+  "strings",      "pairs",        "vectors",     "hmaps",     "sequences",  
+  "objects",      "prototypes",   "coroutines",  "streams",   "delayforce",
+  "predicates",   "coercion",     "copying",     "evalapply", "compose-bind-id", 
+  "output",       "formatoutput", "input",       "files",     "ports", 
+  "sysinterface", "invariants",   "controlflow", "call/cc",   "gensyms",
+  "syntax",       "json",         "csv", 
 };
 
 static constexpr char** HELP_MENU_SUBMENUS[] = {
@@ -316,34 +316,34 @@ static constexpr const char* HELP_MENU_PROCEDURES_COMPOSEBINDID[] = {
 
 static constexpr char** HELP_MENU_PROCEDURES_SUBMENU[] = {
   (char**)HELP_MENU_PROCEDURES_HELP, // help => direct link
-  (char**)HELP_MENU_PROCEDURES_BUILD,       (char**)HELP_MENU_PROCEDURES_OBJECTS,       (char**)HELP_MENU_PROCEDURES_PROTOTYPES,   (char**)HELP_MENU_PROCEDURES_COROUTINES, 
-  (char**)HELP_MENU_PROCEDURES_STREAMS,     (char**)HELP_MENU_PROCEDURES_NUMBERS,       (char**)HELP_MENU_PROCEDURES_EQUALITY,     (char**)HELP_MENU_PROCEDURES_CHARS, 
-  (char**)HELP_MENU_PROCEDURES_STRINGS,     (char**)HELP_MENU_PROCEDURES_PAIRS,         (char**)HELP_MENU_PROCEDURES_VECTORS,      (char**)HELP_MENU_PROCEDURES_HMAPS, 
-  (char**)HELP_MENU_PROCEDURES_SEQUENCES,   (char**)HELP_MENU_PROCEDURES_PREDICATES,    (char**)HELP_MENU_PROCEDURES_EVALAPPLY,    (char**)HELP_MENU_PROCEDURES_COPY, 
-  (char**)HELP_MENU_PROCEDURES_DELAY,       (char**)HELP_MENU_PROCEDURES_COERCION,      (char**)HELP_MENU_PROCEDURES_OUTPUT,       (char**)HELP_MENU_PROCEDURES_FORMATOUTPUT, 
-  (char**)HELP_MENU_PROCEDURES_INPUT,       (char**)HELP_MENU_PROCEDURES_FILES,         (char**)HELP_MENU_PROCEDURES_PORTS,        (char**)HELP_MENU_PROCEDURES_SYSINTERFACE, 
-  (char**)HELP_MENU_PROCEDURES_INVARIANTS,  (char**)HELP_MENU_PROCEDURES_CONTROLFLOW,   (char**)HELP_MENU_PROCEDURES_CALLCC,       (char**)HELP_MENU_PROCEDURES_SYNTAX,
-  (char**)HELP_MENU_PROCEDURES_JSON,        (char**)HELP_MENU_PROCEDURES_CSV,           (char**)HELP_MENU_PROCEDURES_GENSYM,       (char**)HELP_MENU_PROCEDURES_COMPOSEBINDID, 
+  (char**)HELP_MENU_PROCEDURES_BUILD,        (char**)HELP_MENU_PROCEDURES_NUMBERS,    (char**)HELP_MENU_PROCEDURES_EQUALITY,      (char**)HELP_MENU_PROCEDURES_CHARS, 
+  (char**)HELP_MENU_PROCEDURES_STRINGS,      (char**)HELP_MENU_PROCEDURES_PAIRS,      (char**)HELP_MENU_PROCEDURES_VECTORS,       (char**)HELP_MENU_PROCEDURES_HMAPS, 
+  (char**)HELP_MENU_PROCEDURES_SEQUENCES,    (char**)HELP_MENU_PROCEDURES_OBJECTS,    (char**)HELP_MENU_PROCEDURES_PROTOTYPES,    (char**)HELP_MENU_PROCEDURES_COROUTINES, 
+  (char**)HELP_MENU_PROCEDURES_STREAMS,      (char**)HELP_MENU_PROCEDURES_DELAY,      (char**)HELP_MENU_PROCEDURES_PREDICATES,    (char**)HELP_MENU_PROCEDURES_COERCION,
+  (char**)HELP_MENU_PROCEDURES_COPY,         (char**)HELP_MENU_PROCEDURES_EVALAPPLY,  (char**)HELP_MENU_PROCEDURES_COMPOSEBINDID, (char**)HELP_MENU_PROCEDURES_OUTPUT,
+  (char**)HELP_MENU_PROCEDURES_FORMATOUTPUT, (char**)HELP_MENU_PROCEDURES_INPUT,      (char**)HELP_MENU_PROCEDURES_FILES,         (char**)HELP_MENU_PROCEDURES_PORTS,
+  (char**)HELP_MENU_PROCEDURES_SYSINTERFACE, (char**)HELP_MENU_PROCEDURES_INVARIANTS, (char**)HELP_MENU_PROCEDURES_CONTROLFLOW,   (char**)HELP_MENU_PROCEDURES_CALLCC,
+  (char**)HELP_MENU_PROCEDURES_GENSYM,       (char**)HELP_MENU_PROCEDURES_SYNTAX,     (char**)HELP_MENU_PROCEDURES_JSON,          (char**)HELP_MENU_PROCEDURES_CSV,           
 };
 
 static constexpr size_type HELP_MENU_PROCEDURES_SUBMENU_LENGTH[] = {
   0, /* help => direct link */
-  sizeof(HELP_MENU_PROCEDURES_BUILD)/sizeof(HELP_MENU_PROCEDURES_BUILD[0]),               sizeof(HELP_MENU_PROCEDURES_OBJECTS)/sizeof(HELP_MENU_PROCEDURES_OBJECTS[0]),
-  sizeof(HELP_MENU_PROCEDURES_PROTOTYPES)/sizeof(HELP_MENU_PROCEDURES_PROTOTYPES[0]),     sizeof(HELP_MENU_PROCEDURES_COROUTINES)/sizeof(HELP_MENU_PROCEDURES_COROUTINES[0]), 
-  sizeof(HELP_MENU_PROCEDURES_STREAMS)/sizeof(HELP_MENU_PROCEDURES_STREAMS[0]),           sizeof(HELP_MENU_PROCEDURES_NUMBERS)/sizeof(HELP_MENU_PROCEDURES_NUMBERS[0]),
-  sizeof(HELP_MENU_PROCEDURES_EQUALITY)/sizeof(HELP_MENU_PROCEDURES_EQUALITY[0]),         sizeof(HELP_MENU_PROCEDURES_CHARS)/sizeof(HELP_MENU_PROCEDURES_CHARS[0]), 
-  sizeof(HELP_MENU_PROCEDURES_STRINGS)/sizeof(HELP_MENU_PROCEDURES_STRINGS[0]),           sizeof(HELP_MENU_PROCEDURES_PAIRS)/sizeof(HELP_MENU_PROCEDURES_PAIRS[0]),
-  sizeof(HELP_MENU_PROCEDURES_VECTORS)/sizeof(HELP_MENU_PROCEDURES_VECTORS[0]),           sizeof(HELP_MENU_PROCEDURES_HMAPS)/sizeof(HELP_MENU_PROCEDURES_HMAPS[0]), 
-  sizeof(HELP_MENU_PROCEDURES_SEQUENCES)/sizeof(HELP_MENU_PROCEDURES_SEQUENCES[0]),       sizeof(HELP_MENU_PROCEDURES_PREDICATES)/sizeof(HELP_MENU_PROCEDURES_PREDICATES[0]),
-  sizeof(HELP_MENU_PROCEDURES_EVALAPPLY)/sizeof(HELP_MENU_PROCEDURES_EVALAPPLY[0]),       sizeof(HELP_MENU_PROCEDURES_COPY)/sizeof(HELP_MENU_PROCEDURES_COPY[0]), 
-  sizeof(HELP_MENU_PROCEDURES_DELAY)/sizeof(HELP_MENU_PROCEDURES_DELAY[0]),               sizeof(HELP_MENU_PROCEDURES_COERCION)/sizeof(HELP_MENU_PROCEDURES_COERCION[0]),
-  sizeof(HELP_MENU_PROCEDURES_OUTPUT)/sizeof(HELP_MENU_PROCEDURES_OUTPUT[0]),             sizeof(HELP_MENU_PROCEDURES_FORMATOUTPUT)/sizeof(HELP_MENU_PROCEDURES_FORMATOUTPUT[0]), 
-  sizeof(HELP_MENU_PROCEDURES_INPUT)/sizeof(HELP_MENU_PROCEDURES_INPUT[0]),               sizeof(HELP_MENU_PROCEDURES_FILES)/sizeof(HELP_MENU_PROCEDURES_FILES[0]),
-  sizeof(HELP_MENU_PROCEDURES_PORTS)/sizeof(HELP_MENU_PROCEDURES_PORTS[0]),               sizeof(HELP_MENU_PROCEDURES_SYSINTERFACE)/sizeof(HELP_MENU_PROCEDURES_SYSINTERFACE[0]), 
-  sizeof(HELP_MENU_PROCEDURES_INVARIANTS)/sizeof(HELP_MENU_PROCEDURES_INVARIANTS[0]),     sizeof(HELP_MENU_PROCEDURES_CONTROLFLOW)/sizeof(HELP_MENU_PROCEDURES_CONTROLFLOW[0]),
-  0, /* call/cc => direct link */                                                         sizeof(HELP_MENU_PROCEDURES_SYNTAX)/sizeof(HELP_MENU_PROCEDURES_SYNTAX[0]),
-  sizeof(HELP_MENU_PROCEDURES_JSON)/sizeof(HELP_MENU_PROCEDURES_JSON[0]),                 sizeof(HELP_MENU_PROCEDURES_CSV)/sizeof(HELP_MENU_PROCEDURES_CSV[0]),
-  sizeof(HELP_MENU_PROCEDURES_GENSYM)/sizeof(HELP_MENU_PROCEDURES_GENSYM[0]),             sizeof(HELP_MENU_PROCEDURES_COMPOSEBINDID)/sizeof(HELP_MENU_PROCEDURES_COMPOSEBINDID[0]), 
+  sizeof(HELP_MENU_PROCEDURES_BUILD)/sizeof(HELP_MENU_PROCEDURES_BUILD[0]),                 sizeof(HELP_MENU_PROCEDURES_NUMBERS)/sizeof(HELP_MENU_PROCEDURES_NUMBERS[0]),
+  sizeof(HELP_MENU_PROCEDURES_EQUALITY)/sizeof(HELP_MENU_PROCEDURES_EQUALITY[0]),           sizeof(HELP_MENU_PROCEDURES_CHARS)/sizeof(HELP_MENU_PROCEDURES_CHARS[0]), 
+  sizeof(HELP_MENU_PROCEDURES_STRINGS)/sizeof(HELP_MENU_PROCEDURES_STRINGS[0]),             sizeof(HELP_MENU_PROCEDURES_PAIRS)/sizeof(HELP_MENU_PROCEDURES_PAIRS[0]),
+  sizeof(HELP_MENU_PROCEDURES_VECTORS)/sizeof(HELP_MENU_PROCEDURES_VECTORS[0]),             sizeof(HELP_MENU_PROCEDURES_HMAPS)/sizeof(HELP_MENU_PROCEDURES_HMAPS[0]), 
+  sizeof(HELP_MENU_PROCEDURES_SEQUENCES)/sizeof(HELP_MENU_PROCEDURES_SEQUENCES[0]),         sizeof(HELP_MENU_PROCEDURES_OBJECTS)/sizeof(HELP_MENU_PROCEDURES_OBJECTS[0]),
+  sizeof(HELP_MENU_PROCEDURES_PROTOTYPES)/sizeof(HELP_MENU_PROCEDURES_PROTOTYPES[0]),       sizeof(HELP_MENU_PROCEDURES_COROUTINES)/sizeof(HELP_MENU_PROCEDURES_COROUTINES[0]), 
+  sizeof(HELP_MENU_PROCEDURES_STREAMS)/sizeof(HELP_MENU_PROCEDURES_STREAMS[0]),             sizeof(HELP_MENU_PROCEDURES_DELAY)/sizeof(HELP_MENU_PROCEDURES_DELAY[0]),
+  sizeof(HELP_MENU_PROCEDURES_PREDICATES)/sizeof(HELP_MENU_PROCEDURES_PREDICATES[0]),       sizeof(HELP_MENU_PROCEDURES_COERCION)/sizeof(HELP_MENU_PROCEDURES_COERCION[0]),
+  sizeof(HELP_MENU_PROCEDURES_COPY)/sizeof(HELP_MENU_PROCEDURES_COPY[0]),                   sizeof(HELP_MENU_PROCEDURES_EVALAPPLY)/sizeof(HELP_MENU_PROCEDURES_EVALAPPLY[0]),
+  sizeof(HELP_MENU_PROCEDURES_COMPOSEBINDID)/sizeof(HELP_MENU_PROCEDURES_COMPOSEBINDID[0]), sizeof(HELP_MENU_PROCEDURES_OUTPUT)/sizeof(HELP_MENU_PROCEDURES_OUTPUT[0]),
+  sizeof(HELP_MENU_PROCEDURES_FORMATOUTPUT)/sizeof(HELP_MENU_PROCEDURES_FORMATOUTPUT[0]),   sizeof(HELP_MENU_PROCEDURES_INPUT)/sizeof(HELP_MENU_PROCEDURES_INPUT[0]),
+  sizeof(HELP_MENU_PROCEDURES_FILES)/sizeof(HELP_MENU_PROCEDURES_FILES[0]),                 sizeof(HELP_MENU_PROCEDURES_PORTS)/sizeof(HELP_MENU_PROCEDURES_PORTS[0]),
+  sizeof(HELP_MENU_PROCEDURES_SYSINTERFACE)/sizeof(HELP_MENU_PROCEDURES_SYSINTERFACE[0]),   sizeof(HELP_MENU_PROCEDURES_INVARIANTS)/sizeof(HELP_MENU_PROCEDURES_INVARIANTS[0]),
+  sizeof(HELP_MENU_PROCEDURES_CONTROLFLOW)/sizeof(HELP_MENU_PROCEDURES_CONTROLFLOW[0]),     0, /* call/cc => direct link */
+  sizeof(HELP_MENU_PROCEDURES_GENSYM)/sizeof(HELP_MENU_PROCEDURES_GENSYM[0]),               sizeof(HELP_MENU_PROCEDURES_SYNTAX)/sizeof(HELP_MENU_PROCEDURES_SYNTAX[0]),
+  sizeof(HELP_MENU_PROCEDURES_JSON)/sizeof(HELP_MENU_PROCEDURES_JSON[0]),                   sizeof(HELP_MENU_PROCEDURES_CSV)/sizeof(HELP_MENU_PROCEDURES_CSV[0]),           
 };
 
 static constexpr char** HELP_MENU_PROCEDURES_DIRECT_LINKS[] = {
