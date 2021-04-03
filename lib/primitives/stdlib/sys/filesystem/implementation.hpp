@@ -14,6 +14,16 @@ namespace heist::stdlib_filesystem {
   }
 
 
+  void confirm_given_two_string_args(const data_vector& args, const char* name, const char* format) {
+    if(args.size() != 2)
+      HEIST_THROW_ERR('\''<<name<<" didn't receive exactly 2 strings!" << format << HEIST_FCN_ERR(name,args));
+    if(!args[0].is_type(types::str))
+      HEIST_THROW_ERR('\''<<name<<" 1st arg "<<HEIST_PROFILE(args[0])<<" isn't a string!" << format << HEIST_FCN_ERR(name,args));
+    if(!args[1].is_type(types::str))
+      HEIST_THROW_ERR('\''<<name<<" 2nd arg "<<HEIST_PROFILE(args[1])<<" isn't a string!" << format << HEIST_FCN_ERR(name,args));
+  }
+
+
   bool is_path(const string& s)noexcept{
     try {
       return std::filesystem::exists(s);

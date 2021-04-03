@@ -256,10 +256,11 @@ static constexpr const char* HELP_MENU_PROCEDURES_INPUT[] = {
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_FILES[] = {
-  "getcwd",             "dirname",      "mkdir",        "chdir", 
-  "file?",              "directory?",   "path?",        "directory-entries",
-  "directory-entries*", "delete-path!", "rename-path!", "copy-path", 
-  "file-size",
+  "getcwd",              "dirname",        "mkdir",               "chdir", 
+  "file?",               "directory?",     "path?",               "directory-entries",
+  "directory-entries*",  "delete-path!",   "rename-path!",        "copy-path", 
+  "file-size",           "file-extension", "has-file-extension?", "set-file-extension!",
+  "swap-file-extension",
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_PORTS[] = {
@@ -9349,6 +9350,69 @@ R"(
 R"(
 Get size of the file designated by <filename-string>.
   *) NOTE: Behavior is platform-dependant when invoked on directories!
+)",
+
+
+
+
+
+}, {
+"file-extension",
+"Procedure",
+R"(
+(file-extension <filename-string>)
+)",
+R"(
+Get file extension of <filename-string>.
+  *) Returns "#f" if <filename-string> doesn't have an extension!
+  *) Doesn't include the "." in its returned extension!
+)",
+
+
+
+
+
+}, {
+"has-file-extension?",
+"Procedure",
+R"(
+(has-file-extension? <filename-string> <extension-string>)
+)",
+R"(
+Determine whether <filename-string> has <extension-string> as its extension.
+  *) NOTE: <extension-string> should NOT include the "." (implicitly added)!
+)",
+
+
+
+
+
+}, {
+"set-file-extension!",
+"Procedure",
+R"(
+(set-file-extension! <filename-string> <new-extension-string>)
+)",
+R"(
+Set <filename-string>'s extension to be <new-extension-string>.
+  *) Effectively a mutative equivalent to "swap-file-extension"
+  *) NOTE: <extension-string> should NOT include the "." (implicitly added)!
+)",
+
+
+
+
+
+}, {
+"swap-file-extension",
+"Procedure",
+R"(
+(swap-file-extension <filename-string> <new-extension-string>)
+)",
+R"(
+Swap <filename-string>'s extension to be <new-extension-string>.
+  *) Effectively a non-mutative equivalent to "set-file-extension!"
+  *) NOTE: <extension-string> should NOT include the "." (implicitly added)!
 )",
 
 

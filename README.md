@@ -3009,6 +3009,21 @@ Other primitives of this nature include:<br>
 12. __Get File Size__: `(file-size <filename-string>)`
     * _Behavior is platform-dependant when invoked on directories!_
 
+13. __Get File Extension__: `(file-extension <filename-string>)`
+    * _Returns `#f` if `<filename-string>` doesn't have an extension!_
+    * _Doesn't include the `.` in its returned extension!_
+
+14. __Confirm File Extension__: `(has-file-extension? <filename-string> <extension-string>)`
+    * _`<extension-string>` should ***NOT*** include the `.` (implicitly added)!_
+
+15. __Set File Extension__: `(set-file-extension! <filename-string> <new-extension-string>)`
+    * _Effectively a mutative equivalent to `swap-file-extension`_
+    * _`<extension-string>` should ***NOT*** include the `.` (implicitly added)!_
+
+16. __Swap File Extension__: `(swap-file-extension <filename-string> <new-extension-string>)`
+    * _Effectively a non-mutative equivalent to `set-file-extension!`_
+    * _`<extension-string>` should ***NOT*** include the `.` (implicitly added)!_
+
 
 
 ------------------------

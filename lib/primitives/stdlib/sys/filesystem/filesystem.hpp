@@ -157,6 +157,41 @@ namespace heist {
     }
   }
 
+  data primitive_FILE_EXTENSION(data_vector&& args) {
+    stdlib_filesystem::confirm_given_one_string_arg(args, "file-extension", "\n     (file-extension <filename-string>)");
+    const auto pos = args[0].str->rfind('.');
+    if(pos == std::string::npos || pos+1 == args[0].str->size()) return GLOBALS::FALSE_DATA_BOOLEAN;
+    return args[0].str->substr(pos+1);
+  }
+
+  data primitive_HAS_FILE_EXTENSIONP(data_vector&& args) {
+    if(args.size() == 1) return primitive_toolkit::GENERATE_PRIMITIVE_PARTIAL(primitive_HAS_FILE_EXTENSIONP,args);
+    stdlib_filesystem::confirm_given_two_string_args(args,"has-file-extension?","\n     (has-file-extension? <filename-string> <extension-string>)");
+    const auto pos = args[0].str->rfind('.');
+    if(pos == std::string::npos || pos+1 == args[0].str->size()) return GLOBALS::FALSE_DATA_BOOLEAN;
+    return boolean(args[0].str->substr(pos+1) == *args[1].str);
+  }
+
+  data primitive_SET_FILE_EXTENSION_BANG(data_vector&& args) {
+    if(args.size() == 1) return primitive_toolkit::GENERATE_PRIMITIVE_PARTIAL(primitive_HAS_FILE_EXTENSIONP,args);
+    stdlib_filesystem::confirm_given_two_string_args(args,"set-file-extension!","\n     (set-file-extension! <filename-string> <new-extension-string>)");
+    const auto pos = args[0].str->rfind('.');
+    if(pos == std::string::npos) {
+      *args[0].str += '.' + *args[1].str;
+    } else {
+      *args[0].str = args[0].str->substr(0,args[0].str->rfind('.')) + '.' + *args[1].str;
+    }
+    return GLOBALS::VOID_DATA_OBJECT;
+  }
+
+  data primitive_SWAP_FILE_EXTENSION(data_vector&& args) {
+    if(args.size() == 1) return primitive_toolkit::GENERATE_PRIMITIVE_PARTIAL(primitive_HAS_FILE_EXTENSIONP,args);
+    stdlib_filesystem::confirm_given_two_string_args(args,"swap-file-extension","\n     (swap-file-extension <filename-string> <new-extension-string>)");
+    const auto pos = args[0].str->rfind('.');
+    if(pos == std::string::npos) return make_str(*args[0].str + '.' + *args[1].str);
+    return make_str(args[0].str->substr(0,args[0].str->rfind('.')) + '.' + *args[1].str);
+  }
+
 } // End of namespace heist
 
 #endif
