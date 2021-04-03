@@ -47,7 +47,7 @@ print("############################################\n")
 
 
 USING_CLANG = os.system("clang++ --version") == 0
-USING_GCC = True if not USING_CLANG and os.system("g++ --version") == 0 else False
+USING_GCC = not USING_CLANG and os.system("g++ --version") == 0
 
 
 if USING_CLANG:
