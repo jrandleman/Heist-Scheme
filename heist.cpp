@@ -265,6 +265,16 @@ namespace heist {
   }
 
 
+  bool script_exists(const char* script)noexcept{
+    FILE* read = fopen(script, "r");
+    if(read) {
+      fclose(read);
+      return true;
+    }
+    return false;
+  }
+
+
   bool not_heist_cmd_line_flag(const std::string& next_cmd)noexcept{
   return next_cmd != "-compile" && next_cmd != "-l" && next_cmd != "-infix" && next_cmd != "-cps" && 
          next_cmd != "-nansi" && next_cmd != "-ci" && next_cmd != "-dynamic-call-trace" && next_cmd != "-trace-args" && 
@@ -325,6 +335,9 @@ namespace heist {
       } else { // found file to interpret
         if(compile_pos != -1) {
           fprintf(stderr,"\n> Can't interpret & compile files simultaneously!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n");
+          return false;
+        } else if(!script_exists(argv[i])) {
+          fprintf(stderr,"\n> Invalid Script: can't open \"%s\" for reading!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n", argv[i]);
           return false;
         }
         script_pos = i;
