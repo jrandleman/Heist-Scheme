@@ -3018,11 +3018,11 @@ Other primitives of this nature include:<br>
 
 15. __Set File Extension__: `(set-file-extension! <filename-string> <new-extension-string>)`
     * _Effectively a mutative equivalent to `swap-file-extension`_
-    * _`<extension-string>` should ***NOT*** include the `.` (implicitly added)!_
+    * _`<new-extension-string>` should ***NOT*** include the `.` (implicitly added)!_
 
 16. __Swap File Extension__: `(swap-file-extension <filename-string> <new-extension-string>)`
     * _Effectively a non-mutative equivalent to `set-file-extension!`_
-    * _`<extension-string>` should ***NOT*** include the `.` (implicitly added)!_
+    * _`<new-extension-string>` should ***NOT*** include the `.` (implicitly added)!_
 
 
 

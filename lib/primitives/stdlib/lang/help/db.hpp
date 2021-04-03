@@ -9396,7 +9396,7 @@ R"(
 R"(
 Set <filename-string>'s extension to be <new-extension-string>.
   *) Effectively a mutative equivalent to "swap-file-extension"
-  *) NOTE: <extension-string> should NOT include the "." (implicitly added)!
+  *) NOTE: <new-extension-string> should NOT include the "." (implicitly added)!
 )",
 
 
@@ -9412,7 +9412,7 @@ R"(
 R"(
 Swap <filename-string>'s extension to be <new-extension-string>.
   *) Effectively a non-mutative equivalent to "set-file-extension!"
-  *) NOTE: <extension-string> should NOT include the "." (implicitly added)!
+  *) NOTE: <new-extension-string> should NOT include the "." (implicitly added)!
 )",
 
 
