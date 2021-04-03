@@ -68,23 +68,58 @@ namespace heist::stdlib_type_coercions {
   * STRING->SYMBOL
   ******************************************************************************/
 
+  void confirm_string_has_no_reader_syntax_substrings(const data_vector& args, const string& s) {
+    for(const auto& shorthand : G.SHORTHAND_READER_ALIAS_REGISTRY)
+      if(s.find(shorthand) != string::npos)
+        HEIST_THROW_ERR("'string->symbol string \"" << s << "\" has reader syntax \"" 
+          << shorthand << "\" as a substring (invalid)!\n     (string->symbol <string>)"
+          << HEIST_FCN_ERR("string->symbol",args));
+  }
+
+
+  // NOTE: Don't need to verify whether could be interpreted as a character, as the '\' in '#\' would trigger
+  //       an error in <confirm_string_has_no_reader_syntax_substrings> as the reader-shorthand for "lambda"s
+  void confirm_string_couldnt_be_interpreted_as_a_boolean_or_number(const data_vector& args, const string& s) {
+    if(s == symconst::true_t || s == symconst::false_t)
+      HEIST_THROW_ERR("'string->symbol string \"" << s << "\" can't be a symbol (interpretable as a boolean literal)!"
+        "\n     (string->symbol <string>)" << HEIST_FCN_ERR("string->symbol",args));
+    if(s == "+nan.0" || s == "-nan.0")
+      HEIST_THROW_ERR("'string->symbol string \"" << s << "\" can't be a symbol (interpretable as a numeric literal)!"
+        "\n     (string->symbol <string>)" << HEIST_FCN_ERR("string->symbol",args));
+    num_type ignore;
+    if(convert_string_to_scm_number(s,ignore)) // from lib/core/reader/parser.hpp
+      HEIST_THROW_ERR("'string->symbol string \"" << s << "\" can't be a symbol (interpretable as a numeric literal)!"
+        "\n     (string->symbol <string>)" << HEIST_FCN_ERR("string->symbol",args));
+  }
+
+
+  void confirm_string_only_has_valid_symbolic_characters(const data_vector& args, const string& s) {
+    if(s.find("#|") != string::npos)
+      HEIST_THROW_ERR("'string->symbol string \"" << s << "\" has invalid symbolic substring: multi-line comment opener \"#|\"!"
+        "\n     (string->symbol <string>)" << HEIST_FCN_ERR("string->symbol",args));
+    if(s.find("|#") != string::npos)
+      HEIST_THROW_ERR("'string->symbol string \"" << s << "\" has invalid symbolic substring: multi-line comment closer \"|#\"!"
+        "\n     (string->symbol <string>)" << HEIST_FCN_ERR("string->symbol",args));
+    for(const auto& ch : s)
+      if(isspace(ch)||ch == '('||ch == ')'||ch == '['||ch == ']'||ch == '{'||ch == '}'||ch == '"'||ch == ';')
+        HEIST_THROW_ERR("'string->symbol string \"" << s << "\" has invalid symbol character '"<<ch<<"'!"
+          "\n     (string->symbol <string>)" << HEIST_FCN_ERR("string->symbol",args));
+  }
+
+
   // primitive "string->symbol" conversion helper
-  string convert_string_to_symbol(const string& symbol_val)noexcept{
-    if(symbol_val.empty() || string_is_an_escaped_variadic_token(symbol_val)) return symbol_val;
+  string convert_string_to_symbol(const data_vector& args, const string& str_val) {
+    if(str_val.empty() || string_is_an_escaped_variadic_token(str_val)) return str_val;
+    confirm_string_has_no_reader_syntax_substrings(args,str_val);
+    confirm_string_couldnt_be_interpreted_as_a_boolean_or_number(args,str_val);
+    confirm_string_only_has_valid_symbolic_characters(args,str_val);
     string symbol_str;
     // Convert chars in the string to their symbolic versions
-    for(const auto& ch : symbol_val) {
-      if(isspace(ch)||ch == '('||ch == ')'||ch == '['||ch == ']'||ch == '{'||ch == '}'||
-        ch == '`'||ch == '\''||ch == '"'||ch == ','||ch == ';'||ch == '\\'){
-        char str[32];
-        snprintf(str, 32, "\\x%x:", unsigned(ch));
-        symbol_str += str;
+    for(const auto& ch : str_val) {
+      if(GLOBALS::USING_CASE_SENSITIVE_SYMBOLS) {
+        symbol_str += ch;
       } else {
-        if(GLOBALS::USING_CASE_SENSITIVE_SYMBOLS) {
-          symbol_str += ch;
-        } else {
-          symbol_str += scm_numeric::mklower(ch);
-        }
+        symbol_str += scm_numeric::mklower(ch);
       }
     }
     return symbol_str;

@@ -300,7 +300,7 @@ namespace heist {
     if(!exp[1].is_type(types::sym)) return exp[1];
     if(exp[1].sym==symconst::false_t || exp[1].sym==symconst::true_t)
       return boolean(exp[1].sym==symconst::true_t);
-    return stdlib_type_coercions::convert_string_to_symbol(exp[1].sym);
+    return exp[1];
   }
 
 

@@ -127,7 +127,7 @@ namespace heist {
   data primitive_COERCE_STRING_TO_SYMBOL(data_vector&& args) {
     stdlib_type_coercions::confirm_given_one_arg(args,"string->symbol","<string>");
     if(!args[0].is_type(types::str)) return GLOBALS::FALSE_DATA_BOOLEAN;
-    return data(stdlib_type_coercions::convert_string_to_symbol(*args[0].str)); 
+    return data(stdlib_type_coercions::convert_string_to_symbol(args,*args[0].str)); 
   }
 
   // primitive "vector->list" procedure:
