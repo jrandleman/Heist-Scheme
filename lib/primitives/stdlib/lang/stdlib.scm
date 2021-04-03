@@ -900,7 +900,7 @@
         ((string-or-output-port) (display license-text string-or-output-port)))))
 
 (define sublime-text-build-system
-  (let ((st (append "{\n  \"cmd\": [\"" *heist-dirname* "/heist\", \"-nansi\", \"-script\", \"$file\"],\n  \"file_regex\": \"^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$\",\n}")))
+  (let ((st (append "{\n  \"cmd\": [\"" *heist-dirname* "/heist\", \"-nansi\", \"$file\"],\n  \"file_regex\": \"^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$\",\n}")))
     (fn (() (display st))
         ((string-or-output-port) (display st string-or-output-port)))))
 

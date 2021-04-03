@@ -25,7 +25,7 @@ int main() {
               "/***\n"
               " * SUBLIME TEXT BUILD SYSTEM:\n"
               " {\n"
-              "   \"cmd\": [\"%s/heist_main\", \"-nansi\", \"-script\", \"$file\"],\n"
+              "   \"cmd\": [\"%s/heist_main\", \"-nansi\", \"$file\"],\n"
               "   \"file_regex\": \"^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$\",\n"
               " }\n"
               " */\n\n"

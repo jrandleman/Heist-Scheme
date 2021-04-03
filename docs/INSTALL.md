@@ -35,7 +35,7 @@
 1. Write:
     ```json
     {
-      "cmd": ["<HEIST_DIRECTORY_FILE_PATH>/heist", "-nansi", "-script", "$file"],
+      "cmd": ["<HEIST_DIRECTORY_FILE_PATH>/heist", "-nansi", "$file"],
       "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
     }
     ```

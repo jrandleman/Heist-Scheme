@@ -22,7 +22,7 @@ SHELL_ALIAS = "alias heist='" + PATH_TO_INTERPRETER + "/heist'"
 
 SUBLIME_TEXT_BUILD_SYSTEM = """
     {
-      \"cmd\": [\"""" + PATH_TO_INTERPRETER + """/heist\", \"-nansi\", \"-script\", \"$file\"],
+      \"cmd\": [\"""" + PATH_TO_INTERPRETER + """/heist\", \"-nansi\", \"$file\"],
       \"file_regex\": \"^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$\",
     }"""
 

@@ -266,9 +266,9 @@ namespace heist {
 
 
   bool not_heist_cmd_line_flag(const std::string& next_cmd)noexcept{
-  return next_cmd != "-script" && next_cmd != "-compile" && next_cmd != "-l" && next_cmd != "-infix" && 
-         next_cmd != "-cps" && next_cmd != "-nansi" && next_cmd != "-ci" && next_cmd != "-dynamic-call-trace" && 
-         next_cmd != "-trace-args" && next_cmd != "-trace-limit" && next_cmd != "--version" && next_cmd != "--help";
+  return next_cmd != "-compile" && next_cmd != "-l" && next_cmd != "-infix" && next_cmd != "-cps" && 
+         next_cmd != "-nansi" && next_cmd != "-ci" && next_cmd != "-dynamic-call-trace" && next_cmd != "-trace-args" && 
+         next_cmd != "-trace-limit" && next_cmd != "--version" && next_cmd != "--help";
   }
 
 
@@ -315,16 +315,6 @@ namespace heist {
           return false;
         }
         LOADED_FILES.push_back(argv[++i]);
-      } else if(cmd_flag == "-script") {
-        if(i == argc-1) {
-          fprintf(stderr,"\n> \"-script\" wasn't followed by a file!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n");
-          return false;
-        } else if(compile_pos != -1) {
-          fprintf(stderr,"\n> Can't interpret & compile files simultaneously!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n");
-          return false;
-        }
-        script_pos = ++i;
-        POPULATE_ARGV_REGISTRY(argc,i,argv);
       } else if(cmd_flag == "-compile") {
         if(i == argc-1) {
           fprintf(stderr,"\n> \"-compile\" wasn't followed by a file!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n");
@@ -332,9 +322,14 @@ namespace heist {
         }
         compile_pos = ++i;
         if(i < argc-1 && not_heist_cmd_line_flag(argv[i+1])) compile_as = argv[++i];
-      } else {
-        fprintf(stderr,"\n> Invalid command-line flag \"%s\"!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n",argv[i]);
-        return false;
+      } else { // found file to interpret
+        if(compile_pos != -1) {
+          fprintf(stderr,"\n> Can't interpret & compile files simultaneously!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n");
+          return false;
+        }
+        script_pos = i;
+        POPULATE_ARGV_REGISTRY(argc,i,argv);
+        return true;
       }
     }
     return true;

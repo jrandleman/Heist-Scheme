@@ -136,8 +136,7 @@ namespace heist {
 ******************************************************************************/
 
 #define HEIST_COMMAND_LINE_ARGS\
-    "> Interpret Script:    -script <script-filename> <argv1> <argv2> ..."\
-  "\n> Compile Script:      -compile <script-filename> <optional-compiled-filename>"\
+    "> Compile Script:      -compile <script-filename> <optional-compiled-filename>"\
   "\n> Load Script:         -l <script-filename>"\
   "\n> Infix Operators:     -infix"\
   "\n> With CPS Evaluation: -cps"\

@@ -11,7 +11,7 @@
 => _Tested on OSX & Linux with Clang++ & G++, and **should** work on Windows (adheres C++17 standard)_<br>
 
 0. Launch REPL: `$ heist`
-1. Interpret Script: `$ heist -script <script-filename> <argv1> <argv2> ...`
+1. Interpret Script: `$ heist <script-filename> <argv1> <argv2> ...`
 2. Embed Heist in C++: See [`EMBED.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/docs/EMBED.md)!
 3. Extend Heist with Primitives: See [`EXTEND.md`](https://github.com/jrandleman/Heist-Scheme/blob/master/docs/EXTEND.md)!
 
@@ -191,8 +191,7 @@
 
 ------------------------
 # Heist Command-Line Flags
-0. Interpret Script: `-script <script-filename> <argv1> <argv2> ...`
-1. Compile Script: `-compile <script-filename> <optional-compiled-filename>`
+0. Compile Script: `-compile <script-filename> <optional-compiled-filename>`
 2. Load Script: `-l <script-filename>`
 3. Infix Operators: `-infix`
 4. With CPS Evaluation: `-cps`
@@ -216,8 +215,8 @@ Wraps scheme code in a [`scm->cps`](#scm-cps) block automatically, hence:
 
 0. Reader-modifying operations must be done in a seperate file and loaded with `-l`!
    * These include [`infix!`](#Infix--Infixr), [`infixr!`](#Infix--Infixr), [`unfix!`](#Unfix), [`define-reader-syntax`](#Syntax-Procedures), & [`define-reader-alias`](#Define-Reader-Alias)!
-   * IE: `$ heist -cps -l reader_modifications.scm -script file_to_interpret.scm`
-1. Affects the REPL, `-script`, and `-compile`!
+   * IE: `$ heist -cps -l reader_modifications.scm file_to_interpret.scm`
+1. Affects the REPL, scripts, and `-compile`!
    * Use with the REPL wraps every expression in a unique [`scm->cps`](#scm-cps) block!
 
 ### `-infix` Operators:
