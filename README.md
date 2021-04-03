@@ -3212,6 +3212,8 @@ Other primitives of this nature include:<br>
    * `<seed>` = number | symbol | boolean
 
 2. __Append Symbols__: `(symbol-append <symbol-1> ... <symbol-N>)`
+   * If the series of symbols appended yields a number, returns the number
+     - IE `(symbol-append '+ 'i)` => `+i` => `0+1i`
 
 
 

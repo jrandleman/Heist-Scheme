@@ -7980,6 +7980,8 @@ R"(
 )",
 R"(
 Append symbols to generate a new symbol.
+  *) If the series of symbols appended yields a number, returns the number.
+     IE (symbol-append '+ 'i) => +i => 0+1i
 )",
 
 

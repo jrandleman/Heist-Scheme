@@ -18,14 +18,18 @@ namespace heist {
         "\n     (symbol-append <symbol-1> ... <symbol-N>)" 
         << HEIST_FCN_ERR("symbol-append", args));
     for(size_type i = 0, n = args.size(); i < n; ++i)
-      if(!args[i].is_type(types::sym))
+      if(!args[i].is_type(types::sym) && !args[i].is_type(types::num))
         HEIST_THROW_ERR("'symbol-append arg #" << i+1 << ' ' << HEIST_PROFILE(args[i])
-          <<" isn't a symbol!\n     (symbol-append <symbol-1> ... <symbol-N>)" 
+          <<" isn't a symbol or number!\n     (symbol-append <symbol-1> ... <symbol-N>)" 
           << HEIST_FCN_ERR("symbol-append", args));
     string appended_symbol;
-    for(size_type i = 0, n = args.size(); i < n; ++i)
-      appended_symbol += args[i].sym;
-    return appended_symbol;
+    for(const auto& arg : args) {
+      if(arg.is_type(types::sym))
+        appended_symbol += arg.sym;
+      else
+        appended_symbol += arg.num.str();
+    }
+    return stdlib_gensyms::convert_symbol_append_result_to_a_datum(appended_symbol);
   }
 
   /******************************************************************************

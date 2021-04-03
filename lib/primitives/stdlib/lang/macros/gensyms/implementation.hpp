@@ -6,6 +6,10 @@
 
 namespace heist::stdlib_gensyms {
 
+  /******************************************************************************
+  * GENSYM
+  ******************************************************************************/
+
   // Returns a freshly generated gensym symbol
   string new_hashed_gensym_arg()noexcept{
     if(G.GENSYM_HASH_IDX_1 != GLOBALS::MAX_SIZE_TYPE)
@@ -32,6 +36,18 @@ namespace heist::stdlib_gensyms {
       return symconst::gensym_prefix + std::to_string(G.GENSYM_HASH_IDX_2) + 
                                  '_' + std::to_string(G.GENSYM_HASH_IDX_1 - n);
     }
+  }
+
+  /******************************************************************************
+  * SYMBOL-APPEND
+  ******************************************************************************/
+
+  data convert_symbol_append_result_to_a_datum(const string& s)noexcept{
+    if(s == symconst::true_t) return GLOBALS::TRUE_DATA_BOOLEAN;
+    if(s == symconst::false_t) return GLOBALS::FALSE_DATA_BOOLEAN;
+    num_type num;
+    if(convert_string_to_scm_number(s,num)) return num; // from lib/core/reader/parser.hpp
+    return s;
   }
 
 } // End of namespace heist::stdlib_gensyms
