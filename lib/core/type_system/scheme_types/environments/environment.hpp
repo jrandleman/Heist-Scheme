@@ -45,8 +45,9 @@ namespace heist {
     bool erase_variable(const frame_var& var)noexcept;
     bool erase_macro(const string& label)noexcept;
 
-  private:
-    bool macro_has_label(const frame_mac& mac, const string& label)const noexcept;
+    // Extract & Verify Macro Label
+    static string macro_label(const frame_mac& mac)noexcept;
+    static bool macro_has_label(const frame_mac& mac, const string& label)noexcept;
   };
 
   /******************************************************************************

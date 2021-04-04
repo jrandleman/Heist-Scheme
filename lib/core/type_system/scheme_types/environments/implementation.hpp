@@ -117,7 +117,14 @@ namespace heist {
   * ENVIRONMENT MACRO-LABEL COMPARISON
   ******************************************************************************/
 
-  bool environment::macro_has_label(const frame_mac& mac, const string& label)const noexcept{
+  string environment::macro_label(const frame_mac& mac)noexcept{
+    if(mac.is_type(types::syn)) return mac.syn.label;
+    if(mac.is_type(types::fcn)) return mac.fcn.name;
+    return "";
+  }
+
+
+  bool environment::macro_has_label(const frame_mac& mac, const string& label)noexcept{
     return (mac.is_type(types::syn) && mac.syn.label == label) ||
            (mac.is_type(types::fcn) && mac.fcn.name == label);
   }

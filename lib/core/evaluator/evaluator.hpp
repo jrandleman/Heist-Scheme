@@ -4,6 +4,8 @@
 #ifndef HEIST_SCHEME_CORE_EVALUATOR_HPP_
 #define HEIST_SCHEME_CORE_EVALUATOR_HPP_
 
+#include "dependancies/variable_matcher.hpp"
+
 namespace heist {
 
   /******************************************************************************
@@ -29,7 +31,7 @@ namespace heist {
     bool found = false;
     auto val = env->lookup_variable_value(var, found);
     if(found) return val;
-    HEIST_THROW_ERR("Variable " << var << " is not bound!");
+    HEIST_THROW_ERR("Variable " << var << " is not bound!" << possibly_intended_variables(var,env));
   }
 
   /******************************************************************************
