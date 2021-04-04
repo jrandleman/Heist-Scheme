@@ -2413,8 +2413,7 @@ Other primitives of this nature include:<br>
 
 ------------------------
 ## Generic Sequence Procedures:
-
-### _Sequence ::= List | Vector | String_
+#### Sequence ::= List | Vector | String
 
 ### General:
 0. __Generate Empty Variant of Sequence__: `(empty <sequence>)`
