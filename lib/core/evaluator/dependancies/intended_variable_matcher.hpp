@@ -78,10 +78,8 @@ namespace heist {
 
     // Populate <match_vector> label-substringLength pairs
     void get_match_vector_of_possibly_intended_variables_in_objs(const string& var, match_vector_type& match_vector, const frame_objs& objs)noexcept{
-      for(const auto& binding : objs) {
-        const auto match_metadata = get_substring_match_metadata(var,get_lowercase_string(binding.first));
-        if(match_metadata.first) match_vector.push_back(std::make_pair(binding.first,std::move(match_metadata)));
-      }
+      for(const auto& binding : objs)
+        match_vector.push_back(std::make_pair(binding.first,get_substring_match_metadata(var,get_lowercase_string(binding.first))));
     }
 
 
