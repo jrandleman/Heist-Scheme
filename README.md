@@ -26,7 +26,7 @@
 6. [Opt-In Dynamic Scoping](#control-flow-procedures)
 7. [Opt-In Continuations](#Scm-Cps)
 8. [Native Even Streams](#Stream-Primitives)
-9. [Generic Algorithms](#Generic-Sequence-ListVectorString-Algorithmic-Procedures)
+9. [Generic Algorithms](#Generic-Sequence-Procedures)
 10. [Expanded String Library](#String-Procedures)
 11. [String I/O](#Output-Procedures)
 12. [A](#Curry)[n](#Heist-Mathematical-Flonum-Constants)[d](#Control-Flow-Procedures) [M](#Gensym--symbol-append)[o](#JSON-Interop)[r](#Define-Coroutine)[e](#System-Interface-Procedures)[!](#Syntax-Procedures)
@@ -100,7 +100,7 @@
      * [List Seeking Procedures](#List-Seeking-Procedures)
    - [Vector Procedures](#Vector-Procedures)
    - [Hash-Map Procedures](#Hash-Map-Procedures)
-   - [Generic Sequence, List|Vector|String, Algorithmic Procedures](#Generic-Sequence-ListVectorString-Algorithmic-Procedures)
+   - [Generic Sequence Procedures](#Generic-Sequence-Procedures)
      * [General](#General-3)
      * [Coercion Procedures](#Coercion-Procedures)
      * [Set Procedures](#Set-Procedures)
@@ -2412,7 +2412,10 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
-## Generic Sequence, List|Vector|String, Algorithmic Procedures:
+## Generic Sequence Procedures:
+
+### _Sequence ::= List | Vector | String_
+
 ### General:
 0. __Generate Empty Variant of Sequence__: `(empty <sequence>)`
 
