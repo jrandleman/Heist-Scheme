@@ -148,13 +148,25 @@ namespace heist {
   // primitive "string-contains" procedure:
   data primitive_STRING_CONTAINS(data_vector&& args) {
     if(args.size() == 1) return primitive_toolkit::GENERATE_PRIMITIVE_PARTIAL(primitive_STRING_CONTAINS,args);
-    return stdlib_strings::string_contains_template(args, "string-contains", "\n     (string-contains <string> <sub-string>)", true);
+    return stdlib_strings::string_contains_template(args, "string-contains", "\n     (string-contains <string> <sub-string>)", true, false);
   }
 
   // primitive "string-contains-right" procedure:
   data primitive_STRING_CONTAINS_RIGHT(data_vector&& args) {
     if(args.size() == 1) return primitive_toolkit::GENERATE_PRIMITIVE_PARTIAL(primitive_STRING_CONTAINS_RIGHT,args);
-    return stdlib_strings::string_contains_template(args, "string-contains-right", "\n     (string-contains-right <string> <sub-string>)", false);
+    return stdlib_strings::string_contains_template(args, "string-contains-right", "\n     (string-contains-right <string> <sub-string>)", false, false);
+  }
+
+  // primitive "string-contains-ci" procedure:
+  data primitive_STRING_CONTAINS_CI(data_vector&& args) {
+    if(args.size() == 1) return primitive_toolkit::GENERATE_PRIMITIVE_PARTIAL(primitive_STRING_CONTAINS,args);
+    return stdlib_strings::string_contains_template(args, "string-contains-ci", "\n     (string-contains-ci <string> <sub-string>)", true, true);
+  }
+
+  // primitive "string-contains-right-ci" procedure:
+  data primitive_STRING_CONTAINS_RIGHT_CI(data_vector&& args) {
+    if(args.size() == 1) return primitive_toolkit::GENERATE_PRIMITIVE_PARTIAL(primitive_STRING_CONTAINS_RIGHT,args);
+    return stdlib_strings::string_contains_template(args, "string-contains-right-ci", "\n     (string-contains-right-ci <string> <sub-string>)", false, true);
   }
 
   // primitive "string-join" procedure:

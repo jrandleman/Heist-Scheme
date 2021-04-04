@@ -2178,10 +2178,12 @@ Other primitives of this nature include:<br>
 
 10. __String Contains Substring (From Left)__: Get index of 1st instance
     * `(string-contains <string> <sub-string>)`
+    * _Use `string-contains-ci` for a case-insensitive alternative!_
     * _Returns `#f` is `<sub-string>` isn't in `<string>`!_
 
 11. __String Contains Substring (From Right)__: Get index of last instance
     * `(string-contains-right <string> <sub-string>)`
+    * _Use `string-contains-right-ci` for a case-insensitive alternative!_
     * _Returns `#f` is `<sub-string>` isn't in `<string>`!_
 
 12. __Join a List of Strings Into 1 String__:

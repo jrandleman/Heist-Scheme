@@ -151,15 +151,16 @@ static constexpr const char* HELP_MENU_PROCEDURES_CHARS[] = {
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_STRINGS[] = {
-  "string",             "make-string",      "string-unfold",     "string-unfold-right", 
-  "string-pad",         "string-pad-right", "string-trim",       "string-trim-right", 
-  "string-trim-both",   "string-replace",   "string-contains",   "string-contains-right", 
-  "string-join",        "string-split",     "string-swap!",      "string-push-back!", 
-  "string-push-front!", "string-pop-back!", "string-pop-front!", "string-empty?",
-  "string-copy!",       "string=?",         "string<?",          "string>?",
-  "string<=?",          "string>=?",        "string-ci=?",       "string-ci<?",
-  "string-ci>?",        "string-ci<=?",     "string-ci>=?",      "regex-replace",
-  "regex-replace-all",  "regex-match",      "regex-split", 
+  "string",             "make-string",              "string-unfold",      "string-unfold-right", 
+  "string-pad",         "string-pad-right",         "string-trim",        "string-trim-right", 
+  "string-trim-both",   "string-replace",           "string-contains",    "string-contains-right", 
+  "string-contains-ci", "string-contains-right-ci", "string-join",        "string-split",
+  "string-swap!",       "string-push-back!",        "string-push-front!", "string-pop-back!", 
+  "string-pop-front!",  "string-empty?",            "string-copy!",       "string=?",
+  "string<?",           "string>?",                 "string<=?",          "string>=?",
+  "string-ci=?",        "string-ci<?",              "string-ci>?",        "string-ci<=?",
+  "string-ci>=?",       "regex-replace",            "regex-replace-all",  "regex-match",
+  "regex-split", 
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_PAIRS[] = {
@@ -5396,6 +5397,7 @@ R"(
 Confirms <string> contains <sub-string> (from left). 
 Returns index of 1st instance, or #f if DNE!
   *) See "string-contains-right" to perform this from the right instead!
+  *) See "string-contains-ci" to perform this using case-insensitivity!
 )",
 
 
@@ -5412,6 +5414,41 @@ R"(
 Confirms <string> contains <sub-string> (from right). 
 Returns index of 1st instance, or #f if DNE!
   *) See "string-contains" to perform this from the left instead!
+  *) See "string-contains-right-ci" to perform this using case-insensitivity!
+)",
+
+
+
+
+
+}, {
+"string-contains-ci",
+"Procedure",
+R"(
+(string-contains-ci <string> <sub-string>)
+)",
+R"(
+Confirms <string> contains <sub-string> (from left, with case-insensitivity). 
+Returns index of 1st instance, or #f if DNE!
+  *) See "string-contains-right-ci" to perform this from the right instead!
+  *) See "string-contains" to perform this using case-sensitivity!
+)",
+
+
+
+
+
+}, {
+"string-contains-right-ci",
+"Procedure",
+R"(
+(string-contains-right-ci <string> <sub-string>)
+)",
+R"(
+Confirms <string> contains <sub-string> (from right, with case-insensitivity). 
+Returns index of 1st instance, or #f if DNE!
+  *) See "string-contains-ci" to perform this from the left instead!
+  *) See "string-contains-right" to perform this using case-sensitivity!
 )",
 
 

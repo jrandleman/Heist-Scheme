@@ -153,11 +153,21 @@ namespace heist::stdlib_strings {
   }
 
   /******************************************************************************
+  * CASE-INSENSITIVE STRING COMPARISONS HELPER
+  ******************************************************************************/
+
+  string lowercase_str(const string& s)noexcept{
+    string tmp;
+    for(const auto& ch : s) tmp += scm_numeric::mklower(ch);
+    return tmp;
+  }
+
+  /******************************************************************************
   * STRING-CONTAINS
   ******************************************************************************/
 
   data string_contains_template(data_vector& args,  const char* name, 
-                                const char* format, const bool from_left){
+                                const char* format, const bool from_left, const bool ci){
     if(args.size() != 2) 
       HEIST_THROW_ERR('\''<<name<<" received incorrect # of args (given " 
         << args.size() << "):" << format << HEIST_FCN_ERR(name, args));
@@ -168,10 +178,20 @@ namespace heist::stdlib_strings {
       HEIST_THROW_ERR('\''<<name<<" 2nd arg "<<HEIST_PROFILE(args[1])<<" isn't a string:" 
         << format << HEIST_FCN_ERR(name, args));
     size_type pos;
-    if(from_left) {
-      pos = args[0].str->find(*args[1].str);
+    // Case-sensitive
+    if(!ci) {
+      if(from_left) {
+        pos = args[0].str->find(*args[1].str);
+      } else {
+        pos = args[0].str->rfind(*args[1].str);
+      }
+    // Case-insensitive
     } else {
-      pos = args[0].str->rfind(*args[1].str);
+      if(from_left) {
+        pos = lowercase_str(*args[0].str).find(lowercase_str(*args[1].str));
+      } else {
+        pos = lowercase_str(*args[0].str).rfind(lowercase_str(*args[1].str));
+      }
     }
     if(pos == string::npos) return GLOBALS::FALSE_DATA_BOOLEAN;
     return num_type(pos);
@@ -276,16 +296,6 @@ namespace heist::stdlib_strings {
         <<"\n     for string "<<args[0]<<" of size "
         <<l<<'!'<<format<<HEIST_FCN_ERR("string-copy!",args));
     return i;
-  }
-
-  /******************************************************************************
-  * CASE-INSENSITIVE STRING COMPARISONS HELPER
-  ******************************************************************************/
-
-  string lowercase_str(const string& s)noexcept{
-    string tmp;
-    for(const auto& ch : s) tmp += scm_numeric::mklower(ch);
-    return tmp;
   }
 
   /******************************************************************************
