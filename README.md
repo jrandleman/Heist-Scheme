@@ -40,7 +40,7 @@
    - [Notation](#Notation)
    - [Namespacing](#Namespacing)
 1. [Heist Command-Line Flags](#Heist-Command-Line-Flags)
-   - [`-compile` Notes](#-compile-notes)
+   - [`-c` Notes](#-c-notes)
    - [`-cps` Quirks](#-cps-quirks)
    - [`-infix` Operators](#-infix-operators)
 2. [Heist Primitive Data Types](#Heist-Primitive-Data-Types)
@@ -191,7 +191,7 @@
 
 ------------------------
 # Heist Command-Line Flags
-0. Compile Script: `-compile <script-filename> <optional-compiled-filename>`
+0. Compile Script: `-c <script-filename> <optional-compiled-filename>`
 1. Load Script: `-l <script-filename>`
 2. Infix Operators: `-infix`
 3. With CPS Evaluation: `-cps`
@@ -203,12 +203,12 @@
 9. Interpreter Version: `--version`
 10. Show These Options: `--help`
 
-### `-compile` Notes:
+### `-c` Notes:
 Compilation replaces interpreter's reader, hence:
 
 0. Reader-modifying operations must be done in a seperate file and loaded with `-l`!
    * These include [`infix!`](#Infix--Infixr), [`infixr!`](#Infix--Infixr), [`unfix!`](#Unfix), [`define-reader-syntax`](#Syntax-Procedures), & [`define-reader-alias`](#Define-Reader-Alias)!
-   * IE: `$ heist -l reader_modifications.scm -compile file_to_compile.scm`
+   * IE: `$ heist -l reader_modifications.scm -c file_to_compile.scm`
 
 ### `-cps` Quirks:
 Wraps scheme code in a [`scm->cps`](#scm-cps) block automatically, hence:
@@ -216,7 +216,7 @@ Wraps scheme code in a [`scm->cps`](#scm-cps) block automatically, hence:
 0. Reader-modifying operations must be done in a seperate file and loaded with `-l`!
    * These include [`infix!`](#Infix--Infixr), [`infixr!`](#Infix--Infixr), [`unfix!`](#Unfix), [`define-reader-syntax`](#Syntax-Procedures), & [`define-reader-alias`](#Define-Reader-Alias)!
    * IE: `$ heist -cps -l reader_modifications.scm file_to_interpret.scm`
-1. Affects the REPL, scripts, and `-compile`!
+1. Affects the REPL, scripts, and `-c`!
    * Use with the REPL wraps every expression in a unique [`scm->cps`](#scm-cps) block!
 
 ### `-infix` Operators:
@@ -3081,10 +3081,10 @@ Other primitives of this nature include:<br>
    * _Pass `*global-environment*` to `cps-load` in the global environment!_
 
 2. __Compile a File__: `(compile <filename-string> <optional-compiled-filename>)`
-   * Take into account the [compiler's replacement of the reader](#-compile-notes)!
+   * Take into account the [compiler's replacement of the reader](#-c-notes)!
 
 3. __Cps-Compile a File__: `(cps-compile <filename-string> <optional-compiled-filename>)`
-   * Take into account the [compiler's replacement of the reader](#-compile-notes)!
+   * Take into account the [compiler's replacement of the reader](#-c-notes)!
 
 4. __System Interface Via Command-Line__: Returns `#f` if feature not offered by OS
    * `(system <optional-system-call-string>)`

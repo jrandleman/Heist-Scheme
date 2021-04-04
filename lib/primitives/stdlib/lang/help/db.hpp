@@ -862,7 +862,7 @@ R"(
 R"(
 Returns Heist Scheme's cmd-line options as a string:
 
-  Compile Script: -compile <script-filename> <optional-compiled-filename>
+  Compile Script: -c <script-filename> <optional-compiled-filename>
   Load Script: -l <script-filename>
   Infix Operators: -infix
   With CPS Evaluation: -cps
@@ -874,18 +874,18 @@ Returns Heist Scheme's cmd-line options as a string:
   Interpreter Version: --version
   Show These Options: --help
 
-Reader changes with "-compile":
+Reader changes with "-c":
   *) Compilation replaces interpreter's reader, hence:
      0. Reader-modifying operations must be done in a seperate file and loaded with "-l"!
         => These include "infix!", "infixr!", "unfix!", "define-reader-syntax", & "define-reader-alias"!
-        => IE: "$ heist -l reader_modifications.scm -compile file_to_compile.scm"
+        => IE: "$ heist -l reader_modifications.scm -c file_to_compile.scm"
 
 Quirks to account for with "-cps":
   *) Wraps scheme code in a "scm->cps" block automatically, hence:
      0. Reader-modifying operations must be done in a seperate file and loaded with "-l"!
         => These include "infix!", "infixr!", "unfix!", "define-reader-syntax", & "define-reader-alias"!
         => IE: "$ heist -cps -l reader_modifications.scm file_to_interpret.scm"
-     1. Affects the REPL, scripts, and "-compile"!
+     1. Affects the REPL, scripts, and "-c"!
         => Use with the REPL wraps every expression in a unique "scm->cps" block!
 
 Note that the "-infix" cmd-line flag defines the following:

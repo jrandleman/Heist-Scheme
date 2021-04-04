@@ -276,7 +276,7 @@ namespace heist {
 
 
   bool not_heist_cmd_line_flag(const std::string& next_cmd)noexcept{
-  return next_cmd != "-compile" && next_cmd != "-l" && next_cmd != "-infix" && next_cmd != "-cps" && 
+  return next_cmd != "-c" && next_cmd != "-l" && next_cmd != "-infix" && next_cmd != "-cps" && 
          next_cmd != "-nansi" && next_cmd != "-ci" && next_cmd != "-dynamic-call-trace" && next_cmd != "-trace-args" && 
          next_cmd != "-trace-limit" && next_cmd != "--version" && next_cmd != "--help";
   }
@@ -325,9 +325,9 @@ namespace heist {
           return false;
         }
         LOADED_FILES.push_back(argv[++i]);
-      } else if(cmd_flag == "-compile") {
+      } else if(cmd_flag == "-c") {
         if(i == argc-1) {
-          fprintf(stderr,"\n> \"-compile\" wasn't followed by a file!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n");
+          fprintf(stderr,"\n> \"-c\" wasn't followed by a file!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n");
           return false;
         }
         compile_pos = ++i;
