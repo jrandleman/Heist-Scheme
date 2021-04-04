@@ -4,7 +4,7 @@
 #ifndef HEIST_SCHEME_CORE_EVALUATOR_HPP_
 #define HEIST_SCHEME_CORE_EVALUATOR_HPP_
 
-#include "dependancies/variable_matcher.hpp"
+#include "dependancies/intended_variable_matcher.hpp"
 
 namespace heist {
 

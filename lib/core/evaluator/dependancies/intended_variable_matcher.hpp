@@ -1,10 +1,10 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- variable_matcher.hpp
+// Author: Jordan Randleman -- jrandleman@scu.edu -- intended_variable_matcher.hpp
 // => Generates the list of possibly intended variable names upon an 
 //    "unbound variable" error for the C++ Heist Scheme Interpreter
 // => Provides functionality via <possibly_intended_variables>
 
-#ifndef HEIST_SCHEME_CORE_VARIABLE_MATCHER_HPP_
-#define HEIST_SCHEME_CORE_VARIABLE_MATCHER_HPP_
+#ifndef HEIST_SCHEME_CORE_INTENDED_VARIABLE_MATCHER_HPP_
+#define HEIST_SCHEME_CORE_INTENDED_VARIABLE_MATCHER_HPP_
 
 namespace heist {
   namespace evaluator_variable_matching {
@@ -31,6 +31,7 @@ namespace heist {
 
 
     size_type hash_match_parameters(const size_type m, const size_type n, const size_type longestCommonSubstrLength)noexcept{
+      if(!longestCommonSubstrLength) return GLOBALS::MAX_SIZE_TYPE; // no common substring -> "worst" possible match hash value
       if(m > n) return m - longestCommonSubstrLength;
       return n - longestCommonSubstrLength;
     }
