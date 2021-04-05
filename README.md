@@ -1001,8 +1001,8 @@ Other primitives of this nature include:<br>
 ## Scons:
 
 #### Use: ___Create a Stream Pair!___
-* _Stream pairs are regular pairs with delayed `car` and `cdr`!_
-* _Allows for infinite lists (see `scar` & `scdr` primitives for manipulation)!_
+* _Stream pairs are regular pairs with delayed [`car`](#ListPair-Procedures) and [`cdr`](#ListPair-Procedures)!_
+* _Allows for infinite lists (see [`scar`](#Stream-Primitives) & [`scdr`](#Stream-Primitives) primitives for manipulation)!_
 * _Note: `scons` is actually a macro directly defined **in** Heist Scheme!_
 
 #### Form: `(scons <obj1> <obj2>)`
