@@ -34,7 +34,7 @@ namespace heist::stdlib_objects {
                                                               const char* format, const char* container_name){
     HEIST_THROW_ERR('\''<< class_proto_obj->class_name<<' '<<container_name<<' '<< args[1] << " has more values than"
       "\n     " << data(class_proto_obj) << " has members (has "<<obj.member_values.size()
-      <<" members)!" << format << HEIST_FCN_ERR('\''+class_proto_obj->class_name,args));
+      <<" members)!" << format << HEIST_FCN_ERR(class_proto_obj->class_name,args));
   }
 
 
@@ -44,16 +44,20 @@ namespace heist::stdlib_objects {
       auto key = map_object::unhash_key(keyval.first);
       if(!key.is_type(types::sym))
         HEIST_THROW_ERR('\''<< class_proto_obj->class_name<<" member-name key "<<HEIST_PROFILE(key) 
-          << " isn't a symbol!" << format << HEIST_FCN_ERR('\''+class_proto_obj->class_name,args));
+          << " isn't a symbol!" << format << HEIST_FCN_ERR(class_proto_obj->class_name,args));
+      if(key.sym == "prototype" || key.sym == "super")
+        HEIST_THROW_ERR('\''<< class_proto_obj->class_name<<" invalid member-name key \""<< key
+          << "\" (\"super\" & \"prototype\" are initialized internally)!" << format 
+          << HEIST_FCN_ERR(class_proto_obj->class_name,args));
       for(size_type i = 0; i < total_members; ++i) {
         if(obj.member_names[i] == key.sym) {
           obj.member_values[i] = keyval.second;
           goto next_member;
         }
       }
-      HEIST_THROW_ERR('\''<<class_proto_obj->class_name<<" member-name key "<<HEIST_PROFILE(key) 
-        << " isn't a member name in class-obj "<<HEIST_PROFILE(args[0])<<'!' 
-        << format << HEIST_FCN_ERR('\''+class_proto_obj->class_name,args));
+      HEIST_THROW_ERR('\''<<class_proto_obj->class_name<<" member-name key \""<< key
+        << "\" isn't a member name in class-obj "<<HEIST_PROFILE(args[0])<<'!' 
+        << format << HEIST_FCN_ERR(class_proto_obj->class_name,args));
       next_member: continue;
     }
     return make_obj(std::move(obj));
@@ -61,10 +65,11 @@ namespace heist::stdlib_objects {
 
 
   data initialize_OO_ctord_object_VECT(data_vector& args, cls_type& class_proto_obj, object_type& obj, const char* format){
-    if(args[1].vec->size() > obj.member_values.size())
+    if(args[1].vec->size() > (obj.member_values.size() - 2))
       throw_too_many_values_in_OO_initialization(args,class_proto_obj,obj,format,"vector");
-    for(size_type i = 0, n = args[1].vec->size(); i < n; ++i)
-      obj.member_values[i] = args[1].vec->operator[](i);
+    for(size_type i = 0, j = 0, n = args[1].vec->size(); i < n; ++j)
+      if(obj.member_names[j] != "prototype" && obj.member_names[j] != "super")
+        obj.member_values[j] = args[1].vec->operator[](i++);
     return make_obj(std::move(obj));
   }
 
@@ -72,12 +77,16 @@ namespace heist::stdlib_objects {
   data initialize_OO_ctord_object_LIST(data_vector& args, cls_type& class_proto_obj, object_type& obj, const char* format){
     if(!primitive_toolkit::data_is_proper_list(args[1]))
       HEIST_THROW_ERR('\''<< class_proto_obj->class_name<<" arg "<<HEIST_PROFILE(args[1]) 
-        << " isn't a proper list!" << format << HEIST_FCN_ERR('\''+class_proto_obj->class_name,args));
+        << " isn't a proper list!" << format << HEIST_FCN_ERR(class_proto_obj->class_name,args));
     const size_type n = obj.member_values.size();
     size_type i = 0;
     data iter = args[1];
     while(iter.is_type(types::par)) {
       if(i == n) throw_too_many_values_in_OO_initialization(args,class_proto_obj,obj,format,"list");
+      if(obj.member_names[i] == "prototype" || obj.member_names[i] == "super") {
+        ++i;
+        continue;
+      }
       obj.member_values[i++] = iter.par->first;
       iter = iter.par->second;
     }
