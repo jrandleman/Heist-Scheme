@@ -1309,7 +1309,7 @@ Procedure definition expands to a lambda binding:
 
 CPS Transformation:
   *) If multiple <rest-of-code> expressions, wrap them in a "begin" block!
-  *) The need to know symbol-name *here* is why macro-expansion/eval/load 
+  *) The need to know symbol-name *here* is why runtime-macro-expansion/eval/load 
      can't leak definitions to the current environment in CPS!
   
   (define <var> <val>) <rest-of-code> 
@@ -2091,7 +2091,7 @@ Hash local macro template identifiers to avoid expansion name conflicts!
   *) ONLY valid in "syntax-rules" templates!
   *) Expander replaces "syntax-hash" expression, & every instance of <symbol>,
      with a hashed version of <symbol> unique to the expansion instance!
-     => Similar to "gensym" but specialized for "syntax-rules" expansions!
+     => Similar to "gensym" but specialized for "syntax-rules"!
 
 Example:
 
