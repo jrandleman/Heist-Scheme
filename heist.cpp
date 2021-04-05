@@ -415,9 +415,12 @@ int interpret_premade_AST_code(){
       heist::scm_eval(heist::data(input),heist::G.GLOBAL_ENVIRONMENT_POINTER); // (*)HERE(*)
     } catch(const heist::SCM_EXCEPT& eval_throw) {
       if(eval_throw == heist::SCM_EXCEPT::EXIT) return heist::GLOBALS::HEIST_EXIT_CODE;
-      if(eval_throw == heist::SCM_EXCEPT::JUMP)
+      if(eval_throw == heist::SCM_EXCEPT::JUMP) {
         HEIST_PRINT_ERR("Uncaught JUMP procedure! JUMPed value: " 
           << HEIST_PROFILE(heist::GLOBALS::JUMP_GLOBAL_PRIMITIVE_ARGUMENT));
+      } else {
+        puts("");
+      }
     } catch(...) {
       HEIST_PRINT_ERR("Uncaught C++ Exception Detected! -:- BUG ALERT -:-"
            "\n     Triggered By: " << input << 
