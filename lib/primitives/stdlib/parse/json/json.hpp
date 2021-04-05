@@ -16,7 +16,7 @@ namespace heist {
   // [...]          -> [vector ...]
   // <string>:<obj> -> (list <string> <obj>)
 
-  data primitive_JSON_TO_SCM(data_vector&& args) {
+  data primitive_COERCE_JSON_TO_SCM(data_vector&& args) {
     if(args.size() != 1 || !args[0].is_type(types::str))
       HEIST_THROW_ERR("'json->scm didn't receive 1 string arg!" 
         "\n     (json->scm <string>)" << HEIST_FCN_ERR("json->scm", args));
@@ -42,7 +42,7 @@ namespace heist {
   }
 
 
-  data primitive_SCM_TO_JSON(data_vector&& args) {
+  data primitive_COERCE_SCM_TO_JSON(data_vector&& args) {
     static constexpr const char * const format = 
       "\n     (scm->json <obj> <optional-indent-width>)"
       "\n     <obj> ::= <string>"

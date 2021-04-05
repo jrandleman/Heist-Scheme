@@ -188,14 +188,14 @@ namespace heist {
   * STRING->ART PRIMITIVES
   ******************************************************************************/
 
-  data primitive_STRING_TO_ASCII_ART(data_vector&& args) { 
+  data primitive_COERCE_STRING_TO_ASCII_ART(data_vector&& args) { 
     if(args.size() != 1 || !args[0].is_type(types::str))
       HEIST_THROW_ERR("'string->ascii-art didn't receive 1 string arg!"
         "\n     (string->ascii-art <string>)" << HEIST_FCN_ERR("string->ascii-art",args));
     return make_str(heist_fmt::convert_to_ascii_art(*args[0].str));
   }
 
-  data primitive_STRING_TO_SPACE_ART(data_vector&& args) { 
+  data primitive_COERCE_STRING_TO_SPACE_ART(data_vector&& args) { 
     if(args.size() != 1 || !args[0].is_type(types::str))
       HEIST_THROW_ERR("'string->space-art didn't receive 1 string arg!"
         "\n     (string->space-art <string>)\n     => <nansi> must be inactive!" 

@@ -54,11 +54,11 @@ namespace heist {
   * LEXICAL/DYNAMIC SCOPE CHECKING/TOGGLING
   ******************************************************************************/
 
-  data primitive_CONVERT_LEXICAL_SCOPE_TO_DYNAMIC_SCOPE(data_vector&& args) {
+  data primitive_COERCE_LEXICAL_SCOPE_TO_DYNAMIC_SCOPE(data_vector&& args) {
     return stdlib_controlflow::convert_callable_scope(args, true, "lexical-scope->dynamic-scope", "\n     (lexical-scope->dynamic-scope <callable>)");
   }
 
-  data primitive_CONVERT_DYNAMIC_SCOPE_TO_LEXICAL_SCOPE(data_vector&& args) {
+  data primitive_COERCE_DYNAMIC_SCOPE_TO_LEXICAL_SCOPE(data_vector&& args) {
     return stdlib_controlflow::convert_callable_scope(args, false, "dynamic-scope->lexical-scope", "\n     (dynamic-scope->lexical-scope <callable>)");
   }
 

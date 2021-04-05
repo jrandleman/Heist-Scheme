@@ -8,7 +8,7 @@
 
 namespace heist {
 
-  data primitive_LIST_TO_CSV(data_vector&& args) {
+  data primitive_COERCE_LIST_TO_CSV(data_vector&& args) {
     static constexpr const char * const format = 
       "\n     (list->csv <list-of-lists-of-csv-data> <optional-delimiter-char>)"
       "\n     <csv-data> ::= <string> | <number>";
@@ -30,7 +30,7 @@ namespace heist {
   }
 
 
-  data primitive_VECTOR_TO_CSV(data_vector&& args) {
+  data primitive_COERCE_VECTOR_TO_CSV(data_vector&& args) {
     static constexpr const char * const format = 
       "\n     (vector->csv <vector-of-vectors-of-csv-data> <optional-delimiter-char>)"
       "\n     <csv-data> ::= <string> | <number>";
@@ -52,7 +52,7 @@ namespace heist {
   }
 
 
-  data primitive_CSV_TO_LIST(data_vector&& args) {
+  data primitive_COERCE_CSV_TO_LIST(data_vector&& args) {
     static constexpr const char * const format = 
       "\n     (csv->list <csv-string> <optional-delimiter-char>)"
       "\n     <csv-data> ::= <string> | <number>";
@@ -62,7 +62,7 @@ namespace heist {
   }
 
 
-  data primitive_CSV_TO_VECTOR(data_vector&& args) {
+  data primitive_COERCE_CSV_TO_VECTOR(data_vector&& args) {
     static constexpr const char * const format = 
       "\n     (csv->vector <csv-string> <optional-delimiter-char>)"
       "\n     <csv-data> ::= <string> | <number>";

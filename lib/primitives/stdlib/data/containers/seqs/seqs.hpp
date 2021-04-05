@@ -784,7 +784,7 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "seq->list" procedure:
-  data primitive_SEQ_TO_LIST(data_vector&& args) {
+  data primitive_COERCE_SEQ_TO_LIST(data_vector&& args) {
     static constexpr const char * const format = "\n     (seq->list <sequence>)" SEQUENCE_DESCRIPTION;
     if(args.size() != 1) 
       HEIST_THROW_ERR("'seq->list didn't receive exactly 1 arg!" << format << HEIST_FCN_ERR("seq->list",args));
@@ -796,7 +796,7 @@ namespace heist {
   }
 
   // primitive "seq->vector" procedure:
-  data primitive_SEQ_TO_VECTOR(data_vector&& args) {
+  data primitive_COERCE_SEQ_TO_VECTOR(data_vector&& args) {
     static constexpr const char * const format = "\n     (seq->vector <sequence>)" SEQUENCE_DESCRIPTION;
     if(args.size() != 1) 
       HEIST_THROW_ERR("'seq->vector didn't receive exactly 1 arg!" << format << HEIST_FCN_ERR("seq->vector",args));
@@ -808,7 +808,7 @@ namespace heist {
   }
 
   // primitive "seq->string" procedure:
-  data primitive_SEQ_TO_STRING(data_vector&& args) {
+  data primitive_COERCE_SEQ_TO_STRING(data_vector&& args) {
     static constexpr const char * const format = "\n     (seq->string <sequence>)" SEQUENCE_DESCRIPTION;
     if(args.size() != 1) 
       HEIST_THROW_ERR("'seq->string didn't receive exactly 1 arg!" << format << HEIST_FCN_ERR("seq->string",args));

@@ -199,7 +199,7 @@ namespace heist {
   ******************************************************************************/
 
   // primitive "hmap->alist"
-  data primitive_HMAP_TO_ALIST(data_vector&& args) {
+  data primitive_COERCE_HMAP_TO_ALIST(data_vector&& args) {
     stdlib_hmaps::hmap_confirm_unary_map("hmap->alist","\n     (hmap->alist <hash-map>)",args);
     data_vector alist(args[0].map->val.size());
     size_type i = 0;
@@ -215,7 +215,7 @@ namespace heist {
   }
 
   // primitive "alist->hmap"
-  data primitive_ALIST_TO_HMAP(data_vector&& args) {
+  data primitive_COERCE_ALIST_TO_HMAP(data_vector&& args) {
     if(args.size() != 1)
       HEIST_THROW_ERR("'alist->hmap didn't receive 1 arg!"
         "\n     (alist->hmap <alist>)" << HEIST_FCN_ERR("alist->hmap",args));

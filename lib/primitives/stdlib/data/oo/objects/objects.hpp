@@ -121,17 +121,17 @@ namespace heist {
   }
 
   // NOTE: recursively converts object member values into hashmaps as well
-  data primitive_OBJECT_TO_HMAP(data_vector&& args) {
+  data primitive_COERCE_OBJECT_TO_HMAP(data_vector&& args) {
     stdlib_objects::confirm_given_unary_object_arg(args,"object->hmap");
     return stdlib_objects::recursively_convert_OBJ_to_HMAP<false>(args[0]);
   }
 
-  data primitive_OBJECT_TO_ALIST(data_vector&& args) {
+  data primitive_COERCE_OBJECT_TO_ALIST(data_vector&& args) {
     stdlib_objects::confirm_given_unary_object_arg(args,"object->alist");
     return stdlib_objects::recursively_convert_HMAP_to_ALIST(stdlib_objects::recursively_convert_OBJ_to_HMAP<false>(args[0]));
   }
 
-  data primitive_OBJECT_TO_JSON(data_vector&& args) {
+  data primitive_COERCE_OBJECT_TO_JSON(data_vector&& args) {
     static constexpr const char * const format = 
       "\n     (object->json <object> <optional-indent-width>)";
     if(args.empty() || args.size() > 2)

@@ -436,9 +436,9 @@ namespace heist {
   }
 
   // primitive "stream->list" procedure:
-  data primitive_STREAM_TO_LIST(data_vector&& args) {
+  data primitive_COERCE_STREAM_TO_LIST(data_vector&& args) {
     // Confirm given proper args (same signature as stream-drop & stream-take)
-    if(args.size() == 1) return primitive_toolkit::GENERATE_PRIMITIVE_PARTIAL(primitive_STREAM_TO_LIST,args);
+    if(args.size() == 1) return primitive_toolkit::GENERATE_PRIMITIVE_PARTIAL(primitive_COERCE_STREAM_TO_LIST,args);
     stdlib_streams::validate_stream_take_drop_args(args, "stream->list", "\n     (stream->list <stream> <size>)");
     // Invoke stream-take, convert substream -> exp -> list
     if(primitive_toolkit::data_is_nil(args[0])) return args[0];
@@ -449,7 +449,7 @@ namespace heist {
   }
 
   // primitive "list->stream" procedure:
-  data primitive_LIST_TO_STREAM(data_vector&& args) {
+  data primitive_COERCE_LIST_TO_STREAM(data_vector&& args) {
     // Confirm given a single proper list arg
     stdlib_streams::confirm_given_one_arg(args,"list->stream","<list>");
     if(!primitive_toolkit::data_is_proper_list(args[0]))
