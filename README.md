@@ -976,7 +976,7 @@ Other primitives of this nature include:<br>
 #### Form: `(delay <exp>)`
 
 #### Possible Derivation Using [`lambda`](#lambda):
-* _Heist's implementation is distinct from the below, with a unique non-thunk "delayed expression" type!_
+* _In practice, Heist actually supports native "delayed expressions" distinct from thunks!_
 ```scheme
 (delay <exp>)
 
