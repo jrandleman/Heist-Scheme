@@ -33,6 +33,7 @@ namespace heist {
 
 
   void define_object_method_property(object_type& obj, const string& property_name, data& value)noexcept{
+    if(value.fcn.name.empty()) value.fcn.name = object_type::hash_method_name(property_name);
     // Set local method if already exists
     for(size_type i = 0, n = obj.method_names.size(); i < n; ++i) {
       if(obj.method_names[i] == property_name) {
@@ -68,6 +69,7 @@ namespace heist {
         // setting property to be a method
         } else {
           obj.method_names.push_back(property_name);
+          if(value.fcn.name.empty()) value.fcn.name = object_type::hash_method_name(property_name);
           obj.method_values.push_back(value);
         }
         return true;
@@ -82,6 +84,8 @@ namespace heist {
                                           const string& property_name, data& value)noexcept{
     for(size_type i = 0, n = seeking_names.size(); i < n; ++i) {
       if(seeking_names[i] == property_name) {
+        if(value.is_type(types::fcn) && value.fcn.name.empty()) 
+          value.fcn.name = object_type::hash_method_name(property_name);
         if(value_in_SEEKING_set) {
           seeking_values[i] = value;
         } else {

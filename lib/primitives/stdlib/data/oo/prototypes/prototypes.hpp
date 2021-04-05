@@ -45,6 +45,7 @@ namespace heist {
     // Define the new method
     if(args[2].is_type(types::fcn)) {
       args[0].cls->method_names.push_back(args[1].sym);
+      if(args[2].fcn.name.empty()) args[2].fcn.name = object_type::hash_method_name(args[1].sym);
       args[0].cls->method_values.push_back(args[2]);
     // Define the new member
     } else {

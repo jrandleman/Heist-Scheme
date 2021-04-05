@@ -17,6 +17,7 @@ namespace heist {
     bool has_property(const string& name); // returns if found
     bool has_member(const string& name); // returns if found
     bool has_method(const string& name); // returns if found
+    static string hash_method_name(const string& s)noexcept{return "#<method " + s + '>';}
   };
 }
 

@@ -867,6 +867,7 @@ namespace heist {
       auto value = property_exec_procs[i](env);
       if(value.is_type(types::fcn)) {
         proto.method_names.push_back(property_names[i]);
+        if(value.fcn.name.empty()) value.fcn.name = object_type::hash_method_name(property_names[i]);
         proto.method_values.push_back(value);
       } else {
         proto.member_names.push_back(property_names[i]);
@@ -889,7 +890,9 @@ namespace heist {
     setter_lambda[2].exp[1] = "self";
     setter_lambda[2].exp[2] = "heist:core:oo:property-name";
     setter_lambda[2].exp[3] = "heist:core:oo:new-value";
-    proto.method_values.push_back(scm_eval(std::move(setter_lambda),env));
+    data fcn_value = scm_eval(std::move(setter_lambda),env);
+    fcn_value.fcn.name = object_type::hash_method_name("set-property!");
+    proto.method_values.push_back(std::move(fcn_value));
   }
 
   // ((add-property! name value)
@@ -906,7 +909,9 @@ namespace heist {
     property_generator[2].exp[1] = "self";
     property_generator[2].exp[2] = "heist:core:property-name";
     property_generator[2].exp[3] = "heist:core:property-value";
-    proto.method_values.push_back(scm_eval(std::move(property_generator),env));
+    data fcn_value = scm_eval(std::move(property_generator),env);
+    fcn_value.fcn.name = object_type::hash_method_name("add-property!");
+    proto.method_values.push_back(std::move(fcn_value));
   }
 
   // (define (<class-name>? <obj>)
