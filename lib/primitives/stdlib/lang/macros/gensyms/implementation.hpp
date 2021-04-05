@@ -43,8 +43,8 @@ namespace heist::stdlib_gensyms {
   ******************************************************************************/
 
   data convert_symbol_append_result_to_a_datum(const string& s)noexcept{
-    if(s == symconst::true_t) return GLOBALS::TRUE_DATA_BOOLEAN;
-    if(s == symconst::false_t) return GLOBALS::FALSE_DATA_BOOLEAN;
+    if(s == symconst::true_) return GLOBALS::TRUE_DATA_BOOLEAN;
+    if(s == symconst::false_) return GLOBALS::FALSE_DATA_BOOLEAN;
     num_type num;
     if(convert_string_to_scm_number(s,num)) return num; // from lib/core/reader/parser.hpp
     return s;

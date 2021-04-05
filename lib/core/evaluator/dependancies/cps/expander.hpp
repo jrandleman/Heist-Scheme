@@ -81,7 +81,7 @@ bool data_is_cps_atomic(const data& d)noexcept{
 // Heist-specific checker to not prefix C++ derived special forms w/ application tag
 bool is_HEIST_cpp_derived_special_form(const string& app)noexcept{
   return app == symconst::cps_quote || app == symconst::scm_cps    || app == symconst::map_literal ||
-         app == symconst::while_t   || app == symconst::vec_literal;
+         app == symconst::while_    || app == symconst::vec_literal;
 }
 
 /******************************************************************************
@@ -562,7 +562,7 @@ data_vector generate_fundamental_form_cps(const data& code,const bool topmost_ca
     return fn_exp;
 
   // IF
-  } else if(is_tagged_list(code.exp,symconst::if_t)) {
+  } else if(is_tagged_list(code.exp,symconst::if_)) {
     confirm_valid_if(code.exp);
     data_vector lambda(3);
     lambda[0] = symconst::lambda;
@@ -570,7 +570,7 @@ data_vector generate_fundamental_form_cps(const data& code,const bool topmost_ca
     // Atomic IF test
     if(data_is_cps_atomic(code.exp[1])) { 
       lambda[2] = data_vector(4);
-      lambda[2].exp[0] = symconst::if_t;
+      lambda[2].exp[0] = symconst::if_;
       lambda[2].exp[1] = code.exp[1];
       lambda[2].exp[2] = get_cps_IF_consequent(code,lambda[1].exp[0]);
       if(code.exp.size() > 3) // Has IF alternative
@@ -587,7 +587,7 @@ data_vector generate_fundamental_form_cps(const data& code,const bool topmost_ca
     lambda[2].exp[1].exp[0] = symconst::lambda;
     lambda[2].exp[1].exp[1] = data_vector(1,generate_unique_cps_value_hash()); // "test-result"
     lambda[2].exp[1].exp[2] = data_vector(4);
-    lambda[2].exp[1].exp[2].exp[0] = symconst::if_t;
+    lambda[2].exp[1].exp[2].exp[0] = symconst::if_;
     lambda[2].exp[1].exp[2].exp[1] = lambda[2].exp[1].exp[1].exp[0];
     lambda[2].exp[1].exp[2].exp[2] = get_cps_IF_consequent(code,lambda[1].exp[0]);
     if(code.exp.size() > 3) // Has IF alternative

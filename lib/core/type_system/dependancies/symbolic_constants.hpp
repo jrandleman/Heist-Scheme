@@ -46,12 +46,12 @@ namespace heist::symconst {
   constexpr const char * const definedp          = "defined?";
   constexpr const char * const delete_bang       = "delete!";
   constexpr const char * const begin             = "begin";
-  constexpr const char * const while_t           = "heist:core:while";
-  constexpr const char * const if_t              = "if";
+  constexpr const char * const while_            = "heist:core:while";
+  constexpr const char * const if_               = "if";
   constexpr const char * const ellipsis          = "...";
   constexpr const char * const ellipsis_hash     = "heist:core:ellipsis-hash:";
-  constexpr const char * const true_t            = "#t";
-  constexpr const char * const false_t           = "#f";
+  constexpr const char * const true_             = "#t";
+  constexpr const char * const false_            = "#f";
   constexpr const char * const append            = "append";
   constexpr const char * const list              = "list";
   constexpr const char * const vector            = "vector";

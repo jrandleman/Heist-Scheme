@@ -111,7 +111,7 @@ bool data_is_ellipsis(const data& d)noexcept{
 // Primitive symbolic literals: #t #f '()
 bool is_primitive_symbolic_literal(const data& obj)noexcept{
   return obj.is_type(types::sym) && 
-    (obj.sym == symconst::true_t || obj.sym == symconst::false_t || obj.sym == symconst::emptylist);
+    (obj.sym == symconst::true_ || obj.sym == symconst::false_ || obj.sym == symconst::emptylist);
 }
 
 

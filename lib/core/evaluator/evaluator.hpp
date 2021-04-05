@@ -68,7 +68,7 @@ namespace heist {
   ******************************************************************************/
 
   // -- IDENTIFICATION, GETTERS, & CONSTRUCTION
-  bool is_if(const data_vector& exp) noexcept{return is_tagged_list(exp,symconst::if_t);}
+  bool is_if(const data_vector& exp) noexcept{return is_tagged_list(exp,symconst::if_);}
 
   void confirm_valid_if(const data_vector& exp) {
     if(exp.size() < 3) 
@@ -300,8 +300,8 @@ namespace heist {
   // Returns quoted data's contents
   data get_quoted_data(data_vector& exp)noexcept{
     if(!exp[1].is_type(types::sym)) return exp[1];
-    if(exp[1].sym==symconst::false_t || exp[1].sym==symconst::true_t)
-      return boolean(exp[1].sym==symconst::true_t);
+    if(exp[1].sym==symconst::false_ || exp[1].sym==symconst::true_)
+      return boolean(exp[1].sym==symconst::true_);
     return exp[1];
   }
 
@@ -925,7 +925,7 @@ namespace heist {
     predicate[1].exp[0] = class_name + '?';
     predicate[1].exp[1] = "heist:core:oo:obj";
     predicate[2] = data_vector(4);
-    predicate[2].exp[0] = symconst::if_t;
+    predicate[2].exp[0] = symconst::if_;
     predicate[2].exp[1] = data_vector(2);
     predicate[2].exp[1].exp[0] = "object?";
     predicate[2].exp[1].exp[1] = "heist:core:oo:obj";
@@ -1113,7 +1113,7 @@ namespace heist {
   * REPRESENTING TRUE ITERATION: WHILE (DEGRADES TO "DO" IN CPS BLOCKS)
   ******************************************************************************/
 
-  bool is_while(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::while_t);}
+  bool is_while(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::while_);}
 
   exe_fcn_t analyze_while(data_vector& exp,const bool cps_block=false) {
     // "while"s in cps contexts degrade to "do"s

@@ -213,7 +213,7 @@ bool is_optimizable_CPS_pass_5_exp(const data_vector& cps_exp)noexcept{
   return cps_exp.size() == 2 && cps_exp[0].is_type(types::exp) &&
          is_unary_arg_lambda_cps_exp(cps_exp[0].exp) &&
          ((cps_exp[1].is_type(types::bol) && !cps_exp[1].bol.val) || 
-          (cps_exp[1].is_type(types::sym) && cps_exp[1].sym == symconst::false_t)) && 
+          (cps_exp[1].is_type(types::sym) && cps_exp[1].sym == symconst::false_)) && 
          cps_exp[0].exp[2].is_type(types::exp) && cps_exp[0].exp[2].exp.size() == 3 && 
          cps_exp[0].exp[2].exp[0].is_type(types::sym) && cps_exp[0].exp[2].exp[0].sym == symconst::set;
 }

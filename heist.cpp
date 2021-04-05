@@ -108,8 +108,8 @@ namespace heist {
       primitive_procedure_objects(),
       G.GLOBAL_ENVIRONMENT_POINTER
     );
-    G.GLOBAL_ENVIRONMENT_POINTER->define_variable(symconst::true_t,        GLOBALS::TRUE_DATA_BOOLEAN);
-    G.GLOBAL_ENVIRONMENT_POINTER->define_variable(symconst::false_t,       GLOBALS::FALSE_DATA_BOOLEAN);
+    G.GLOBAL_ENVIRONMENT_POINTER->define_variable(symconst::true_,         GLOBALS::TRUE_DATA_BOOLEAN);
+    G.GLOBAL_ENVIRONMENT_POINTER->define_variable(symconst::false_,        GLOBALS::FALSE_DATA_BOOLEAN);
     G.GLOBAL_ENVIRONMENT_POINTER->define_variable("*heist-dirname*",       make_str(HEIST_DIRECTORY_FILE_PATH));
     G.GLOBAL_ENVIRONMENT_POINTER->define_variable("fl-precision",          num_type(num_type::INEXACT_PRECISION));
     G.GLOBAL_ENVIRONMENT_POINTER->define_variable("fl-max",                num_type(num_type::INEXACT_MAX));

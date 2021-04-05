@@ -80,7 +80,7 @@ namespace heist::stdlib_type_coercions {
   // NOTE: Don't need to verify whether could be interpreted as a character, as the '\' in '#\' would trigger
   //       an error in <confirm_string_has_no_reader_syntax_substrings> as the reader-shorthand for "lambda"s
   void confirm_string_couldnt_be_interpreted_as_a_boolean_or_number(const data_vector& args, const string& s) {
-    if(s == symconst::true_t || s == symconst::false_t)
+    if(s == symconst::true_ || s == symconst::false_)
       HEIST_THROW_ERR("'string->symbol string \"" << s << "\" can't be a symbol (interpretable as a boolean literal)!"
         "\n     (string->symbol <string>)" << HEIST_FCN_ERR("string->symbol",args));
     if(s == "+nan.0" || s == "-nan.0")
