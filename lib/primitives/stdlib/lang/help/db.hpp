@@ -2091,7 +2091,7 @@ Hash local macro template identifiers to avoid expansion name conflicts!
   *) ONLY valid in "syntax-rules" templates!
   *) Expander replaces "syntax-hash" expression, & every instance of <symbol>,
      with a hashed version of <symbol> unique to the expansion instance!
-     => Similar to "gensym" but specialized for macro expansions!
+     => Similar to "gensym" but specialized for "syntax-rules" expansions!
 
 Example:
 
@@ -2125,7 +2125,7 @@ Example:
 
 
   ; HOWEVER, this is a tad verbose for our purposes. Enter <syntax-hash>:
-  ;   a FAST alternative to <gensym> specialized ONLY for macro expansions!
+  ;   a FAST alternative to <gensym> specialized ONLY for <syntax-rules> expansions!
   ; => NOTE: we can use the "`@" reader macro to be even more concise!
 
   (define-syntax my-macro

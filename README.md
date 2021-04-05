@@ -1202,10 +1202,10 @@ Other primitives of this nature include:<br>
 #### Use: ___Hash Local Macro Template Identifiers to Avoid Expansion Name Conflicts!___
 
 #### Form: `(syntax-hash <symbol>)`
-* _**ONLY** valid in `syntax-rules` templates!_
+* _**ONLY** valid in [`syntax-rules`]((#Syntax-Rules)) templates!_
 * _Expander replaces `syntax-hash` expression, and every instance of `<symbol>`,<br>
   with a hashed version of `<symbol>` unique to the expansion instance!_
-  - _Similar to [`gensym`](#Gensym--symbol-append) but specialized for macro expansions!_
+  - _Similar to [`gensym`](#Gensym--symbol-append) but specialized for [`syntax-rules`](#Syntax-Rules) expansions!_
 
 #### Shorthand: ``` `@<symbol> => (syntax-hash <symbol>)```
 
@@ -1243,7 +1243,7 @@ Other primitives of this nature include:<br>
 
 
   ;; HOWEVER, this is a tad verbose for our purposes. Enter <syntax-hash>:
-  ;;   a FAST alternative to <gensym> specialized ONLY for macro expansions!
+  ;;   a FAST alternative to <gensym> specialized ONLY for <syntax-rules> expansions!
   ;; => NOTE: we can use the "`@" reader macro to be even more concise!
 
   (define-syntax my-macro
