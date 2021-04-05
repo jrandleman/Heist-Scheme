@@ -5,6 +5,18 @@
 #ifndef HEIST_SCHEME_CORE_INSTALLER_CPP_
 #define HEIST_SCHEME_CORE_INSTALLER_CPP_
 
+/******************************************************************************
+* VALIDATE USING C++17 OR ABOVE
+******************************************************************************/
+
+#if __cplusplus < 201703L
+  #error Heist-Scheme's installer requires compilation with C++17 or above!
+#endif
+
+/******************************************************************************
+* MAIN EXECUTION
+******************************************************************************/
+
 #include <filesystem>
 #include <cstdio>
 #include "../lib/installation/primitives_json_parser.cpp"
