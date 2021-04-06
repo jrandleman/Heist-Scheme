@@ -23,14 +23,16 @@ namespace heist::stdlib_coroutines {
 
   data invoke_coroutine_NEXT_method(data& d, const char* format) {
     auto& methods = d.obj->method_names;
-    for(size_type i = 0, n = methods.size(); i < n; ++i)
+    for(size_type i = 0, n = methods.size(); i < n; ++i) {
       if(methods[i] == "next") {
         auto& env = d.obj->proto->defn_env;
         d = d.obj->method_values[i].fcn.bind_self(d.obj);
         return execute_application(d,data_vector(),env);
       }
+    }
     HEIST_THROW_ERR("'cycle-coroutines! 'coroutine object " << d
       << " is missing the \"next\" method!" << format); 
+    return data(); // never triggered
   }
 
 } // End of namespace heist::stdlib_coroutines

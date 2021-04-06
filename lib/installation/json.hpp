@@ -181,13 +181,13 @@ namespace JSON {
   * INTERNAL ERROR HANDLING MECHANISM
   ******************************************************************************/
 
-  #define signal_error(signal_error_message)({\
-    ERROR_MESSAGE = ">> JSON PARSING ERROR: " + std::string(signal_error_message) + \
-                  "\n   @FILE: " + std::string(__FILE__) + \
-                  "\n   @FUNC: " + std::string(__func__) + \
-                  "\n   @LINE: " + std::to_string(__LINE__);\
-    throw 1;\
-  })
+  void signal_error_throw(const std::string&){throw 1;}
+
+  #define signal_error(signal_error_message)\
+    signal_error_throw((ERROR_MESSAGE = ">> JSON PARSING ERROR: " + std::string(signal_error_message) + \
+                                      "\n   @FILE: " + std::string(__FILE__) + \
+                                      "\n   @FUNC: " + std::string(__func__) + \
+                                      "\n   @LINE: " + std::to_string(__LINE__)))
 
   /******************************************************************************
   * INTERNAL "CARET" ERROR MESSAGE GENERATION

@@ -303,6 +303,7 @@ namespace heist::stdlib_json {
       } else {
         HEIST_THROW_ERR("'scm->json invalid scheme datum " << HEIST_PROFILE(d)
           << " can't be converted into JSON!" << format << HEIST_FCN_ERR("scm->json", args));
+        return ""; // never triggered
       }
     }
 

@@ -64,6 +64,15 @@ namespace heist {
   enum class SCM_EXCEPT {EXIT, EVAL, READ, JUMP};
 
   /******************************************************************************
+  * THROW HACK: ENABLES throw IN THE "SAME EXPRESSION" AS A std::cerr INVOCATION
+  ******************************************************************************/
+
+  std::string throw_eval_error() {
+    throw heist::SCM_EXCEPT::EVAL;
+    return ""; // never triggered
+  }
+
+  /******************************************************************************
   * ERROR HANDLING PRINTER MACROS
   ******************************************************************************/
 
@@ -79,7 +88,7 @@ namespace heist {
   #define HEIST_PROFILE(dataObj) dataObj<<" of type \""<<dataObj.type_name()<<'"'
 
   #define HEIST_PRINT_ERR(...) std::cerr<<HEIST_ERR_HEADER<<__VA_ARGS__<<'\n'<<heist::stack_trace_str()<<HEIST_AFMT(heist::AFMT_0)
-  #define HEIST_THROW_ERR(...) ({HEIST_PRINT_ERR(__VA_ARGS__); throw heist::SCM_EXCEPT::EVAL;})
+  #define HEIST_THROW_ERR(...) HEIST_PRINT_ERR(__VA_ARGS__)<<heist::throw_eval_error()
 }
 
 #endif

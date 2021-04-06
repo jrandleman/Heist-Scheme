@@ -17,8 +17,10 @@
 * MAIN EXECUTION
 ******************************************************************************/
 
-#include <filesystem>
 #include <cstdio>
+#include <filesystem>
+#include <iostream>
+
 #include "../lib/installation/primitives_json_parser.cpp"
 
 int main() {

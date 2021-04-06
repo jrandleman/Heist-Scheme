@@ -38,15 +38,16 @@
 * ERROR SIGNALING
 ******************************************************************************/
 
-#define signal_error(signal_error_message)({\
-  fprintf(stderr, "\n>> INSTALLER ERROR WHILE PARSING \"/lib/primitives/primitives.json\":\n   %s\n", (signal_error_message + \
-    std::string("\n   @FILE: " + std::string(__FILE__) +\
-                "\n   @FUNC: " + std::string(__func__) +\
-                "\n   @LINE: " + std::to_string(__LINE__) +\
-                "\n   >> SEE \"docs/EXTEND.md\" FOR HELP EXTENDING HEIST WITH C++ PRIMITIVES!\n   ") + \
-    primitives_json_parser::stringify_PRIMITIVE_FILES(3) + '\n').c_str());\
-  throw 1;\
-})
+std::string signal_error_throw() {
+  throw 1;
+  return ""; // never triggered
+}
+
+#define signal_error(signal_error_message) std::cerr <<\
+  "\n>> INSTALLER ERROR WHILE PARSING \"/lib/primitives/primitives.json\":\n   " << signal_error_message <<\
+  "\n   @FILE: " << __FILE__ << "\n   @FUNC: " << __func__ << "\n   @LINE: " << __LINE__ <<\
+  "\n   >> SEE \"docs/EXTEND.md\" FOR HELP EXTENDING HEIST WITH C++ PRIMITIVES!\n   " <<\
+  primitives_json_parser::stringify_PRIMITIVE_FILES(3) + "\n\n";
 
 /******************************************************************************
 * PRIMITIVE JSON PARSING & POPULATION LOGIC

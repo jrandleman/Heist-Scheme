@@ -32,6 +32,7 @@ namespace heist {
     auto val = env->lookup_variable_value(var, found);
     if(found) return val;
     HEIST_THROW_ERR("Variable " << var << " is not bound!" << possibly_intended_variables(var,env));
+    return data(); // never triggered
   }
 
   /******************************************************************************
@@ -1711,6 +1712,7 @@ namespace heist {
     HEIST_THROW_ERR("'define-syntax syntax-transformer 2nd arg "<<HEIST_PROFILE(exp[2])
       <<" isn't a syntax-rules object or callable:\n     (define-syntax "
         "<label> <syntax-transformer>)"<<HEIST_EXP_ERR(exp));
+    return data(); // never triggered
   }
 
 

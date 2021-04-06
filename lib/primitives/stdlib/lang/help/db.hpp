@@ -95,7 +95,7 @@ static constexpr size_type HELP_MENU_SUBMENUS_LENGTH[] = {
   sizeof(HELP_MENU_PROCEDURES)/sizeof(HELP_MENU_PROCEDURES[0]), 
 };
 
-static constexpr const char* HELP_MENU_PROCEDURES_HELP[] = {}; // direct link
+static constexpr const char* HELP_MENU_PROCEDURES_HELP[] = {""}; // direct link
 
 static constexpr const char* HELP_MENU_PROCEDURES_BUILD[] = {
   "license", "sublime-text-build-system", "shell-alias",
@@ -291,7 +291,7 @@ static constexpr const char* HELP_MENU_PROCEDURES_CONTROLFLOW[] = {
   "jump!",                        "catch-jump",                   "trace", 
 };
 
-static constexpr const char* HELP_MENU_PROCEDURES_CALLCC[] = {}; // direct link
+static constexpr const char* HELP_MENU_PROCEDURES_CALLCC[] = {""}; // direct link
 
 static constexpr const char* HELP_MENU_PROCEDURES_SYNTAX[] = {
   "expand",                 "expand*",            "core-expand",       "core-expand*",

@@ -412,6 +412,7 @@ namespace heist::stdlib_strings {
     } else {
       HEIST_THROW_ERR('\''<<name<<" last arg "<<HEIST_PROFILE(args[2])<<" isn't a <string> or <callable>!"
         << format << HEIST_FCN_ERR(name,args));
+      return data(); // never triggered
     }
   }
 

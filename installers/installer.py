@@ -31,8 +31,8 @@ SUBLIME_TEXT_BUILD_SYSTEM = """
 ###############################################################################
 
 if DEBUGGING:
-  CLANG_COMPILE_CMD = "clang++ -std=c++17 -O0 -Wall -Wextra"
-  GCC_COMPILE_CMD = "g++ -std=c++17 -Wno-psabi -O0 -Wall -Wextra"
+  CLANG_COMPILE_CMD = "clang++ -std=c++17 -O0 -Wall -Wextra -Wpedantic"
+  GCC_COMPILE_CMD = "g++ -std=c++17 -Wno-psabi -O0 -Wall -Wextra -Wpedantic"
 else:
   CLANG_COMPILE_CMD = "clang++ -std=c++17 -O3"
   GCC_COMPILE_CMD = "g++ -std=c++17 -Wno-psabi -O3"

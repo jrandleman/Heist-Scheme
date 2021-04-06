@@ -26,11 +26,13 @@ namespace heist::primitive_toolkit {
   FILE* get_current_output_port(const data_vector& args, const char* name, const char* format = "") {
     if(G.CURRENT_OUTPUT_PORT.is_open()) return *G.CURRENT_OUTPUT_PORT.fp;
     HEIST_THROW_ERR('\''<<name<<" current output port is closed!" << format << HEIST_FCN_ERR(name,args));
+    return NULL; // never triggered
   }
 
   FILE* get_current_input_port(const data_vector& args, const char* name, const char* format = "") {
     if(G.CURRENT_INPUT_PORT.is_open()) return *G.CURRENT_INPUT_PORT.fp;
     HEIST_THROW_ERR('\''<<name<<" current input port is closed!" << format << HEIST_FCN_ERR(name,args));
+    return NULL; // never triggered
   }
 
   /******************************************************************************
