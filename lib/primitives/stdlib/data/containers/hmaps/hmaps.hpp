@@ -162,19 +162,19 @@ namespace heist {
     }
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_FOR_EACH_KEY,"hmap-for-each-key",
-    execute_application(procedure,data_vector(1,map_object::unhash_key(keys[i]))););
+    execute_application(procedure,data_vector(1,map_object::unhash_key(keys[i])));)
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_FOR_EACH_VAL,"hmap-for-each-val",
-    execute_application(procedure,data_vector(1,args[1].map->val[keys[i]])););
+    execute_application(procedure,data_vector(1,args[1].map->val[keys[i]]));)
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_FOR_EACH,"hmap-for-each",
     auto p = make_par();
     p->first = map_object::unhash_key(keys[i]);
     p->second = args[1].map->val[keys[i]];
-    execute_application(procedure,data_vector(1,p)););
+    execute_application(procedure,data_vector(1,p));)
 
   GENERATE_HMAP_ITERATION_FCN(primitive_HMAP_MAP_BANG,"hmap-map!",
-    args[1].map->val[keys[i]] = execute_application(procedure,data_vector(1,args[1].map->val[keys[i]])););
+    args[1].map->val[keys[i]] = execute_application(procedure,data_vector(1,args[1].map->val[keys[i]]));)
 
   // primitive "hmap-map"
   data primitive_HMAP_MAP(data_vector&& args) {

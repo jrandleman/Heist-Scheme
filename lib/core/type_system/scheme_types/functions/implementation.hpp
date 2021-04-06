@@ -359,7 +359,7 @@ namespace heist {
       HEIST_THROW_ERR("'fn arguments "<<data(arguments)<<" don't match any signatures!\n     -> Possible Signatures:" 
         << get_possible_signatures(param_instances,name) << HEIST_FCN_ERR(name,arguments));
     }
-  }; // End of namespace fn_param_matching
+  } // End of namespace fn_param_matching
 
   /******************************************************************************
   * COMPOUND PROCEDURE ENVIRONMENT EXTENSION
@@ -371,7 +371,7 @@ namespace heist {
       if(args.size() != 1) HEIST_THROW_ERR("'id not given 1 argument: (id <obj>)" << HEIST_FCN_ERR("id",args));
       return args[0];
     }
-  };
+  }
 
 
   // Get the extended environment for the compound procedure given <arguments>

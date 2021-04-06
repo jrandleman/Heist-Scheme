@@ -379,7 +379,7 @@ namespace scm_numeric {
 
     // Perform fixed floating point conversion to a string
     template<typename NumericData,typename=typename std::enable_if<std::is_arithmetic<NumericData>::value,NumericData>::type>
-    std::string convert_numeric_to_str(const NumericData& n) const noexcept {return std::to_string(n);};
+    std::string convert_numeric_to_str(const NumericData& n) const noexcept {return std::to_string(n);}
     std::string convert_numeric_to_str(const inexact_t& n) const noexcept;
     // Coerce a inexact_t integer to an exact_t
     template<bool COERCING_NUMERATOR>

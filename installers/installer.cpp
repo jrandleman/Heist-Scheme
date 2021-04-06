@@ -10,7 +10,7 @@
 ******************************************************************************/
 
 #if __cplusplus < 201703L
-  #error Heist-Scheme's installer requires compilation with C++17 or above!
+  #error The Heist-Scheme installer requires compilation with C++17 or above!
 #endif
 
 /******************************************************************************
