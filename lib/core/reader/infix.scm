@@ -1,5 +1,5 @@
 ;; Author: Jordan Randleman -- jrandleman@scu.edu -- infix.scm
-;; => Defines -infix cmd-line flag's operators for the Heist Scheme Interpreter
+;; => Defines "-infix" cmd-line flag's operators for the Heist Scheme Interpreter
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;                           INFIX OPERATORS BY DESCENDING PRECEDENCE                           ;
