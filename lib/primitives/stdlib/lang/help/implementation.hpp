@@ -514,7 +514,7 @@ namespace heist::stdlib_help {
 
   void launch_interactive_menu()noexcept{
     puts("\nWelcome to Heist Scheme's help menu!\n\n"
-         "Enter a query/language-feature in order to get more details about it.\n"
+         "Enter a language-feature in order to get more details about it.\n"
          "Enter \"quit\" to quit.\n\n"
          "To get a list of topics, documentation, types, math constants, special forms,\n"
          "primitive variables, or primitive procedures, type \"topics\", \"documentation\",\n"
