@@ -130,6 +130,11 @@ namespace heist::stdlib_objects {
   }
 
 
+  string generate_invalid_HEIST_CORE_OO_MEMBER_ACCESS_call(const data_vector& args, const size_type i)noexcept{
+    return "(.. "+data(data_vector(args.begin(),args.begin()+i)).write().substr(1);
+  }
+
+
   bool object_has_property_name(obj_type& obj, const string& name)noexcept{
     return std::find(obj->member_names.begin(),obj->member_names.end(),name) != obj->member_names.end() || 
            std::find(obj->method_names.begin(),obj->method_names.end(),name) != obj->method_names.end();

@@ -1790,6 +1790,16 @@ namespace heist {
   }
 
 
+  string generate_invalid_chain_call(const str_vector& chain, const size_type n)noexcept{
+    string s;
+    for(size_type i = 0; i < n; ++i) {
+      s += chain[i];
+      if(i+1 < n) s += '.';
+    }
+    return s;
+  }
+
+
   // Returns the ultimate value of the call-chain
   data get_object_property_chain_value(string&& call, str_vector&& chain, env_type& env) {
     // get the first object instance
@@ -1809,9 +1819,10 @@ namespace heist {
         value = value.obj->get_property(chain[i], found);
         if(value.is_type(types::fcn)) value.fcn.bind_self(self);
       }
-      if(!found)
-        HEIST_THROW_ERR('\''<<call<<' '<<chain[i]<<" isn't a property in object\n     " 
-          << value << " of class name [ " << value.obj->proto->class_name << " ]!" << HEIST_EXP_ERR(call));
+      if(!found) {
+        HEIST_THROW_ERR('\''<<call<<' '<<chain[i]<<" isn't a property of object \"" 
+          << generate_invalid_chain_call(chain,i) << "\"!" << HEIST_EXP_ERR(call));
+      }
     }
     return value;
   }

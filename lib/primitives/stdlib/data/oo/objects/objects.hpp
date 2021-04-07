@@ -114,8 +114,11 @@ namespace heist {
         value = value.obj->get_property(args[i].sym, found);
         if(value.is_type(types::fcn)) value.fcn.bind_self(self); // extend method with self
       }
-      if(!found)
-        HEIST_THROW_ERR("'.. "<<args[i].sym<<" isn't a property in object "<<value<<'!'<<HEIST_FCN_ERR("..",args));
+      if(!found) {
+        HEIST_THROW_ERR("'.. "<<args[i].sym<<" isn't a property of object " 
+          << stdlib_objects::generate_invalid_HEIST_CORE_OO_MEMBER_ACCESS_call(args,i) 
+          << '!' << HEIST_FCN_ERR("..",args));
+      }
     }
     return value;
   }
