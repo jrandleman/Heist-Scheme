@@ -345,7 +345,7 @@ namespace heist {
           fprintf(stderr,"\n> Can't interpret & compile files simultaneously!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n");
           return false;
         } else if(!script_exists(argv[i])) {
-          fprintf(stderr,"\n> Invalid Script: can't open \"%s\" for reading!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n", argv[i]);
+          fprintf(stderr,"\n> Invalid Script: can't find/open \"%s\" for reading!\n\n" HEIST_COMMAND_LINE_ARGS "\n\n", argv[i]);
           return false;
         }
         script_pos = i;
