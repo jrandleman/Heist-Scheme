@@ -27,7 +27,7 @@ namespace heist {
     "\x1b[32m", 
   };
 
-  #define HEIST_AFMT(ansi_esc) heist::ansi_formats[heist::G.USING_ANSI_ESCAPE_SEQUENCES*ansi_esc]
+  #define HEIST_AFMT(heist_ansi_esc) heist::ansi_formats[heist::G.USING_ANSI_ESCAPE_SEQUENCES*heist_ansi_esc]
 
   /******************************************************************************
   * CALL SIGNATURE GENERATION
@@ -82,10 +82,10 @@ namespace heist {
 
   #define HEIST_BAD_SYNTAX '\n'<<HEIST_AFMT(heist::AFMT_35)<<"  >> Invalid Syntax:"<<HEIST_AFMT(heist::AFMT_01)<<' '
 
-  #define HEIST_EXP_ERR(errExp)     HEIST_BAD_SYNTAX << errExp
-  #define HEIST_FCN_ERR(fName,fVal) HEIST_BAD_SYNTAX << heist::procedure_call_signature(fName,fVal)
+  #define HEIST_EXP_ERR(heist_errExp) HEIST_BAD_SYNTAX << heist_errExp
+  #define HEIST_FCN_ERR(heist_fName,heist_fVal) HEIST_BAD_SYNTAX << heist::procedure_call_signature(heist_fName,heist_fVal)
 
-  #define HEIST_PROFILE(dataObj) dataObj<<" of type \""<<dataObj.type_name()<<'"'
+  #define HEIST_PROFILE(heist_dataObj) heist_dataObj<<" of type \""<<heist_dataObj.type_name()<<'"'
 
   #define HEIST_PRINT_ERR(...) std::cerr<<HEIST_ERR_HEADER<<__VA_ARGS__<<'\n'<<heist::stack_trace_str()<<HEIST_AFMT(heist::AFMT_0)
   #define HEIST_THROW_ERR(...) HEIST_PRINT_ERR(__VA_ARGS__)<<heist::throw_eval_error()
