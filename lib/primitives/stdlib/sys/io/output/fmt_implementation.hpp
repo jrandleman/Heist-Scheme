@@ -295,8 +295,7 @@ namespace heist_fmt {
 
 
   // fills "art_buffer" with "non_art_buffer"'s chars in ASCII/Whitespace Art
-  std::string convert_non_art_string_to_alpha_art(std::string& non_art_buffer, const std::size_t TOTAL_ROWS, 
-                                                  const char*** ALPHA_ART_MATRIX)noexcept{
+  std::string convert_non_art_string_to_alpha_art(std::string& non_art_buffer, const std::size_t TOTAL_ROWS, const char*** ALPHA_ART_MATRIX)noexcept{
     std::string art_buffer;
     static constexpr const std::size_t NEWLINE_ART_IDX = 1; // idx (hash value) of '\n' ASCII art repn
     bool is_ascii_art = (TOTAL_ROWS == TOTAL_ASCII_ART_ROWS);
@@ -330,7 +329,7 @@ namespace heist_fmt {
           
           // sprintf ANSI esc sequences directly from the non-art string
           if(alpha_art_letter_idxs[idx] == ANSI_ESC_ART_IDX) {
-            auto ansi_ptr = non_art_buffer.begin() + ANSI_ESC_IDXS[ANSI_IDX++], end = non_art_buffer.begin();
+            auto ansi_ptr = non_art_buffer.begin() + ANSI_ESC_IDXS[ANSI_IDX++], end = non_art_buffer.end();
             // sprintf the ANSI Esc sequence (text deco/coloring) to the string
             // => ENABLES USING ANSI ESC COLORS/TEXT-DECO W/ ALPHA ART!
             // save ANSI commands passed by user to sprintf for each Whitespace art letter
