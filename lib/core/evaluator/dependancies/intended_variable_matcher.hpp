@@ -132,8 +132,9 @@ namespace heist {
       message += HEIST_AFMT(heist::AFMT_35);
       message += "  >> Did you mean:";
       message += HEIST_AFMT(heist::AFMT_01);
-      for(const auto& possible_match : match_vector)
-        message += "\n     " + possible_match.first;
+      // Print out the 1st 20 suggestions
+      for(size_type i = 0, n = match_vector.size() >= 20 ? 20 : match_vector.size(); i < n; ++i)
+        message += "\n     " + match_vector[i].first;
       return message + HEIST_AFMT(heist::AFMT_0);
     }
   } // End of namespace evaluator_variable_matching
