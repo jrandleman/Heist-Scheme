@@ -129,10 +129,9 @@ namespace heist {
     bool reading_stdin = (ins == stdin), reading_string = false;
     if(!stdlib_input::confirm_valid_input_args_and_non_EOF(args, ins, "char-ready?", reading_stdin, reading_string)) 
       return GLOBALS::FALSE_DATA_BOOLEAN;
-    // Empty strings trigger EOF above, hence will always have a character ready here
-    if(reading_string) return GLOBALS::TRUE_DATA_BOOLEAN;
-    // Stdin is always flushed, hence a char will never be waiting in its buffer
-    if(reading_stdin)  return GLOBALS::FALSE_DATA_BOOLEAN;
+    // Empty strings trigger EOF above, hence will always have a character ready here.
+    // Stdin is always assumed to be ready to be read from.
+    if(reading_string || reading_stdin) return GLOBALS::TRUE_DATA_BOOLEAN;
     // Peek the non-stdin port for a non-EOF character
     int ch = getc(ins);
     ungetc(ch, ins);
