@@ -14,21 +14,19 @@ namespace heist {
 
   // primitive "typeof" procedure:
   data primitive_TYPEOF(data_vector&& args) {
-    if(args.size() != 1)
-      HEIST_THROW_ERR("'typeof received incorrect # of args!\n     (typeof <obj>)" 
-        << HEIST_FCN_ERR("typeof", args));
+    stdlib_type_predicates::confirm_given_one_arg(args, "typeof");
     if(args[0].is_type(types::par) && args[0].par->first.is_type(types::del) && 
                                       args[0].par->second.is_type(types::del)) {
       return "stream";
     }
+    if(stdlib_type_predicates::is_object_with_overloaded_COERCE_SELF_TO_TYPE_method(args[0]))
+      return stdlib_type_predicates::apply_object_overloaded_COERCE_SELF_TO_TYPE_method(args[0].obj);
     return args[0].type_name();
   }
 
   // primitive "pointer-address" procedure:
   data primitive_POINTER_ADDRESS(data_vector&& args) {
-    if(args.size() != 1)
-      HEIST_THROW_ERR("'pointer-address received incorrect # of args!\n     (pointer-address <obj>)" 
-        << HEIST_FCN_ERR("pointer-address", args));
+    stdlib_type_predicates::confirm_given_one_arg(args, "pointer-address");
     auto pointer_address = args[0].pointer_address();
     if(pointer_address.empty())
       return GLOBALS::FALSE_DATA_BOOLEAN;

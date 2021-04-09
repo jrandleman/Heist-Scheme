@@ -141,7 +141,7 @@ namespace heist::stdlib_objects {
   }
 
 
-  void populate_obj_with_new_dynamic_proto_properties(obj_type& obj) {
+  void populate_obj_with_new_dynamic_proto_properties(obj_type& obj)noexcept{
     auto proto = obj->proto;
     for(size_type i = 0, n = proto->member_names.size(); i < n; ++i) {
       if(!object_has_property_name(obj,proto->member_names[i])) {
@@ -195,7 +195,7 @@ namespace heist::stdlib_objects {
 
 
   // meant to compose with <recursively_convert_OBJ_to_HMAP> 
-  data convert_OBJ_HMAP_into_valid_JSON_ALIST_datum(const data& d) {
+  data convert_OBJ_HMAP_into_valid_JSON_ALIST_datum(const data& d)noexcept{
     data_vector alist;
     for(const auto& keyval : d.map->val) {
       data p = make_par();
@@ -216,7 +216,7 @@ namespace heist::stdlib_objects {
       else if(stdlib_json::is_valid_json_datum(keyval.second))
         p.par->second.par->first = keyval.second;
       else
-        p.par->second.par->first = make_str(keyval.second.display());
+        p.par->second.par->first = make_str(keyval.second.write());
       p.par->second.par->second = symconst::emptylist;
       alist.push_back(std::move(p));
     }

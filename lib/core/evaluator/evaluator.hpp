@@ -797,17 +797,24 @@ namespace heist {
     "\n     => <member-or-method> ::= (<member-name> <default-value>)"\
     "\n                             | (<method-name> <procedure-value>)"\
     "\n                             | ((<method-name> <arg1> <arg2> ...) <body> ...)"\
+    "\n                             |"\
     "\n                             | ((<class-name> <arg> ...) <body> ...) ; constructor"\
     "\n                             | (<class-name> ((<arg> ...) <body> ...) ...) ; fn ctor"\
+    "\n                             |"\
     "\n                             | ((eq? <obj>) <body> ...)    ; overload eq?"\
     "\n                             | ((eqv? <obj>) <body> ...)   ; overload eqv?"\
     "\n                             | ((equal? <obj>) <body> ...) ; overload equal?"\
     "\n                             | ((self= <obj>) <body> ...)  ; overload all the above"\
+    "\n                             |"\
     "\n                             | ((write) <body> ...)        ; overload write"\
     "\n                             | ((display) <body> ...)      ; overload display"\
     "\n                             | ((pprint) <body> ...)       ; overload pretty-print"\
     "\n                             | ((self->string) <body> ...) ; overload all the above"\
+    "\n                             |"\
+    "\n                             | ((self->type) <body> ...)   ; overload typeof"\
+    "\n                             |"\
     "\n                             | ((self->copy) <body> ...)   ; overload copy"\
+    "\n                             |"\
     "\n                             | ((self->procedure <arg> ...) <body> ...) ; overload application"
 
 
