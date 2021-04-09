@@ -1307,6 +1307,12 @@ Procedure definition expands to a lambda binding:
   ; BECOMES
   (define <procedure-name> (lambda (<arg> ...) <body> ...))
 
+Curried parameters become curried lambdas (from MIT Scheme!):
+
+  (define ((compose f g) x) (f (g x)))
+  ; BECOMES
+  (define (compose f g) (lambda (x) (f (g x))))
+
 CPS Transformation:
   *) If multiple <rest-of-code> expressions, wrap them in a "begin" block!
   *) The need to know symbol-name *here* is why runtime-macro-expansion/eval/load 

@@ -175,6 +175,7 @@ namespace heist {
   * REPRESENTING DEFINITION: (define <var> <val>)
   ******************************************************************************/
 
+  // -- VALIDATION
   bool is_definition(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::define);}
   data make_lambda(data_vector parameters, data_vector body)noexcept; // Lambda ctor
 
@@ -188,20 +189,30 @@ namespace heist {
         << exp[1].type_name() << "\" can't be defined (only symbols):"
         "\n     (define <var> <val>)"
         "\n     (define (<procedure-name> <args>) <body>)" << HEIST_EXP_ERR(exp));
-    if(exp[1].is_type(types::exp) && 
-        (exp[1].exp.empty() || !exp[1].exp[0].is_type(types::sym)))
-      HEIST_THROW_ERR("'define procedure name [ " 
-        << (exp[1].exp.empty() ? data("undefined") : exp[1].exp[0]) << " ] of type \"" 
-        << (exp[1].exp.empty() ? "undefined" : exp[1].exp[0].type_name())
-        << "\" is invalid (must be a symbol)!"
-        "\n     (define <var> <val>)"
-        "\n     (define (<procedure-name> <args>) <body>)" << HEIST_EXP_ERR(exp));
+    if(exp[1].is_type(types::exp)) {
+      if(exp[1].exp.empty())
+        HEIST_THROW_ERR("'define invalid expression, missing procedure name!\n     (define <var> <val>)"
+          "\n     (define (<procedure-name> <args>) <body>)" << HEIST_EXP_ERR(exp));
+      data iter = exp[1].exp[0];
+      while(!iter.is_type(types::sym)) {
+        if(!iter.is_type(types::exp))
+          HEIST_THROW_ERR("'define invalid procedure name " << HEIST_PROFILE(iter) 
+            << "!\n     (define <var> <val>)\n     (define (<procedure-name> <args>) <body>)" 
+            << HEIST_EXP_ERR(exp));
+        if(iter.exp.empty())
+          HEIST_THROW_ERR("'define invalid expression, missing procedure name!\n     (define <var> <val>)"
+            "\n     (define (<procedure-name> <args>) <body>)" << HEIST_EXP_ERR(exp));
+        auto tmp = std::move(iter.exp[0]); // avoid dynamic-union dtor issue with wrentching up nested data
+        iter = std::move(tmp);
+      }
+    }
     if(exp[1].is_type(types::sym) && exp.size() > 3)
       HEIST_THROW_ERR("'define can only define 1 value to a variable (received " << exp.size()-2 << " vals)!"
         "\n     (define <var> <val>)"
         "\n     (define (<procedure-name> <args>) <body>)" << HEIST_EXP_ERR(exp));
   }
 
+  // -- GETTERS
   string& definition_variable(data_vector& exp)noexcept{
     if(exp[1].is_type(types::sym)) return exp[1].sym; // if defining a variable
     return exp[1].exp[0].sym; // if defining a procedure
@@ -215,12 +226,46 @@ namespace heist {
     return make_lambda(args,body);
   }
 
+  // -- CURRIED CONVERSION (inspired by MIT Scheme)
+  bool is_curried_definition(const data_vector& exp)noexcept{
+    return exp[1].is_type(types::exp) && exp[1].exp[0].is_type(types::exp);
+  }
+
+  // (define ((f a) b) ...) => (define (f a) (lambda (b) ...))
+  data convert_curried_definition_to_regular_definition(const data_vector& exp)noexcept{
+    data_vector parameter_lists;
+    data iter = exp[1].exp; // ends up as the symbolic procedure name
+    while(!iter.is_type(types::sym)) {
+      parameter_lists.push_back(data_vector(iter.exp.begin()+1,iter.exp.end()));
+      auto tmp = std::move(iter.exp[0]); // avoid dynamic-union dtor issue with wrentching up nested data
+      iter = std::move(tmp);
+    }
+    data_vector lambda(exp.size()-1);
+    lambda[0] = symconst::begin;
+    std::copy(exp.begin()+2,exp.end(),lambda.begin()+1);
+    for(size_type i = 0, n = parameter_lists.size()-1; i < n; ++i) {
+      data_vector inner_lambda(3);
+      inner_lambda[0] = symconst::lambda;
+      inner_lambda[1] = std::move(parameter_lists[i]);
+      inner_lambda[2] = std::move(lambda);
+      lambda = std::move(inner_lambda);
+    }
+    data_vector def(3);
+    def[0] = symconst::define;
+    def[1] = data_vector(parameter_lists.rbegin()->exp.size()+1);
+    def[1].exp[0] = iter;
+    std::copy(parameter_lists.rbegin()->exp.begin(),parameter_lists.rbegin()->exp.end(),def[1].exp.begin()+1);
+    def[2] = std::move(lambda);
+    return def;
+  }
+
+  // -- PROPERTY DEFINITION CONVERSION
   bool is_obj_property_definition(const data_vector& exp)noexcept{
     return exp[1].is_type(types::sym) && symbol_is_property_chain_access(exp[1].sym);
   }
 
   // Generate an 'add-property! call from the <define> expression
-  data convert_obj_property_defintion_to_method_call(const data_vector& exp)noexcept{
+  data convert_obj_property_definition_to_method_call(const data_vector& exp)noexcept{
     data_vector def_call(4);
     def_call[0] = "heist:core:oo:add-property!";
     def_call[1] = exp[1].sym.substr(0, exp[1].sym.rfind('.'));
@@ -231,21 +276,24 @@ namespace heist {
     return def_call;
   }
 
+  // -- ANALYSIS
   // Analyzes value being defined, & returns an execution procedure 
   //   to install it as the variable in the designated env
   exe_fcn_t analyze_definition(data_vector& exp,const bool cps_block=false) { 
     confirm_valid_definition(exp);
-    // Define variable
-    if(!is_obj_property_definition(exp)) {
-      auto& var       = definition_variable(exp);
-      auto value_proc = scm_analyze(definition_value(exp),false,cps_block);
-      return [var=std::move(var),value_proc=std::move(value_proc)](env_type& env){
-        env->define_variable(var,value_proc(env));
-        return GLOBALS::VOID_DATA_OBJECT; // return is <void>
-      };
-    }
+    // Convert curried defines to a regular define
+    if(is_curried_definition(exp))
+      return scm_analyze(convert_curried_definition_to_regular_definition(exp),false,cps_block);
     // Define object property
-    return scm_analyze(convert_obj_property_defintion_to_method_call(exp),false,cps_block);
+    if(is_obj_property_definition(exp))
+      return scm_analyze(convert_obj_property_definition_to_method_call(exp),false,cps_block);
+    // Define variable
+    auto& var       = definition_variable(exp);
+    auto value_proc = scm_analyze(definition_value(exp),false,cps_block);
+    return [var=std::move(var),value_proc=std::move(value_proc)](env_type& env){
+      env->define_variable(var,value_proc(env));
+      return GLOBALS::VOID_DATA_OBJECT; // return is <void>
+    };
   }
 
   /******************************************************************************

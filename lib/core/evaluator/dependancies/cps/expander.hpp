@@ -600,8 +600,10 @@ data_vector generate_fundamental_form_cps(const data& code,const bool topmost_ca
   // DEFINE
   } else if(is_tagged_list(code.exp,symconst::define)) {
     confirm_valid_definition(code.exp);
-    if(is_obj_property_definition(code.exp)) { // DYNAMIC PROPERTY ADDITION
-      return generate_fundamental_form_cps(convert_obj_property_defintion_to_method_call(code.exp),topmost_call,false);
+    if(is_curried_definition(code.exp)) { // CURRIED DEFINITION
+      return generate_fundamental_form_cps(convert_curried_definition_to_regular_definition(code.exp),topmost_call,false);
+    } else if(is_obj_property_definition(code.exp)) { // DYNAMIC PROPERTY ADDITION
+      return generate_fundamental_form_cps(convert_obj_property_definition_to_method_call(code.exp),topmost_call,false);
     } else if(!code.exp[1].is_type(types::exp)) { // DEFINING VARIABLE
       data_vector cps_defn(3);
       cps_defn[0] = symconst::lambda;

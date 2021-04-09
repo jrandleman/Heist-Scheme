@@ -575,6 +575,14 @@ Other primitives of this nature include:<br>
 (define <procedure-name> (lambda (<arg> ...) <body> ...))
 ```
 
+#### Curried Parameters Become Curried Lambdas:
+* _From MIT Scheme!_
+```scheme
+(define ((compose f g) x) (f (g x)))
+;; Becomes =>
+(define (compose f g) (lambda (x) (f (g x))))
+```
+
 
 ------------------------
 ## Set!:
