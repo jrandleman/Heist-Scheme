@@ -576,7 +576,6 @@ Other primitives of this nature include:<br>
 ```
 
 #### Curried Parameters Become Curried Lambdas:
-* _From MIT Scheme!_
 ```scheme
 (define ((compose f g) x) (f (g x)))
 ;; Becomes =>
