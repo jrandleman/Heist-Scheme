@@ -19,7 +19,7 @@ namespace heist {
         << HEIST_FCN_ERR("typeof", args));
     if(args[0].is_type(types::par) && args[0].par->first.is_type(types::del) && 
                                       args[0].par->second.is_type(types::del)) {
-      return "#<stream>";
+      return "stream";
     }
     return args[0].type_name();
   }
