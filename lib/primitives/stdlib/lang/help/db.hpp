@@ -2392,7 +2392,7 @@ Self, Prototype, & Inherited Object Access:
   1. ".prototype" member returns the class prototype of the object
   2. ".super" member returns object's underlying inherited object (returns "#f" if dne)
 
-Overload Equality, Printing, Copying, & Typeof:
+Overload Equality, Printing, Typeof, & Copying:
   0. Equality: "self=" method will attempt to be invoked on objects for "eq?", "eqv?", "equal?"
      *) Method should accept 1 argument to compare equality against!
      *) May also have specific equality polymorphism by naming methods "eq?", "eqv?", "equal?" directly
