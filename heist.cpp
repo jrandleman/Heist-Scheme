@@ -145,11 +145,11 @@ namespace heist {
 
 namespace heist {
   int load_script(const char* filename){
-    // Load the script & immediately exit
+    /* Load the script & immediately exit */
     data_vector load_args(2 + G.USING_CPS_CMD_LINE_FLAG);
     load_args[0] = make_str(filename);
     load_args[1 + G.USING_CPS_CMD_LINE_FLAG] = G.GLOBAL_ENVIRONMENT_POINTER;
-    // Bind "id" as the topmost continuation if "-cps" was passed
+    /* Bind "id" as the topmost continuation if "-cps" was passed */
     if(G.USING_CPS_CMD_LINE_FLAG)
       load_args[1] = fcn_type("id",DEFAULT_TOPMOST_CONTINUATION::id);
     try {
@@ -188,7 +188,7 @@ namespace heist {
 
 namespace heist {
   int compile_script(char* argv[], const int& compile_pos, std::string& compile_as){
-    // Compile the script & immediately exit
+    /* Compile the script & immediately exit */
     data_vector compile_args(2);
     compile_args[0] = make_str(argv[compile_pos]);
     compile_args[1] = make_str(compile_as);
