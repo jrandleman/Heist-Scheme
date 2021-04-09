@@ -16,67 +16,98 @@ namespace heist {
   #include "implementation_helpers/copying.hpp"
 
   /******************************************************************************
-  * ASSIGNMENT OPERATOR
+  * COPY CONSTRUCTOR
   ******************************************************************************/
 
   // assignment operator (l-value reference)
-  void data::operator=(const data& d) noexcept {
-    if(this == &d) return;
-    if(type == d.type) {
-      switch(type) {
-        case types::sym: sym = d.sym; return;
-        case types::exp: exp = d.exp; return;
-        case types::par: par = d.par; return;
-        case types::num: num = d.num; return;
-        case types::str: str = d.str; return;
-        case types::chr: chr = d.chr; return;
-        case types::vec: vec = d.vec; return;
-        case types::bol: bol = d.bol; return;
-        case types::env: env = d.env; return;
-        case types::del: del = d.del; return;
-        case types::fcn: fcn = d.fcn; return;
-        case types::fip: fip = d.fip; return;
-        case types::fop: fop = d.fop; return;
-        case types::syn: syn = d.syn; return;
-        case types::map: map = d.map; return;
-        case types::cls: cls = d.cls; return;
-        case types::obj: obj = d.obj; return;
-        case types::prc: prc = d.prc; return;
-        default:                      return;
-      }
-    } else {
-      this->~data();
-      switch(d.type) {
-        case types::sym: new (this) data(d.sym); return;
-        case types::exp: new (this) data(d.exp); return;
-        case types::par: new (this) data(d.par); return;
-        case types::num: new (this) data(d.num); return;
-        case types::str: new (this) data(d.str); return;
-        case types::chr: new (this) data(d.chr); return;
-        case types::vec: new (this) data(d.vec); return;
-        case types::bol: new (this) data(d.bol); return;
-        case types::env: new (this) data(d.env); return;
-        case types::del: new (this) data(d.del); return;
-        case types::fcn: new (this) data(d.fcn); return;
-        case types::fip: new (this) data(d.fip); return;
-        case types::fop: new (this) data(d.fop); return;
-        case types::syn: new (this) data(d.syn); return;
-        case types::map: new (this) data(d.map); return;
-        case types::cls: new (this) data(d.cls); return;
-        case types::obj: new (this) data(d.obj); return;
-        case types::prc: new (this) data(d.prc); return;
-        case types::dne: new (this) data(d.type);return;
-        default:         new (this) data();      return; // types::undefined
-      }
+  data::data(const data& d) noexcept {
+    switch(d.type) {
+      case types::sym: new (this) data(d.sym); return;
+      case types::exp: new (this) data(d.exp); return;
+      case types::par: new (this) data(d.par); return;
+      case types::num: new (this) data(d.num); return;
+      case types::str: new (this) data(d.str); return;
+      case types::chr: new (this) data(d.chr); return;
+      case types::vec: new (this) data(d.vec); return;
+      case types::bol: new (this) data(d.bol); return;
+      case types::env: new (this) data(d.env); return;
+      case types::del: new (this) data(d.del); return;
+      case types::fcn: new (this) data(d.fcn); return;
+      case types::fip: new (this) data(d.fip); return;
+      case types::fop: new (this) data(d.fop); return;
+      case types::syn: new (this) data(d.syn); return;
+      case types::map: new (this) data(d.map); return;
+      case types::cls: new (this) data(d.cls); return;
+      case types::obj: new (this) data(d.obj); return;
+      case types::prc: new (this) data(d.prc); return;
+      case types::dne: new (this) data(d.type);return;
+      default:         new (this) data();      return; // types::undefined
     }
   }
 
 
   // assignment operator (r-value reference)
-  void data::operator=(data&& d) noexcept {
-    if(this == &d) return;
+  data::data(data&& d) noexcept {
+    switch(d.type) {
+      case types::sym: new (this) data(std::move(d.sym)); return;
+      case types::exp: new (this) data(std::move(d.exp)); return;
+      case types::par: new (this) data(std::move(d.par)); return;
+      case types::num: new (this) data(std::move(d.num)); return;
+      case types::str: new (this) data(std::move(d.str)); return;
+      case types::chr: new (this) data(std::move(d.chr)); return;
+      case types::vec: new (this) data(std::move(d.vec)); return;
+      case types::bol: new (this) data(std::move(d.bol)); return;
+      case types::env: new (this) data(std::move(d.env)); return;
+      case types::del: new (this) data(std::move(d.del)); return;
+      case types::fcn: new (this) data(std::move(d.fcn)); return;
+      case types::fip: new (this) data(std::move(d.fip)); return;
+      case types::fop: new (this) data(std::move(d.fop)); return;
+      case types::syn: new (this) data(std::move(d.syn)); return;
+      case types::map: new (this) data(std::move(d.map)); return;
+      case types::cls: new (this) data(std::move(d.cls)); return;
+      case types::obj: new (this) data(std::move(d.obj)); return;
+      case types::prc: new (this) data(std::move(d.prc)); return;
+      case types::dne: new (this) data(d.type);           return;
+      default:         new (this) data();                 return; // types::undefined
+    }
+  }
+
+  /******************************************************************************
+  * DESTRUCTOR
+  ******************************************************************************/
+
+  data::~data() noexcept {
+    switch(type) {
+      case types::sym: sym.~sym_type(); return;
+      case types::exp: exp.~exp_type(); return;
+      case types::par: par.~par_type(); return;
+      case types::num: num.~num_type(); return;
+      case types::str: str.~str_type(); return;
+      case types::chr: chr.~chr_type(); return;
+      case types::vec: vec.~vec_type(); return;
+      case types::bol: bol.~bol_type(); return;
+      case types::env: env.~env_type(); return;
+      case types::del: del.~del_type(); return;
+      case types::fcn: fcn.~fcn_type(); return;
+      case types::fip: fip.~fip_type(); return;
+      case types::fop: fop.~fop_type(); return;
+      case types::syn: syn.~syn_type(); return;
+      case types::map: map.~map_type(); return;
+      case types::cls: cls.~cls_type(); return;
+      case types::obj: obj.~obj_type(); return;
+      case types::prc: prc.~prc_type(); return;
+      default: return; // types::undefined, types::dne 
+    }
+  }
+
+  /******************************************************************************
+  * ASSIGNMENT OPERATOR
+  ******************************************************************************/
+
+  // assignment dispatch
+  void data::assignment_dispatch(data&& d) noexcept {
     if(type == d.type) {
-      switch(d.type) { // env,par,str,del,vec,
+      switch(d.type) {
         case types::sym: sym = std::move(d.sym); return;
         case types::exp: exp = std::move(d.exp); return;
         case types::par: par = std::move(d.par); return;
@@ -118,10 +149,26 @@ namespace heist {
         case types::cls: new (this) data(std::move(d.cls)); return;
         case types::obj: new (this) data(std::move(d.obj)); return;
         case types::prc: new (this) data(std::move(d.prc)); return;
-        case types::dne: new (this) data(std::move(d.type));return;
+        case types::dne: new (this) data(d.type);           return;
         default:         new (this) data();                 return; // types::undefined
       }
     }
+  }
+
+
+  // assignment operator (l-value reference)
+  void data::operator=(const data& d) noexcept {
+    if(this == &d) return;
+    auto tmp = d; // prevents issue with: data_container = data_container_component;
+    assignment_dispatch(std::move(tmp));
+  }
+
+
+  // assignment operator (r-value reference)
+  void data::operator=(data&& d) noexcept {
+    if(this == &d) return;
+    auto tmp = std::move(d); // prevents issue with: data_container = std::move(data_container_component);
+    assignment_dispatch(std::move(tmp));
   }
 
   /******************************************************************************

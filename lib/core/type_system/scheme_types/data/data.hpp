@@ -153,33 +153,14 @@ namespace heist {
 
     data(const types& t) noexcept : type(t) {} // to set 'dne
     data(types&& t)      noexcept : type(t) {} // to set 'dne
-    data(const data& d)  noexcept {*this = d;}
-    data(data&& d)       noexcept {*this = std::move(d);}
+    data(const data& d)  noexcept;
+    data(data&& d)       noexcept;
     
     // destructor
-    ~data() noexcept {
-      switch(type) {
-        case types::sym: sym.~sym_type(); return;
-        case types::exp: exp.~exp_type(); return;
-        case types::par: par.~par_type(); return;
-        case types::num: num.~num_type(); return;
-        case types::str: str.~str_type(); return;
-        case types::chr: chr.~chr_type(); return;
-        case types::vec: vec.~vec_type(); return;
-        case types::bol: bol.~bol_type(); return;
-        case types::env: env.~env_type(); return;
-        case types::del: del.~del_type(); return;
-        case types::fcn: fcn.~fcn_type(); return;
-        case types::fip: fip.~fip_type(); return;
-        case types::fop: fop.~fop_type(); return;
-        case types::syn: syn.~syn_type(); return;
-        case types::map: map.~map_type(); return;
-        case types::cls: cls.~cls_type(); return;
-        case types::obj: obj.~obj_type(); return;
-        case types::prc: prc.~prc_type(); return;
-        default: return; // types::undefined, types::dne 
-      }
-    }
+    ~data() noexcept;
+
+  private:
+    void assignment_dispatch(data&& d)noexcept;
   }; // End struct data
 }
 

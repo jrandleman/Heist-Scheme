@@ -202,8 +202,7 @@ namespace heist {
         if(iter.exp.empty())
           HEIST_THROW_ERR("'define invalid expression, missing procedure name!\n     (define <var> <val>)"
             "\n     (define (<procedure-name> <args>) <body>)" << HEIST_EXP_ERR(exp));
-        auto tmp = std::move(iter.exp[0]); // avoid dynamic-union dtor issue with wrentching up nested data
-        iter = std::move(tmp);
+        iter = std::move(iter.exp[0]);
       }
     }
     if(exp[1].is_type(types::sym) && exp.size() > 3)
@@ -237,8 +236,7 @@ namespace heist {
     data iter = exp[1].exp; // ends up as the symbolic procedure name
     while(!iter.is_type(types::sym)) {
       parameter_lists.push_back(data_vector(iter.exp.begin()+1,iter.exp.end()));
-      auto tmp = std::move(iter.exp[0]); // avoid dynamic-union dtor issue with wrentching up nested data
-      iter = std::move(tmp);
+      iter = std::move(iter.exp[0]);
     }
     data_vector lambda(exp.size()-1);
     lambda[0] = symconst::begin;

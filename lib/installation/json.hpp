@@ -87,44 +87,45 @@ namespace JSON {
     Datum(Arr_type&& a) noexcept : type(Types::Arr), Arr(std::move(a)) {}
     Datum(Bol_type&& b) noexcept : type(Types::Bol), Bol(std::move(b)) {}
 
-    Datum(const Datum& d) noexcept {*this = d;}
-    Datum(Datum&& d)      noexcept {*this = std::move(d);}
+    Datum(const Datum& d) noexcept;
+    Datum(Datum&& d)      noexcept;
 
     // Destructor
     ~Datum()noexcept;
+
+  private:
+    void assignment_dispatch(Datum&& d)noexcept;
   };
 
 
-  // Assignment operator (l-value reference)
-  void Datum::operator=(const Datum& d)noexcept{
-    if(this == &d) return;
-    if(type == d.type) {
-      switch(type) {
-        case Types::Str: Str = d.Str; return;
-        case Types::Int: Int = d.Int; return;
-        case Types::Flo: Flo = d.Flo; return;
-        case Types::Obj: Obj = d.Obj; return;
-        case Types::Arr: Arr = d.Arr; return;
-        case Types::Bol: Bol = d.Bol; return;
-        default:                      return; // Types::Nul
-      }
-    } else {
-      this->~Datum();
-      switch(d.type) {
-        case Types::Str: new (this) Datum(d.Str); return;
-        case Types::Int: new (this) Datum(d.Int); return;
-        case Types::Flo: new (this) Datum(d.Flo); return;
-        case Types::Obj: new (this) Datum(d.Obj); return;
-        case Types::Arr: new (this) Datum(d.Arr); return;
-        case Types::Bol: new (this) Datum(d.Bol); return;
-        default:         new (this) Datum(d.type);return; // Types::Nul
-      }
+  // Copy Constructor (l-value reference)
+  Datum::Datum(const Datum& d) noexcept {
+    switch(d.type) {
+      case Types::Str: new (this) Datum(d.Str); return;
+      case Types::Int: new (this) Datum(d.Int); return;
+      case Types::Flo: new (this) Datum(d.Flo); return;
+      case Types::Obj: new (this) Datum(d.Obj); return;
+      case Types::Arr: new (this) Datum(d.Arr); return;
+      case Types::Bol: new (this) Datum(d.Bol); return;
+      default:         new (this) Datum(d.type);return; // Types::Nul
     }
   }
-  
-  // Assignment operator (r-value reference)
-  void Datum::operator=(Datum&& d)noexcept{
-    if(this == &d) return;
+
+  // Copy Constructor (r-value reference)
+  Datum::Datum(Datum&& d) noexcept {
+    switch(d.type) {
+      case Types::Str: new (this) Datum(std::move(d.Str)); return;
+      case Types::Int: new (this) Datum(std::move(d.Int)); return;
+      case Types::Flo: new (this) Datum(std::move(d.Flo)); return;
+      case Types::Obj: new (this) Datum(std::move(d.Obj)); return;
+      case Types::Arr: new (this) Datum(std::move(d.Arr)); return;
+      case Types::Bol: new (this) Datum(std::move(d.Bol)); return;
+      default:         new (this) Datum(d.type);           return; // Types::Nul
+    }
+  }
+
+  // Assignment dispatch (private)
+  void Datum::assignment_dispatch(Datum&& d)noexcept{
     if(type == d.type) {
       switch(type) {
         case Types::Str: Str = std::move(d.Str); return;
@@ -144,9 +145,23 @@ namespace JSON {
         case Types::Obj: new (this) Datum(std::move(d.Obj)); return;
         case Types::Arr: new (this) Datum(std::move(d.Arr)); return;
         case Types::Bol: new (this) Datum(std::move(d.Bol)); return;
-        default:         new (this) Datum(std::move(d.type));return; // Types::Nul
+        default:         new (this) Datum(d.type);           return; // Types::Nul
       }
     }
+  }
+
+  // Assignment operator (l-value reference)
+  void Datum::operator=(const Datum& d)noexcept{
+    if(this == &d) return;
+    auto tmp = d; // prevents issue with: Datum_container = Datum_container_component;
+    assignment_dispatch(std::move(tmp));
+  }
+  
+  // Assignment operator (r-value reference)
+  void Datum::operator=(Datum&& d)noexcept{
+    if(this == &d) return;
+    auto tmp = std::move(d); // prevents issue with: Datum_container = Datum_container_component;
+    assignment_dispatch(std::move(tmp));
   }
 
   // Equality operator
