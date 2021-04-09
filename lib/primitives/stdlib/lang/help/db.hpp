@@ -2344,7 +2344,7 @@ R"(
                                  | ((<method-name> <arg1> <arg2> ...) <body> ...)
                                  |
                                  | ((<class-name> <arg> ...) <body> ...) ; constructor
-                                 | (<class-name> ((<arg> ...) <body> ...) ...) ; fn ctor
+                                 | (<class-name> ((<arg> ...) <body> ...) ...) ; fn constructor
                                  |
                                  | ((eq? <obj>) <body> ...)    ; overload eq?
                                  | ((eqv? <obj>) <body> ...)   ; overload eqv?
