@@ -433,8 +433,8 @@
   ((module name)
     (set! self.heist:core:module:name 
           (append "#<module[" (symbol->string name) "]>")))
-  ((self->string)
-    self.heist:core:module:name))
+  ((self->type) 'module)
+  ((self->string) self.heist:core:module:name))
 
 (core-syntax define-module
   (syntax-rules ()
@@ -801,6 +801,8 @@
     (if self.coroutine:private:cont                                          ; if started coroutine
         (heist:core:apply-with-continuation self.coroutine:private:cont id)  ;   continue execution
         (self.coroutine:private:launch)))                                    ; else launch coroutine
+  ((self->type) 'coroutine)
+  ((self->string) (append "#<coroutine[" (pointer-address self) "]>"))
   (coroutine:private:cont #f)    ; IGNORE: USED INTERNALLY
   (coroutine:private:launch #f)) ; IGNORE: USED INTERNALLY
 
@@ -864,7 +866,9 @@
     (set! self.universe:private:buffer '(begin))
     result)
   ((eval datum)
-    (heist:core:universe:eval datum self)))
+    (heist:core:universe:eval datum self))
+  ((self->type) 'universe)
+  ((self->string) (append "#<universe[" (pointer-address self) "]>")))
 
 ;; =============================================
 ;; =========== TAU BETA PI ASCII ART ===========
