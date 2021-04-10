@@ -125,8 +125,8 @@ namespace heist {
 ******************************************************************************/
 
 #include "scheme_types/syntax_rules_objects/implementation.hpp"
-#include "scheme_types/functions/implementation.hpp"
 #include "scheme_types/environments/implementation.hpp"
+#include "scheme_types/functions/implementation.hpp"
 #include "scheme_types/data/implementation.hpp"
 #include "scheme_types/objects/implementation.hpp"
 #include "scheme_types/ports/implementation.hpp"

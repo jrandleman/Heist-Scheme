@@ -58,56 +58,26 @@ namespace heist {
   }
 
 
-  // Confirm given no args & NOT applying a void-arg fcn & NOT a variadic-arg fcn
-  bool nullary_invocation_of_non_nullary_procedure(const str_vector& vars,const data_vector& vals)noexcept{
-    return vals.empty() && !vars.empty() && !(vars.size()==2 && symbol_is_dot_operator(vars[0]));
-  }
-
-
-  // Confirm passing an arg to an argless procedure
-  bool non_nullary_invocation_of_nullary_procedure(const str_vector& vars,const data_vector& vals)noexcept{
-    return !vals.empty() && vars.empty();
-  }
-
-
-  // Confirm <vars> is a cps-variadic procedure
-  bool is_cps_variadic_arg_declaration(const str_vector& vars)noexcept{
-    return vars.size() > 2 && string_begins_with(vars[vars.size()-1],symconst::continuation) 
-                           && symbol_is_dot_operator(vars[vars.size()-3]);
-  }
-
-
-  // Determine whether proc takes variadic args
-  bool variadic_arg_declaration(const str_vector& vars, const bool is_cps_variadic)noexcept{
-    return (vars.size() > 1 && symbol_is_dot_operator(vars[vars.size()-2])) || is_cps_variadic;
-  }
-
-
-  // Determine whether enough vals for the variadic arg decl
-  bool invalid_variadic_arg_declaration(const str_vector& vars, const data_vector& vals, const bool is_cps_variadic)noexcept{
-    return vals.size() < vars.size() - 2 - is_cps_variadic; // - again if at a continuation
-  }
-
-
   // Wrapper composing the above helpers
-  void confirm_valid_environment_extension(str_vector& vars, data_vector& vals, const string& name){
+  void confirm_valid_environment_extension(str_vector& vars, const param_stats& stats, data_vector& vals, const string& name){
+    auto vals_size = vals.size();
     // Confirm nullary signature matches
-    if(nullary_invocation_of_non_nullary_procedure(vars,vals))
+    if(!vals_size && stats.non_nullary_params())
       HEIST_THROW_ERR("Too few arguments supplied!" << improper_call_alert(name,vals,vars));
-    if(non_nullary_invocation_of_nullary_procedure(vars,vals))
+    if(vals_size && stats.nullary_params())
       HEIST_THROW_ERR("Too many arguments supplied!" << improper_call_alert(name,vals,vars));
     // Transform variadic arg's corresponding values into a list (if present)
-    const bool is_cps_variadic = is_cps_variadic_arg_declaration(vars);
-    if(variadic_arg_declaration(vars,is_cps_variadic)) {
-      if(invalid_variadic_arg_declaration(vars,vals,is_cps_variadic))
+    if(stats.variadic_params()) {
+      if(vals_size < stats.mandatory_number_of_args())
         HEIST_THROW_ERR("Too few arguments supplied!" << improper_call_alert(name,vals,vars));
-      transform_variadic_vals_into_a_list(vars,vals,is_cps_variadic);
+      transform_variadic_vals_into_a_list(vars,vals,stats.cps_variadic_params());
+      vals_size = vals.size(); // update size after combining variadic args into a single list
     }
     // Confirm argument number and parameter number match
-    const auto vars_length = vars.size(), vals_length = vals.size();
-    if(vars_length < vals_length)
+    const auto vars_length = vars.size();
+    if(vars_length < vals_size)
       HEIST_THROW_ERR("Too many arguments supplied!" << improper_call_alert(name,vals,vars));
-    else if(vars_length > vals_length)
+    else if(vars_length > vals_size)
       HEIST_THROW_ERR("Too few arguments supplied!" << improper_call_alert(name,vals,vars));
   }
 
@@ -115,9 +85,10 @@ namespace heist {
   * ENVIRONMENT DATA STRUCTURE IMPLEMENTATION
   ******************************************************************************/
 
-  env_type extend_environment(str_vector&& vars, data_vector& vals, env_type& base_env, const string& name = ""){
+  template<bool INITIALIZING_GLOBAL_ENV = false>
+  env_type extend_environment(str_vector&& vars, const param_stats& stats, data_vector& vals, env_type& base_env, const string& name = ""){
     // If valid extension, return environment w/ a new frame prepended
-    confirm_valid_environment_extension(vars,vals,name);
+    if constexpr (!INITIALIZING_GLOBAL_ENV) confirm_valid_environment_extension(vars,stats,vals,name); // guarenteed valid for global init
     env_type extended_env(make_env());
     extended_env->frame = create_frame(vars,vals);
     extended_env->parent = base_env;
@@ -126,7 +97,7 @@ namespace heist {
 
   // R-value overload is _ONLY_ to launch the global environment
   env_type extend_environment(str_vector&& vars, data_vector&& vals, env_type& base_env){
-    return extend_environment(std::move(vars),vals,base_env,"");
+    return extend_environment<true>(std::move(vars),param_stats(),vals,base_env,"");
   }
 }
 

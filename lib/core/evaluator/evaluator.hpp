@@ -177,7 +177,6 @@ namespace heist {
 
   // -- VALIDATION
   bool is_definition(const data_vector& exp)noexcept{return is_tagged_list(exp,symconst::define);}
-  data make_lambda(data_vector parameters, data_vector body)noexcept; // Lambda ctor
 
   // Confirm valid argument layout for variable & procedure definitions
   void confirm_valid_definition(const data_vector& exp) {
@@ -220,9 +219,11 @@ namespace heist {
   data definition_value(data_vector& exp)noexcept{
     // if defining a variable, else defining a procedure
     if(exp[1].is_type(types::sym)) return exp[2]; 
-    data_vector args(exp[1].exp.begin()+1,exp[1].exp.end());
-    data_vector body(exp.begin()+2,exp.end());
-    return make_lambda(args,body);
+    data_vector lambda(exp.size()); 
+    lambda[0] = symconst::lambda;
+    lambda[1] = data_vector(exp[1].exp.begin()+1,exp[1].exp.end());
+    std::copy(exp.begin()+2,exp.end(),lambda.begin()+2);
+    return lambda;
   }
 
   // -- CURRIED CONVERSION (inspired by MIT Scheme)
@@ -479,10 +480,7 @@ namespace heist {
   * REPRESENTING LAMBDA PROCEDURES (FASTER THAN FN)
   ******************************************************************************/
 
-  // -- LAMBDAS: (lambda (<parameters>) <body>)
-  bool        is_lambda(const data_vector& exp)  noexcept{return is_tagged_list(exp,symconst::lambda);}
-  data_vector lambda_parameters(data_vector& exp)noexcept{return exp[1].exp;}
-  data_vector lambda_body(data_vector& exp)      noexcept{return data_vector(exp.begin()+2,exp.end());}
+  bool is_lambda(const data_vector& exp) noexcept{return is_tagged_list(exp,symconst::lambda);}
 
   // Confirm valid argument layout for a lambda
   void confirm_valid_lambda(const data_vector& exp) {
@@ -499,7 +497,7 @@ namespace heist {
   void confirm_valid_procedure_parameters(const data_vector& vars,const data_vector& exp){
     const size_type n = vars.size();
     // variadic (.) arg must have a label afterwards
-    if(n != 0 && symbol_is_dot_operator(vars[n-1].sym))
+    if(n != 0 && data_is_dot_operator(vars[n-1]))
       HEIST_THROW_ERR("Expected one item after variadic dot ("<<G.dot<<")! -- ANALYZE_LAMBDA"<<HEIST_EXP_ERR(exp));
     // Search the vars list of the fcn's args for improper (.) use & duplicate arg names
     for(size_type i = 0; i < n; ++i) {
@@ -516,29 +514,12 @@ namespace heist {
     }
   }
 
-  // Recursivly (for fn) replace instances of G.dot w/ symconst::dot
-  void replace_param_temporary_dot_with_internal_dot(data_vector& params)noexcept{
-    for(auto& d : params) {
-      if(d.is_type(types::sym) && d.sym == G.dot) 
-        d.sym = symconst::dot;
-      else if(d.is_type(types::exp))
-        replace_param_temporary_dot_with_internal_dot(d.exp);
-    }
-  }
-
   // Is a lambda using optional args (gets converted to a <fn>)
   // WARNING: DOES __NOT__ VALIDATE SUCH IS IN PROPER FORM
   bool is_opt_arg_lambda(const data_vector& exp)noexcept{
     if(exp.size() >= 3 && exp[0].is_type(types::sym) && exp[0].sym == symconst::lambda && exp[1].is_type(types::exp))
-      for(const auto& arg : exp[1].exp)
-        if(arg.is_type(types::exp))
-          return true;
+      for(const auto& arg : exp[1].exp) if(arg.is_type(types::exp)) return true;
     return false;
-  }
-
-  // Paramaters end with a continuation
-  bool params_end_with_a_continuation(const data_vector& params)noexcept{
-    return !params.empty() && data_is_continuation_parameter(*params.rbegin());
   }
 
   // Validate lambda using optional args prior fn transformation
@@ -631,12 +612,28 @@ namespace heist {
     return fn_expr;
   }
 
-  // Ctor for lambdas
-  data make_lambda(data_vector parameters,data_vector body)noexcept{
-    data_vector new_lambda(body.size()+2); 
-    new_lambda[0] = symconst::lambda, new_lambda[1] = std::move(parameters);
-    std::move(body.begin(), body.end(), new_lambda.begin()+2);
-    return new_lambda;
+  // Paramaters end with a continuation
+  bool params_end_with_a_continuation(const data_vector& params)noexcept{
+    return !params.empty() && data_is_continuation_parameter(*params.rbegin());
+  }
+
+  // Recursivly (for fn) replace instances of G.dot w/ symconst::dot
+  void replace_param_temporary_dot_with_internal_dot(data_vector& params)noexcept{
+    for(auto& d : params) {
+      if(d.is_type(types::sym) && d.sym == G.dot) 
+        d.sym = symconst::dot;
+      else if(d.is_type(types::exp))
+        replace_param_temporary_dot_with_internal_dot(d.exp);
+    }
+  }
+
+  // Generate a parameters_vector/stats pair
+  // NOTE: All elts in <vars> guarenteed to be symbolic (see <confirm_valid_procedure_parameters>)
+  function_object::params_type generate_lambda_parameter_object(data_vector&& vars)noexcept{
+    const auto n = vars.size();
+    str_vector var_labels(n);
+    for(size_type i = 0; i < n; ++i) var_labels[i] = vars[i].sym;
+    return std::make_pair(std::move(vars),param_stats(var_labels));
   }
 
   // Returns an exec proc to mk a lambda w/ the analyzed parameter list & body
@@ -646,23 +643,24 @@ namespace heist {
       return scm_analyze(convert_lambda_opt_args_to_fn(exp),false,cps_block);
     // handle regular lambdas
     confirm_valid_lambda(exp);
-    auto vars = lambda_parameters(exp);
-    // create the lambda
+    auto vars = exp[1].exp;
     confirm_valid_procedure_parameters(vars,exp); // validate parameters
     replace_param_temporary_dot_with_internal_dot(vars);
-    auto body_proc = analyze_sequence(lambda_body(exp),true,cps_block); // analyze body syntax
+    bool is_cps_procedure = params_end_with_a_continuation(vars);
+    auto body_proc = analyze_sequence(data_vector(exp.begin()+2,exp.end()),true,cps_block); // analyze body syntax
+    auto params = generate_lambda_parameter_object(std::move(vars));
     // set CPS value if needed
-    if(params_end_with_a_continuation(vars)) {
-      return [vars=std::move(vars),body_proc=std::move(body_proc)](env_type& env){
-        auto proc = fcn_type(vars, body_proc, env, ""); // empty "" name by default (anon proc)
+    if(is_cps_procedure) {
+      return [params=std::move(params),body_proc=std::move(body_proc)](env_type& env){
+        auto proc = fcn_type(params, body_proc, env, ""); // empty "" name by default (anon proc)
         proc.set_cps_procedure(true);
         return proc;
       };
     }
-    return [vars=std::move(vars),body_proc=std::move(body_proc)](env_type& env){
-      return fcn_type(vars, body_proc, env, ""); // empty "" name by default (anon proc)
+    return [params=std::move(params),body_proc=std::move(body_proc)](env_type& env){
+      return fcn_type(params, body_proc, env, ""); // empty "" name by default (anon proc)
     };
-  }
+  }   
 
   /******************************************************************************
   * REPRESENTING FN PROCEDURES (MORE DYNAMIC THAN LAMBDA)
@@ -758,6 +756,34 @@ namespace heist {
   }
   #undef FN_LAYOUT
 
+  bool is_fn_parameter_identifier(const data& d, const bool topmost_call)noexcept{
+    if(data_is_dot_operator(d)) return topmost_call;
+    return d.is_type(types::sym) && !fn_param_matching::param_is_boolean_literal(d) && 
+           d.sym != symconst::vec_literal && d.sym != symconst::map_literal;
+  }
+
+  // Unpack parameter identifiers (including variadic <*dot*>) from <params> into <var_labels>.
+  // NOTE: <topmost_call> denotes whether to add in <*dot*> if its found (else denotes a pair literal)
+  void unpack_fn_param_instance(str_vector& var_labels, const data_vector& params, const bool topmost_call = false)noexcept{
+    for(const auto& d : params) {
+      if(is_fn_parameter_identifier(d,topmost_call))
+        var_labels.push_back(d.sym);
+      else if(d.is_type(types::exp) && !fn_param_matching::param_is_symbol_literal(d))
+        unpack_fn_param_instance(var_labels,d.exp);
+    }
+  }
+
+  // Generate a vector of parameters_vector/stats pairs
+  std::vector<function_object::params_type> generate_fn_parameter_object(std::vector<data_vector>&& param_insts)noexcept{
+    const auto n = param_insts.size();
+    std::vector<function_object::params_type> param_objects(n);
+    for(size_type i = 0; i < n; ++i) {
+      str_vector var_labels;
+      unpack_fn_param_instance(var_labels, param_insts[i], true);
+      param_objects[i] = std::make_pair(std::move(param_insts[i]),param_stats(var_labels));
+    }
+    return param_objects;
+  }
 
   exe_fcn_t analyze_fn(data_vector& exp,const bool cps_block=false) {
     validate_fn(exp);
@@ -768,18 +794,19 @@ namespace heist {
       param_insts[i] = exp[i+1].exp[0].exp;
       bodies[i] = analyze_sequence(data_vector(exp[i+1].exp.begin()+1,exp[i+1].exp.end()),true,cps_block);
     }
-    for(auto& params : param_insts)
-      replace_param_temporary_dot_with_internal_dot(params);
+    for(auto& params : param_insts) replace_param_temporary_dot_with_internal_dot(params);
+    bool is_cps_procedure = !param_insts.empty() && params_end_with_a_continuation(param_insts[0]);
+    auto param_objects = generate_fn_parameter_object(std::move(param_insts));
     // set CPS value if needed
-    if(!param_insts.empty() && params_end_with_a_continuation(param_insts[0])) {
-      return [param_insts=std::move(param_insts),bodies=std::move(bodies)](env_type& env){
-        auto proc = fcn_type(param_insts, bodies, env, ""); // empty "" name by default (anon proc)
+    if(is_cps_procedure) {
+      return [param_objects=std::move(param_objects),bodies=std::move(bodies)](env_type& env){
+        auto proc = fcn_type(param_objects, bodies, env, ""); // empty "" name by default (anon proc)
         proc.set_cps_procedure(true);
         return proc;
       };
     }
-    return [param_insts=std::move(param_insts),bodies=std::move(bodies)](env_type& env){
-      return fcn_type(param_insts, bodies, env, ""); // empty "" name by default (anon proc)
+    return [param_objects=std::move(param_objects),bodies=std::move(bodies)](env_type& env){
+      return fcn_type(param_objects, bodies, env, ""); // empty "" name by default (anon proc)
     };
   }
 
@@ -1936,8 +1963,8 @@ namespace heist {
     return p.is_type(types::fcn) && 
             (p.fcn.is_primitive() || 
               (p.fcn.is_compound() && 
-                (p.fcn.param_instances[0].empty() || 
-                  !data_is_continuation_parameter(*p.fcn.param_instances[0].rbegin()))));
+                (p.fcn.param_instances[0].first.empty() || 
+                  !data_is_continuation_parameter(*p.fcn.param_instances[0].first.rbegin()))));
   }
 
   bool procedure_requires_continuation(const fcn_type& p)noexcept{
@@ -2122,7 +2149,6 @@ namespace heist {
   * ANALYSIS & EVALUATION
   ******************************************************************************/
 
-  // -- ANALYZE (SYNTAX)
   exe_fcn_t scm_analyze(data&& datum,const bool tail_call,const bool cps_block) { // analyze expression
     if(datum.is_self_evaluating())           return [d=std::move(datum)](env_type&){return d;};
     else if(datum.is_type(types::sym))       return analyze_variable(datum.sym);
@@ -2155,7 +2181,6 @@ namespace heist {
   }
 
 
-  // -- EVAL
   data scm_eval(data&& datum, env_type& env) { // evaluate expression environment
     return scm_analyze(std::move(datum))(env);
   }

@@ -17,9 +17,9 @@ namespace heist {
        flags != f.flags || param_instances.size() != f.param_instances.size())
        return false;
     for(size_type i = 0, n = param_instances.size(); i < n; ++i) {
-      if(param_instances[i].size() != f.param_instances[i].size()) return false;
-      for(size_type j = 0, m = param_instances[i].size(); j < m; ++j)
-        if(!param_instances[i][j].equal(f.param_instances[i][j])) return false;
+      if(param_instances[i].first.size() != f.param_instances[i].first.size()) return false;
+      for(size_type j = 0, m = param_instances[i].first.size(); j < m; ++j)
+        if(!param_instances[i].first[j].noexcept_equal(f.param_instances[i].first[j])) return false;
     }
     return true;
   }
@@ -28,11 +28,21 @@ namespace heist {
   * LAMBDA PARAMETER LIST EXTRACTION
   ******************************************************************************/
 
-  str_vector function_object::lambda_parameters()const noexcept{
-    str_vector var_names;
-    for(size_type i = 0, n = param_instances[0].size(); i < n; ++i)
-      if(param_instances[0][i].is_type(types::sym))
-        var_names.push_back(param_instances[0][i].sym);
+  str_vector function_object::lambda_parameters()const{
+    const auto n = param_instances[0].first.size();
+    str_vector var_names(n);
+    for(size_type i = 0; i < n; ++i) {
+      if(param_instances[0].first[i].is_type(types::sym)) {
+        var_names[i] = param_instances[0].first[i].sym;
+      } else {
+        HEIST_THROW_ERR("Non-symbolic lambda parameter detected! -:- BUG ALERT -:-"
+           "\n     Triggered By " << HEIST_PROFILE(param_instances[0].first[i])
+           << " IN " << param_instances[0].first << "!" 
+           "\n  => Please send your code to jrandleman@scu.edu to fix"
+           "\n     the interpreter's bug!"
+           "\n  => Terminating Heist Scheme Interpretation.");
+      }
+    }
     return var_names;
   }
 
@@ -88,13 +98,13 @@ namespace heist {
     }
 
 
-    string get_possible_signatures(const std::vector<data_vector>& param_instances,const string& name)noexcept{
+    string get_possible_signatures(const std::vector<function_object::params_type>& param_instances,const string& name)noexcept{
       string buff;
       for(size_type i = 0, n = param_instances.size(); i < n; ++i) {
-        if(param_instances[i].empty())
+        if(param_instances[i].first.empty())
           buff += "\n        (" + name + ')';
         else
-          buff += "\n        (" + name + ' ' + get_possible_signature(param_instances[i]);
+          buff += "\n        (" + name + ' ' + get_possible_signature(param_instances[i].first);
       }
       return buff;
     }
@@ -347,17 +357,15 @@ namespace heist {
     }
 
 
-    void match_fn_call_signature(const std::vector<data_vector>& param_instances, const std::vector<exe_fcn_t>& bodies, const string& name,
-                                 data_vector& arguments, data_vector& values, str_vector& unpacked_params, exe_fcn_t& body){
+    size_type match_fn_call_signature(const std::vector<function_object::params_type>& param_instances, const string& name, 
+                                      data_vector& arguments, data_vector& values, str_vector& unpacked_params){
       for(size_type i = 0, n = param_instances.size(); i < n; ++i) {
-        if(is_fn_call_match(param_instances[i],arguments,values,unpacked_params)) {
-          body = bodies[i];
-          return;
-        }
+        if(is_fn_call_match(param_instances[i].first,arguments,values,unpacked_params)) return i;
         unpacked_params.clear(), values.clear();
       }
       HEIST_THROW_ERR("'fn arguments "<<data(arguments)<<" don't match any signatures!\n     -> Possible Signatures:" 
         << get_possible_signatures(param_instances,name) << HEIST_FCN_ERR(name,arguments));
+      return 0; // never triggered
     }
   } // End of namespace fn_param_matching
 
@@ -380,16 +388,16 @@ namespace heist {
     if(is_cps_procedure() && !applying_in_cps)
       arguments.push_back(function_object("id",DEFAULT_TOPMOST_CONTINUATION::id));
     // extend the lambda environment
-    env_type extend_environment(str_vector&&,data_vector&,env_type&,const string&);
     if(is_lambda()) {
       body = bodies[0];
-      return extend_environment(lambda_parameters(), arguments, env, name);
+      return extend_environment(lambda_parameters(), param_instances[0].second, arguments, env, name);
     }
     // extend the fn environment
     str_vector unpacked_params;
     data_vector values;
-    fn_param_matching::match_fn_call_signature(param_instances,bodies,printable_procedure_name(),arguments,values,unpacked_params,body);
-    return extend_environment(std::move(unpacked_params), values, env, name);
+    auto param_idx = fn_param_matching::match_fn_call_signature(param_instances,printable_procedure_name(),arguments,values,unpacked_params);
+    body = bodies[param_idx];
+    return extend_environment(std::move(unpacked_params), param_instances[param_idx].second, values, env, name);
   }
 }
 

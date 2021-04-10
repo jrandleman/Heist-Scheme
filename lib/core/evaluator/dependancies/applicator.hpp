@@ -95,8 +95,8 @@ data apply_primitive_procedure(data& proc,data_vector&& args,env_type& env,const
   if(!proc.fcn.param_instances.empty()) {
     if(args.empty())
       HEIST_THROW_ERR('\''<<proc.fcn.printable_procedure_name()<<" partial procedure didn't receive any arguments!"
-        << "\n     Partial Bindings: " << procedure_call_signature(proc.fcn.printable_procedure_name(),proc.fcn.param_instances[0]));
-    args.insert(args.begin(),proc.fcn.param_instances[0].begin(),proc.fcn.param_instances[0].end());
+        << "\n     Partial Bindings: " << procedure_call_signature(proc.fcn.printable_procedure_name(),proc.fcn.param_instances[0].first));
+    args.insert(args.begin(),proc.fcn.param_instances[0].first.begin(),proc.fcn.param_instances[0].first.end());
   }
   auto result = proc.fcn.prm(std::move(args));
   // Clear call from stack strace
