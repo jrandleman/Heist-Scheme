@@ -180,11 +180,11 @@ namespace heist {
   * CURRENT TIME/DATE PRIMITIVES
   ******************************************************************************/
 
-  data primitive_SECONDS_SINCE_EPOCH(data_vector&& args) {
+  data primitive_MILLISECONDS_SINCE_EPOCH(data_vector&& args) {
     if(!args.empty())
-      HEIST_THROW_ERR("'seconds-since-epoch doesn't expect any args!"
-        "\n     (seconds-since-epoch)" << HEIST_FCN_ERR("seconds-since-epoch",args));
-    return num_type(std::chrono::duration_cast<std::chrono::seconds>(
+      HEIST_THROW_ERR("'ms-since-epoch doesn't expect any args!"
+        "\n     (ms-since-epoch)" << HEIST_FCN_ERR("ms-since-epoch",args));
+    return num_type(std::chrono::duration_cast<std::chrono::milliseconds>(
                     std::chrono::system_clock::now().time_since_epoch()).count());
   }
 

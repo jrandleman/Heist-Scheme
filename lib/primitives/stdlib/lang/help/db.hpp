@@ -273,7 +273,7 @@ static constexpr const char* HELP_MENU_PROCEDURES_PORTS[] = {
 
 static constexpr const char* HELP_MENU_PROCEDURES_SYSINTERFACE[] = {
   "load",   "cps-load",     "compile",      "cps-compile",
-  "system", "getenv",       "command-line", "seconds-since-epoch", 
+  "system", "getenv",       "command-line", "ms-since-epoch", 
   "time",   "current-date", 
 };
 
@@ -9880,13 +9880,13 @@ Reader changes with cps-compilation:
 
 
 }, {
-"seconds-since-epoch",
+"ms-since-epoch",
 "Procedure",
 R"(
-(seconds-since-epoch)
+(ms-since-epoch)
 )",
 R"(
-Get seconds since the unix timestamp (1 January 1970).
+Get milliseconds since the unix timestamp (1 January 1970).
 )",
 
 

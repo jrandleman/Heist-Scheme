@@ -3114,7 +3114,7 @@ Other primitives of this nature include:<br>
 6. __Command-Line Args__: Get a string with command-line arg descriptions
    * `(command-line)`
 
-7. __Get Seconds Since Epoch__: `(seconds-since-epoch)`
+7. __Get Milliseconds Since Epoch__: `(ms-since-epoch)`
 
 8. __Time Callable Execution__: `(time <callable> <arg1> ... <argN>)`
    * _Returns a pair: `(cons <time-in-seconds> <callable's-result>)`_

@@ -49,14 +49,14 @@
   (syntax-rules ()
     ((_ op)
       (let ()
-        (define time-operation:start (seconds-since-epoch))
+        (define time-operation:start (ms-since-epoch))
         op
-        (define time-operation:end (seconds-since-epoch))
+        (define time-operation:end (ms-since-epoch))
         (display "\n===================================\n> Operation ")
         (display 'op)
         (display " took ")
         (display (- time-operation:end time-operation:start))
-        (display "s!\n===================================\n")))))
+        (display "ms!\n===================================\n")))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; SWAP 2 VARIABLES
