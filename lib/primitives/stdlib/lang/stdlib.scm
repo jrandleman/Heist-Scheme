@@ -18,6 +18,7 @@
 ; stream
 ; let-syntax
 ; letrec-syntax
+; def
 ; defn
 ; while
 ; do
@@ -153,6 +154,11 @@
         b ...)))))
 (core-syntax let-syntax heist:core:scoped-syntax-rules)
 (core-syntax letrec-syntax heist:core:scoped-syntax-rules)
+
+
+(core-syntax def
+  (syntax-rules ()
+    ((_ n v ...) (define n v ...))))
 
 
 (core-syntax defn

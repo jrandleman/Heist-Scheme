@@ -1295,6 +1295,8 @@ R"(
 )",
 R"(
 Bind a syntactic label to a value! 
+  *) Also aliased via "def"!
+
 Special case for object properties: 
 
   (define <object.name> <value>)
