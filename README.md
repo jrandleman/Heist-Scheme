@@ -555,7 +555,6 @@ Other primitives of this nature include:<br>
 ## Define:
 
 #### Use: ___Bind a Syntactic Label to a Value!___
-* Also aliased via `def`!
 
 #### Forms:
 ```scheme
@@ -564,6 +563,9 @@ Other primitives of this nature include:<br>
 
 ;; Define a Procedure
 (define (<procedure-name> <arg1> <arg2> ...) <body> ...)
+
+;; Can alias "define" via "def"
+(def life-universe-everything 42)
 ```
 
 #### Special Case: 
