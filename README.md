@@ -564,7 +564,7 @@ Other primitives of this nature include:<br>
 ;; Define a Procedure
 (define (<procedure-name> <arg1> <arg2> ...) <body> ...)
 
-;; Can alias "define" via "def"
+;; Alias "define" via "def"
 (def life-universe-everything 42)
 ```
 
