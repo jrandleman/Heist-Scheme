@@ -3,28 +3,40 @@
 
 ;; NOTE: 'curry, 'coroutine, & 'new got integrated from here originally!
 
-; -:- TABLE OF CONTENTS -:-
-; prn, pr          ; write arbitrary # of args
-; println, print   ; display arbitrary # of args
-; pprintln, pprint ; pretty-print arbitrary # of args
-; function         ; procedure definition that can use <return>!
-; time-operation   ; time an operation!
-; swap!            ; swap 2 variables
-; defstruct        ; simple basic vector-based OOP
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; CONVENIENCE PRINTING PROCEDURES
+;; DEFMACRO
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (prn . d) (for-each write d) (newline))
-(define (pr . d) (for-each write d))
-(define (println . d) (for-each display d) (newline))
-(define (print . d) (for-each display d))
-(define (pprintln . d) (for-each pretty-print d) (newline))
-(define (pprint . d) (for-each pretty-print d))
+(core-syntax defmacro ; (defmacro (name param ...) body ...)
+  (lambda (heist:core:defmacro-expr)
+    (define name (caadr heist:core:defmacro-expr))
+    (define params (cdadr heist:core:defmacro-expr))
+    (define body (cddr heist:core:defmacro-expr))
+    (define generated-proc-name (gensym))
+    `(begin 
+      (define ,(cons generated-proc-name params) ,@body)
+      (core-syntax ,name 
+        (lambda (x)
+          (apply ,generated-proc-name (cdr x)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; PROCEDURES THAT CAN USE IMMEDIATE RETURNS (SIMILAR TO C++ FUNCTIONS)
+;; DYNAMIC-SCOPE PROCEDURES
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(core-syntax define-dynamic
+  (syntax-rules ()
+    ((_ (name) body ...)
+      (define (name) body ...)      ; nullary procedure
+      (set! name (lexical-scope->dynamic-scope name)))
+    ((_ (name param ...) body ...)  ; lambda procedure
+      (define (name param ...) body ...)
+      (set! name (lexical-scope->dynamic-scope name)))
+    ((_ name (params body ...) ...) ; fn procedure
+      (define name (fn (params body ...) ...))
+      (set! name (lexical-scope->dynamic-scope name)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; PROCEDURES W/ IMMEDIATE RETURNS (SIMILAR TO C++ FUNCTIONS)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (core-syntax function 
@@ -39,7 +51,8 @@
 
 ;;; Demo a immediately returning procedure
 ;(function (f a b) (return a) b)
-;(prn (f 1 2))
+;(display (f 1 2))
+;(newline)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; TIME AN OPERATION
