@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- function_object.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- function_object.hpp
 // => Contains "function_object" & "param_stats" data structures for the C++ 
 //    Heist Scheme Interpreter
 

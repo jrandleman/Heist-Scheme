@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- types.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- types.hpp
 // => Contains type aliases & structures for the C++ Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_TYPES_HPP_

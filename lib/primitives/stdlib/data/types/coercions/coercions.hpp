@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- coercions.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- coercions.hpp
 // => Defines the primitive type coercion functions written in C++ for the Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_TYPE_COERCIONS_HPP_

@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- dynamic_method_applicator.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- dynamic_method_applicator.hpp
 // => Contains "apply_dynamic_method" function to help with object printing & copying 
 //    for the C++ Heist Scheme Interpreter
 

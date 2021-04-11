@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- implementation.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- implementation.hpp
 // => Contains method implementations of "object_type" for the C++ Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_OBJECT_IMPLEMENTATION_HPP_

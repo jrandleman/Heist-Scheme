@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- syntax_rules_object.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- syntax_rules_object.hpp
 // => Contains "syntax_rules_object" data structure for the C++ Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_SYNTAX_RULES_OBJECT_HPP_

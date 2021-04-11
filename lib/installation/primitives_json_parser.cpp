@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- primitives_json_parser.cpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- primitives_json_parser.cpp
 // => Parses "../primitives/primitives.json" in order to initialize "../core/primitives.hpp"
 //    for the C++ Heist Scheme Interpreter
 

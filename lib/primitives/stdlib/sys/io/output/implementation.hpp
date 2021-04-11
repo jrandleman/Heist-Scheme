@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- implementation.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- implementation.hpp
 // => Defines helper functions for output.hpp
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_OUTPUT_IMPLEMENTATION_HPP_
@@ -399,7 +399,7 @@ namespace heist::stdlib_output {
     if(tokens.size() != split_str.size()-1)
       HEIST_THROW_ERR("-:- FATAL INTERPRETER ERROR -:- IMPROPER SPRINTF TOKEN PARSING -:-"
         "\n     => !!! NUMBER OF TOKENS != TOTAL-SPLIT-STRINGS - 1 !!!"
-        "\n     => Please send your code to jrandleman@scu.edu to fix the interpreter's bug!");
+        "\n     => Please send your code to jordanran199@gmail.com to fix the interpreter's bug!");
     string formatted(split_str[0]), num_str, str_str;
     size_type padding_amount = 0;
     for(size_type i = 1, n = split_str.size(); i < n; ++i) {

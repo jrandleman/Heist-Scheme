@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- implementation.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- implementation.hpp
 // => Contains methods implementations of "struct function_object" for the C++ Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_FUNCTION_OBJECT_IMPLEMENTATION_HPP_
@@ -38,7 +38,7 @@ namespace heist {
         HEIST_THROW_ERR("Non-symbolic lambda parameter detected! -:- BUG ALERT -:-"
            "\n     Triggered By " << HEIST_PROFILE(param_instances[0].first[i])
            << " IN " << param_instances[0].first << "!" 
-           "\n  => Please send your code to jrandleman@scu.edu to fix"
+           "\n  => Please send your code to jordanran199@gmail.com to fix"
            "\n     the interpreter's bug!"
            "\n  => Terminating Heist Scheme Interpretation.");
       }

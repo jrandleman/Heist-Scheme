@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- strings.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- strings.hpp
 // => Defines primitive string functions written in C++ for the Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_STRINGS_HPP_

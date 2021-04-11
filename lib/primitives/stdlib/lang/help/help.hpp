@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- help.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- help.hpp
 // => Defines the primitive "help" function written in C++ for the Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_HELP_HPP_

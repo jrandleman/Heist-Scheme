@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- evaluator.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- evaluator.hpp
 // => Contains the "scm_eval" & "scm_analyze" procedures for the C++ Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_EVALUATOR_HPP_

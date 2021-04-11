@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- optimizer.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- optimizer.hpp
 // => Contains the "optimize_CPS_code_generation" procedure for the C++ Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_CPS_OPTIMIZER_HPP_

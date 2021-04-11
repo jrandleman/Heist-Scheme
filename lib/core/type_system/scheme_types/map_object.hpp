@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- map_object.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- map_object.hpp
 // => Contains "map_object" data structure for the C++ Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_MAP_OBJECT_HPP_

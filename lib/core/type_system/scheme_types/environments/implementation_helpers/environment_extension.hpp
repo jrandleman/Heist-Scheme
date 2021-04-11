@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- environment_extension.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- environment_extension.hpp
 // => Contains environmental extension logic of "struct environment" for the 
 //    C++ Heist Scheme Interpreter
 // => Defines the "extend_environment" procedure

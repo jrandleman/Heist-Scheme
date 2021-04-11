@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- json.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- json.hpp
 // => Defines the primitive json functions written in C++ for the Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_JSON_HPP_

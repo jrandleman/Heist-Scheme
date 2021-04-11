@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- pairs.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- pairs.hpp
 // => Defines primitive pair functions written in C++ for the Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_PAIRS_HPP_

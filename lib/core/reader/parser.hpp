@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- parser.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- parser.hpp
 // => Parses user's input into an AST for the C++ Heist Scheme Interpreter
 //
 // => Parser Function: 

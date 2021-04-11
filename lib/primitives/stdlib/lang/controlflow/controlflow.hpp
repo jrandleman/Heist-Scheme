@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- controlflow.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- controlflow.hpp
 // => Defines the primitive control flow functions written in C++ for the Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_CONTROLFLOW_HPP_

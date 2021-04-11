@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- applicator.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- applicator.hpp
 // => Contains the "execute_application" procedure for the C++ Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_APPLICATOR_HPP_

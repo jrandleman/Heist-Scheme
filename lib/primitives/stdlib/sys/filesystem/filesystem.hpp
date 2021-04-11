@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- filesystem.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- filesystem.hpp
 // => Defines the primitive filesystem functions written in C++ for the Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_FILESYSTEM_HPP_

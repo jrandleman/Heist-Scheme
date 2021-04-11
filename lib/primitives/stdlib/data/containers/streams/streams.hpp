@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- streams.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- streams.hpp
 // => Defines the primitive stream functions written in C++ for the Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_STREAMS_HPP_

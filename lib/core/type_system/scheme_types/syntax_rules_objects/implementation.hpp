@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- implementation.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- implementation.hpp
 // => Contains implementation of "syntax_rules_object"'s equality for the C++ Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_SYNTAX_RULES_OBJECT_IMPLEMENTATION_HPP_

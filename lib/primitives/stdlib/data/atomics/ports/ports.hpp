@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- ports.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- ports.hpp
 // => Defines the primitive port functions written in C++ for the Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_PORTS_HPP_

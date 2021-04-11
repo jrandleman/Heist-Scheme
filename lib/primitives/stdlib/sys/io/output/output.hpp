@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- output.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- output.hpp
 // => Defines the primitive output functions written in C++ for the Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_OUTPUT_HPP_

@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- primitives.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- primitives.hpp
 // => Defines the registry of C++ primitive functions for the C++ Heist Scheme Interpreter
 
 ////////////////////////////////////////////////////////////////////////////////////////

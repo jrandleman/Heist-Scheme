@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- intended_variable_matcher.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- intended_variable_matcher.hpp
 // => Generates the list of possibly intended variable names upon an 
 //    "unbound variable" error for the C++ Heist Scheme Interpreter
 // => Provides functionality via <possibly_intended_variables>

@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- vectors.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- vectors.hpp
 // => Defines primitive vector functions written in C++ for the Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_VECTORS_HPP_

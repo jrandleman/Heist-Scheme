@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- sysinterface.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- sysinterface.hpp
 // => Defines the primitive system interface functions written in C++ for the Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_SYSINTERFACE_HPP_

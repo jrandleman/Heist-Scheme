@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- copying.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- copying.hpp
 // => Defines the primitive copying functions written in C++ for the Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_COPYING_HPP_

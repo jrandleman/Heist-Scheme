@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- json.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- json.hpp
 // => C++ Library Equivalent to JavaScript's JSON.parse & JSON.stringify
 
 // PROVIDES 8 TYPES:

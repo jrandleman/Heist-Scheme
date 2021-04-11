@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- complex.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- complex.hpp
 // => Defines Numeric class for Heist Scheme Complex Numbers
 // => NOTE: ACTS AS A WRAPPER AROUND 2 <class Snum_real> OBJECTS!
 

@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- hmaps.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- hmaps.hpp
 // => Defines primitive hmap functions written in C++ for the Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_HMAPS_HPP_

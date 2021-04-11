@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- installer.cpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- installer.cpp
 // => Gets the filepath to the current repo & writes such in the generated "HEIST_FILEPATH.hpp" file
 // => Initializes the Heist Scheme interpreter with its primitives via "primitives_json_parser.cpp"
 

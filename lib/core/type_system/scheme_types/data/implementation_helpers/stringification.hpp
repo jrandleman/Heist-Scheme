@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- stringification.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- stringification.hpp
 // => Contains helper functions for "struct data" value stringification for the C++ 
 //    Heist Scheme Interpreter
 

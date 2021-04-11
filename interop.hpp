@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- interop.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- interop.hpp
 // => Wrapper around the Heist Scheme Interpreter to set up C++17 interop
 
 /**************************************************
@@ -44,7 +44,7 @@ namespace heist {
         } catch(...) {
           HEIST_PRINT_ERR("Uncaught C++ Exception Detected! -:- BUG ALERT -:-"
                "\n     Triggered By: " << abstract_syntax_tree[i].noexcept_write() << 
-               "\n  => Please send your code to jrandleman@scu.edu to fix"
+               "\n  => Please send your code to jordanran199@gmail.com to fix"
                "\n     the interpreter's bug!"
                "\n  => Terminating Heist Scheme Interpretation.\n");
           return data();

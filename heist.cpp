@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- heist.cpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- heist.cpp
 // => Main execution and AST evaluation for the C++ Heist Scheme Interpreter
 // => GitHub: https://github.com/jrandleman/Heist-Scheme
 
@@ -173,7 +173,7 @@ namespace heist {
       HEIST_PRINT_ERR(HEIST_AFMT(AFMT_1) << 
         "\nUncaught C++ Exception Detected! -:- BUG ALERT -:-"
         "\n  => While interpreting script \"" << filename << "\""
-        "\n  => Please send your code to jrandleman@scu.edu to fix"
+        "\n  => Please send your code to jordanran199@gmail.com to fix"
         "\n     the interpreter's bug!"
         "\n  => Terminating Heist Scheme Interpretation.\n\n" << HEIST_AFMT(AFMT_0));
       return 1;
@@ -213,7 +213,7 @@ namespace heist {
       HEIST_PRINT_ERR(HEIST_AFMT(AFMT_1) << 
         "\nUncaught C++ Exception Detected! -:- BUG ALERT -:-"
         "\n  => While compiling script \"" << argv[compile_pos] << "\""
-        "\n  => Please send your code to jrandleman@scu.edu to fix"
+        "\n  => Please send your code to jordanran199@gmail.com to fix"
         "\n     the interpreter's bug!"
         "\n  => Terminating Heist Scheme Interpretation.\n\n" << HEIST_AFMT(AFMT_0));
       return 1;
@@ -424,7 +424,7 @@ int interpret_premade_AST_code(){
     } catch(...) {
       HEIST_PRINT_ERR("Uncaught C++ Exception Detected! -:- BUG ALERT -:-"
            "\n     Triggered By: " << input << 
-           "\n  => Please send your source & compiled code to jrandleman@scu.edu to fix"
+           "\n  => Please send your source & compiled code to jordanran199@gmail.com to fix"
            "\n     the interpreter's bug!"
            "\n  => Terminating Heist Scheme Interpretation.");
       return 1;

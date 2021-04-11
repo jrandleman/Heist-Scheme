@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- characters.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- characters.hpp
 // => Defines primitive character functions written in C++ for the Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_CHARACTERS_HPP_

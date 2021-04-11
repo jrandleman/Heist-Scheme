@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- environment.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- environment.hpp
 // => Contains "create_frame" procedure & "environment" data structure 
 //    for the C++ Heist Scheme Interpreter
 

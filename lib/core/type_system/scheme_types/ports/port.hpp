@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- port.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- port.hpp
 // => Contains "iport" & "oport" data structures for the C++ Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_PORT_HPP_

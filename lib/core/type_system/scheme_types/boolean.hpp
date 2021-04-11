@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- boolean.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- boolean.hpp
 // => Contains "boolean" data structure for the C++ Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_BOOLEAN_HPP_

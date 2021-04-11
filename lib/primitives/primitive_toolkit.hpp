@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- primitive_toolkit.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- primitive_toolkit.hpp
 // => Defines quality-of-life helper functions for extending the Heist Scheme Interpreter
 //    with C++ primitives
 

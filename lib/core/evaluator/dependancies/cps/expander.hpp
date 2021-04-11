@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- expander.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- expander.hpp
 // => Contains 5 procedures related to CPS expansion for the C++ Heist Scheme Interpreter
 
 // PROVIDED PROCEDURES:

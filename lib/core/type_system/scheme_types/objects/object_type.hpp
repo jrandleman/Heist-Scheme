@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- object_type.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- object_type.hpp
 // => Contains "object_type" data structure for the C++ Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_OBJECT_TYPE_HPP_

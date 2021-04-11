@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- process.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- process.hpp
 // => Contains "process_invariants_t" data structure, "G" current-process global object,
 //    and "symbol_is_dot_operator"/"data_is_dot_operator" helper functions for the C++ 
 //    Heist Scheme Interpreter

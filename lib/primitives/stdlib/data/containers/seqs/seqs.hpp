@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- seqs.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- seqs.hpp
 // => Defines primitive sequence functions written in C++ for the Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_SEQS_HPP_

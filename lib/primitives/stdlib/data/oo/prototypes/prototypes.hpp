@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- prototypes.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- prototypes.hpp
 // => Defines the primitive class-prototype analysis functions written in 
 //    C++ for the Heist Scheme Interpreter
 

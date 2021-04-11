@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- macro_expander.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- macro_expander.hpp
 // => Contains 3 procedures to expand macros with the C++ Heist Scheme Interpreter
 
 // PROVIDED PROCEDURES:

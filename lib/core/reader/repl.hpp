@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- repl.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- repl.hpp
 // => Contains the "read_user_input" & "launch_repl" procedures for the C++ Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_REPL_HPP_
@@ -186,7 +186,7 @@ namespace heist {
         } catch(...) {
           HEIST_PRINT_ERR("Uncaught C++ Exception Detected! -:- BUG ALERT -:-"
                "\n     Triggered By: " << input << 
-               "\n  => Please send your code to jrandleman@scu.edu to fix"
+               "\n  => Please send your code to jordanran199@gmail.com to fix"
                "\n     the interpreter's bug!"
                "\n  => Terminating Heist Scheme Interpretation.");
           return 1;

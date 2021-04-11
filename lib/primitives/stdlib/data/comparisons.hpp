@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- comparisons.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- comparisons.hpp
 // => Defines primitive comparison functions written in C++ for the Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_COMPARISONS_HPP_

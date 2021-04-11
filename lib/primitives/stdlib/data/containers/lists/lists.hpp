@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- lists.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- lists.hpp
 // => Defines primitive list functions written in C++ for the Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_LISTS_HPP_

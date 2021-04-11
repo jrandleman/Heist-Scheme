@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- garbage_collector.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- garbage_collector.hpp
 // => Contains shared_ptr/GC struct for the C++ Heist Scheme Interpreter
 
 //

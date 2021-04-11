@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- fmt_implementation.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- fmt_implementation.hpp
 // => Defines "fmt:" & "string->art" C++ primitives for the Heist Scheme Interpreter
 
 // The below has been adapted from my "color.h" C library:

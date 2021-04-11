@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- input.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- input.hpp
 // => Defines the primitive input functions written in C++ for the Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_INPUT_HPP_

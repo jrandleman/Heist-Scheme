@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- coroutines.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- coroutines.hpp
 // => Defines the primitive "cycle-coroutines!" function written in 
 //    C++ for the Heist Scheme Interpreter
 

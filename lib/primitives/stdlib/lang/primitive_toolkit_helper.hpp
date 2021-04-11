@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- primitive_toolkit_helper.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- primitive_toolkit_helper.hpp
 // => Defines helper functions for "../primitive_toolkit.hpp" for the C++ Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_PRIMITIVE_TOOLKIT_HELPER_HPP_

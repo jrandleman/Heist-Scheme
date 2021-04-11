@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- error_handling.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- error_handling.hpp
 // => Contains error-handling macros for the C++ Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_ERROR_HANDLING_HPP_

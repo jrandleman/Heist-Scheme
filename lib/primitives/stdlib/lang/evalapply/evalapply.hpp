@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- evalapply.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- evalapply.hpp
 // => Defines the primitive eval & apply functions written in C++ for the Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_EVALAPPLY_HPP_

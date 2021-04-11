@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- implementation.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- implementation.hpp
 // => Defines helper functions for objects.hpp
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_OO_OBJECTS_IMPLEMENTATION_HPP_

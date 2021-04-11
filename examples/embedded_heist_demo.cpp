@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- embedded_heist_demo.cpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- embedded_heist_demo.cpp
 // => Demos Heist's ability to act as an embedded scripting language w/in C++
 
 #include "../interop.hpp" // -:- READ THIS & "docs/EMBED.md" FOR DETAILS! -:-

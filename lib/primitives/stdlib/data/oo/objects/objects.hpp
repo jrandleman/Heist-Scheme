@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- objects.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- objects.hpp
 // => Defines the primitive object-handling functions written in 
 //    C++ for the Heist Scheme Interpreter
 

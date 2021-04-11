@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- process_indpendent_global_variables.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- process_indpendent_global_variables.hpp
 // => Contains process-independent global variables for the C++ Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_PROCESS_INDEPENDENT_GLOBAL_VARIABLES_HPP_

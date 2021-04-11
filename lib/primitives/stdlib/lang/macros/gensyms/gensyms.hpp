@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- gensyms.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- gensyms.hpp
 // => Defines the primitive gensym functions written in C++ for the Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_GENSYMS_HPP_

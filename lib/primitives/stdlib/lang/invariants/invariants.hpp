@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- invariants.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- invariants.hpp
 // => Defines the primitive invariant manipulation functions written 
 //    in C++ for the Heist Scheme Interpreter
 

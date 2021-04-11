@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- copying.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- copying.hpp
 // => Contains helper functions for "struct data" value copying for the C++ 
 //    Heist Scheme Interpreter
 

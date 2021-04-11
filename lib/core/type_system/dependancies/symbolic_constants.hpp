@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- symbolic_constants.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- symbolic_constants.hpp
 // => Contains symbolic constants for the C++ Heist Scheme Interpreter
 // => NOTE: SYMBOL NAMES BEGINNING WITH "heist:" ARE RESERVED!
 

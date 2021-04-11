@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- equality.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- equality.hpp
 // => Contains helper functions for "struct data" value equality for the C++ 
 //    Heist Scheme Interpreter
 

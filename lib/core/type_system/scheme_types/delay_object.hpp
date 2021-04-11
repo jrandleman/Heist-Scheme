@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- delay_object.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- delay_object.hpp
 // => Contains "delay_object" data structure for the C++ Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_DELAY_OBJECT_HPP_

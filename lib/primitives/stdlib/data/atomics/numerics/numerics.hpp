@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- numerics.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- numerics.hpp
 // => Defines primitive numeric functions written in C++ for the Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_NUMERICS_HPP_

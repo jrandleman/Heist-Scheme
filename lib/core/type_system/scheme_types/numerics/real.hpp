@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- real.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- real.hpp
 // => Defines Numeric class for Heist Scheme Real Numbers (BigInt, etc.)
 
 #ifndef HEIST_SCHEME_CORE_REAL_HPP_
@@ -2675,7 +2675,7 @@ namespace scm_numeric {
       if constexpr (WARN_ABOUT_BAD_CONVERSION) {
         fprintf(stderr, "\n>> WARNING: _BIGINT_ BUG DETECTED AT %s:%s:%d,"
                         "\n   ERROR CONVERTING STRING TO A FLOAT!"
-                        "\n>> PLEASE CONTACT jrandleman@scu.edu TO HELP FIX THIS BUG!"
+                        "\n>> PLEASE CONTACT jordanran199@gmail.com TO HELP FIX THIS BUG!"
                         "\n>> ERRORFUL STRING BEING COERCED: \"%s\"\n\n", 
                 __FILE__,__func__,__LINE__,data_to_coerce.c_str());
       }

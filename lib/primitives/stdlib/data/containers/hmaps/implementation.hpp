@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- implementation.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- implementation.hpp
 // => Defines helper functions for hmaps.hpp
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_HMAPS_IMPLEMENTATION_HPP_

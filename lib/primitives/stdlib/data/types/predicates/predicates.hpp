@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- predicates.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- predicates.hpp
 // => Defines primitive type predicate functions written in C++ for the Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_STDLIB_TYPE_PREDICATES_HPP_

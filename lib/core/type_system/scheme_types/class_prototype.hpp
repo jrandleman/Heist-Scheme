@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- class_prototype.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- class_prototype.hpp
 // => Contains "class_prototype" data structure for the C++ Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_CLASS_PROTOTYPE_HPP_

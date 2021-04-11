@@ -1,4 +1,4 @@
-# Author: Jordan Randleman -- jrandleman@scu.edu -- installer.py
+# Author: Jordan Randleman -- jordanran199@gmail.com -- installer.py
 #   IFF python3 and Clang++/G++ are installed, automates compiling Heist Scheme
 #   ELSE, follow "docs/INSTALL.md" to manually compile Heist using installer.cpp
 

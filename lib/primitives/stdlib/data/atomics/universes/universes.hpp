@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- universes.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- universes.hpp
 // => Defines an internally-used specialized "eval" procedure for "universe" 
 //    objects of the Heist Scheme Interpreter
 

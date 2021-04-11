@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- implementation.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- implementation.hpp
 // => Contains method implementations of port objects for the C++ Heist Scheme Interpreter
 
 #ifndef HEIST_SCHEME_CORE_PORT_IMPLEMENTATION_HPP_

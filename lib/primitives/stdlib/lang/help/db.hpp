@@ -1,4 +1,4 @@
-// Author: Jordan Randleman -- jrandleman@scu.edu -- db.hpp
+// Author: Jordan Randleman -- jordanran199@gmail.com -- db.hpp
 // => Defines db of <help> entries & descriptions
 
 // VARIABLES DEFINED:
