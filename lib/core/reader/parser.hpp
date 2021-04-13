@@ -693,7 +693,7 @@ namespace heist {
     return true;
   }
 
-  // Expands scheme input quote-shorthands & returns derived Abstract Syntax Tree
+  // Parses <input> into an Abstract Syntax Tree, populated in <abstract_syntax_tree>
   // => GIVEN THE RAW USER INPUT
   void parse_input_exp(string&& input, data_vector& abstract_syntax_tree) {
     if(!prepare_string_for_AST_generation(input)) return;
