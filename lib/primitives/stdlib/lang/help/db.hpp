@@ -416,9 +416,9 @@ R"(
 )",
 R"(
 Object:
-  Denoted by double-quotes: "<string-contents>". Print strings to be 
-  human-readable with "display", and machine-readable with "write".
-  Use "pretty-print" for "write" with indentation for lists.
+  Denoted by double-quotes: "<string-contents>". Uses ASCII encoding!
+  Print strings to be human-readable with "display", and machine-readable 
+  with "write". Use "pretty-print" for "write" with indentation for lists.
 
 Procedure:
   Appends all given chars & strings into a freshly-allocated string.

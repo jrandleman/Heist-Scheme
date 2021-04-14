@@ -97,7 +97,7 @@ namespace heist {
   data primitive_OPEN_OUTPUT_FILE_BANG(data_vector&& args){ // deletes if exists, and opens anew
     // confirm given a filename string, & rm file if exists
     stdlib_ports::confirm_given_one_string_arg(args, "open-output-file!", "\n     (open-output-file! <filename-string>)");
-    try { std::filesystem::remove_all(*args[0].str); } catch(...) {}
+    try { std::filesystem::remove_all(stdlib_filesystem::coerce_string_to_path(*args[0].str)); } catch(...) {}
     return oport(stdlib_ports::confirm_valid_output_file(args[0],"open-output-file!","\n     (open-output-file! <filename-string>)",args));
   }
 

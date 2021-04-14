@@ -13,7 +13,7 @@ namespace heist {
     if(!args.empty())
       HEIST_THROW_ERR("'getcwd doesn't accept any args!\n     (getcwd)" << HEIST_FCN_ERR("getcwd",args));
     try {
-      return make_str(std::filesystem::current_path());  
+      return make_str(stdlib_filesystem::coerce_path_to_string(std::filesystem::current_path()));
     } catch(...) {
       return GLOBALS::FALSE_DATA_BOOLEAN;
     }
@@ -25,7 +25,7 @@ namespace heist {
       HEIST_THROW_ERR("'dirname didn't get a path <string> arg:"
         "\n     (dirname <path-string>)" << HEIST_FCN_ERR("dirname",args));
     try {
-      return make_str(std::filesystem::path(*args[0].str).parent_path());
+      return make_str(stdlib_filesystem::coerce_path_to_string(std::filesystem::path(stdlib_filesystem::coerce_string_to_path(*args[0].str)).parent_path()));
     } catch(...) {
       return GLOBALS::FALSE_DATA_BOOLEAN;
     }
@@ -37,7 +37,7 @@ namespace heist {
       HEIST_THROW_ERR("'mkdir didn't get a directory name <string> arg:"
         "\n     (mkdir <new-directory-name-string>)" << HEIST_FCN_ERR("mkdir",args));
     try {
-      return boolean(std::filesystem::create_directory(*args[0].str));
+      return boolean(std::filesystem::create_directory(stdlib_filesystem::coerce_string_to_path(*args[0].str)));
     } catch(...) {
       return GLOBALS::FALSE_DATA_BOOLEAN;
     }
@@ -49,7 +49,7 @@ namespace heist {
       HEIST_THROW_ERR("'chdir didn't get a directory path <string> arg:"
         "\n     (chdir <directory-path-string>)" << HEIST_FCN_ERR("chdir",args));
     try {
-      std::filesystem::current_path(*args[0].str);
+      std::filesystem::current_path(stdlib_filesystem::coerce_string_to_path(*args[0].str));
       return GLOBALS::TRUE_DATA_BOOLEAN;
     } catch(...) {
       return GLOBALS::FALSE_DATA_BOOLEAN;
@@ -80,8 +80,8 @@ namespace heist {
     if(!stdlib_filesystem::is_directory(*args[0].str))
       return GLOBALS::FALSE_DATA_BOOLEAN;
     data_vector entries;
-    for(auto& p : std::filesystem::directory_iterator(*args[0].str))
-      entries.push_back(make_str(p.path()));
+    for(auto& p : std::filesystem::directory_iterator(stdlib_filesystem::coerce_string_to_path(*args[0].str)))
+      entries.push_back(make_str(stdlib_filesystem::coerce_path_to_string(p.path())));
     return primitive_toolkit::convert_data_vector_to_proper_list(entries.begin(),entries.end());
   }
 
@@ -92,8 +92,8 @@ namespace heist {
       return GLOBALS::FALSE_DATA_BOOLEAN;
     const auto dirname_length = args[0].str->size();
     data_vector entries;
-    for(auto& p : std::filesystem::directory_iterator(*args[0].str)) {
-      const string path = p.path();
+    for(auto& p : std::filesystem::directory_iterator(stdlib_filesystem::coerce_string_to_path(*args[0].str))) {
+      const string path = stdlib_filesystem::coerce_path_to_string(p.path());
       if(path.find("/.", dirname_length) == string::npos && path.find("\\.", dirname_length) == string::npos)
         entries.push_back(make_str(path));
     }
@@ -111,7 +111,9 @@ namespace heist {
       if(!args[i].is_type(types::str)) 
         HEIST_THROW_ERR("'copy-path arg "<<HEIST_PROFILE(args[i])<<" isn't a string:"<<format<<HEIST_FCN_ERR("copy-path",args));
     try {
-      std::filesystem::copy(*args[0].str,*args[1].str,std::filesystem::copy_options::recursive);
+      std::filesystem::copy(stdlib_filesystem::coerce_string_to_path(*args[0].str),
+                            stdlib_filesystem::coerce_string_to_path(*args[1].str),
+                            std::filesystem::copy_options::recursive);
       return GLOBALS::TRUE_DATA_BOOLEAN;
     } catch(...) {
       return GLOBALS::FALSE_DATA_BOOLEAN;
@@ -122,7 +124,7 @@ namespace heist {
   data primitive_DELETE_PATH_BANG(data_vector&& args) {
     stdlib_filesystem::confirm_given_one_string_arg(args, "delete-path!", "\n     (delete-path! <filename-string>)");
     try {
-      return boolean(std::filesystem::remove_all(*args[0].str) > 0);
+      return boolean(std::filesystem::remove_all(stdlib_filesystem::coerce_string_to_path(*args[0].str)) > 0);
     } catch(...) {
       return GLOBALS::FALSE_DATA_BOOLEAN;
     }
@@ -141,7 +143,8 @@ namespace heist {
         HEIST_THROW_ERR("'rename-path! arg "<<HEIST_PROFILE(args[i])<<" isn't a string:"<<format 
           << HEIST_FCN_ERR("rename-path!",args));
     try {
-      std::filesystem::rename(*args[0].str,*args[1].str);
+      std::filesystem::rename(stdlib_filesystem::coerce_string_to_path(*args[0].str),
+                              stdlib_filesystem::coerce_string_to_path(*args[1].str));
       return GLOBALS::TRUE_DATA_BOOLEAN;
     } catch(...) {
       return GLOBALS::FALSE_DATA_BOOLEAN;
@@ -151,7 +154,7 @@ namespace heist {
   data primitive_FILE_SIZE(data_vector&& args) {
     stdlib_filesystem::confirm_given_one_string_arg(args, "file-size", "\n     (file-size <filename-string>)");
     try {
-      return num_type(std::filesystem::file_size(*args[0].str));
+      return num_type(std::filesystem::file_size(stdlib_filesystem::coerce_string_to_path(*args[0].str)));
     } catch(...) {
       return GLOBALS::FALSE_DATA_BOOLEAN;
     }

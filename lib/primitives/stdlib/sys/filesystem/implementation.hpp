@@ -24,9 +24,22 @@ namespace heist::stdlib_filesystem {
   }
 
 
+  // Converts the given path to a std::string. Since Heist only supports ASCII 
+  //   encoding for strings, file paths are always assumed to only have ASCII
+  //   characters as well (don't get too sendy there Windows, I see you.)
+  string coerce_path_to_string(const std::filesystem::path::string_type& s)noexcept{
+    return string(s.begin(),s.end());
+  }
+
+
+  auto coerce_string_to_path(const string& s)noexcept{
+    return std::filesystem::path::string_type(s.begin(),s.end());
+  }
+
+
   bool is_path(const string& s)noexcept{
     try {
-      return std::filesystem::exists(s);
+      return std::filesystem::exists(coerce_string_to_path(s));
     } catch(...) {
       return false;
     }
@@ -35,7 +48,7 @@ namespace heist::stdlib_filesystem {
 
   bool is_directory(const string& s)noexcept{
     try {
-      return std::filesystem::is_directory(s);
+      return std::filesystem::is_directory(coerce_string_to_path(s));
     } catch(...) {
       return false;
     }

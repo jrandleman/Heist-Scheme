@@ -242,8 +242,8 @@ Wraps scheme code in a [`scm->cps`](#scm-cps) block automatically, hence:
 0. Symbol ([quoted](#Quote) syntax label, `'hello`)
 1. Number ([see numerics section](#Heist-Numerics))
 2. Pair ([quoted](#Quote) expression `'(1 2 3)`, [list](#ListPair-Procedures) `(list 1 2 3)`, or [cons](#ListPair-Procedures) `(cons 1 (cons 2 (cons 3 '())))`)
-3. String (wrapped by `""`, `"hello"`)
-4. Char (have the `#\` prefix, `#\h #\e #\l #\l #\o`) (uses `ascii` encoding!)
+3. String (wrapped by `""`, uses `ASCII` encoding!)
+4. Char (have the `#\` prefix, `#\h #\e #\l #\l #\o`) (uses `ASCII` encoding!)
    * Also Supports Named Chars and Hex Chars:
      - `#\space`, `#\tab`, `#\newline`, `#\vtab`, `#\page`, `#\return`
      - `#\alarm`, `#\backspace`, `#\nul`, `#\esc`, `#\delete`

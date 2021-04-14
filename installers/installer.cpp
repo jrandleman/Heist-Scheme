@@ -15,6 +15,12 @@
 
 #include "../lib/installation/primitives_json_parser.cpp"
 
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__) || defined(_WIN64)
+  #define PATH_ENCODING_FMT_TOKEN "%ls"
+#else
+  #define PATH_ENCODING_FMT_TOKEN "%s"
+#endif
+
 int main() {
   // Populate the "primitives.hpp" registry with entries from "primitives.json"
   if(register_json_primitives()) {
@@ -35,9 +41,9 @@ int main() {
               "   \"file_regex\": \"^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$\",\n"
               " }\n"
               " */\n\n"
-              "#define HEIST_DIRECTORY_FILE_PATH \"%s\"\n", 
-              std::filesystem::current_path().parent_path().c_str(),
-              std::filesystem::current_path().parent_path().c_str(),
+              "#define HEIST_DIRECTORY_FILE_PATH \"" PATH_ENCODING_FMT_TOKEN "\"\n", 
+              std::filesystem::current_path().parent_path().c_str(), 
+              std::filesystem::current_path().parent_path().c_str(), 
               std::filesystem::current_path().parent_path().c_str());
   fclose(fp);
   return 0;
