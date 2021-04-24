@@ -23,6 +23,7 @@
 ; while
 ; do
 ; for
+; -<>
 
 (core-syntax and
   (syntax-rules ()
@@ -277,6 +278,14 @@
     ; no params nor returns (implies a body)
     ((_ () (break-test) body ...)
       (while ((not break-test)) body ...))))
+
+
+(core-syntax -<> ; Note: the "<>" value is cached!
+  (syntax-rules ()
+    ((_ a) a)
+    ((_ a op) ((lambda (<>) op) a))
+    ((_ a op1 op2 ...) 
+      (-<> ((lambda (<>) op1) a) op2 ...))))
 
 ;; ====================================================================================
 ;; =========== "QUASIQUOTE" MACRO FOR SELECTIVE EVALUATION DURING QUOTATION ===========

@@ -63,11 +63,11 @@
    - [Do](#Do), [While](#While), [For](#For)
    - [Delay](#Delay), [Scons](#Scons), [Stream](#Stream)
    - [Vector-Literal](#Vector-Literal), [Hmap-Literal](#Hmap-Literal)
-   - [Core-Syntax](#Core-Syntax), [Define-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax), [Let-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax), [Letrec-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax)
    - [Define-Reader-Alias](#Define-Reader-Alias)
+   - [Core-Syntax](#Core-Syntax), [Define-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax), [Let-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax), [Letrec-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax)
    - [Syntax-Rules](#Syntax-Rules), [Syntax-Hash](#Syntax-Hash)
    - [Scm->Cps](#Scm-Cps), [Cps-Quote](#Cps-Quote), [Using-Cps?](#Using-Cps)
-   - [Curry](#Curry)
+   - [Curry](#Curry), [-<>](#-<>)
    - [Defclass](#Defclass), [New](#New)
    - [Define-Coroutine](#Define-Coroutine)
    - [Define-Module](#Define-Module)
@@ -1119,6 +1119,26 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
+## Define-Reader-Alias:
+
+#### Use: ___Define a Symbolic Alias to be Replaced by the Reader!___
+* _Check for aliases via the [`reader-alias?`](#Syntax-Procedures) primitive!_
+* _Get all current aliases via the [`reader-alias-list`](#Syntax-Procedures) primitive!_
+
+#### Forms:
+* `(define-reader-alias <alias-symbol> <name-symbol>)`
+* `(define-reader-alias <alias-symbol-to-delete>)`
+
+#### Warning: ___Reader Aliases do NOT Recursively Expand!___
+```scheme
+(define-reader-alias a b)
+(define-reader-alias b +)
+(b 1 2 3) ; 6
+(a 1 2 3) ; ERROR: VARIABLE b IS UNBOUND !!!
+```
+
+
+------------------------
 ## Define-Syntax, Let-Syntax, Letrec-Syntax:
 
 #### Use: ___Create a Run-Time Macro (Bind a Label to a Syntax Object)!___
@@ -1302,26 +1322,6 @@ Other primitives of this nature include:<br>
 
 
 ------------------------
-## Define-Reader-Alias:
-
-#### Use: ___Define a Symbolic Alias to be Replaced by the Reader!___
-* _Check for aliases via the [`reader-alias?`](#Syntax-Procedures) primitive!_
-* _Get all current aliases via the [`reader-alias-list`](#Syntax-Procedures) primitive!_
-
-#### Forms:
-* `(define-reader-alias <alias-symbol> <name-symbol>)`
-* `(define-reader-alias <alias-symbol-to-delete>)`
-
-#### Warning: ___Reader Aliases do NOT Recursively Expand!___
-```scheme
-(define-reader-alias a b)
-(define-reader-alias b +)
-(b 1 2 3) ; 6
-(a 1 2 3) ; ERROR: VARIABLE b IS UNBOUND !!!
-```
-
-
-------------------------
 ## Scm->Cps:
 
 #### Use: ___Convert Code to CPS & Evaluate the Result!___
@@ -1455,6 +1455,37 @@ Other primitives of this nature include:<br>
 (define KI (K Id)) ; Binds "Id" as the first arg to "K"!
 ((KI 1) 2) ; "Id" is selected, then 2 is passed to "Id"! ; => 2
 (KI 1 2)   ; => 2
+```
+
+
+------------------------
+## -<>:
+
+#### Use: ___Thread a Series of Operations!___
+* _Note: `-<>` is actually a macro directly defined **in** Heist Scheme!_
+* _Note: Common Lisp's "Diamond Wand" inspired by Clojure's threading macros!_
+
+#### Form: `(-<> <base-expr> <operation1> <operation2> ...)`
+
+#### Example:
+```scheme
+(display 
+  (-<> (* 2 3)
+       (+ <> <>)
+       (* <> <>))) ; 144
+```
+
+#### Derivation Using [`lambda`](#Lambda):
+```scheme
+(-<> (* 2 3)
+     (+ <> <>)
+     (* <> <>))
+
+;; Becomes =>
+
+((lambda (<>) (* <> <>))
+  ((lambda (<>) (+ <> <>))
+    (* 2 3)))
 ```
 
 

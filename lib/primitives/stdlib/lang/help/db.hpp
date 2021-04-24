@@ -62,15 +62,15 @@ static constexpr const char* HELP_MENU_TYPES[] = {
 };
 
 static constexpr const char* HELP_MENU_SPECIALS[] = { 
-  "quote",           "quasiquote",          "lambda",        "fn",               "define",
-  "set!",            "defn",                "defined?",      "delete!",          "begin",
-  "if",              "and",                 "or",            "cond",             "case",
-  "let",             "let*",                "letrec",        "letrec*",          "do",
-  "while",           "for",                 "delay",         "scons",            "stream",
-  "vector-literal",  "hmap-literal",        "define-syntax", "syntax-rules",     "syntax-hash",
-  "core-syntax",     "define-reader-alias", "scm->cps",      "cps-quote",        "using-cps?",
-  "curry",           "defclass",            "new",           "define-coroutine", "define-module", 
-  "define-overload", "infix!",              "unfix!",
+  "quote",          "quasiquote",          "lambda",        "fn",               "define",
+  "set!",           "defn",                "defined?",      "delete!",          "begin",
+  "if",             "and",                 "or",            "cond",             "case",
+  "let",            "let*",                "letrec",        "letrec*",          "do",
+  "while",          "for",                 "delay",         "scons",            "stream",
+  "vector-literal", "hmap-literal",        "define-syntax", "syntax-rules",     "syntax-hash",
+  "core-syntax",    "define-reader-alias", "scm->cps",      "cps-quote",        "using-cps?",
+  "curry",          "-<>",                 "defclass",      "new",              "define-coroutine", 
+  "define-module",  "define-overload",     "infix!",        "unfix!",
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES[] = { 
@@ -2330,6 +2330,37 @@ Example:
   (define KI (K Id)) ; binds "Id" as the first arg to "K"!
   ((KI 1) 2)         ; "id" is selected, then 2 is passed to "Id"! ; => 2
   (KI 1 2)           ; => 2
+)",
+
+
+
+
+
+}, {
+"-<>",
+"Macro",
+R"(
+(-<> <base-expr> <operation1> <operation2> ...)
+)",
+R"(
+Thread a series of operations!
+  *) Common Lisp's "Diamond Wand" inspired by Clojure's threading macros!
+
+Example:
+
+  (-<> (* 2 3)
+       (+ <> <>)
+       (* <> <>)) ; 144
+
+Derivation using "lambda":
+
+  (-<> (* 2 3)
+       (+ <> <>)
+       (* <> <>))
+  ; BECOMES
+  ((lambda (<>) (* <> <>))
+    ((lambda (<>) (+ <> <>))
+      (* 2 3)))
 )",
 
 
