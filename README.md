@@ -67,7 +67,7 @@
    - [Core-Syntax](#Core-Syntax), [Define-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax), [Let-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax), [Letrec-Syntax](#Define-Syntax-Let-Syntax-Letrec-Syntax)
    - [Syntax-Rules](#Syntax-Rules), [Syntax-Hash](#Syntax-Hash)
    - [Scm->Cps](#Scm-Cps), [Cps-Quote](#Cps-Quote), [Using-Cps?](#Using-Cps)
-   - [Curry](#Curry), [-<>](#-<>)
+   - [Curry](#Curry), [-<>](#-)
    - [Defclass](#Defclass), [New](#New)
    - [Define-Coroutine](#Define-Coroutine)
    - [Define-Module](#Define-Module)
