@@ -10785,6 +10785,7 @@ R"(
 R"(
 Convert CSV string to a list of lists of numbers/strings.
   *) <optional-delimiter-char> defaults to #\,
+  *) Since CSV is untyped (unlike JSON), all cells are stringified!
 
 Other CSV procedures include: 
   "csv->vector", "list->csv", "vector->csv", & "csv-datum?"
@@ -10803,6 +10804,7 @@ R"(
 R"(
 Convert CSV string to a vector of vectors of numbers/strings.
   *) <optional-delimiter-char> defaults to #\,
+  *) Since CSV is untyped (unlike JSON), all cells are stringified!
 
 Other CSV procedures include: 
   "csv->list", "list->csv", "vector->csv", & "csv-datum?"

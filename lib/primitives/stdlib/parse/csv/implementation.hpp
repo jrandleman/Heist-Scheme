@@ -162,26 +162,32 @@ namespace heist::stdlib_csv {
   }
 
 
-  data parse_csv(const char* seq_prefix, const char delimiter, const string& csv){
+  // Note that since, unlike JSON, csv is untyped, CSV is parsed as if all data within were strings
+  data parse_csv(const char* seq_prefix, const char delimiter, string csv) {
     // Convert CSV into a Scheme expression to be read & evaluated
-    string scm_expr(seq_prefix);
-    scm_expr += seq_prefix;
+    trim_edge_whitespace(csv);
+    string scm_expr(seq_prefix); // open the matrix
+    scm_expr += seq_prefix;      // open the first row
+    scm_expr += '\"';
     for(size_type i = 0, n = csv.size(); i < n; ++i) {
       // end of row
       if(csv[i] == '\n') {
-        scm_expr += ')';
+        scm_expr += "\")";
         scm_expr += seq_prefix;
+        scm_expr += "\"";
       // skip non-newline whitespace
       } else if(isspace(csv[i])) {
+        scm_expr += csv[i];
         continue;
       // string literal
       } else if(is_non_escaped_double_quote(i,csv)) { // from lib/core/reader/parser.hpp
         auto j = i;
         skip_string_literal(i,csv);                   // from lib/core/reader/parser.hpp
-        while(j <= i) scm_expr += csv[j++];
+        ++j;                                          // skip past the initial '"'
+        while(j < i) scm_expr += csv[j++];            // j<i instead of j<=i to avoid cpying the last '"'
       // delimiter
       } else if(csv[i] == delimiter) {
-        scm_expr += ' ';
+        scm_expr += "\" \"";
       // general character (presumably part of a numeric)
       } else {
         scm_expr += csv[i];
@@ -189,16 +195,8 @@ namespace heist::stdlib_csv {
     }
     // Prep CSV-converted scheme expression for evaluation
     trim_edge_whitespace(scm_expr);
-    const auto seq_n = strlen(seq_prefix)-1;
-    const auto n = scm_expr.size();
-    char prefix[30];
-    strncpy(prefix,seq_prefix,30);
-    prefix[seq_n] = 0; // rm space at the end of the sequence ctor prefix
-    if(n >= seq_n && scm_expr.compare(n-seq_n,seq_n,prefix) == 0)
-      scm_expr.erase(n-seq_n,seq_n);
-    else 
-      scm_expr += ')';
-    scm_expr += ')';
+    scm_expr += "\")"; // close the last row 
+    scm_expr += ')';   // close the matrix
     // Try parsing the converted csv expression, & throw an error as needed
     try { 
       data_vector abstract_syntax_tree;

@@ -57,7 +57,6 @@ namespace heist {
       "\n     (csv->list <csv-string> <optional-delimiter-char>)"
       "\n     <csv-data> ::= <string> | <number>";
     char delimiter = stdlib_csv::validate_csv_parsing_args(args,"csv->list",format);
-    std::vector<data_vector> csv_matrix;
     return stdlib_csv::parse_csv("(list ", delimiter, *args[0].str);
   }
 
@@ -67,7 +66,6 @@ namespace heist {
       "\n     (csv->vector <csv-string> <optional-delimiter-char>)"
       "\n     <csv-data> ::= <string> | <number>";
     char delimiter = stdlib_csv::validate_csv_parsing_args(args,"csv->vector",format);
-    std::vector<data_vector> csv_matrix;
     return stdlib_csv::parse_csv("(vector ", delimiter, *args[0].str);
   }
 
