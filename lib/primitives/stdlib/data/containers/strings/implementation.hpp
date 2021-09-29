@@ -118,10 +118,10 @@ namespace heist::stdlib_strings {
     string str(*args[0].str);
     const size_type n = str.size();
     size_type i = 0;
-    auto procedure(primitive_toolkit::convert_callable_to_procedure(args[1]));
     if(args.size() == 1) { // no predicate given, trim whitespace
       for(; i < n && isspace(str[i]); ++i);
     } else {
+      auto procedure(primitive_toolkit::convert_callable_to_procedure(args[1]));
       for(; i < n; ++i) { // while predicate is true, trim character
         if(execute_application(procedure,data_vector(1,chr_type(str[i]))).is_falsey()) break;
       }
@@ -136,11 +136,11 @@ namespace heist::stdlib_strings {
     string str(*args[0].str);
     const size_type n = str.size();
     size_type i = n-1;
-    auto procedure(primitive_toolkit::convert_callable_to_procedure(args[1]));
     if(args.size() == 1) { // no predicate given, trim whitespace
       for(; i > 0 && isspace(str[i]); --i);
       if(i == 0 && isspace(str[i])) return make_str("");
     } else {
+      auto procedure(primitive_toolkit::convert_callable_to_procedure(args[1]));
       for(; i > 0; --i) { // while predicate is true, trim character
         if(execute_application(procedure,data_vector(1,chr_type(str[i]))).is_falsey()) break;
       }
