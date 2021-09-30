@@ -462,8 +462,8 @@ Other primitives of this nature include:<br>
 
 #### Quoting a Datum (exactly like [`quote`](#quote), with 2 key exceptions):
 0. `unquote`ing data undoes the quotation done by `quasiquote`
-1. `unquote-splice` = `unquote` _and_ "unwraps" parenthesis
-   * Hence result of `unquote-splice` **must** eval to acyclic list
+1. `unquote-splicing` = `unquote` _and_ "unwraps" parenthesis
+   * Hence result of `unquote-splicing` **must** eval to acyclic list
 
 #### Examples:
 ```scheme
