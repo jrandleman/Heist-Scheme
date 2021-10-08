@@ -1145,8 +1145,8 @@ Other primitives of this nature include:<br>
 #### Use: ___Create a Run-Time Macro (Bind a Label to a Syntax Object)!___
 * _Note: Run-Time macros are expanded **at run-time**, ie each time they're invoked!_
   - _See [`core-syntax`](#core-syntax) for an **analysis-time** macro alternative!_
-* _Note: See the [Syntax Transformers](#Syntax-Transformers) section for more info on syntax transformers!_
 * _Note: `let-syntax` & `letrec-syntax` are actually macros directly defined **in** Heist Scheme!_
+* _Note: See the [Syntax Transformers](#Syntax-Transformers) section for more info on syntax transformers!_
 
 #### Forms:
 0. `(define-syntax <label> <syntax-transformer>)`
@@ -1293,9 +1293,9 @@ Other primitives of this nature include:<br>
 ## Core-Syntax:
 
 #### Use: ___Construct an Analysis-Time Macro in the GLOBAL Scope!___
-* _Note: See the [Syntax Transformers](#Syntax-Transformers) section for more info on syntax transformers!_
 
 #### Form: `(core-syntax <label> <syntax-transformer>)`
+* _Note: See the [Syntax Transformers](#Syntax-Transformers) section for more info on syntax transformers!_
 
 #### Analysis-Time Advantanges:
 * Interpreter's [`eval`](#eval--apply) seperates expression analysis (declaration) & execution (invocation):
