@@ -2704,6 +2704,10 @@ Other primitives of this nature include:<br>
   
 19. __Interleave__: Form a stream by interleaving elts of either `<stream>`
     * `(stream-interleave <stream1> <stream2>)`
+  
+20. __Convert Stream to a Generator Thunk__: `(stream->generator <stream>)`
+    * Invoking the generator will continuously yield the next value in the stream!
+    * Yields the `'generator-complete` symbol once finished traversing the stream (if finite)!
 
 
 

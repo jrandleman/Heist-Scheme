@@ -536,6 +536,7 @@
 ; (stream-constant   . objs)
 ; (stream-append     s . streams)
 ; (stream-interleave stream1 stream2)
+; (stream->generator s)
 
 (define (heist:stream:error name message format variable)
   (syntax-error name (append message "\n" format) variable))
@@ -705,6 +706,21 @@
           stream2
           (scons (scar stream1) (stream-interleave stream2 (scdr stream1)))))
     (stream-interleave stream1 stream2)))
+
+
+(define (stream->generator s)
+  (if (not (stream? s))
+      (heist:stream:error 'stream->generator "arg isn't a stream!" 
+        "(stream->generator <stream>)" s))
+  (if (null? s)
+      (lambda () 'generator-complete)
+      (let ((new-stream (scons '() s)))
+        (lambda ()
+          (if (null? new-stream)
+              'generator-complete
+              (begin 
+                (set! new-stream (scdr new-stream))
+                (scar new-stream)))))))
 
 ;; ===================================================
 ;; =========== MATHEMATIC FLONUM CONSTANTS ===========

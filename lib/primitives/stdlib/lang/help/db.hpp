@@ -115,12 +115,12 @@ static constexpr const char* HELP_MENU_PROCEDURES_COROUTINES[] = {
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_STREAMS[] = {
-  "stream-length",     "stream-reverse",  "scar",              "scdr", 
-  "scaar...scddddr",   "stream-ref",      "stream-append",     "stream-drop", 
-  "stream-drop-while", "stream-take",     "stream-take-while", "stream-map", 
-  "stream-filter",     "stream-for-each", "stream-unfold",     "stream-fold", 
-  "stream-fold-right", "stream-from",     "stream-iterate",    "stream-zip", 
-  "stream-constant",   "stream-interleave", 
+  "stream-length",     "stream-reverse",    "scar",              "scdr", 
+  "scaar...scddddr",   "stream-ref",        "stream-append",     "stream-drop", 
+  "stream-drop-while", "stream-take",       "stream-take-while", "stream-map", 
+  "stream-filter",     "stream-for-each",   "stream-unfold",     "stream-fold", 
+  "stream-fold-right", "stream-from",       "stream-iterate",    "stream-zip", 
+  "stream-constant",   "stream-interleave", "stream->generator", 
 };
 
 static constexpr const char* HELP_MENU_PROCEDURES_NUMBERS[] = {
@@ -3698,6 +3698,22 @@ R"(
 )",
 R"(
 Form a stream by interleaving elts of either <stream>.
+)",
+
+
+
+
+
+}, {
+"stream->generator",
+"Procedure",
+R"(
+(stream->generator <stream>)
+)",
+R"(
+Converts the given stream object into a "generator" thunk! 
+Invoking the generator will continuously "yield" the next value in the stream! 
+Yields the 'generator-complete symbol once finished traversing the stream (if finite)!
 )",
 
 
