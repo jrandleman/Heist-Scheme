@@ -54,11 +54,11 @@ static constexpr const char* HELP_MENU_DOCUMENTATION[] = {
 };
 
 static constexpr const char* HELP_MENU_TYPES[] = { 
-  "nil",             "expression", "symbol",     "string",             "number", 
-  "char",            "boolean",    "list",       "pair",               "vector", 
-  "hmap",            "alist",      "input-port", "output-port",        "object", 
-  "class-prototype", "procedure",  "void",       "undefined",          "sequence", 
-  "coroutine",       "universe",   "module",     "syntax-transformer", 
+  "nil",             "expression", "symbol",     "string",      "number", 
+  "char",            "boolean",    "list",       "pair",        "vector", 
+  "hmap",            "alist",      "input-port", "output-port", "object", 
+  "class-prototype", "procedure",  "callable",   "void",        "undefined",
+  "sequence",        "coroutine",  "universe",   "module",      "syntax-transformer", 
 };
 
 static constexpr const char* HELP_MENU_SPECIALS[] = { 
@@ -816,6 +816,27 @@ CPS Transformation:
 
 
 }, {
+"callable",
+"Object (Reference Semantics)",
+R"()",
+R"(
+Term for family of objects: <procedure> | <class-prototype> | <functor>
+
+Callables are invocable via application syntax:
+
+  (<callable> <optional-arg-1> <optional-arg-2> ...)
+
+For the sake of generality, Heist Scheme's stdlib higher-order procedures all 
+type-check for callables rather than procedures, something which is encouraged
+in all Heist Scheme code! Hence, as a general rule, prefer "callable?" over 
+"procedure?".
+)",
+
+
+
+
+
+}, {
 "void",
 "Object (Value Semantics) | Procedure",
 R"(
@@ -863,6 +884,7 @@ R"(
 R"(
 Returns Heist Scheme's cmd-line options as a string:
 
+  Interpret Script: <script-filename> <optional-argv-1> ...
   Compile Script: -c <script-filename> <optional-compiled-filename>
   Load Script: -l <script-filename>
   Infix Operators: -infix
@@ -5377,6 +5399,7 @@ R"(
 Trim characters from the left of <string> while <predicate?> is true.
   *) <predicate?> defaults to "char-whitespace?".
   *) See "string-trim-right" to perform this from the right instead!
+  *) See "string-trim-both" to perform this from the left and right instead!
 )",
 
 
@@ -5393,6 +5416,7 @@ R"(
 Trim characters from the right of <string> while <predicate?> is true.
   *) <predicate?> defaults to "char-whitespace?".
   *) See "string-trim" to perform this from the left instead!
+  *) See "string-trim-both" to perform this from the left and right instead!
 )",
 
 

@@ -191,17 +191,18 @@
 
 ------------------------
 # Heist Command-Line Flags
-0. Compile Script: `-c <script-filename> <optional-compiled-filename>`
-1. Load Script: `-l <script-filename>`
-2. Infix Operators: `-infix`
-3. With CPS Evaluation: `-cps`
-4. Disable ANSI Colors: `-nansi`
-5. Case Insensitivity: `-ci`
-6. Dynamic Call Trace: `-dynamic-call-trace`
-7. Trace Call Args: `-trace-args`
-8. Stack Trace Size: `-trace-limit <non-negative-integer>`
-9. Interpreter Version: `--version`
-10. Show These Options: `--help`
+0. Interpret Script: `<script-filename> <optional-argv-1> ...`
+1. Compile Script: `-c <script-filename> <optional-compiled-filename>`
+2. Load Script: `-l <script-filename>`
+3. Infix Operators: `-infix`
+4. With CPS Evaluation: `-cps`
+5. Disable ANSI Colors: `-nansi`
+6. Case Insensitivity: `-ci`
+7. Dynamic Call Trace: `-dynamic-call-trace`
+8. Trace Call Args: `-trace-args`
+9. Stack Trace Size: `-trace-limit <non-negative-integer>`
+10. Interpreter Version: `--version`
+11. Show These Options: `--help`
 
 ### `-c` Notes:
 Compilation replaces interpreter's reader, hence:
@@ -1144,6 +1145,7 @@ Other primitives of this nature include:<br>
 #### Use: ___Create a Run-Time Macro (Bind a Label to a Syntax Object)!___
 * _Note: Run-Time macros are expanded **at run-time**, ie each time they're invoked!_
   - _See [`core-syntax`](#core-syntax) for an **analysis-time** macro alternative!_
+* _Note: See the [Syntax Transformers](#Syntax-Transformers) section for more info on syntax transformers!_
 * _Note: `let-syntax` & `letrec-syntax` are actually macros directly defined **in** Heist Scheme!_
 
 #### Forms:
@@ -1291,6 +1293,7 @@ Other primitives of this nature include:<br>
 ## Core-Syntax:
 
 #### Use: ___Construct an Analysis-Time Macro in the GLOBAL Scope!___
+* _Note: See the [Syntax Transformers](#Syntax-Transformers) section for more info on syntax transformers!_
 
 #### Form: `(core-syntax <label> <syntax-transformer>)`
 
