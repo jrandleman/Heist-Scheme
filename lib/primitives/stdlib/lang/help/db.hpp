@@ -2447,7 +2447,7 @@ Self, Prototype, & Inherited Object Access:
   1. ".prototype" member returns the class prototype of the object
   2. ".super" member returns object's underlying inherited object (returns "#f" if dne)
      *) The ".super" property can only be "set!" to object or "#f" values!
-        - If "set!" to an object, the object MUST have the same prototype as the original ".super" value!
+        - If "set!" to an object, the object MUST have the same ".prototype" as the original ".super" value!
 
 Overload Equality, Printing, Typeof, & Copying:
   0. Equality: "self=" method will attempt to be invoked on objects for "eq?", "eqv?", "equal?"
