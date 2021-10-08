@@ -57,6 +57,19 @@ namespace heist::stdlib_numerics {
     return factorial(n-1,n*p);
   }
 
+
+  void confirm_valid_rounding_args(const data_vector& args, const char* name, const char* format){
+    if(args.size() != 1 && args.size() != 2) 
+      HEIST_THROW_ERR('\'' << name << " didn't receive 1 or 2 arguments (given "
+        << args.size() << ")!\n     " << format << HEIST_FCN_ERR(name,args));
+    if(!args[0].is_type(types::num) || !args[0].num.is_real())
+      HEIST_THROW_ERR('\'' << name << " received non-real-numeric argument: "
+        << HEIST_PROFILE(args[0]) << "!\n     " << format << HEIST_FCN_ERR(name,args));
+    if(args.size() == 2 && (!args[1].is_type(types::num) || !args[1].num.is_real() || args[1].num.is_neg()))
+      HEIST_THROW_ERR('\'' << name << " 2nd argument (precision) isn't a non-negative real number: "
+        << HEIST_PROFILE(args[1]) << "!\n     " << format << HEIST_FCN_ERR(name,args));
+  }
+
 } // End of namespace heist::stdlib_numerics
 
 #endif

@@ -4388,10 +4388,11 @@ Confirm <number> is an integer AND exact!
 "ceiling",
 "Procedure",
 R"(
-(ceiling <real>)
+(ceiling <real> <optional-real-precision>)
 )",
 R"(
-Round <real> up to the nearest integer:
+Round <real> up to the nearest integer with <optional-real-precision> 
+digits of precision (defaults to 0):
 
   (ceiling 0.5)  ; 1.0
   (ceiling -0.5) ; 0
@@ -4405,10 +4406,11 @@ Round <real> up to the nearest integer:
 "floor",
 "Procedure",
 R"(
-(floor <real>)
+(floor <real> <optional-real-precision>)
 )",
 R"(
-Round <real> down to the nearest integer:
+Round <real> down to the nearest integer with <optional-real-precision> 
+digits of precision (defaults to 0):
 
   (floor 0.5)  ; 0
   (floor -0.5) ; -1.0
@@ -4422,10 +4424,11 @@ Round <real> down to the nearest integer:
 "truncate",
 "Procedure",
 R"(
-(truncate <real>)
+(truncate <real> <optional-real-precision>)
 )",
 R"(
-Round <real> towards 0:
+Round <real> towards 0 with <optional-real-precision> digits of precision 
+(defaults to 0):
 
   (truncate 1.5)  ; 1.0
   (truncate -1.5) ; -1.0
@@ -4439,10 +4442,11 @@ Round <real> towards 0:
 "round",
 "Procedure",
 R"(
-(round <real>)
+(round <real> <optional-real-precision>)
 )",
 R"(
-Round <real> to the nearest integer:
+Round <real> to the nearest integer with <optional-real-precision> digits 
+of precision (defaults to 0):
 
   (round 0.5)  ; 1.0
   (round -0.5) ; -1.0

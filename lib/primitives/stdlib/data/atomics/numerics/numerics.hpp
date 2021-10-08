@@ -371,26 +371,34 @@ namespace heist {
 
   // primitive "ceiling" procedure -- ROUNDS UP
   data primitive_CEILING(data_vector&& args) {
-    stdlib_numerics::confirm_unary_real_numeric(args, "ceiling", "(ceiling <real>)");
-    return args[0].num.ceil();
+    stdlib_numerics::confirm_valid_rounding_args(args, "ceiling", "(ceiling <real> <optional-real-precision>)");
+    if(args.size() == 1) return args[0].num.ceil();
+    const auto precision = std::pow(10.0L, args[1].num.extract_inexact());
+    return (args[0].num * precision).ceil() / precision;
   }
 
   // primitive "floor" procedure -- ROUNDS DOWN
   data primitive_FLOOR(data_vector&& args) {
-    stdlib_numerics::confirm_unary_real_numeric(args, "floor", "(floor <real>)");
-    return args[0].num.floor();
+    stdlib_numerics::confirm_valid_rounding_args(args, "floor", "(floor <real> <optional-real-precision>)");
+    if(args.size() == 1) return args[0].num.floor();
+    const auto precision = std::pow(10.0L, args[1].num.extract_inexact());
+    return (args[0].num * precision).floor() / precision;
   }
 
   // primitive "truncate" procedure -- ROUNDS TOWARDS ZERO
   data primitive_TRUNCATE(data_vector&& args) {
-    stdlib_numerics::confirm_unary_real_numeric(args, "truncate", "(truncate <real>)");
-    return args[0].num.trunc();
+    stdlib_numerics::confirm_valid_rounding_args(args, "truncate", "(truncate <real> <optional-real-precision>)");
+    if(args.size() == 1) return args[0].num.trunc();
+    const auto precision = std::pow(10.0L, args[1].num.extract_inexact());
+    return (args[0].num * precision).trunc() / precision;
   }
 
   // primitive "round" procedure -- ROUNDS TOWARDS THE NEAREST INT
   data primitive_ROUND(data_vector&& args) {
-    stdlib_numerics::confirm_unary_real_numeric(args, "round", "(round <real>)");
-    return args[0].num.round();
+    stdlib_numerics::confirm_valid_rounding_args(args, "round", "(round <real> <optional-real-precision>)");
+    if(args.size() == 1) return args[0].num.round();
+    const auto precision = std::pow(10.0L, args[1].num.extract_inexact());
+    return (args[0].num * precision).round() / precision;
   }
 
   /******************************************************************************

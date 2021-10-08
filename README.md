@@ -2050,13 +2050,13 @@ Other primitives of this nature include:<br>
 
 
 ### Numeric Rounding:
-0. __Round Number Up to Nearest Integer__: `(ceiling <real>)`
+0. __Round Number Up to Nearest Integer__: `(ceiling <real> <optional-real-precision>)`
 
-1. __Round Number Down to Nearest Integer__: `(floor <real>)`
+1. __Round Number Down to Nearest Integer__: `(floor <real> <optional-real-precision>)`
 
-2. __Round Number Towards Zero__: `(truncate <real>)`
+2. __Round Number Towards Zero__: `(truncate <real> <optional-real-precision>)`
 
-3. __Round Number__: `(round <real>)`
+3. __Round Number__: `(round <real> <optional-real-precision>)`
 
 
 ### Trigonometry Procedures:
