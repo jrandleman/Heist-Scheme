@@ -7,6 +7,29 @@
 namespace heist {
 
   /******************************************************************************
+  * SUPER PROPERTY SETTING
+  ******************************************************************************/
+
+  // ".super" can only be set to objects & #f
+  bool valid_value_to_set_to_super(const cls_type& target_proto, const data& d)noexcept{
+    return (d.is_type(types::obj) && d.obj->proto == target_proto) || (d.is_type(types::bol) && !d.bol.val);
+  }
+
+
+  bool setting_the_super_property(const string& property_name, const cls_type& target_proto, const data& value)noexcept{
+    return property_name == "super" && valid_value_to_set_to_super(target_proto, value);
+  }
+
+
+  void set_super_value(obj_type& super, data& value)noexcept{
+    if(value.is_type(types::obj)) {
+      super = value.obj;
+    } else if(value.is_type(types::bol) && !value.bol.val) {
+      super = nullptr;
+    }
+  }
+
+  /******************************************************************************
   * OBJECTS PROPERTY DEFINITION
   ******************************************************************************/
 
@@ -15,6 +38,8 @@ namespace heist {
     for(size_type i = 0, n = obj.member_names.size(); i < n; ++i) {
       if(obj.member_names[i] == property_name) {
         obj.member_values[i] = value;
+        if(setting_the_super_property(property_name, obj.proto->super, value))
+          set_super_value(obj.super, value);
         return;
       }
     }
@@ -79,7 +104,7 @@ namespace heist {
   }
 
 
-  bool set_new_property_value_SEEK_IN_OBJ(str_vector& seeking_names, data_vector& seeking_values, 
+  bool set_new_property_value_SEEK_IN_OBJ(object_type& obj, str_vector& seeking_names, data_vector& seeking_values, 
                                           str_vector& alt_names, data_vector& alt_values, const bool value_in_SEEKING_set, 
                                           const string& property_name, data& value)noexcept{
     for(size_type i = 0, n = seeking_names.size(); i < n; ++i) {
@@ -88,6 +113,8 @@ namespace heist {
           value.fcn.name = object_type::hash_method_name(property_name);
         if(value_in_SEEKING_set) {
           seeking_values[i] = value;
+          if(setting_the_super_property(property_name, obj.proto->super, value))
+            set_super_value(obj.super, value);
         } else {
           seeking_names.erase(seeking_names.begin()+i);
           seeking_values.erase(seeking_values.begin()+i);
@@ -105,10 +132,10 @@ namespace heist {
   bool set_new_object_property_value(object_type& obj, const string& property_name, data& value)noexcept{
     return 
       // Search local members
-      set_new_property_value_SEEK_IN_OBJ(obj.member_names,obj.member_values,obj.method_names,obj.method_values,
+      set_new_property_value_SEEK_IN_OBJ(obj,obj.member_names,obj.member_values,obj.method_names,obj.method_values,
                                          !value.is_type(types::fcn),property_name,value) || 
       // Search local methods
-      set_new_property_value_SEEK_IN_OBJ(obj.method_names,obj.method_values,obj.member_names,obj.member_values,
+      set_new_property_value_SEEK_IN_OBJ(obj,obj.method_names,obj.method_values,obj.member_names,obj.member_values,
                                          value.is_type(types::fcn),property_name,value)  ||
       // Search the prototype & cache the new member/method if found
       set_new_property_value_SEEK_IN_PROTO(obj.proto->member_names, obj, property_name, value) ||

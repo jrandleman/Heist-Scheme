@@ -21,9 +21,12 @@ namespace heist::stdlib_objects {
     if(!args[1].is_type(types::sym))
       HEIST_THROW_ERR('\''<<name<<" 2nd property-name arg "<<HEIST_PROFILE(args[1])<<" isn't a symbol!"
         <<format<<HEIST_FCN_ERR(name,args));
-    if(args[1].sym == "super")
-      HEIST_THROW_ERR('\''<<name<<" property <super> can't be set to a new value!"
-        <<format<<HEIST_FCN_ERR(name,args));
+    // "valid_value_to_set_to_super" is from 
+    //   "lib/core/type_system/scheme_types/objects/implementation_helpers/object_property_manipulation_logic.hpp"
+    if(args[1].sym == "super" && !valid_value_to_set_to_super(args[0].obj->proto->super, args[2]))
+      HEIST_THROW_ERR('\''<<name<<" property <super> can ONLY be set to objects with"
+        "\n     the same prototype as the original super object, OR #f values ("
+        <<HEIST_PROFILE(args[2])<<" isn't)!"<<format<<HEIST_FCN_ERR(name,args));
     if(args[1].sym == "prototype")
       HEIST_THROW_ERR('\''<<name<<" property <prototype> can't be set to a new value!"
         <<format<<HEIST_FCN_ERR(name,args));
