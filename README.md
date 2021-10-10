@@ -1552,6 +1552,27 @@ Other primitives of this nature include:<br>
    * The `.super` property can only be `set!` to object or `#f` values!
      - If `set!` to an object, the object ***must*** have the same `.prototype` as the original `.super` value!
 
+#### Inheritance Constructor Chaining:
+By default, "super objects" in an inheritance chain will only be created by using their class' default 
+constructor. However, user-defined constructors of the super class may still be used to initialize super
+objects via the "super" special form (only works in class methods). Suppose you had a "Square" class that 
+inherits the "Rectangle" class:
+
+```scheme
+(defclass Rectangle ()
+  ((Rectangle (width 0) (height 0))
+    (define self.width width)
+    (define self.height height))
+  ((area)
+    (* self.width self.height))
+  ((perimeter) 
+    (* 2 (+ self.width self.height))))
+
+(defclass Square (Rectangle)
+  ((Square (len 0))
+    (super len len))) ; invoke the user-defined constructor to create the super "Rectangle" object
+```
+
 #### Overload Equality, Printing, Typeof, & Copying:
 0. Equality: `self=` method will attempt to be invoked on objects for [`eq?`](#Equality-Predicates), [`eqv?`](#Equality-Predicates), [`equal?`](#Equality-Predicates)
    - Method should accept 1 argument to compare equality against!

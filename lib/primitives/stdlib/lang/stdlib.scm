@@ -439,6 +439,15 @@
             (heist:oo:anon:equal? self obj eqv?)))
         (new-heist:oo:anon:prototype)))))
 
+;; ===============================================================================
+;; =========== "SUPER" MACRO TO INVOKE THE INHERITED CLASS CONSTRUCTOR ===========
+;; ===============================================================================
+
+(core-syntax super
+  (syntax-rules ()
+    ((_) (set! self.super (self.super.prototype)))
+    ((_ p ...) (set! self.super (self.super.prototype p ...)))))
+
 ;; ==================================================================
 ;; =========== "DEFINE-MODULE" MACRO FOR PROCEDURE HIDING ===========
 ;; ==================================================================
