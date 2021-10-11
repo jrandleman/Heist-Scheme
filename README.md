@@ -1555,7 +1555,7 @@ Other primitives of this nature include:<br>
 #### Inheritance Constructor Chaining:
 By default, "super objects" in an inheritance chain will only be created by using their class' default 
 constructor. However, user-defined constructors of the super class may still be used to initialize super
-objects via the "super" special form (only works in class methods). 
+objects via the `super` special form (only works in class methods). 
 
 Suppose you had a "Square" class that inherits the "Rectangle" class:
 ```scheme
@@ -1570,7 +1570,7 @@ Suppose you had a "Square" class that inherits the "Rectangle" class:
 
 (defclass Square (Rectangle)
   ((Square (len 0))
-    (super len len))) ; invoke the user-defined constructor to create the super "Rectangle" object
+    (super len len))) ; invoke the user-defined ctor to create the super "Rectangle" object
 ```
 
 #### Overload Equality, Printing, Typeof, & Copying:
