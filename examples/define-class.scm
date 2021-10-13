@@ -40,7 +40,7 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Super Object Value parsing
+;; Super Object Value Parsing
 
 (define (heist:lib:define-class:parse-super-object class-name super-object)
   (if (null? super-object)
