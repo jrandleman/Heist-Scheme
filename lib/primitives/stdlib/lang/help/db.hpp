@@ -55,10 +55,11 @@ static constexpr const char* HELP_MENU_DOCUMENTATION[] = {
 
 static constexpr const char* HELP_MENU_TYPES[] = { 
   "nil",             "expression", "symbol",     "string",      "number", 
-  "char",            "boolean",    "list",       "pair",        "vector", 
-  "hmap",            "alist",      "input-port", "output-port", "object", 
-  "class-prototype", "procedure",  "callable",   "void",        "undefined",
-  "sequence",        "coroutine",  "universe",   "module",      "syntax-transformer", 
+  "char",            "boolean",    "pair",       "list",        "alist",
+  "vector",          "hmap",       "input-port", "output-port", "object", 
+  "class-prototype", "functor",    "procedure",  "void",        "undefined",
+  "callable",        "sequence",   "coroutine",  "universe",    "module",
+  "syntax-transformer", 
 };
 
 static constexpr const char* HELP_MENU_SPECIALS[] = { 
@@ -760,6 +761,32 @@ NOTE: "module" is simply a class prototype under the hood too, with
 
 NOTE: "universe" is also a class prototype under the hood, though it leverages
       a reserved primitive in order to achieve its sandboxing of environments.
+)",
+
+
+
+
+
+}, {
+"functor",
+"Object (Reference Semantics)",
+R"()",
+R"(
+Functors are any <object> constructed from a class prototype with a <self->procedure> 
+method defined. Functor objects may be applied to a set of arguments just as any 
+procedure would be, with said arguments then automatically getting passed to the 
+functor's <self->procedure> method instead.
+
+Functor Example:
+
+  (defclass Functor ()
+    (factor 10)
+    ((self->procedure a) (* self.factor a))) ; overload application
+
+  (define f (Functor))
+  (display (f 12)) ; 120 (apply functor "f" as if a procedure)
+  (set! f.factor 100)
+  (display (f 12)) ; 1200
 )",
 
 
