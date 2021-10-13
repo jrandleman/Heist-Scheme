@@ -985,7 +985,7 @@
       (eq? d 'define-syntax) (eq? d 'syntax-rules)))
 
 (define (heist:core:expand*:unwrap-begins datum)
-  (if (and (list? datum) (not (heist:core:expand*:unexpandable? (car datum))))
+  (if (and (list? datum) (pair? datum) (not (heist:core:expand*:unexpandable? (car datum))))
       (if (and (= (length datum) 2) (eq? (car datum) 'begin))
           (heist:core:expand*:unwrap-begins (cadr datum))
           (map heist:core:expand*:unwrap-begins datum))
