@@ -9868,10 +9868,10 @@ Call w/o args to check if feature provided, call w/ args to run a command.
 "getenv",
 "Procedure",
 R"(
-(getenv <variable-name-string>)
+(getenv <environment-variable-name-string>)
 )",
 R"(
-Get variable's value as a string.
+Get the system environment variable's value as a string.
 )",
 
 

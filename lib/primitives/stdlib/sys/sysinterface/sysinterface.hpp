@@ -147,20 +147,16 @@ namespace heist {
   * GETENV
   ******************************************************************************/
 
-  // Given a string of a variable name, returns a string of that variable's value
+  // Given a string of an environment var name, returns a string of that var's value
   data primitive_GETENV(data_vector&& args) {
-    // extract the environment
-    auto env = args.rbegin()->env;
-    args.pop_back();
     if(args.size() != 1)
       HEIST_THROW_ERR("'getenv didn't receive exactly 1 arg!"
-        "\n     (getenv <variable-name-string>)" << HEIST_FCN_ERR("getenv",args));
+        "\n     (getenv <environment-variable-name-string>)" << HEIST_FCN_ERR("getenv",args));
     if(!args[0].is_type(types::str))
       HEIST_THROW_ERR("'getenv "<<HEIST_PROFILE(args[0])<<" isn't a string!"
-        "\n     (getenv <variable-name-string>)"<<HEIST_FCN_ERR("getenv",args));
-    bool found = false;
-    auto val_string = env->getenv(*args[0].str, found);
-    if(found) return make_str(val_string);
+        "\n     (getenv <environment-variable-name-string>)"<<HEIST_FCN_ERR("getenv",args));
+    char* result = getenv(args[0].str->c_str());
+    if(result) return make_str(result);
     return GLOBALS::FALSE_DATA_BOOLEAN;
   }
 

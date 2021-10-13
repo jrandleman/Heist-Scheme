@@ -623,7 +623,7 @@
         "primitive_COMPILE":                  "compile",
         "primitive_CPS_COMPILE":              "cps-compile",
         "primitive_SYSTEM":                   "system",
-        "*primitive_GETENV":                  "getenv",
+        "primitive_GETENV":                   "getenv",
         "primitive_COMMAND_LINE":             "command-line",
         "primitive_MILLISECONDS_SINCE_EPOCH": "ms-since-epoch",
         "primitive_TIME":                     "time",

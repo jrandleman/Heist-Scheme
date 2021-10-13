@@ -3170,8 +3170,8 @@ Suppose you had a "Square" class that inherits the "Rectangle" class:
 4. __System Interface Via Command-Line__: Returns `#f` if feature not offered by OS
    * `(system <optional-system-call-string>)`
 
-5. __Get-Environment__: Get variable's value as a string
-   * `(getenv <variable-name-string>)`
+5. __Get-Environment__: Get the system environment variable's value as a string
+   * `(getenv <environment-variable-name-string>)`
 
 6. __Command-Line Args__: Get a string with command-line arg descriptions
    * `(command-line)`
