@@ -2958,6 +2958,7 @@ Suppose you had a "Square" class that inherits the "Rectangle" class:
    -> NOTE: 0-padding & precision MUST be of 2 digits or less!
    ----------------------------------------------------------------------
    %$ = display real finite as a dollar value
+   %,$ = display real finite as a dollar value seperated by commas
    ----------------------------------------------------------------------
    %s = display string
    %#s = display string & pad left with # spaces

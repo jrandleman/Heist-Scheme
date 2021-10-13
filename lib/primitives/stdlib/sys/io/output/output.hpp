@@ -118,6 +118,7 @@ namespace heist {
     "\n        -> NOTE: 0-padding & precision MUST be of 2 digits or less!"\
     "\n        ----------------------------------------------------------------------"\
     "\n        %$ = display real finite as a dollar value"\
+    "\n        %,$ = display real finite as a dollar value seperated by commas"\
     "\n        ----------------------------------------------------------------------"\
     "\n        %s = display string"\
     "\n        %#s = display string & pad left with # spaces"\

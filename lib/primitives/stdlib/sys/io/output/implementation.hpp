@@ -129,6 +129,11 @@ namespace heist::stdlib_output {
   }
 
 
+  bool is_dollar_token(const string& input, size_type i)noexcept{
+    return input[i+1] == '$' || (input[i+1] == ',' && input[i+2] == '$');
+  }
+
+
   bool is_ellipsis_token(const string& input, size_type i)noexcept{
     return i+2 < input.size() && input[i] == '.' && input[i+1] == '.' && input[i+2] == '.';
   }
@@ -181,14 +186,6 @@ namespace heist::stdlib_output {
   }
 
 
-  string generate_dollar_value_string(const num_type& n)noexcept{
-    auto str = ((n * 100.0L).round() / 100.0L).str();
-    if(str.size() == 1) return "0.00";
-    if(*(str.rbegin()+1) == '.') return str + '0'; // add an extra '0' to mk it 2 decimal places
-    return str;
-  }
-
-
   void insert_num_commas(string& num_str)noexcept{
     string comma_str;
     for(size_type i = num_str.size(), count = 0; i-- > 0; count = (count + 1) % 3) {
@@ -197,6 +194,21 @@ namespace heist::stdlib_output {
     }
     num_str = string(comma_str.rbegin(),comma_str.rend());
     if(num_str[0] == '-' && num_str[1] == ',') num_str.erase(1,1);
+  }
+
+
+  string generate_dollar_value_string(const num_type& n, const bool adding_commas)noexcept{
+    auto str = ((n * 100.0L).round() / 100.0L).str();
+    if(str.size() == 1) {
+      str = "0.00";
+    } else if(*(str.rbegin()+1) == '.') {
+      str += '0'; // add an extra '0' to mk it 2 decimal places
+    }
+    if(!adding_commas) return str;
+    const auto decimal_pos = str.find('.');
+    auto integer_str = str.substr(0,decimal_pos);
+    insert_num_commas(integer_str);
+    return integer_str + str.substr(decimal_pos);
   }
 
 
@@ -229,8 +241,10 @@ namespace heist::stdlib_output {
           tokens.push_back(sprintf_token_t::token_t::a), input = input.substr(i+2), i = 0;
         } else if(is_ellipsis_token(input,i+1)) {
           tokens.push_back(sprintf_token_t::token_t::ellipsis), input = input.substr(i+4), i = 0;
-        } else if(next_ch == '$') {
-          tokens.push_back(sprintf_token_t::token_t::dollar), input = input.substr(i+2), i = 0;
+        } else if(is_dollar_token(input,i)) {
+          sprintf_token_t str_token(sprintf_token_t::token_t::dollar);
+          str_token.commas = input[i+1] == ',';
+          tokens.push_back(str_token), input = input.substr(input.find('$',i)+1), i = 0;
         } else if(is_string_token(input,i)) {
           sprintf_token_t str_token(sprintf_token_t::token_t::s);
           str_token.padding = parse_string_padding(input,i);
@@ -418,7 +432,7 @@ namespace heist::stdlib_output {
           break;
         case sprintf_token_t::token_t::dollar:  
           if(!data_is_a_valid_dollar_value(args[i])) THROW_BAD_FORMAT_ARG("real finite numeric");
-          formatted += generate_dollar_value_string(args[i].num); break;
+          formatted += generate_dollar_value_string(args[i].num,tokens[i-1].commas); break;
         case sprintf_token_t::token_t::s:  
           if(!args[i].is_type(types::str)) THROW_BAD_FORMAT_ARG("string");
           // apply padding as needed
