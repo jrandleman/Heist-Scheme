@@ -111,7 +111,7 @@ namespace heist::stdlib_seqs {
     const size_type l = (args[sequence_pos].*seq_ptr)->size();
     if(i >= l)
       HEIST_THROW_ERR('\''<<name<<" received out of range index " << i 
-        <<"\n     for "<<seq_name<<' '<<args[sequence_pos]<<" of size "
+        <<" for "<<seq_name<<' '<<args[sequence_pos]<<" of size "
         <<l<<'!'<<format<<HEIST_FCN_ERR(name,args));
     return i;
   }
@@ -535,7 +535,6 @@ namespace heist::stdlib_seqs {
   * SLICE
   ******************************************************************************/
 
-  // -- STRINGS
   size_type confirm_valid_slice_length(data_vector& args, const size_type& seq_len,  const size_type& start_idx, 
                                                           const char* type_instance, const char* format){
     if(args.size() == 2) return seq_len - start_idx; // to the end of the sequence
@@ -550,8 +549,20 @@ namespace heist::stdlib_seqs {
   }
 
 
+  // -- STRINGS
   data string_slice(data_vector& args, const char* format) {
-    const auto start = get_if_valid_string_idx(args, "slice", format);
+    // confirm given valid in-'size_type'-range non-negative start index
+    if(!data_is_valid_index(args[1]))
+      HEIST_THROW_ERR("'slice <string> arg "<<HEIST_PROFILE(args[1])
+        <<" isn't a proper non-negative integer!"<<format<<VALID_SEQUENCE_INDEX_RANGE
+        <<HEIST_FCN_ERR("slice",args));
+    const size_type start      = (size_type)args[1].num.extract_inexact();
+    const size_type str_length = args[0].str->size();
+    if(start == str_length) return make_str(""); // idx = length -> ""
+    if(start+1 > str_length)
+      HEIST_THROW_ERR("'slice <string> <start-index> "<<start<<" is out of range for string "
+        <<args[0]<<" of length "<<str_length<<'!'<<format<<VALID_SEQUENCE_INDEX_RANGE
+        <<HEIST_FCN_ERR("slice",args));
     const auto length = confirm_valid_slice_length(args,args[0].str->size(),start,"<string>",format);
     return make_str(args[0].str->substr(start,length));
   }
@@ -566,6 +577,7 @@ namespace heist::stdlib_seqs {
         <<HEIST_FCN_ERR("slice",args));
     const size_type start      = (size_type)args[1].num.extract_inexact();
     const size_type vec_length = args[0].vec->size();
+    if(start == vec_length) return make_vec(data_vector()); // idx = length -> '#()
     if(start+1 > vec_length)
       HEIST_THROW_ERR("'slice <vector> <start-index> "<<start<<" is out of range for vector "
         <<args[0]<<" of length "<<vec_length<<'!'<<format<<VALID_SEQUENCE_INDEX_RANGE
@@ -600,6 +612,7 @@ namespace heist::stdlib_seqs {
         <<HEIST_FCN_ERR("slice",args));
     const size_type start      = (size_type)args[1].num.extract_inexact();
     const size_type lis_length = get_list_length(args[0]);
+    if(start == lis_length) return symconst::emptylist;  // idx = length -> '()
     if(start+1 > lis_length)
       HEIST_THROW_ERR("'slice <list> <start-index> "<<start<<" is out of range for list "
         <<args[0]<<" of length "<<lis_length<<'!'<<format<<VALID_SEQUENCE_INDEX_RANGE
