@@ -1872,14 +1872,15 @@ Suppose you had a "Square" class that inherits the "Rectangle" class:
 #### Examples:
 ```scheme
 (infixr! 5 compose)
-
-; (#<procedure>)
-(display (list even? compose length)) 
-
+(display (list even? compose length)) ; (#<procedure>)
 (unfix! compose)
+(display (list even? compose length)) ; (#<procedure even?> #<procedure compose> #<procedure length>)
 
-; (#<procedure even?> #<procedure compose> #<procedure length>)
-(display (list even? compose length))
+(define :: cons)
+(define @ append)
+(infixr! 5 :: @)
+(unfix! :: @)     ; BAD! Reader infix-conversions means this becomes: ((:: unfix! @))
+(unfix! #!:: #!@) ; GOOD! "#!" reader symbol prefix will prevent operator infix-conversion.
 ```
 
 

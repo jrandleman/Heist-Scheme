@@ -2851,18 +2851,21 @@ R"(
 (unfix! <symbol1> ...)
 )",
 R"(
-Deregister existing infix operators!
+Deregister existing infix operators! 
+Make sure to escape them with the "#!" prefix to prevent reader conversions!
+
 Examples:
 
   (infixr! 5 compose)
+  (display (list even? compose length)) ; (#<procedure>)
+  (unfix! #!compose)
+  (display (list even? compose length)) ; (#<procedure even?> #<procedure compose> #<procedure length>)
 
-  ; (#<procedure>)
-  (display (list even? compose length)) 
-
-  (unfix! compose)
-
-  ; (#<procedure even?> #<procedure compose> #<procedure length>)
-  (display (list even? compose length))
+  (define :: cons)
+  (define @ append)
+  (infixr! 5 :: @)
+  (unfix! :: @)     ; BAD! Reader infix-conversions means this becomes: ((:: unfix! @))
+  (unfix! #!:: #!@) ; GOOD! "#!" reader symbol prefix will prevent operator infix-conversion.
 
 CPS Transformation:
   (unfix! <symbol1> ...)
