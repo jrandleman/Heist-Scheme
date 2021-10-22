@@ -1868,19 +1868,20 @@ Suppose you had a "Square" class that inherits the "Rectangle" class:
 #### Use: ___Deregister Existing Infix Operators!___
 
 #### Form: `(unfix! <symbol1> ...)`
+* Make sure to escape the operators with the `#!` prefix to prevent reader conversions!
 
 #### Examples:
 ```scheme
 (infixr! 5 compose)
 (display (list even? compose length)) ; (#<procedure>)
-(unfix! compose)
+(unfix! #!compose)
 (display (list even? compose length)) ; (#<procedure even?> #<procedure compose> #<procedure length>)
 
 (define :: cons)
 (define @ append)
 (infixr! 5 :: @)
-(unfix! :: @)     ; BAD! Reader infix-conversions means this becomes: ((:: unfix! @))
-(unfix! #!:: #!@) ; GOOD! "#!" reader symbol prefix will prevent operator infix-conversion.
+(unfix! :: @)     ; BAD => Reader infix-conversions means this becomes ((:: unfix! @))
+(unfix! #!:: #!@) ; GOOD => "#!" reader symbol prefix will prevent operator infix-conversions
 ```
 
 

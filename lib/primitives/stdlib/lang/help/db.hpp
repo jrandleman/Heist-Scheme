@@ -2852,7 +2852,7 @@ R"(
 )",
 R"(
 Deregister existing infix operators! 
-Make sure to escape them with the "#!" prefix to prevent reader conversions!
+Make sure to escape the operators with the "#!" prefix to prevent reader conversions!
 
 Examples:
 
@@ -2864,8 +2864,8 @@ Examples:
   (define :: cons)
   (define @ append)
   (infixr! 5 :: @)
-  (unfix! :: @)     ; BAD! Reader infix-conversions means this becomes: ((:: unfix! @))
-  (unfix! #!:: #!@) ; GOOD! "#!" reader symbol prefix will prevent operator infix-conversion.
+  (unfix! :: @)     ; BAD => Reader infix-conversions means this becomes ((:: unfix! @))
+  (unfix! #!:: #!@) ; GOOD => "#!" reader symbol prefix will prevent operator infix-conversions
 
 CPS Transformation:
   (unfix! <symbol1> ...)
