@@ -351,7 +351,7 @@ namespace heist::stdlib_strings {
   data regex_replace(const string& target, const string& regex, const string& replacement){
     std::smatch reg_matches;
     while(std::regex_search(target, reg_matches, std::regex(regex)))
-      return reg_matches.prefix().str() + replacement + reg_matches.suffix().str();
+      return make_str(reg_matches.prefix().str() + replacement + reg_matches.suffix().str());
     return make_str(target);
   }
 
