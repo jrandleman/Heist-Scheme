@@ -458,7 +458,7 @@ Other primitives of this nature include:<br>
 1. ``` ,<obj> => (unquote <obj>)```
 2. ``` ,@<obj> => (unquote-splicing <obj>)```
 
-#### Use: ___Selectivly Eval & Convert Code to Data!___
+#### Use: ___Selectively Eval & Convert Code to Data!___
 * _Note: `quasiquote` is actually a macro directly defined **in** Heist Scheme!_
 
 #### Quoting a Datum (exactly like [`quote`](#quote), with 2 key exceptions):
