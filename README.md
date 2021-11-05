@@ -478,10 +478,10 @@ Other primitives of this nature include:<br>
 `(,@b ,@b ,@b) ; => (list 1 2 3 1 2 3 1 2 3)
 
 (define c (cons 3 4))
-`(1 2 ,c)  ; => `(1 2 (3 . 4))
-`(1 ,c 2)  ; => `(1 (3 . 4) 2)
-`(1 2 ,@c) ; => `(1 2 3 . 4)
-`(1 ,@c 2) ; => ERROR! CANT APPEND 2 TO DOTTED LIST `(1 3 . 4)
+`(1 2 ,c)  ; => '(1 2 (3 . 4))
+`(1 ,c 2)  ; => '(1 (3 . 4) 2)
+`(1 2 ,@c) ; => '(1 2 3 . 4)
+`(1 ,@c 2) ; => ERROR! CANT APPEND 2 TO DOTTED LIST '(1 3 . 4)
 ```
 
 
